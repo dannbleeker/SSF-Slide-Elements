@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  # The catalogue is COMMITTED and is what the add-in ships. A pull request that
+  # changes the library deck without re-running the harvest would otherwise be
+  # green against a catalogue nobody is going to install — and the sweep in
+  # `npm test` would be checking the OLD elements.
+  catalogue-is-current:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build:lib
+      - run: node scripts/harvest.mjs
+      - name: the committed catalogue matches the library deck
+        run: |
+          # `harvestedAt` is a timestamp and changes on every run, so it is
+          # excluded rather than making this gate fail once a day.
+          git diff --stat -- public/catalogue/ > /tmp/diff.txt || true
+          if git diff --quiet -- public/catalogue/elements/; then
+            echo "payloads unchanged"
+          else
+            echo "::error::The library deck and the committed catalogue disagree."
+            echo "Run: npm run build:lib && node scripts/harvest.mjs, then commit public/catalogue/"
+            git diff --stat -- public/catalogue/
+            exit 1
+          fi

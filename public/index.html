@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SSF Slide Elements</title>
+    <style>
+      :root { color-scheme: light dark; --navy:#00254c; --blue:#2b6cb0; --orange:#ed8936; }
+      body { margin:0; font:16px/1.6 "Segoe UI", system-ui, sans-serif; color:#1a202c; background:#fff; }
+      header { background:var(--navy); color:#fff; padding:40px 24px; }
+      .wrap { max-width:720px; margin:0 auto; }
+      h1 { margin:0 0 8px; font-size:28px; }
+      header p { margin:0; color:#b9cbe0; }
+      main { padding:32px 24px 64px; }
+      h2 { color:var(--navy); font-size:19px; margin-top:32px; border-left:3px solid var(--blue); padding-left:10px; }
+      code { background:#edf2f7; padding:2px 5px; border-radius:3px; font-size:14px; }
+      a { color:var(--blue); }
+      .tick { color:var(--orange); font-weight:700; }
+      @media (prefers-color-scheme: dark) {
+        body { background:#0a1420; color:#dce9f7; }
+        h2 { color:#dce9f7; }
+        code { background:#12202f; }
+        a { color:#7fb0e0; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <h1><span class="tick">&#10003;</span> SSF Slide Elements</h1>
+        <p>A library of ready-made slide elements for PowerPoint.</p>
+      </div>
+    </header>
+    <main class="wrap">
+      <p>
+        Browse the collection in the task pane, click an element, and it lands on the slide you are on — with every
+        font, colour, table and chart exactly as it was drawn.
+      </p>
+      <h2>Installing</h2>
+      <p>
+        Sideload <code>manifest-prod.xml</code> from the
+        <a href="https://github.com/dannbleeker/SSF-Slide-Elements">repository</a>. It needs PowerPoint with
+        PowerPointApi 1.2 or better — Microsoft 365 on Windows or Mac, PowerPoint on the web, or PowerPoint 2021.
+      </p>
+      <h2>Privacy</h2>
+      <p>
+        The add-in sends nothing anywhere. The element library is served with the add-in from this domain and your
+        presentation is read and written entirely inside PowerPoint on your own machine. There is no account, no
+        telemetry and no server that sees your slides.
+      </p>
+      <h2>Support</h2>
+      <p>
+        Open an issue on <a href="https://github.com/dannbleeker/SSF-Slide-Elements/issues">GitHub</a>.
+      </p>
+    </main>
+  </body>
+</html>

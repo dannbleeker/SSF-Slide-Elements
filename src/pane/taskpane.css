@@ -1,0 +1,291 @@
+/*
+ * The SSF visual system at task-pane width, as SSF Merge established it.
+ *
+ * Rules the layout was approved on, and the reasons they are rules:
+ *
+ * ORANGE BUDGET — one per view. Normally the tick above the heading. When
+ * something is temporarily untrue on the slide it moves to that warning and
+ * the tick goes away. Two oranges in one glance and neither means anything.
+ * BLUE IS CHROME — header, primary button, links, section markers.
+ * NAVY is headings and the facts the user is meant to read as facts.
+ * ONE COLUMN of text at every width. The pane is 320 to 512.
+ *
+ * The GRID is this add-in's one departure, and it earns it: a picker of
+ * ninety-eight elements read one per row is a scroll nobody finishes. Two
+ * columns of thumbnails at 320, three from 420 up — thumbnails, not text, so
+ * the one-column rule for prose is intact.
+ */
+:root {
+  --navy: #00254c;
+  --blue: #2b6cb0;
+  --orange: #ed8936;
+  --calm: #edf2f7;
+  --lightblue: #ddebf7;
+  --peach: #fdebdc;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --sunk: #edf2f7;
+  --text: #1a202c;
+  --muted: #5b6672;
+  --hair: #cbd5e0;
+  --head: var(--navy);
+  --link: var(--blue);
+  --disabled: #a0aec0;
+}
+
+/*
+ * Office themes, not the browser's. PowerPoint can be dark while the OS is
+ * light, and the pane is inside PowerPoint. `main.ts` reads
+ * `Office.context.officeTheme` and stamps `data-theme`; the media query is the
+ * fallback for the case Office never answers, which is exactly how the pane is
+ * inspected in a browser during development.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1420;
+    --surface: #12202f;
+    --sunk: #0d1a27;
+    --text: #dce9f7;
+    --muted: #93a7bc;
+    --hair: #20364b;
+    --head: #dce9f7;
+    --link: #7fb0e0;
+    --calm: #12202f;
+    --lightblue: #122a40;
+    --peach: #2e1f13;
+    --disabled: #4a5a6b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1420;
+  --surface: #12202f;
+  --sunk: #0d1a27;
+  --text: #dce9f7;
+  --muted: #93a7bc;
+  --hair: #20364b;
+  --head: #dce9f7;
+  --link: #7fb0e0;
+  --calm: #12202f;
+  --lightblue: #122a40;
+  --peach: #2e1f13;
+  --disabled: #4a5a6b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    14px/1.5 "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  /*
+   * Every long string on this screen comes from outside it — an element's own
+   * title, a file name, an error PowerPoint wrote. An unbroken one takes the
+   * pane past its own width and puts the primary button off the side.
+   */
+  overflow-wrap: anywhere;
+}
+
+header {
+  background: var(--navy);
+  color: #fff;
+  padding: 12px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+header h1 {
+  font-size: 15px;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+header .build {
+  margin-left: auto;
+  font-size: 11px;
+  color: #9fb6d0;
+  font-variant-numeric: tabular-nums;
+}
+
+main {
+  padding: 12px 16px 24px;
+}
+
+/* The orange tick. The one orange thing, unless a warning has taken it. */
+.tick {
+  color: var(--orange);
+  font-weight: 700;
+}
+.tick[hidden] {
+  display: none;
+}
+
+.search {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0 4px;
+}
+
+.section {
+  margin: 18px 0 0;
+}
+.section h2 {
+  font-size: 13px;
+  color: var(--head);
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--blue);
+  text-transform: none;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 420px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  overflow: hidden;
+  /*
+   * `block`, NOT `flex`, and this is not a style preference.
+   *
+   * A flex item's `display` is BLOCKIFIED: `-webkit-box` on the label computed
+   * to `flow-root`, so `-webkit-line-clamp` never applied and the label was
+   * hard-clipped mid-line by its own height instead — a third line sliced in
+   * half, with no ellipsis. It looked like the minifier dropping
+   * `-webkit-box-orient` and it was not; the property was there and the display
+   * value it needs was gone. Measured with `getComputedStyle`, which is the
+   * only thing that settled it.
+   */
+  display: block;
+}
+.card:hover {
+  border-color: var(--blue);
+}
+.card .thumb {
+  background: var(--sunk);
+  aspect-ratio: 16 / 9;
+  display: block;
+  width: 100%;
+}
+.card .thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.card .label {
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text);
+  /*
+   * The TRUNCATION is in `render.ts`, in the string — see `clampName` for why
+   * it is not a CSS clamp. Nothing here caps the height: a fixed one was tried
+   * and it clipped the third line a long name still wraps to, which is the
+   * defect the clamp was supposed to fix. Cards in a row are the same height
+   * anyway, because that is what a grid does by default.
+   *
+   * `block` so the padding and width behave predictably; a `<span>` is inline
+   * by default, where a height would silently do nothing.
+   */
+  display: block;
+}
+
+/*
+ * The focus ring is named for BUTTONS as well as fields.
+ *
+ * SSF Merge's stylesheet named `input`, `textarea` and `select` and stopped, so
+ * every button fell back to Chrome's own ring — near-black, on the dark theme's
+ * near-black pane, at 1.03:1. This pane is almost entirely buttons.
+ */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button.primary {
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+button.primary:disabled {
+  background: var(--disabled);
+  cursor: default;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--link);
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.notice {
+  border-left: 3px solid var(--blue);
+  background: var(--calm);
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.notice.warn {
+  border-left-color: var(--orange);
+  background: var(--peach);
+}
+.notice.warn {
+  color: var(--text);
+}
+
+.status {
+  margin: 12px 0;
+  font-size: 13px;
+  color: var(--muted);
+  min-height: 1.5em;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
+}
