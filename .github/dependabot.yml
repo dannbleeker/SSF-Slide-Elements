@@ -1,0 +1,60 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the dev toolchain rather than five. A linter bump and a
+      # vitest bump reviewed together is one CI run and one decision.
+      dev-tooling:
+        dependency-type: development
+    ignore:
+      # @types/node's major tracks the Node major it describes, and this repo
+      # pins Node 22 in `.nvmrc`, which every workflow reads (`engines` only
+      # floors it at >=22). Types ahead of the
+      # runtime are the dangerous direction — they typecheck an API the runtime
+      # may not have, so the failure lands at run time with a green build
+      # behind it. A sibling measured the honest limit of that claim: its whole
+      # gate passed under the newer types and no break was reproduced. The
+      # major is pinned because the alignment is free and the risk is
+      # asymmetric, not because a failure was demonstrated.
+      #
+      # Raise this deliberately, together with .nvmrc, when the repo moves to a
+      # newer Node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+      # TypeScript 7 is the native Go port and it ships NO stable programmatic
+      # compiler API. typescript-eslint reads that API to walk the AST and pull
+      # type information, so every published version of it caps its peer at
+      # "<6.1.0" — a sibling's Dependabot bump to 7.x could not even install:
+      # `npm ci` died with ERESOLVE before a single type was checked.
+      # typescript-eslint#12518 was closed as "not planned" because the fix
+      # belongs to TypeScript 7.1, which restores the programmatic API.
+      #
+      # So this repo is on TypeScript 6, which is Microsoft's own recommended
+      # path: 6 deprecates, 7 removes.
+      #
+      # UN-IGNORE THIS when typescript-eslint publishes a version whose peer
+      # range admits 7.x. That is the single condition; nothing else here needs
+      # to change first.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      # One pull request for the whole workflow toolchain. Ungrouped, a sibling's first
+      # run opened five: checkout, setup-node, configure-pages,
+      # upload-pages-artifact and deploy-pages, each its own branch and its own
+      # CI run, for a change nobody reviews line by line anyway.
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
