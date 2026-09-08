@@ -135,3 +135,49 @@ describe("what coverage measures", () => {
     expect(Object.keys(notMeasured)).toContain("office");
   });
 });
+
+describe("one resolver for relationship targets", () => {
+  /**
+   * A relationship target is resolved against the part that owns it, honouring
+   * a leading `/` and any number of `..`. That is fiddly enough to get subtly
+   * wrong, and in SSF-Merge it WAS: three files carried their own copy, and
+   * when the root-part case was fixed on 2026-08-29 only one of the three got
+   * the fix. The other two were latent rather than broken, which is exactly
+   * how a copy survives: it costs nothing until it does.
+   *
+   * Anchored on the one line no other function has, and deliberately on a
+   * fragment carrying NO string literal: `codeOf` blanks every literal so a
+   * guard cannot match prose. A guard that finds zero offenders looks exactly
+   * like a guard that is satisfied, so this names the one carrier it expects
+   * and goes red if the anchor moves rather than quiet.
+   */
+  const SIGNATURE = "ownerPart.slice(0, slash)";
+
+  it("lives in exactly one file", () => {
+    const carriers = filesUnder("src")
+      .filter((f) => codeOf(f).includes(SIGNATURE))
+      .map((f) => f.replaceAll("\\", "/"));
+    expect(carriers, "a second copy of resolveTarget has appeared").toEqual(["src/core/pptx/pkg.ts"]);
+  });
+});
+
+describe("what a slide's relationships are called", () => {
+  /**
+   * These strings decide which parts a clone copies, which it drops, and which
+   * a removal deletes. SSF-Merge had them written out in six files, three of
+   * them twice; the copies agreed and nothing had gone wrong, but one copy of
+   * the comment list said what a clone drops and the other what a removal
+   * deletes. PowerPoint has already added a second spelling of comments once,
+   * and adding a third to one copy and not the other leaves a clone carrying a
+   * comment part the removal will not clean up. So `src/core/pptx/parts.ts` is
+   * the one place a relationship type is spelled out.
+   */
+  it("is spelled out in one file", () => {
+    // RAW source, because `codeOf` masks string literals and these ARE string
+    // literals — the check would pass by finding nothing.
+    const offenders = filesUnder("src")
+      .filter((f) => !f.endsWith("parts.ts"))
+      .filter((f) => /["'`][^"'`]*\/relationships\/[a-zA-Z]/.test(rawOf(f)));
+    expect(offenders, "writes a relationship type out instead of naming it").toEqual([]);
+  });
+});

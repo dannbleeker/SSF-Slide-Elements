@@ -28,7 +28,7 @@ order [the backlog](docs/BACKLOG.md) gives.
 | Release workflow — manual, validated, assets checked against the docs | done |
 | Weekly pane audit: overflow, contrast, focus, hit areas, axe, at 320 and 512 in both themes | done |
 | Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
-| Package layer — the .pptx as parts, relationships and content types | planned |
+| Package layer — the .pptx as parts, relationships, content types and the slide list, ported from SSF-Merge with its tests | done |
 | Library harvest — a template deck in, a committed catalogue out | planned |
 | Splice — an element into the slide you are on, and the package self-check | planned |
 | The picker — browse by section, search, insert | planned |

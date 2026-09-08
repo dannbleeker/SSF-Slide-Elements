@@ -11,13 +11,6 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Package layer
-
-`src/core/pptx/`: the zip, its parts, relationships, content types and the
-slide list, with base64 in and out; `test/fixtures/deck.ts` to build a minimal
-.pptx in memory; and the package self-check, so a deck is compared by its parts
-and never by the archive's bytes. Ported from SSF-Merge.
-
 ### Library harvest
 
 The owner's library deck under `template/`, read into a committed catalogue:

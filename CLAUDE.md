@@ -18,14 +18,15 @@ SSF-Charts' per-shape failure surfaces exist. `src/core` is pure TypeScript with
 **zero Office imports**, enforced by `test/architecture.test.ts` in both
 directions.
 
-**Today only the scaffold exists.** The engine directory is empty on purpose;
-`docs/BACKLOG.md` is the order the rest arrives in.
+**Today the scaffold and the package layer exist.** Nothing reads a deck from
+PowerPoint yet and nothing splices; `docs/BACKLOG.md` is the order the rest
+arrives in.
 
 ## Where things live
 
 | directory | what it owns |
 | --- | --- |
-| `src/core/` | the engine, pure. Empty until the package layer lands |
+| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`). The harvest and the splice arrive next |
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |

@@ -5,8 +5,28 @@
  * the engine takes bytes and answers bytes, which is what lets it run in the
  * pane, in a script and in the suite with no PowerPoint anywhere.
  *
- * Empty on purpose. The package layer, the harvest and the splice each arrive
- * in their own change (`docs/BACKLOG.md`), and a placeholder that pretended to
- * be one of them would be the thing the next reader builds on.
+ * Today this is the package layer: a .pptx as parts, relationships, content
+ * types and a slide list, with base64 in and out. The harvest and the splice
+ * arrive in their own changes (`docs/BACKLOG.md`).
  */
-export {};
+export { Pkg, extensionOf, resolveTarget, resolveTargetSpellings } from "./pptx/pkg.js";
+export { COMMENT_REL_TYPES, OWNABLE_BY_GRAPHIC, OWNED_BY_SLIDE, REL_TYPE } from "./pptx/parts.js";
+export {
+  A_NS,
+  CT_NS,
+  C_NS,
+  CX_NS,
+  MC_NS,
+  PKG_REL_NS,
+  P_NS,
+  R_NS,
+  SSML_NS,
+  child,
+  children,
+  element,
+  elements,
+  parseXml,
+  relationshipIdsIn,
+  serializeXml,
+  xmlSafe,
+} from "./pptx/xml.js";

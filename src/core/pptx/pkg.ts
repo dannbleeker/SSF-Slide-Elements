@@ -1,0 +1,993 @@
+/**
+ * Ported from SSF-Merge (`src/core/pptx/pkg.ts`) on 2026-09-08, comments and
+ * all. Every incident the comments below narrate — a merged copy sharing a
+ * part, a sweep deleting the wrong one, a measurement in milliseconds or
+ * megabytes — happened THERE, in its merge engine, and "shipped" means shipped
+ * in SSF-Merge. Functions they name that are not in this repo (`cloneSlide`,
+ * `cloneSlideGraphics`, `writeSlideTags`, `src/office/merge.ts`) are
+ * SSF-Merge's; the ones this repo needs arrive with the splice. The reasoning
+ * transfers because the package is the same format and this add-in takes the
+ * same route: one deck in, one deck out, through one `insertSlidesFromBase64`.
+ */
+/**
+ * A .pptx as what it is: a zip of XML parts that reference each other.
+ *
+ * Everything the engine does to a deck happens here rather than through Office.js,
+ * for reasons that are recorded rather than assumed. A sibling add-in drawing
+ * charts shape by shape logged a 680-second run that shipped duplicate slides;
+ * the same product's one-call deck insert has none of those failure surfaces.
+ * A file handed to PowerPoint as base64 is one call to lose, and a slide-count
+ * delta proves whether it landed.
+ */
+import JSZip from "jszip";
+import { CT_NS, PKG_REL_NS, P_NS, R_NS, element, elements, parseXml, serializeXml } from "./xml.js";
+import { COMMENT_REL_TYPES, OWNABLE_BY_GRAPHIC, OWNED_BY_SLIDE, REL_TYPE } from "./parts.js";
+
+const CONTENT_TYPES = "[Content_Types].xml";
+const PRESENTATION = "ppt/presentation.xml";
+
+/** The package's own relationships: `ppt/presentation.xml`, and docProps. */
+const ROOT_RELS = "_rels/.rels";
+
+/** The highest value PowerPoint accepts in `<p:sldId id="…">`; the format caps ids below 2^31. */
+const MAX_SLIDE_ID = 2_147_483_647;
+/**
+ * The next number for a part family, given the ones already in use.
+ *
+ * Highest plus one, never filling a gap — see `nextNumber`.
+ *
+ * The whole of the safety is `countable`. Above 2^53, `max + 1 === max` — so a
+ * package holding `slide9007199254740992.xml` answered a number already in use,
+ * `copyPart` overwrote it silently, and two merged slides shared one part while
+ * the deck stayed structurally valid. It is the very defect `nextNumber`'s own
+ * comment says it exists to prevent, reached by a route the comment does not
+ * cover. Ignoring a digit run too large to count exactly leaves the maximum
+ * exact, so `max + 1` is a real step past every member.
+ *
+ * This carried a `while (used.has(next)) next++` as well, described as belt and
+ * braces. It was dead code: every member of `used` is a safe integer, so
+ * `max + 1` is exactly representable and strictly greater than all of them, and
+ * the loop could never run. An adversarial review of the commit that added it
+ * said so — a comment claiming a line is load-bearing when nothing can reach it
+ * is worse than no comment, because the next reader trusts it.
+ *
+ * `countable` leaves ONE hole, and this is where it is closed. A package
+ * holding both `slide9007199254740991.xml` and `slide9007199254740992.xml`
+ * counts the first — it is exactly `MAX_SAFE_INTEGER` — and ignores the second,
+ * so `max + 1` answers a name that is already in the package: the collision the
+ * whole guard exists to prevent, one step further out. There is no larger safe
+ * number to offer, so this refuses rather than answering, the same way
+ * `addSlideId` refuses a deck that has run out of ids. Unreachable by any real
+ * deck, whose part numbers are three digits.
+ */
+function nextFree(used: Set<number>): number {
+  let max = 0;
+  for (const n of used) if (n > max) max = n;
+  const next = max + 1;
+  if (!Number.isSafeInteger(next))
+    throw new Error("ssf-slide-elements: this package's part numbers are too large to extend");
+  return next;
+}
+
+/** Every whole number a path matched, ignoring any too large to count exactly. */
+function countable(n: number): boolean {
+  return Number.isSafeInteger(n) && n > 0;
+}
+
+/** PowerPoint's own numbering starts here, and ids below it are reserved. */
+const MIN_SLIDE_ID = 256;
+
+export class Pkg {
+  private readonly docs = new Map<string, Document>();
+
+  /**
+   * The numbers each part family already uses, filled on first ask.
+   *
+   * Every counter here answered by scanning the whole zip, and the merge loop
+   * that calls them is the loop adding to it — so a run was quadratic in the
+   * rows: 250 rows took 353 ms and 2000 took 7364, eight times the work for
+   * twenty-one times the time. Seven scans of this shape sat in one clone
+   * (slides, charts, media, notes, tags, relationships, slide ids), and the
+   * merge is a task-pane WebView doing it with nothing on screen.
+   *
+   * Kept current by `noteWritten` rather than re-derived, which is sound
+   * because `setText`, `setBytes` and `copyPart` are the only three ways a part
+   * enters this package.
+   *
+   * A DELETED part is deliberately not taken back out, and that DOES change the
+   * answer: the counter was a fact about the package and is now a high-water
+   * mark for this `Pkg`. Remove `slide9.xml` and the old code answered 2 while
+   * this answers 10. Nothing can collide either way — the point of never
+   * filling a gap — but "the next free number" is not what it computes any
+   * more, and an earlier version of this comment said a stale high number is
+   * "the answer the counter would give anyway", which is the sentence that is
+   * not true.
+   */
+  private readonly families = new Map<string, { pattern: RegExp; used: Set<number> }>();
+
+  /**
+   * The highest `rId` each rels part has handed out.
+   *
+   * `addRel` re-read every `<Relationship>` in the part to find it, and a clone
+   * adds several to the presentation's rels — which is the part that grows by
+   * one per merged slide. Dropped rather than lowered when relationships are
+   * deleted: the id is the highest plus one so a stale high number is the
+   * answer it would give anyway, and reusing a freed id is the duplicate this
+   * function's own comment exists to prevent.
+   */
+  private readonly relHighWater = new Map<string, number>();
+
+  /** Every `<Override>` in `[Content_Types].xml`, by part name. */
+  private overrides?: Map<string, Element>;
+
+  /** The highest `<p:sldId>` in the deck's order, once read. */
+  private slideIdHighWater?: number;
+
+  private constructor(private readonly zip: JSZip) {}
+
+  /** The numbers in use by one family, scanning the package once. */
+  private usedNumbers(key: string, pattern: RegExp): Set<number> {
+    const already = this.families.get(key);
+    if (already) return already.used;
+    const used = new Set<number>();
+    this.zip.forEach((path) => {
+      const n = Number(pattern.exec(path)?.[1] ?? 0);
+      if (countable(n)) used.add(n);
+    });
+    this.families.set(key, { pattern, used });
+    return used;
+  }
+
+  /** A part has entered the package: every counter that names it learns of it. */
+  private noteWritten(path: string): void {
+    for (const { pattern, used } of this.families.values()) {
+      const n = Number(pattern.exec(path)?.[1] ?? 0);
+      if (countable(n)) used.add(n);
+    }
+    // A rels part written WHOLE — created empty here, or copied from another
+    // part by `copyWithRels` — has an id range this cache no longer knows, so
+    // it is forgotten rather than guessed at.
+    if (path.endsWith(".rels")) this.relHighWater.delete(path);
+    // Same for the content types: `addContentTypeDefault` and this class are
+    // the only writers, but a wholesale replacement would leave a stale index.
+    if (path === CONTENT_TYPES) this.overrides = undefined;
+  }
+
+  /** Every `<Override>` by part name, indexed once. */
+  private async overrideIndex(): Promise<Map<string, Element>> {
+    if (this.overrides) return this.overrides;
+    const doc = await this.doc(CONTENT_TYPES);
+    const index = new Map<string, Element>();
+    for (const o of elements(doc, CT_NS, "Override")) {
+      const name = o.getAttribute("PartName");
+      if (name !== null && !index.has(name)) index.set(name, o);
+    }
+    this.overrides = index;
+    return index;
+  }
+
+  static async open(input: Uint8Array | ArrayBuffer | string): Promise<Pkg> {
+    const zip = await JSZip.loadAsync(input, typeof input === "string" ? { base64: true } : undefined);
+    return new Pkg(zip);
+  }
+
+  /**
+   * Raw text of a part, including edits not yet written back to the zip.
+   *
+   * A parsed document handed out by `doc` is the live copy of that part, so
+   * reading the text straight off the zip would answer with the version before
+   * the edit. Every caller would then have to know which parts had been touched,
+   * which is exactly the kind of bookkeeping that goes wrong once and is wrong
+   * silently: the merge would look right in memory and ship the template.
+   */
+  async text(path: string): Promise<string> {
+    const cached = this.docs.get(path);
+    if (cached) return serializeXml(cached);
+    const file = this.zip.file(path);
+    if (!file) throw new Error(`ssf-slide-elements: the package has no part "${path}"`);
+    return file.async("string");
+  }
+
+  async maybeText(path: string): Promise<string | undefined> {
+    const cached = this.docs.get(path);
+    if (cached) return serializeXml(cached);
+    return this.zip.file(path)?.async("string");
+  }
+
+  has(path: string): boolean {
+    return this.zip.file(path) !== null;
+  }
+
+  setText(path: string, xml: string): void {
+    this.docs.delete(path);
+    this.zip.file(path, xml);
+    this.noteWritten(path);
+  }
+
+  /**
+   * Write a BINARY part — media, so far.
+   *
+   * Its own method rather than an overload of `setText`, because the two
+   * differ in the one way that matters: JSZip stores a string as UTF-8 text,
+   * so a PNG handed to `setText` arrives at the other end re-encoded and the
+   * deck opens with a broken picture on every slide. The types are what keeps
+   * them apart.
+   */
+  setBytes(path: string, bytes: Uint8Array): void {
+    this.docs.delete(path);
+    this.zip.file(path, bytes);
+    this.noteWritten(path);
+  }
+
+  /** The raw bytes of a part. Never for XML — see `text`, which honours edits. */
+  async bytes(path: string): Promise<Uint8Array> {
+    const file = this.zip.file(path);
+    if (!file) throw new Error(`ssf-slide-elements: the package has no part "${path}"`);
+    return file.async("uint8array");
+  }
+
+  /**
+   * Declare a whole EXTENSION's content type, the way media is normally
+   * declared.
+   *
+   * `[Content_Types].xml` takes two kinds of entry: a `Default` per extension
+   * and an `Override` per part. Media uses defaults — one line for every `.png`
+   * in the package rather than one per picture — and a merge that embeds two
+   * hundred photos would otherwise add two hundred Overrides to a part
+   * PowerPoint parses on open.
+   *
+   * A default that is already there is left alone rather than replaced: a
+   * template may declare `png` for its own images, and a second entry for the
+   * same extension is schema-invalid.
+   */
+  async addContentTypeDefault(extension: string, contentType: string): Promise<void> {
+    const doc = await this.doc(CONTENT_TYPES);
+    const already = elements(doc, CT_NS, "Default").some(
+      (d) => (d.getAttribute("Extension") ?? "").toLowerCase() === extension.toLowerCase(),
+    );
+    if (already) return;
+    const node = doc.createElementNS(CT_NS, "Default");
+    node.setAttribute("Extension", extension);
+    node.setAttribute("ContentType", contentType);
+    // Defaults come before Overrides in every package PowerPoint writes, and
+    // the schema's own sequence is unordered — but a reader that assumes the
+    // conventional order is a reader this has to survive.
+    doc.documentElement.insertBefore(node, doc.documentElement.firstChild);
+  }
+
+  /**
+   * What content type the package declares for a part: its own Override, or
+   * the Default for its extension. Undefined when nothing covers it.
+   *
+   * Asked by anything that COPIES a part and has to declare the copy. Guessing
+   * the type from the extension is the version of this that goes wrong quietly:
+   * a chart's embedding is usually `.xlsx` and is sometimes a legacy `.xls`, an
+   * OLE `.bin` or whatever the producer chose, and a part no content type
+   * covers makes PowerPoint report the whole file as damaged without naming it.
+   * The package already says what the original is; the copy is the same bytes,
+   * so it is the same thing.
+   */
+  async contentTypeOf(part: string): Promise<string | undefined> {
+    const doc = await this.doc(CONTENT_TYPES);
+    const override = (await this.overrideIndex()).get(`/${part}`);
+    if (override) return override.getAttribute("ContentType") ?? undefined;
+    const extension = extensionOf(part);
+    if (!extension) return undefined;
+    const fallback = elements(doc, CT_NS, "Default").find(
+      (d) => (d.getAttribute("Extension") ?? "").toLowerCase() === extension.toLowerCase(),
+    );
+    return fallback?.getAttribute("ContentType") ?? undefined;
+  }
+
+  /** The next free `ppt/media/imageN.<ext>`, across every extension. */
+  nextMediaNumber(): number {
+    return nextFree(this.usedNumbers("media", /^ppt\/media\/image(\d+)\./));
+  }
+
+  /**
+   * A parsed part, cached. Mutating the returned document is how a part is
+   * edited; `save` serialises every document handed out this way. Nothing else
+   * writes the same part, so the cache cannot go stale behind a caller.
+   */
+  /**
+   * The next free number for a family of parts named `<prefix>N<suffix>`.
+   *
+   * Every family gets its OWN counter, read from the package rather than
+   * carried alongside it. Part names are arbitrary and the sequences drift the
+   * moment anything is deleted, so a deck with one chart can perfectly well
+   * keep it in `chart3.xml` — and naming a copy after the slide, or after
+   * another family's count, lands on a part that is already there. `copyPart`
+   * then overwrites it silently and `addContentTypeOverride` no-ops on the
+   * override already present, so the package stays structurally valid while two
+   * slides share one chart. That is exactly the defect this whole file's
+   * `nextNotesNumber` comment records, generalised so the next family cannot
+   * repeat it.
+   *
+   * Never reuses a gap: the highest number plus one. Since the counters are
+   * memoised (see `families`) that maximum is the highest this `Pkg` has SEEN,
+   * not the highest currently in the package — a deleted part does not lower
+   * it. Neither can collide; only one of them is "the next free number".
+   */
+  nextNumber(prefix: string, suffix = ".xml"): number {
+    const pattern = new RegExp(`^${escapeRegExp(prefix)}(\\d+)${escapeRegExp(suffix)}$`);
+    return nextFree(this.usedNumbers(`${prefix}\u0000${suffix}`, pattern));
+  }
+
+  /**
+   * Read a part without KEEPING the parsed copy.
+   *
+   * `doc` retains, because the cache is also the dirty-part set — every
+   * document it hands out is written back on flush, which is what makes an edit
+   * survive. A reader that only wants to look at a part therefore pays for it
+   * twice: once to parse, and then for the rest of the run to hold it.
+   *
+   * That is not a corner. Gathering the creation ids already in a package reads
+   * every slide in the deck exactly once, and on the file route the deck is the
+   * user's WHOLE presentation — so a merge parsed and held three hundred
+   * documents before it had merged a single record. Held parts should track
+   * neither the record count (which `release` answers) nor the deck's size,
+   * which is this.
+   *
+   * A part somebody has already parsed stays parsed: it is in the cache because
+   * a writer may be amending it, and dropping it here would throw away an edit.
+   * Only a part this call brought in is discarded.
+   */
+  async peek<T>(path: string, read: (doc: Document) => T): Promise<T> {
+    const cached = this.docs.get(path);
+    if (cached) return read(cached);
+    return read(parseXml(await this.text(path)));
+  }
+
+  async doc(path: string): Promise<Document> {
+    const cached = this.docs.get(path);
+    if (cached) return cached;
+    const doc = parseXml(await this.text(path));
+    this.docs.set(path, doc);
+    return doc;
+  }
+
+  /**
+   * Copy a part verbatim. Used by slide cloning for rels and for notes pages.
+   *
+   * An edited source is written back first. Cloning a slide whose text had
+   * already been merged would otherwise copy the version from disk, and the
+   * copy would silently carry the placeholders instead of the values.
+   */
+  async copyPart(from: string, to: string): Promise<void> {
+    const pending = this.docs.get(from);
+    if (pending) this.zip.file(from, serializeXml(pending));
+    const file = this.zip.file(from);
+    if (!file) throw new Error(`ssf-slide-elements: cannot copy "${from}", it is not in the package`);
+    this.zip.file(to, await file.async("uint8array"));
+    this.docs.delete(to);
+    this.noteWritten(to);
+  }
+
+  // ---- relationships -------------------------------------------------------
+
+  /** `ppt/slides/slide1.xml` → `ppt/slides/_rels/slide1.xml.rels`. */
+  static relsPathFor(part: string): string {
+    const slash = part.lastIndexOf("/");
+    // A part at the package ROOT has no directory, and `lastIndexOf` answers
+    // -1 for it: `slice(0, -1)` then drops the part's last CHARACTER and the
+    // result is a plausible-looking path to nowhere —
+    // `[Content_Types].xm/_rels/[Content_Types].xml.rels`. Nothing calls this
+    // with a root part today, so it has never bitten; it would fail silently
+    // when something did, which is the kind worth closing on sight.
+    if (slash < 0) return `_rels/${part}.rels`;
+    return `${part.slice(0, slash)}/_rels/${part.slice(slash + 1)}.rels`;
+  }
+
+  /**
+   * Add a relationship to a part and return its new `rId`.
+   *
+   * The id is the highest existing number plus one rather than the count, so a
+   * package whose relationships were never renumbered after a deletion cannot
+   * produce a duplicate.
+   */
+  async addRel(ownerPart: string, type: string, target: string): Promise<string> {
+    const path = Pkg.relsPathFor(ownerPart);
+    if (!this.has(path)) {
+      this.setText(
+        path,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="${PKG_REL_NS}"/>`,
+      );
+    }
+    const doc = await this.doc(path);
+    const root = doc.documentElement;
+    let max = this.relHighWater.get(path);
+    if (max === undefined) {
+      max = 0;
+      for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
+        const n = Number(/^rId(\d+)$/.exec(rel.getAttribute("Id") ?? "")?.[1] ?? 0);
+        if (n > max) max = n;
+      }
+    }
+    const id = `rId${max + 1}`;
+    this.relHighWater.set(path, max + 1);
+    const rel = doc.createElementNS(PKG_REL_NS, "Relationship");
+    rel.setAttribute("Id", id);
+    rel.setAttribute("Type", type);
+    rel.setAttribute("Target", target);
+    root.appendChild(rel);
+    return id;
+  }
+
+  /**
+   * Every package path a part relates to, one hop out.
+   *
+   * External targets are skipped: a hyperlink's `Target` is a URL and
+   * `resolveTarget` would answer a package path that does not exist.
+   *
+   * One hop is enough for what asks: a chart and a SmartArt diagram are both
+   * related directly from the slide that shows them.
+   */
+  /**
+   * A relationship target, in the spelling THIS package holds.
+   *
+   * The as-written name first, because that is what OPC says a part name maps
+   * to; the percent-decoded one when the package does not hold the first. See
+   * `resolveTargetSpellings` — a package that names a chart
+   * `my%20chart.xml` was invisible to every reader here, and the merge went on
+   * pointing every copy at the template's own chart with nothing said.
+   */
+  resolved(ownerPart: string, target: string): string {
+    const [asWritten, decoded] = resolveTargetSpellings(ownerPart, target);
+    return asWritten !== decoded && this.has(asWritten) ? asWritten : decoded;
+  }
+
+  async relatedParts(ownerPart: string): Promise<string[]> {
+    const path = Pkg.relsPathFor(ownerPart);
+    if (!this.has(path)) return [];
+    const doc = await this.doc(path);
+    const out: string[] = [];
+    for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
+      if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
+      const target = rel.getAttribute("Target");
+      if (!target) continue;
+      const resolved = this.resolved(ownerPart, target);
+      if (!out.includes(resolved)) out.push(resolved);
+    }
+    return out;
+  }
+
+  /**
+   * Every relationship a part declares, as `rId` -> the package path it points
+   * at. One walk of the `.rels`, for callers that resolve more than one id.
+   *
+   * `relTarget` answers ONE id and re-walks the whole relationship list to do
+   * it, which is fine for a caller with one id and quadratic for a caller with
+   * a list. `removeSlide` had a list: it resolved every `<p:sldId>` in the deck
+   * looking for the one naming the slide going out, and `src/office/merge.ts`
+   * removes the template block one slide at a time — so the cost is
+   * `removed x deck x deck`. Measured on a 100-slide deck plus 400 clones:
+   * **4.5 seconds** of blocking work in a task-pane WebView, after the merge
+   * had already finished, with nothing on screen to say why.
+   *
+   * Deliberately the same answer as `relTarget`, id for id, including for an
+   * External target — this replaces that call in a loop and must not quietly
+   * decide anything differently.
+   */
+  private async relTargets(ownerPart: string): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const path = Pkg.relsPathFor(ownerPart);
+    if (!this.has(path)) return out;
+    const doc = await this.doc(path);
+    for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
+      const id = rel.getAttribute("Id");
+      const target = rel.getAttribute("Target");
+      if (!id || !target) continue;
+      out.set(id, this.resolved(ownerPart, target));
+    }
+    return out;
+  }
+
+  /** Resolve one `r:id` in a part to the package path it points at. */
+  async relTarget(ownerPart: string, rId: string): Promise<string | undefined> {
+    const path = Pkg.relsPathFor(ownerPart);
+    if (!this.has(path)) return undefined;
+    const doc = await this.doc(path);
+    const rel = elements(doc, PKG_REL_NS, "Relationship").find((r) => r.getAttribute("Id") === rId);
+    const target = rel?.getAttribute("Target");
+    if (!target) return undefined;
+    return this.resolved(ownerPart, target);
+  }
+
+  // ---- content types -------------------------------------------------------
+
+  /**
+   * Declare a part's content type. Without this the file opens as damaged, and
+   * PowerPoint does not say which part it could not classify.
+   */
+  async addContentTypeOverride(partName: string, contentType: string): Promise<void> {
+    const doc = await this.doc(CONTENT_TYPES);
+    const index = await this.overrideIndex();
+    if (index.has(partName)) return;
+    const override = doc.createElementNS(CT_NS, "Override");
+    override.setAttribute("PartName", partName);
+    index.set(partName, override);
+    override.setAttribute("ContentType", contentType);
+    doc.documentElement.appendChild(override);
+  }
+
+  // ---- slides --------------------------------------------------------------
+
+  /** The deck's slides in presentation order, as package paths. */
+  async slidePaths(): Promise<string[]> {
+    const pres = await this.doc(PRESENTATION);
+    const list = element(pres, P_NS, "sldIdLst");
+    if (!list) return [];
+    // One walk of the presentation's relationships for the whole id list, not
+    // one per slide. Same reason as `removeSlide` below, and the same answers.
+    const targets = await this.relTargets(PRESENTATION);
+    const out: string[] = [];
+    for (const sldId of elements(list, P_NS, "sldId")) {
+      const rId = sldId.getAttributeNS(R_NS, "id") ?? sldId.getAttribute("r:id");
+      if (!rId) continue;
+      const target = targets.get(rId);
+      if (target) out.push(target);
+    }
+    return out;
+  }
+
+  /**
+   * Take a slide out of the deck entirely.
+   *
+   * Written for the merge run, which produces a package holding the TEMPLATE
+   * slides and the copies made from them and must hand PowerPoint only the
+   * copies. Inserting the template block again would put the user's own
+   * placeholder slides back into their deck, right after the merged ones, on
+   * every run.
+   *
+   * The alternative was to insert everything and name only the copies through
+   * `insertSlidesFromBase64`'s `sourceSlideIds`. That takes ids in the host's
+   * own `256#3561048925` spelling, which for a package not yet in the
+   * presentation would have to be CONSTRUCTED rather than read from a Slide —
+   * an assumption no round in a real host has tested, and one whose failure
+   * mode is `SlideNotFound` and nothing inserted. Removing the slides here is
+   * ours to get right and the suite can check it.
+   *
+   * Five things reference a slide and all five go: the id list entry, the
+   * presentation relationship, the content-type override, its own
+   * relationships, and the part. A notes page belongs to exactly one slide, so
+   * it goes with it.
+   *
+   * So do its charts and its SmartArt, and those need a check rather than a
+   * rule. Both used to be SHARED with every clone, so removing the template
+   * left them referenced and alive; now each copy has its own, so the
+   * template's would be left in the package with nothing pointing at it — a
+   * whole chart and its embedded workbook per template slide, in a file the
+   * host has to swallow as one base64 string. What may NOT go is the half that
+   * is still shared on purpose: a diagram's layout, quick style and colours are
+   * read-only styling every copy points at, and sweeping those would leave
+   * every merged slide referencing a part that is not there. `orphanedParts`
+   * is that distinction, asked of the package rather than assumed.
+   */
+  async removeSlide(slidePath: string): Promise<void> {
+    const pres = await this.doc(PRESENTATION);
+    const list = element(pres, P_NS, "sldIdLst");
+    // Resolved ONCE for the whole id list. This used to ask `relTarget` per
+    // `<p:sldId>`, and that re-walks the presentation's every relationship —
+    // so one removal cost `deck x deck` and a sweep of the template block cost
+    // that again per slide removed. See `relTargets` for what it measured.
+    const targets = await this.relTargets(PRESENTATION);
+    for (const sldId of list ? elements(list, P_NS, "sldId") : []) {
+      const rId = sldId.getAttributeNS(R_NS, "id") ?? sldId.getAttribute("r:id");
+      if (!rId) continue;
+      if (targets.get(rId) !== slidePath) continue;
+      sldId.parentNode?.removeChild(sldId);
+      const rels = await this.doc(Pkg.relsPathFor(PRESENTATION));
+      for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
+        if (rel.getAttribute("Id") === rId) rel.parentNode?.removeChild(rel);
+      }
+      // The relationship is gone, so a SECOND `<p:sldId>` naming the same id
+      // must now resolve to nothing — which is what the per-id lookup did, and
+      // this is a performance change that may not decide anything differently.
+      // Two entries sharing one id is malformed, and what a malformed deck
+      // came out as is not something to change by accident.
+      targets.delete(rId);
+    }
+
+    // Its notes page and its comments, if it has any. Both belong to ONE slide
+    // and are unreachable once that slide is gone, so leaving either behind
+    // would ship a part nothing relates to.
+    //
+    // Comments joined the notes here when `cloneSlide` stopped copying them: a
+    // clone no longer references the template's comment part, so removing the
+    // template on the way out would otherwise strand it — a part with a
+    // content-type override and nothing pointing at it.
+    const relsPath = Pkg.relsPathFor(slidePath);
+    if (this.has(relsPath)) {
+      const rels = await this.doc(relsPath);
+      for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
+        const type = rel.getAttribute("Type") ?? "";
+        if (type !== REL_TYPE.notesSlide && !COMMENT_REL_TYPES.includes(type)) continue;
+        const target = rel.getAttribute("Target");
+        if (!target) continue;
+        const related = this.resolved(slidePath, target);
+        // The TARGET comes out of the deck, and a deck can come from anywhere.
+        // `resolveTarget` honours a leading `/` and any number of `..`, so a
+        // crafted notes relationship naming `/[Content_Types].xml` — or
+        // reaching it with enough `..` — would have this delete the one part a
+        // presentation cannot open without. The output would be a file that
+        // will not open, from a deck the user only had to be sent.
+        //
+        // A notes page and a comment part live under `ppt/`, always. Anything
+        // resolving outside it is not what this loop collects, so it is left
+        // alone rather than removed.
+        if (!related.startsWith("ppt/")) continue;
+        await this.removePart(related);
+      }
+      // Read BEFORE the slide's own relationships go, because that is what
+      // makes them orphans: while this part exists it is one of the referrers.
+      const orphans = await this.orphanedParts(slidePath);
+      await this.removePart(relsPath);
+      for (const path of orphans) await this.removePart(path);
+    }
+    await this.removePart(slidePath);
+  }
+
+  /**
+   * The chart and SmartArt parts only this slide keeps alive.
+   *
+   * "Only this slide" is counted rather than assumed: every `.rels` in the
+   * package is read, and a part any OTHER part references is left where it is.
+   * That is what separates a template's own chart — which nothing else points
+   * at once its slide goes — from a diagram's layout, which every merged copy
+   * points at.
+   *
+   * Follows one hop further out from each one, because a chart owns its
+   * workbook and a diagram's model owns the drawing: those are unreachable the
+   * moment their owner goes, and are the bulk of the weight.
+   */
+  private async orphanedParts(slidePath: string): Promise<string[]> {
+    const owned: string[] = [];
+    for (const part of await this.relatedParts(slidePath)) {
+      // Tags belong here with the charts and the diagrams: `ppt/tags/tagN.xml`
+      // is written per slide by `writeSlideTags`, one slide points at it, and
+      // it is unreachable the moment that slide goes. It was not collected, so
+      // every removed slide left its tag part behind — with a content-type
+      // override and nothing referring to it, which is the exact shape the
+      // comment payoff above calls out for comments.
+      //
+      // It reaches further than a swept preview. On the `file` route the
+      // package is the user's WHOLE presentation and every slide that is not a
+      // clone is removed from it, so a deck whose slides carry tags — this
+      // add-in's own from a previous merge, or another add-in's — shipped one
+      // orphan per slide back into their deck.
+      //
+      // Same discipline as the others: an anchored name, so a crafted
+      // relationship cannot point this at a part the presentation needs. A tag
+      // part another tool named something else is left alone, which is the safe
+      // direction.
+      if (!OWNED_BY_SLIDE.test(part) || !this.has(part)) continue;
+      owned.push(part);
+      for (const child of await this.relatedParts(part)) {
+        // The child comes from the CHART's own relationships, which come out of
+        // the deck, and a deck can be sent to somebody. Without this allowlist a
+        // crafted chart relationship naming `/ppt/presentation.xml` put that
+        // part into `owned`, nothing else in the package referred to it — the
+        // only referrer is the root `_rels/.rels`, which the referrer scan below
+        // does not read — and the sweep deleted it. The merge then finished
+        // without complaint and produced a file PowerPoint cannot open. Naming
+        // `/[Content_Types].xml` did the same and then threw.
+        //
+        // The parent above is already held to an allowlist. This is the same
+        // discipline one level down: a chart or a diagram owns its styling, its
+        // workbook and its media, and nothing else. Anything outside these is
+        // left alone — and leaving a stranded part behind is a far better
+        // failure than deleting one the presentation needs.
+        if (!OWNABLE_BY_GRAPHIC.test(child)) continue;
+        if (this.has(child) && !owned.includes(child)) owned.push(child);
+      }
+    }
+    if (owned.length === 0) return [];
+
+    // Every referrer in the package except the slide going out, read once.
+    const relsPaths: string[] = [];
+    this.zip.forEach((path) => {
+      // `_rels/.rels` — the package's OWN relationships — has no directory in
+      // front of it, so a test for "/_rels/" misses it. It was missed, and it
+      // is the only referrer of `ppt/presentation.xml` and of docProps: a part
+      // named just from there was invisible to this scan and looked orphaned.
+      if (!path.endsWith(".rels")) return;
+      if (path.includes("/_rels/") || path === ROOT_RELS) relsPaths.push(path);
+    });
+    const ownerOf = (rels: string): string => {
+      const i = rels.indexOf("/_rels/");
+      // The root's owner is the package itself, which is not a part. The empty
+      // string is what `relsPathFor` and `resolveTarget` both read as "at the
+      // root", so it needs no special case beyond this one.
+      if (i < 0) return "";
+      return `${rels.slice(0, i)}/${rels.slice(i + 7, -".rels".length)}`;
+    };
+    const referrers = new Map<string, string[]>();
+    for (const rels of relsPaths) {
+      const owner = ownerOf(rels);
+      if (owner === slidePath) continue;
+      referrers.set(owner, await this.relatedParts(owner));
+    }
+
+    // Whose references count is decided by whether that part is itself going,
+    // and THAT is the answer this loop is computing — so it cannot be assumed
+    // before the loop runs.
+    //
+    // It was. The scan skipped every `.rels` whose owner was a candidate, and
+    // candidacy is only the question being asked: a chart another slide still
+    // references is KEPT, its own relationships were skipped all the same, and
+    // its embedded workbook therefore finished the scan with no referrer at
+    // all and was swept — leaving a surviving chart pointing at a part that is
+    // not in the package, which is exactly what PowerPoint calls damaged. Two
+    // slides sharing one chart is all it took, and the merge reported success.
+    //
+    // Settled by iterating instead. Every candidate starts out going; any
+    // candidate named by a part that is NOT going is taken out, which turns
+    // that part's own references back on for the next pass. The set only ever
+    // shrinks, so it converges in at most one pass per candidate, and a slide
+    // owns a handful.
+    const going = new Set(owned);
+    for (;;) {
+      let changed = false;
+      for (const [owner, targets] of referrers) {
+        // This part is going with the slide, so its references go with it.
+        if (going.has(owner)) continue;
+        for (const target of targets) if (going.delete(target)) changed = true;
+      }
+      if (!changed) break;
+    }
+    return owned.filter((path) => going.has(path));
+  }
+
+  /** Drop a part, its own relationships and its content-type override. */
+  private async removePart(path: string): Promise<void> {
+    const relsPath = Pkg.relsPathFor(path);
+    if (this.has(relsPath)) {
+      this.docs.delete(relsPath);
+      this.zip.remove(relsPath);
+    }
+    const types = await this.doc(CONTENT_TYPES);
+    for (const override of elements(types, CT_NS, "Override")) {
+      if (override.getAttribute("PartName") === `/${path}`) override.parentNode?.removeChild(override);
+    }
+    // Out of the index too. A stale entry here says a part is declared when it
+    // is not, so re-adding the part would skip its Override and PowerPoint
+    // would report the deck as damaged.
+    this.overrides?.delete(`/${path}`);
+    this.docs.delete(path);
+    this.zip.remove(path);
+  }
+
+  /**
+   * The next `ppt/slides/slideN.xml` number: the highest seen plus one.
+   *
+   * Never reuses a gap, and since the counter is memoised it does not go back
+   * down when a slide is removed either. See `families`.
+   */
+  /**
+   * The next free `ppt/notesSlides/notesSlideN.xml` number.
+   *
+   * Its OWN counter, not the slide's. Part names in a package are arbitrary and
+   * the two sequences drift apart the moment a slide is deleted, so a deck with
+   * one slide can perfectly well keep its notes in `notesSlide2.xml`. Naming a
+   * clone's notes after the slide number then lands on a part that is already
+   * there — and `copyPart` overwrites silently while `addContentTypeOverride`
+   * no-ops on the override that already exists, so the package stays structurally
+   * valid and is wrong in two ways at once: the clone shares the template's
+   * notes page (so the NEXT clone copies notes that have already been merged,
+   * and record 2's slide ships record 1's text), and removing the template on
+   * the way out deletes that shared part, leaving a slide whose notes
+   * relationship points at nothing.
+   *
+   * Both were reproduced on real bytes before this existed. `nextTagNumber` had
+   * the right shape all along, one file over: ask whether the path is free
+   * rather than assume it.
+   */
+  nextNotesNumber(): number {
+    let n = 1;
+    while (this.has(`ppt/notesSlides/notesSlide${n}.xml`)) n++;
+    return n;
+  }
+
+  nextSlideNumber(): number {
+    return nextFree(this.usedNumbers("slides", /^ppt\/slides\/slide(\d+)\.xml$/));
+  }
+
+  /**
+   * Append a slide to the deck's own order and return the id it was given.
+   *
+   * The id has to be unique and inside the format's range. Taking the highest
+   * in use plus one satisfies both, and appending rather than inserting is what
+   * makes the merged block land after the template instead of in front of it.
+   */
+  async appendSldId(rId: string): Promise<number> {
+    const pres = await this.doc(PRESENTATION);
+    const list = element(pres, P_NS, "sldIdLst");
+    if (!list) throw new Error("ssf-slide-elements: presentation.xml has no <p:sldIdLst>");
+    let max = this.slideIdHighWater;
+    if (max === undefined) {
+      max = MIN_SLIDE_ID - 1;
+      for (const sldId of elements(list, P_NS, "sldId")) {
+        const n = Number(sldId.getAttribute("id") ?? 0);
+        if (n > max) max = n;
+      }
+    }
+    const id = max + 1;
+    if (id > MAX_SLIDE_ID) throw new Error("ssf-slide-elements: the deck has run out of slide ids");
+    const el = pres.createElementNS(P_NS, "p:sldId");
+    el.setAttribute("id", String(id));
+    el.setAttributeNS(R_NS, "r:id", rId);
+    list.appendChild(el);
+    // Highest plus one, so a removal deliberately does not lower it: a reused
+    // slide id is a duplicate, and the range is 2^31 wide.
+    this.slideIdHighWater = id;
+    return id;
+  }
+
+  // ---- output --------------------------------------------------------------
+
+  /**
+   * Write a part back into the zip and drop its parsed copy.
+   *
+   * The cache is also the dirty-part set — `flush` writes every document handed
+   * out by `doc` — so nothing ever left it, and a merge held one live xmldom
+   * Document per output slide on top of JSZip's copy of the same bytes. Measured
+   * at 300 clones of a 124 KB slide: 1697 MB of heap against 93 MB with the
+   * documents released, and 400 records died outright under a 2 GB limit, which
+   * is the size a task-pane WebView is working in.
+   *
+   * Releasing is behaviour-neutral: every PART is byte-identical either way,
+   * which is asserted rather than assumed. The ZIP is not, and that is not a
+   * difference in output — JSZip stamps an entry time whenever a file is
+   * written, so any two builds differ. Compare parts, never the archive.
+   *
+   * Call it for a part nothing will read again; parts the
+   * run keeps amending, `[Content_Types].xml` and `ppt/presentation.xml` among
+   * them, must NOT be released or every clone reparses them.
+   */
+  release(path: string): void {
+    const doc = this.docs.get(path);
+    if (doc) this.setText(path, serializeXml(doc));
+  }
+
+  /**
+   * How many parts are parsed and held right now.
+   *
+   * A diagnostic, and the only way to state the property `release` exists for:
+   * that a merge's held-document count does not grow with the number of records.
+   * A memory assertion would be flaky; this one is exact.
+   */
+  cachedParts(): number {
+    return this.docs.size;
+  }
+
+  /**
+   * Every part in the package, in the zip's own order.
+   *
+   * A measurement rather than a manipulation: the package is handed to
+   * PowerPoint as base64 and then goes out of scope, so when the host answers
+   * `InvalidArgument` the file that caused it no longer exists anywhere. What
+   * survives has to be counted while it is still here, and "how many parts"
+   * separates a package missing its content types from one that is merely
+   * large.
+   *
+   * Directory entries are excluded — JSZip records them and they are not parts.
+   */
+  partNames(): string[] {
+    return Object.keys(this.zip.files).filter((name) => !this.zip.files[name]?.dir);
+  }
+
+  private flush(): void {
+    for (const [path, doc] of this.docs) this.zip.file(path, serializeXml(doc));
+  }
+
+  async toBase64(): Promise<string> {
+    this.flush();
+    return this.zip.generateAsync({ type: "base64", compression: "DEFLATE" });
+  }
+
+  async toBytes(): Promise<Uint8Array> {
+    this.flush();
+    return this.zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+  }
+}
+
+/**
+ * A part-name segment as the ZIP holds it.
+ *
+ * A relationship `Target` is a URI reference and its segments are
+ * percent-encoded, so a part called `my chart.xml` is written
+ * `../charts/my%20chart.xml`. A zip entry name is not encoded — it is the
+ * literal name — so the escaped form matches nothing, and every caller here
+ * asks `pkg.has(...)` about the answer.
+ *
+ * What that cost is not a missed lookup, it is a silent one.
+ * `cloneSlideGraphics` skips a chart it cannot find, so every merged copy keeps
+ * pointing at the TEMPLATE's chart part and the whole deck shows the last
+ * record's data — no refusal, no count, nothing in the outcome. Notes pages go
+ * the same way, which is the shared-part defect SSF-Merge found
+ * four times.
+ *
+ * Decoded AFTER the `..`/`.` walk, never before. `%2E%2E` is a segment whose
+ * name happens to be two dots; treating it as a step upward would let a crafted
+ * target reach a part the walk refused it, and this package's own sweep deletes
+ * what it is pointed at.
+ *
+ * A segment that is not valid encoding is kept exactly as it is —
+ * `decodeURIComponent` throws on `100%.png`, and a part really called that is a
+ * better answer than a throw from a merge.
+ */
+function decodeSegment(segment: string): string {
+  if (!segment.includes("%")) return segment;
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
+ * Resolve a relationship target, which may be relative, against the part that
+ * holds it — in BOTH spellings the package may use.
+ *
+ * OPC maps a part name to a ZIP item name by stripping the leading `/` and
+ * nothing else, so a part legitimately named `ppt/charts/my%20chart.xml` is
+ * stored under exactly that name. This resolver percent-DECODED every segment,
+ * so it answered `ppt/charts/my chart.xml`, `pkg.has` said no, and
+ * `cloneSlideGraphics` reads "not in the package" as "skip" — every merged copy
+ * silently kept pointing at the template's chart.
+ *
+ * Decoding is not simply wrong either: writers exist whose ZIP entries carry the
+ * decoded spelling. So both are produced, in the order the spec puts them, and
+ * the PACKAGE decides which it holds (`Pkg.resolved`). `resolveTarget` keeps the
+ * decoded answer as its own, because that is what every caller that cannot ask a
+ * package has always been given.
+ */
+export function resolveTargetSpellings(ownerPart: string, target: string): [asWritten: string, decoded: string] {
+  return [resolvePath(ownerPart, target, false), resolvePath(ownerPart, target, true)];
+}
+
+/** Resolve a relationship target, which may be relative, against the part that holds it. */
+export function resolveTarget(ownerPart: string, target: string): string {
+  return resolvePath(ownerPart, target, true);
+}
+
+function resolvePath(ownerPart: string, target: string, decode: boolean): string {
+  const segment = (seg: string): string => (decode ? decodeSegment(seg) : seg);
+  if (target.startsWith("/")) return target.slice(1).split("/").map(segment).join("/");
+  const slash = ownerPart.lastIndexOf("/");
+  // The same root-part trap `relsPathFor` documents, and here it had a
+  // consequence. `lastIndexOf` answers -1 for a part at the package root, and
+  // `slice(0, -1)` then drops its last character; an empty base also splits to
+  // `[""]`, which prefixes every answer with a slash. So the package's own
+  // `_rels/.rels` could not be resolved at all — which is why the referrer scan
+  // in `orphanedParts` skipped it, and why a part named only from there looked
+  // unreferenced. `""` is the root, and it now means that.
+  const base = slash < 0 ? "" : ownerPart.slice(0, slash);
+  const parts = base === "" ? [] : base.split("/");
+  for (const seg of target.split("/")) {
+    if (seg === "..") parts.pop();
+    else if (seg !== ".") parts.push(seg);
+  }
+  return parts.map(segment).join("/");
+}
+
+/**
+ * A part's file extension, or the empty string when it has none.
+ *
+ * Read from the last SEGMENT, never from the whole path. `lastIndexOf(".")`
+ * over a part name answers -1 for `ppt/embeddings/workbook`, and
+ * `slice(-1 + 1)` is then the entire path — so a caller naming a copy after it
+ * produced `ppt/embeddings/workbook1.ppt/embeddings/workbook`, a part name no
+ * content type could ever cover. It is also wrong the other way: a directory
+ * carrying a dot (`ppt/my.charts/workbook`) has a "." that belongs to no file
+ * name at all.
+ */
+export function extensionOf(part: string): string {
+  const segment = part.slice(part.lastIndexOf("/") + 1);
+  const dot = segment.lastIndexOf(".");
+  return dot < 0 ? "" : segment.slice(dot + 1);
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
