@@ -7,6 +7,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the host probe
+
+- A way to ask a real PowerPoint the questions the design rests on, before
+  anything is built on a guess: paste `probe/probe-snippet.ts` into Script Lab,
+  press Run, and copy the answer sheet back. It asks whether a package pruned
+  to one slide is accepted, whether inserting a slide and then removing the one
+  it replaced keeps the order, which slide the host says you are on, which of
+  the two ways of reading the deck drops your comments, whether PowerPoint's
+  own Ctrl+Z takes an insert back, and how long a read takes on a big deck.
+  `docs/PROBE.md` has the steps; `scripts/read-answers.mjs` says what each
+  answer means and files the sheet. Nothing in the pane changes, and no round
+  has been run yet.
+
 ### Added — the library harvest
 
 - The library exists as data: the two decks the owner authored (one per slide

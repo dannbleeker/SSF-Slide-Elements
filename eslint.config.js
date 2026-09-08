@@ -13,7 +13,11 @@ import tseslint from "typescript-eslint";
  * information to see it at all, so the cost of the slower lint is the point.
  */
 export default tseslint.config(
-  { ignores: ["dist/", "dist-lib/", "coverage/", "public/"] },
+  // `probe/` is generated for Script Lab, not for this project: it has no
+  // module system and a `main()` at the top level, and it is typechecked
+  // against the real Office.js types by test/probe.test.ts rather than by the
+  // linter.
+  { ignores: ["dist/", "dist-lib/", "coverage/", "public/", "probe/"] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -67,7 +71,9 @@ export default tseslint.config(
     // are gated by `test/manifest.test.ts`, which proves each one can still
     // fail — a stronger check than the type of an intermediate.
     files: [
+      "scripts/build-probe.mjs",
       "scripts/harvest.mjs",
+      "scripts/read-answers.mjs",
       "scripts/manifest-rules.mjs",
       "scripts/manifest-source.mjs",
       "scripts/release-assets.mjs",

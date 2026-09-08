@@ -37,6 +37,7 @@ environment.
 | `npm run test:count` | A floor under the number of tests, and a cap on how many may be skipped |
 | `npm run build:lib` | The library build. `tsc --noEmit` cannot see it fail |
 | `npm run build` | The pane bundle — what a user actually loads. Nothing else compiles it |
+| `npm run probe` | Regenerates `probe/probe-snippet.ts` from the engine; CI diffs the committed file. Needs `build:lib` first |
 
 CI runs all of them, `npm run coverage` standing in for `npm test`, and the
 Pages deploy waits for the same list. `npm run lint -- --fix` and

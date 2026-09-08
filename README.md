@@ -30,6 +30,7 @@ order [the backlog](docs/BACKLOG.md) gives.
 | Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
 | Package layer — the .pptx as parts, relationships, content types and the slide list, ported from SSF-Merge with its tests | done |
 | Library harvest — two library decks under `template/` read into a catalogue: categories, 117 elements per size with their English names, boxes, landing and sizes, and the markup and media each one carries. The index is committed and CI-checked against the decks; the markup and media are built on deploy | done |
+| Host probe — a Script Lab snippet that asks a real PowerPoint the six questions the design rests on (a pruned package on the way in, insert-then-delete order, the selected slide, which read of the deck, Ctrl+Z, timing and the floor), and a reader that says what each answer means and files the sheet | done — the instrument; no round has been run yet |
 | Splice — an element into the slide you are on, and the package self-check | planned |
 | The picker — browse by section, search, insert | planned |
 | Host handshake, and the first round against a real PowerPoint | planned |
@@ -62,6 +63,7 @@ its own; `test/architecture.test.ts` holds both directions.
 | --- | --- |
 | [docs/MANUAL.md](docs/MANUAL.md) | How to install it, what the pane does today, and what is planned |
 | [docs/DESIGN.md](docs/DESIGN.md) | The design record: what an element is, the pane top to bottom, where things land, the host questions still open, and every decision with its date |
+| [docs/PROBE.md](docs/PROBE.md) | The host probe: how to run it in Script Lab on the web, Windows and Mac, what each question decides, and where the answer sheets are filed |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | What is open, in order, and what has been rejected |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [docs/DEPENDENCY-ALERTS.md](docs/DEPENDENCY-ALERTS.md) | Every Dependabot alert, and what was decided about it |
@@ -90,6 +92,7 @@ npm run build      # the pane and the site, for GitHub Pages
 npm run dev        # the pane at localhost:3002
 npm run icons      # redraw public/assets/*.png
 npm run manifests  # regenerate the four manifests from scripts/manifest-source.mjs
+npm run probe      # regenerate probe/probe-snippet.ts for Script Lab; needs build:lib first
 npm run pane-shots # render and measure the pane; needs `npx vite --port 5199 --strictPort &` first
 ```
 
