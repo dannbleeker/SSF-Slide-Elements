@@ -33,15 +33,30 @@ it is the last page anyone thinks to update.
 
 ## Handling untrusted input
 
-Nothing yet: the pane takes no input. When the package layer lands, a .pptx
-arrives from outside and a user can be sent one, and the rules a sibling
-project learned apply here — a value reaches XML as text and only as text, a
-column or element name is data and never a property, and a relationship target
-is never trusted to name a part for deletion. Each will be listed here when it
-is executable, and executed in `test/security.test.ts`.
+A .pptx arrives from outside, and a user can be sent one. The package layer
+(`src/core/pptx/`) is ported from SSF-Merge together with the rules its two
+security sweeps produced, and each rule is executed in `test/security.test.ts`:
 
-The claims on the front of this page already are: that file reads the source
-and fails on a network call or a markup sink.
+- **A relationship target is never trusted to name a part for deletion.**
+  Removing a slide collects that slide's notes page and comments, and a target
+  resolving outside `ppt/` is left alone. The parts a slide's chart or diagram
+  claims to own are held to an allowlist, one level down as well, so a crafted
+  relationship naming `/ppt/presentation.xml` or `/[Content_Types].xml` cannot
+  have the sweep delete it.
+- **Traversal out of the package is not possible.** `..` past the root is
+  clamped and the result is always a package-relative name; nothing here
+  touches a real filesystem.
+- **The XML parser does not fetch or expand what a deck tells it to.**
+  `@xmldom/xmldom` resolves no external entity and expands no internal one,
+  measured rather than assumed, so a version bump that changes its mind is a
+  red test.
+- **Text reaches XML as text and only as text.** Nothing here builds markup by
+  string concatenation, and the one rule for characters XML cannot carry at all
+  (`xmlSafe`) replaces them with a space. The pane writes nothing into a deck
+  yet; when the splice does, its cases join the same file.
+
+The claims on the front of this page are executable too: that file reads the
+source and fails on a network call or a markup sink.
 
 ## All sample data is invented
 

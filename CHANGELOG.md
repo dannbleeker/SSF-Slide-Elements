@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the package layer
+
+- The engine can now open a .pptx, read and change its parts, relationships,
+  content types and slide list, and hand it back as bytes or base64. Nothing
+  in the pane uses it yet; it is the ground the element library and the insert
+  are built on, ported from SSF-Merge together with the tests that found its
+  bugs there.
+
 ### Added — the sibling watch
 
 - A weekly sweep of what SSF-Charts and SSF-Merge have learned about the
