@@ -29,10 +29,12 @@ order the rest arrives in.
 | directory | what it owns |
 | --- | --- |
 | `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts). The splice arrives next |
-| `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence) |
+| `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence), `probe.ts` (what each probe observation means) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
-| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table |
+| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`) and the answer reader (`read-answers.mjs`) |
+| `probe/` | `probe-snippet.ts`, GENERATED for Script Lab and committed; CI rebuilds and diffs it. Pasted into PowerPoint by the owner, never imported here |
+| `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
 | `template/` | the owner's library: the two decks (one per slide size, arriving with the harvest), their PDF prints the previews are cut from, and `names.en.json`, the English name of every element keyed by the deck's Danish title |
 | `docs/DESIGN.md` | the design record: every decision, dated, and the six host questions the probe answers first |
@@ -55,9 +57,12 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-Nothing yet. Every host fact in this repo is borrowed from a sibling, and the
-first round against a real PowerPoint is the last item on the backlog. Until it
-runs, nothing here should imply the host has been measured.
+Nothing yet. Every host fact in this repo is borrowed from a sibling. The
+instrument exists (`docs/PROBE.md`: a Script Lab snippet and a reader whose
+every verdict is a tested pure function in `src/host/probe.ts`), and the first
+sheets are the owner's rounds on the web, Windows and Mac; `docs/host-answers/`
+is the count. Until a sheet is filed, nothing here should imply the host has
+been measured, and the splice and the picker wait for the answers.
 
 ## Host rules, learned the expensive way
 
@@ -213,6 +218,7 @@ npm run lint
 npm run coverage       # enforces the floors in vitest.config.ts
 npm run test:count     # holds the floor in test/fixtures/test-count.json
 npm run harvest        # both decks into public/catalogue; CI diffs the committed index
+npm run probe          # regenerate probe/probe-snippet.ts; CI diffs it; needs build:lib first
 npm run manifests      # regenerate the four manifests; test/manifest.test.ts diffs them
 npm run icons          # redraw public/assets; test/manifest.test.ts diffs them
 npm run sibling-watch  # sweep both siblings' tables for findings with no row in TRIAGED
@@ -223,7 +229,8 @@ npm run pane-shots     # needs `npx vite --port 5199 --strictPort &` first
 ## Open questions for the real host
 
 Nothing should be built on a guess about any of them; each is written so a
-single round settles it.
+single round settles it, and `probe/probe-snippet.ts` asks all of them
+(`docs/PROBE.md` says how each arm is built).
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted? OPC permits it; whether

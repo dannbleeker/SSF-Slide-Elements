@@ -11,15 +11,6 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Host probe
-
-Before anything is spliced or drawn: a thin probe pane that asks the six
-questions in `docs/DESIGN.md` section 13 of a real PowerPoint (a pruned package
-on the way in, insert-then-delete order, `getSelectedSlides`, which read of the
-deck, Ctrl+Z after an insert, the time to read a large deck), one round each on
-the web, Windows and Mac, recorded in `docs/host-answers/`. The splice and the
-picker are built on the answers, not on the siblings' rounds.
-
 ### Splice, and the package self-check
 
 An element's markup into the slide the user is on, in the file: part names,

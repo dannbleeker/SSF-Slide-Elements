@@ -15,6 +15,7 @@
     "coverage": "vitest run --coverage",
     "build:lib": "tsc -p tsconfig.lib.json",
     "harvest": "node scripts/harvest.mjs",
+    "probe": "node scripts/build-probe.mjs",
     "dev": "vite",
     "build": "vite build",
     "icons": "node scripts/build-icons.mjs",

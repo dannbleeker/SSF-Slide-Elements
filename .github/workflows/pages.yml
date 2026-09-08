@@ -66,6 +66,13 @@ jobs:
         run: npm run harvest
       - name: Catalogue is committed
         run: git diff --exit-code -- public/catalogue/catalogue.json
+      # The probe snippet is generated from the engine and the fixtures carry
+      # fixed dates, so a fresh build is byte-identical to what is committed
+      # unless somebody changed the builder and forgot to run it.
+      - name: Probe is current
+        run: npm run probe
+      - name: Probe is committed
+        run: git diff --exit-code -- probe/probe-snippet.ts
       # The PANE build, which is the artifact a user actually loads.
       #
       # Everything above checks the source; `npm run build` is what turns it

@@ -2,8 +2,9 @@
 
 This is the design the pane and the insert are built to. It was settled with
 the owner over one day of demos (2026-09-08), decision by decision, and every
-decision below carries its date. The package layer and the harvest (section 3)
-are built; `docs/BACKLOG.md` is the order the rest arrives in.
+decision below carries its date. The package layer, the harvest (section 3)
+and the host probe (section 13) are built; `docs/BACKLOG.md` is the order the
+rest arrives in.
 
 Two rules keep it honest. A design change updates this file in the same PR, so
 the record and the code never disagree. And everything here is **assumed**
@@ -308,8 +309,10 @@ round on web, Windows and Mac, and iPad as section 9 says.
 
 ## 13. Open questions for the host
 
-Each is written so a single round settles it. The host-probe increment answers
-them on web, Windows and Mac before the splice and the picker are built.
+Each is written so a single round settles it. The probe that asks them is a
+Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
+is put. The owner runs it on web, Windows and Mac before the splice and the
+picker are built, and the sheets are filed under `docs/host-answers/`.
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted?
@@ -367,3 +370,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | Several new slides in one pick; authored sets; version-aware elements; names and alt text on inserted shapes; density toggle; go-to-category dropdown | rejected |
 | iPad included at launch; the owner cannot measure it, so the first measurement is a borrowed iPad, a device cloud or the validators | approved |
 | The design record into the repo as a docs-only PR; everything in v1; host probe before the splice and the picker | approved |
+| The host probe as a Script Lab snippet with every verdict a tested pure function, rather than a probe pane that would need hosting and a re-install first; one slide left behind on purpose for the Ctrl+Z question | decided in the build, 2026-09-08 |

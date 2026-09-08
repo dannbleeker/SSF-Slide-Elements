@@ -21,3 +21,8 @@ manifest*.json
 # CI fails when the committed file stops matching the decks. Same rule as the
 # manifests: one owner per file, and the generator is it.
 public/catalogue/catalogue.json
+
+# Generated for Script Lab by scripts/build-probe.mjs, and asserted by
+# test/probe.test.ts; the answer sheets are pasted out of a console verbatim.
+probe/
+docs/host-answers/
