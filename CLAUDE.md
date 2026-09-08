@@ -29,7 +29,7 @@ directions.
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
-| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit |
+| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
 
 **`src/host` decides, `src/office` calls, and the architecture test holds both
@@ -58,7 +58,9 @@ runs, nothing here should imply the host has been measured.
 
 These come from the siblings' rounds against PowerPoint on the web. They are
 recordings, not opinions. Do not re-derive them, and do not build on a guess
-where one of them applies.
+where one of them applies. `docs/SIBLING.md` is the ledger: which finding each
+rule came from, what was done about it here, and the rule that keeps a borrowed
+counter dated.
 
 - **A slide the run just added does not resolve by id.** So metadata goes into
   the package before the insert, and undo is **positional** with clamps, never
@@ -181,9 +183,14 @@ a refactor, and a check that guessed would be noise.
   `npm audit`'s advice unread: on a sibling its proposed remedy moved a runtime
   dependency back three major versions.
 
-- **Sibling watch.** Arrives with the next PR: a weekly sweep of both siblings'
-  curated tables that files one issue for any finding without a row in
-  `TRIAGED`. A finding without a row comes back; "no exposure" is a real answer.
+- **Sibling watch.** `.github/workflows/sibling-watch.yml` sweeps both siblings'
+  curated tables every Monday and files one issue for any finding without a row
+  in `TRIAGED` (`scripts/sibling-watch.mjs`). A finding without a row comes
+  back; "no exposure" is a real answer, and every row that is NOT one has a
+  line in `docs/SIBLING.md` (`test/sibling.test.ts` holds that). Every
+  RELEVANT or ADOPTED row today says "re-triage when the insert lands", because
+  there is no host code to hold it against; the host-handshake PR re-verdicts
+  them.
 
 - **Values never leave the pane. All sample data is invented. The repo is
   public.**
@@ -198,6 +205,7 @@ npm run coverage       # enforces the floors in vitest.config.ts
 npm run test:count     # holds the floor in test/fixtures/test-count.json
 npm run manifests      # regenerate the four manifests; test/manifest.test.ts diffs them
 npm run icons          # redraw public/assets; test/manifest.test.ts diffs them
+npm run sibling-watch  # sweep both siblings' tables for findings with no row in TRIAGED
 npm run build          # the site, for GitHub Pages
 npm run pane-shots     # needs `npx vite --port 5199 --strictPort &` first
 ```

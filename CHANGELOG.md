@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the sibling watch
+
+- A weekly sweep of what SSF-Charts and SSF-Merge have learned about the
+  PowerPoint host, filing one issue for any finding this repo has not answered.
+  The answers so far live in `docs/SIBLING.md`: which of the siblings' findings
+  shape the design, and which do not touch it at all.
+
 ### Added — the scaffold
 
 The repository, before any of the product: everything that has to be true for

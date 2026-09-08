@@ -91,6 +91,9 @@ npm run pane-shots          # PNGs in /tmp/pane-shots, plus the audit
 ## Host behaviour
 
 Before writing anything that talks to PowerPoint, read the host rules in
-`CLAUDE.md`. They are recordings from the sibling projects' rounds against a
-real PowerPoint, not opinions, and several of them are the reason the
-architecture is what it is.
+`CLAUDE.md` and the ledger in `docs/SIBLING.md`. The rules are recordings from
+the sibling projects' rounds against a real PowerPoint, not opinions, and
+several of them are the reason the architecture is what it is; the ledger says
+which finding each one came from, what was done about it here, and why a
+borrowed counter carries its date. Reading either by hand needs both sibling
+repositories checked out in the same session.

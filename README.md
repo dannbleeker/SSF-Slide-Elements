@@ -27,7 +27,7 @@ order [the backlog](docs/BACKLOG.md) gives.
 | Guard tests: the layering, the manifests, the release, the docs lockstep, the pane's boot | done |
 | Release workflow — manual, validated, assets checked against the docs | done |
 | Weekly pane audit: overflow, contrast, focus, hit areas, axe, at 320 and 512 in both themes | done |
-| Weekly sibling watch over SSF-Charts and SSF-Merge | planned |
+| Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
 | Package layer — the .pptx as parts, relationships and content types | planned |
 | Library harvest — a template deck in, a committed catalogue out | planned |
 | Splice — an element into the slide you are on, and the package self-check | planned |
@@ -64,6 +64,7 @@ its own; `test/architecture.test.ts` holds both directions.
 | [docs/BACKLOG.md](docs/BACKLOG.md) | What is open, in order, and what has been rejected |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [docs/DEPENDENCY-ALERTS.md](docs/DEPENDENCY-ALERTS.md) | Every Dependabot alert, and what was decided about it |
+| [docs/SIBLING.md](docs/SIBLING.md) | What SSF-Charts and SSF-Merge learned about the host, what was done about each finding here, and the rule that keeps a borrowed number dated |
 | [CLAUDE.md](CLAUDE.md) | Project memory: architecture, host rules, conventions |
 
 These are kept in step with the code by `test/docs.test.ts`, which reads the
