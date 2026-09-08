@@ -21,3 +21,8 @@
 *.pptx binary
 *.png binary
 *.jpg binary
+*.jpeg binary
+*.emf binary
+*.wmf binary
+*.bin binary
+*.xlsx binary

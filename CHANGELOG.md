@@ -7,6 +7,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the library harvest
+
+- The library exists as data: the two decks the owner authored (one per slide
+  size, 117 elements each in twelve categories, twenty-one of them stamps,
+  markers, flowchart shapes and icons) are read into a catalogue with every
+  element's English name, where it sits, where it lands and which pictures,
+  charts and tags it carries. Nothing in the pane shows it yet; the picker is
+  the next change but one. Editing the library is editing the deck: the rules
+  are in the manual under "Adding an element to the library", and a change
+  that breaks them is refused with every problem listed.
+
 ### Added — the design record
 
 - `docs/DESIGN.md` says what the pane and the insert will do, decision by

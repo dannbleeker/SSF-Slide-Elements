@@ -37,6 +37,10 @@ jobs:
       # 2 while every gate stayed green, and nothing else here builds it.
       - name: Library build
         run: npm run build:lib
+      - name: Catalogue is current
+        run: npm run harvest
+      - name: Catalogue is committed
+        run: git diff --exit-code -- public/catalogue/catalogue.json
       # The PANE build, which is the artifact a user actually loads.
       #
       # Everything above checks the source; `npm run build` is what turns it

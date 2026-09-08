@@ -29,7 +29,7 @@ order [the backlog](docs/BACKLOG.md) gives.
 | Weekly pane audit: overflow, contrast, focus, hit areas, axe, at 320 and 512 in both themes | done |
 | Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
 | Package layer — the .pptx as parts, relationships, content types and the slide list, ported from SSF-Merge with its tests | done |
-| Library harvest — a template deck in, a committed catalogue out | planned |
+| Library harvest — two library decks under `template/` read into a catalogue: categories, 117 elements per size with their English names, boxes, landing and sizes, and the markup and media each one carries. The index is committed and CI-checked against the decks; the markup and media are built on deploy | done |
 | Splice — an element into the slide you are on, and the package self-check | planned |
 | The picker — browse by section, search, insert | planned |
 | Host handshake, and the first round against a real PowerPoint | planned |

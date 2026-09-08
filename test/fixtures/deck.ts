@@ -98,6 +98,15 @@ export interface SlideSpec {
   smartArtDrawingOn?: "data" | "slide";
   creationId?: number;
   /**
+   * A title placeholder with this text. What the harvest reads a slide's key
+   * from, and what makes a slide with nothing else on it a category heading.
+   */
+  title?: string;
+  /** Extra top-level shapes, as XML, appended to the tree after the body. */
+  shapes?: string[];
+  /** Leave the body text box out, so a slide can be a heading (title only) or hold only `shapes`. */
+  noBody?: boolean;
+  /**
    * The shape's own `<a:xfrm>`, as XML.
    *
    * Omitted by default because the commonest real shape — a text box on a
@@ -186,9 +195,17 @@ function slideXml(spec: SlideSpec): string {
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
     `<p:sld ${P} ${A} ${R}><p:cSld><p:spTree>` +
     `<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>` +
-    `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Body"/><p:cNvSpPr txBox="1"/>` +
-    `<p:nvPr>${spec.shapeTags ? `<p:custDataLst><p:tags r:id="rId30"/></p:custDataLst>` : ""}</p:nvPr></p:nvSpPr>` +
-    `<p:spPr>${spec.box ?? ""}</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/>${paras}</p:txBody></p:sp>` +
+    (spec.title === undefined
+      ? ""
+      : `<p:sp><p:nvSpPr><p:cNvPr id="9" name="Title 1"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+        `<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+        `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="da-DK"/><a:t>${escapeText(spec.title)}</a:t></a:r></a:p></p:txBody></p:sp>`) +
+    (spec.noBody
+      ? ""
+      : `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Body"/><p:cNvSpPr txBox="1"/>` +
+        `<p:nvPr>${spec.shapeTags ? `<p:custDataLst><p:tags r:id="rId30"/></p:custDataLst>` : ""}</p:nvPr></p:nvSpPr>` +
+        `<p:spPr>${spec.box ?? ""}</p:spPr><p:txBody><a:bodyPr/><a:lstStyle/>${paras}</p:txBody></p:sp>`) +
+    (spec.shapes ?? []).join("") +
     `${spec.smartArt ? smartArtFrame() : ""}` +
     `${spec.modernChart ? modernChartFrame(spec.modernChart) : ""}` +
     `${spec.icons ? iconShapes() : ""}` +

@@ -1,19 +1,21 @@
 {
   "_comment": "English names per element, keyed by the deck's Danish slide title (a whole-slide element) or part name (a shape on a collection slide). The deck stays the authoring surface and its Danish titles are the keys; this file is what a locale adds. A key with no entry fails the harvest. Categories are the heading slides and, for a collection slide, its title.",
   "categories": {
+    "Dokumentstruktur": "Document structure",
+    "Flowchart ikoner": "Flowchart shapes",
+    "Flowchart-figurer": "Flowchart shapes",
+    "Grå kasser": "Grey boxes",
     "Hvide kasser": "White boxes",
     "Hvide kasser med sorte overskrifter": "White boxes with black headings",
+    "Ikoner": "Icons",
     "Kun streger": "Lines only",
-    "Procesflow": "Process flows",
-    "Tabeller": "Tables",
-    "Trekanter": "Triangles",
-    "Dokumentstruktur": "Document structure",
-    "Grå kasser": "Grey boxes",
-    "One-page templates": "One-page templates",
     "Markeringer": "Markers",
+    "One-page templates": "One-page templates",
+    "Procesflow": "Process flows",
     "Stempler og etiketter": "Stamps and labels",
-    "Flowchart-figurer": "Flowchart shapes",
-    "Ikoner": "Icons"
+    "Stempler og lignende": "Stamps and labels",
+    "Tabeller": "Tables",
+    "Trekanter": "Triangles"
   },
   "names": {
     "2 kolonner med adskillelse": "2 columns with a divider",
