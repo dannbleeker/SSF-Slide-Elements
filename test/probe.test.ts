@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
+import JSZip from "jszip";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
@@ -109,6 +110,24 @@ describe("the probe's fixture decks", () => {
     const tag = elements(tagLst, P_NS, "tag").find((t) => t.getAttribute("name") === PROBE_TAG);
     expect(tag?.getAttribute("val")).toBe(PROBE_UNDO_VALUE);
     expect(await pkg.contentTypeOf("ppt/tags/tag1.xml")).toContain("tags+xml");
+  });
+
+  it("pins every zip entry's timestamp, so the build is the same on any machine at any hour", async () => {
+    // JSZip writes dates in LOCAL time and the engine re-files an edited part
+    // with the clock, so the first CI run diffed a snippet that differed from
+    // the committed one in every deck. `stableZip` overwrites the DOS fields;
+    // JSZip reads them back as a local Date, so the components are compared
+    // rather than the instant.
+    for (const name of DECKS) {
+      const zip = await JSZip.loadAsync(Buffer.from(deckFromSnippet(name), "base64"));
+      const entries = Object.values(zip.files).filter((f) => !f.dir);
+      expect(entries.length, name).toBeGreaterThan(5);
+      for (const entry of entries) {
+        const d = entry.date;
+        const stamp = [d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()];
+        expect(stamp, `${name} ${entry.name}`).toEqual([2026, 8, 8, 12, 0, 0]);
+      }
+    }
   });
 
   it("carries a theme with all three of its required children", async () => {

@@ -10,9 +10,9 @@
  * slide, not whether it renders a chart, and every byte here has to travel
  * inside a snippet somebody pastes into an editor.
  *
- * Deterministic on purpose too: every zip entry carries the same fixed date,
- * so `npm run probe` writes the same bytes twice and CI can diff the committed
- * snippet against a fresh build.
+ * Deterministic on purpose too: `stableZip` pins every zip entry's timestamp,
+ * so `npm run probe` writes the same bytes on any machine at any hour and CI
+ * can diff the committed snippet against a fresh build.
  */
 import JSZip from "jszip";
 
@@ -41,8 +41,55 @@ export const RT = {
   tags: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/tags",
 };
 
-/** The one date every zip entry carries, so two builds of the same deck are byte-identical. */
-export const FIXED_DATE = new Date(Date.UTC(2026, 8, 8, 12, 0, 0));
+/**
+ * The one timestamp every zip entry carries, as the DOS fields a zip header
+ * holds them: 2026-09-08 12:00:00, no timezone.
+ *
+ * JSZip writes an entry's `date` in LOCAL time, so a deck built at the same
+ * instant in two timezones is two different files, and CI's diff of the
+ * committed snippet went red on exactly that. Worse, the engine re-files a
+ * part it edited with the build's own clock. So the date is not trusted at
+ * all: `stableZip` overwrites the time and date fields of every local header
+ * and every central-directory entry with these two constants after the zip
+ * is built. The CRC does not cover headers, so nothing else changes.
+ */
+export const DOS_TIME = (12 << 11) | (0 << 5) | 0;
+export const DOS_DATE = ((2026 - 1980) << 9) | (9 << 5) | 8;
+
+/** The same instant as a Date, for the entries JSZip writes before `stableZip` rewrites them. */
+export const FIXED_DATE = new Date(2026, 8, 8, 12, 0, 0);
+
+/** The bytes of a zip with every entry's modification time and date set to the constants above. */
+export function stableZip(bytes) {
+  const out = new Uint8Array(bytes);
+  const u16 = (i) => out[i] | (out[i + 1] << 8);
+  const u32 = (i) => u16(i) + u16(i + 2) * 0x10000;
+  const put16 = (i, v) => {
+    out[i] = v & 0xff;
+    out[i + 1] = (v >> 8) & 0xff;
+  };
+  let eocd = -1;
+  for (let i = out.length - 22; i >= 0; i--) {
+    if (out[i] === 0x50 && out[i + 1] === 0x4b && out[i + 2] === 0x05 && out[i + 3] === 0x06) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("stableZip: no end-of-central-directory record");
+  const count = u16(eocd + 10);
+  let at = u32(eocd + 16);
+  for (let n = 0; n < count; n++) {
+    if (u32(at) !== 0x02014b50) throw new Error(`stableZip: central directory entry ${n} is not where the header said`);
+    put16(at + 12, DOS_TIME);
+    put16(at + 14, DOS_DATE);
+    const local = u32(at + 42);
+    if (u32(local) !== 0x04034b50) throw new Error(`stableZip: local header ${n} is not where the directory said`);
+    put16(local + 10, DOS_TIME);
+    put16(local + 12, DOS_DATE);
+    at += 46 + u16(at + 28) + u16(at + 30) + u16(at + 32);
+  }
+  return out;
+}
 
 /**
  * A theme with all three of its required children.
@@ -212,5 +259,5 @@ export async function makeDeck(slides) {
       file(`ppt/tags/tag${n}.xml`, `${HEAD}<p:tagLst ${P}>${tags}</p:tagLst>`);
     }
   });
-  return zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+  return stableZip(await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" }));
 }

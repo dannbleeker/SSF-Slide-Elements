@@ -9,8 +9,9 @@
  * The decks are built HERE, by the engine, and embedded in the snippet as
  * base64, so the snippet needs no libraries, does no zip work in a hostile
  * runtime, and can be pasted into Script Lab with nothing else installed.
- * The fixtures carry fixed dates, so the output is byte-stable and CI diffs
- * the committed `probe/probe-snippet.ts` against a fresh build.
+ * Every zip timestamp is pinned (`stableZip`), so the output is byte-stable on
+ * any machine and CI diffs the committed `probe/probe-snippet.ts` against a
+ * fresh build.
  *
  * The decks:
  *   LISTED    two slides, both listed — the package as PowerPoint writes it
@@ -26,7 +27,7 @@ import { writeFileSync } from "node:fs";
 import { Pkg, PKG_REL_NS, P_NS, element, elements } from "../dist-lib/core/index.js";
 import { API_FLOOR } from "../dist-lib/host/capability.js";
 import { API_SETS, PROBE_TAG, PROBE_UNDO_VALUE } from "../dist-lib/host/probe.js";
-import { makeDeck } from "./probe-fixture.mjs";
+import { makeDeck, stableZip } from "./probe-fixture.mjs";
 
 const b64 = (bytes) => Buffer.from(bytes).toString("base64");
 
@@ -49,7 +50,8 @@ async function prune(dropRelationship) {
       if (rel.getAttribute("Id") === rId) rel.parentNode.removeChild(rel);
     }
   }
-  return pkg.toBase64();
+  // The engine re-files the parts it edited with the clock; pin them like the rest.
+  return b64(stableZip(await pkg.toBytes()));
 }
 
 const LISTED = b64(listedBytes);
