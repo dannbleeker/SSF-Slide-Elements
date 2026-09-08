@@ -11,17 +11,6 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Sibling watch over SSF-Charts and SSF-Merge
-
-A weekly sweep of both siblings' curated tables — SSF-Charts' `KNOWN_ISSUES`,
-`FAKE_BASELINE`, `KNOWN_DIVERGENCES`, `UNSTABLE_ANSWERS` and
-`PENDING_QUESTIONS`, and SSF-Merge's `TRIAGED` — that files one issue for any
-finding with no row in this repo's `TRIAGED`. Seeded before it first runs, so
-the first Monday is quiet. Two changes to the sibling's script: keys may carry a
-colon, and a table that is present but empty reads as empty rather than broken
-(SSF-Charts' pending register is empty by design, and SSF-Merge's watcher has
-been red on it since 2026-09-02).
-
 ### Package layer
 
 `src/core/pptx/`: the zip, its parts, relationships, content types and the

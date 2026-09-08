@@ -19,7 +19,8 @@
     "icons": "node scripts/build-icons.mjs",
     "manifests": "node scripts/build-manifests.mjs",
     "release:check": "node scripts/check-release.mjs",
-    "pane-shots": "node scripts/pane-shots.mjs"
+    "pane-shots": "node scripts/pane-shots.mjs",
+    "sibling-watch": "node scripts/sibling-watch.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.8",
