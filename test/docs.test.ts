@@ -73,7 +73,7 @@ describe("the documentation set is whole", () => {
   });
 
   it("points at every document from the README", () => {
-    for (const doc of ["docs/MANUAL.md", "docs/BACKLOG.md", "CHANGELOG.md"]) {
+    for (const doc of ["docs/MANUAL.md", "docs/BACKLOG.md", "docs/DESIGN.md", "CHANGELOG.md"]) {
       expect(readme, `${doc} is not linked from the README`).toContain(doc);
     }
   });

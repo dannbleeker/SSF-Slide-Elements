@@ -61,6 +61,7 @@ its own; `test/architecture.test.ts` holds both directions.
 | Document | What it is for |
 | --- | --- |
 | [docs/MANUAL.md](docs/MANUAL.md) | How to install it, what the pane does today, and what is planned |
+| [docs/DESIGN.md](docs/DESIGN.md) | The design record: what an element is, the pane top to bottom, where things land, the host questions still open, and every decision with its date |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | What is open, in order, and what has been rejected |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [docs/DEPENDENCY-ALERTS.md](docs/DEPENDENCY-ALERTS.md) | Every Dependabot alert, and what was decided about it |

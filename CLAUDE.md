@@ -32,6 +32,8 @@ arrives in.
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
 | `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
+| `template/` | the owner's library: the two decks (one per slide size, arriving with the harvest), their PDF prints the previews are cut from, and `names.en.json`, the English name of every element keyed by the deck's Danish title |
+| `docs/DESIGN.md` | the design record: every decision, dated, and the six host questions the probe answers first |
 
 **`src/host` decides, `src/office` calls, and the architecture test holds both
 directions.** An Office.js import in `src/host` makes a rule untestable; a rule
@@ -159,6 +161,10 @@ a refactor, and a check that guessed would be noise.
 - **Say what is measured and what is assumed**, in comments, docs and PRs alike.
   A sentence written here becomes something the next reader builds on.
 
+- **A design change updates `docs/DESIGN.md` in the same PR.** The record is
+  what the build is held to; a behaviour that is not in it is a guess, and a
+  behaviour that contradicts it is a bug in one of the two.
+
 - **Test files are named by topic, never by increment.**
 
 - **Every npm script stays FLAT.** A script that nests `npm run` is blocked by
@@ -225,3 +231,7 @@ single round settles it.
    its position in `slides` match the position in `<p:sldIdLst>`?
 4. Which read of the deck this add-in should use — `getFileAsync` or
    `exportAsBase64Presentation` — and what each drops on this host.
+5. Does PowerPoint's own Ctrl+Z revert `insertSlidesFromBase64`? If it does,
+   the pane's Undo must not fight it.
+6. How long does `getFileAsync` take on a 50 MB deck, since the file route
+   reads the whole deck for every insert, and is the floor met on iPad?
