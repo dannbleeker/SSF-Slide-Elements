@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Privacy policy — SSF Slide Elements</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="SSF Slide Elements collects nothing. It has no server, no account and no telemetry, and it makes no network requests while it runs.">
+<link rel="icon" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icon-80.png">
+
+<!-- AppSource will not certify an add-in whose privacy policy 404s or is not
+     reachable over HTTPS, and this page is the one it is pointed at. It ships
+     from `public/`, which the Pages workflow copies verbatim, so it moves with
+     the landing page rather than needing a deploy of its own. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Privacy policy — SSF Slide Elements">
+<meta property="og:description" content="SSF Slide Elements collects nothing. It has no server, no account and no telemetry.">
+<meta property="og:url" content="https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html">
+<meta property="og:image" content="https://ssf-slide-elements.struktureretsundfornuft.dk/assets/icon-80.png">
+<meta name="twitter:card" content="summary">
+
+<style>
+  /* The landing page's palette and rhythm, unchanged. A policy that looks like
+     a different site is a policy a reader wonders about. */
+  :root {
+    --navy: #00254c;
+    --blue: #2b6cb0;
+    --orange: #ed8936;
+    --ink: #1a202c;
+    --grey: #6b7280;
+    --calm: #edf2f7;
+    --hair: #cbd5e0;
+  }
+  body {
+    margin: 0;
+    padding: 12vh 24px;
+    background: var(--calm);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 34rem; margin: 0 auto }
+  .tick {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background: var(--orange);
+    margin-bottom: 14px;
+    border-radius: 1px;
+  }
+  h1 { color: var(--navy); font-size: 2rem; margin: 0 0 4px; letter-spacing: -.02em }
+  h2 { color: var(--navy); font-size: 1.1rem; margin: 28px 0 8px }
+  p, li { color: var(--grey); margin: 0 0 12px }
+  .lede { color: var(--ink) }
+  .updated { font-size: .95rem; margin-bottom: 24px }
+  a { color: var(--blue) }
+  ul { padding-left: 1.2rem }
+  code {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: .95em;
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  strong { color: var(--ink) }
+  .rule { border: 0; border-top: 1px solid var(--hair); margin: 28px 0 16px }
+  .from { font-size: .95rem }
+</style>
+
+<main>
+  <span class="tick"></span>
+  <h1>Privacy policy</h1>
+  <p class="updated">SSF Slide Elements · last updated 8 September 2026</p>
+
+  <p class="lede">SSF Slide Elements does not collect, store, transmit or share any of your data. It
+    has no server, no account, no analytics and no telemetry. Everything it does happens inside the
+    PowerPoint task pane, on your own device.</p>
+
+  <h2>Who provides SSF Slide Elements</h2>
+  <p>SSF Slide Elements is made and published by <strong>DBP Invest ApS</strong>, a company registered
+    in Denmark, under the publisher name <strong>StruktureretSundFornuft</strong>. Where this policy
+    says &ldquo;we&rdquo;, that is who it means.</p>
+
+  <h2>What SSF Slide Elements reads</h2>
+  <p>SSF Slide Elements is a library of ready-made slide elements for Microsoft PowerPoint. To do its
+    work it will read one thing:</p>
+  <ul>
+    <li><strong>The presentation you have open</strong>, so it can put an element onto the slide you
+      are on.</li>
+  </ul>
+  <p>The element library itself ships inside the add-in as static files. Your presentation is
+    processed <strong>in the add-in's own pane, on your device</strong>, and is not sent anywhere. The
+    changed slide is written straight back into the presentation you already have open, through
+    Microsoft's own Office JavaScript interface.</p>
+
+  <h2>What we collect</h2>
+  <p><strong>Nothing.</strong></p>
+  <p>We operate no server that receives your content. The add-in makes no network requests of any
+    kind while it runs. There is no sign-in, no account, no licence check and no usage tracking. We
+    could not identify you, or a presentation you have used it on, if we were asked to.</p>
+
+  <h2>What is stored on your device</h2>
+  <p>Nothing. SSF Slide Elements writes nothing to your browser's storage. If that ever changes, this
+    section changes with it and the date at the top moves.</p>
+
+  <h2>Third parties</h2>
+  <p>We send your data to no third party, because we send it nowhere at all.</p>
+  <p>The add-in's own files — the pane and its icons — are served over HTTPS from
+    <code>ssf-slide-elements.struktureretsundfornuft.dk</code>, hosted on GitHub Pages. The add-in
+    also loads Microsoft's <code>office.js</code> library from Microsoft's content delivery network, as
+    every Office add-in is required to. Your browser contacting those hosts to fetch those files is a
+    request like any other on the web, and their own privacy practices apply to it. Neither request
+    carries any of your presentation content.</p>
+
+  <h2>Your rights</h2>
+  <p>Under the GDPR you have rights of access, correction, erasure and portability over personal data
+    a company holds about you. <strong>We hold none</strong>, so there is nothing for us to give you a
+    copy of, correct or delete.</p>
+  <p>If you want SSF Slide Elements to leave no trace on your device, remove the add-in in
+    PowerPoint.</p>
+
+  <h2>Children</h2>
+  <p>SSF Slide Elements is a business productivity tool and is not directed at children.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the date at the top changes with it. Earlier versions stay visible in the
+    project's public history at
+    <a href="https://github.com/dannbleeker/SSF-Slide-Elements">github.com/dannbleeker/SSF-Slide-Elements</a>.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy, or about SSF Slide Elements:
+    <a href="mailto:dann@struktureretsundfornuft.dk">dann@struktureretsundfornuft.dk</a>.</p>
+
+  <hr class="rule">
+  <p class="from"><a href="/">SSF Slide Elements</a> &middot;
+    <a href="https://github.com/dannbleeker/SSF-Slide-Elements">Source and progress</a> &middot;
+    From <a href="https://struktureretsundfornuft.dk">StruktureretSundFornuft.dk</a>.</p>
+</main>
+</html>

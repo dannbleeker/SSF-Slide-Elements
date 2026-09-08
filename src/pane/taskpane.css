@@ -1,0 +1,231 @@
+/*
+ * The SSF visual system at task-pane width.
+ *
+ * Rules the layout was approved on, and the reasons they are rules:
+ *
+ * ORANGE BUDGET — one per view. Normally the tick above the heading. Two
+ * oranges in one glance and neither means anything.
+ * BLUE IS CHROME — header, primary button, links. NAVY is headings.
+ * ONE COLUMN at every width. The pane is 320 to 512 and never two columns.
+ * ONE PRIMARY per screen, always last, always naming what it does.
+ *
+ * `scripts/pane-shots.mjs` measures what this file promises: no sideways
+ * overflow at 320, every live label at 4.5:1 in both themes, a visible focus
+ * ring on every control, 24px on the short side of every hit area.
+ */
+:root {
+  --navy: #00254c;
+  --blue: #2b6cb0;
+  --orange: #ed8936;
+  --calm: #edf2f7;
+  --lightblue: #ddebf7;
+  --peach: #fdebdc;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --sunk: #edf2f7;
+  --text: #1a202c;
+  --muted: #5b6672;
+  --hair: #cbd5e0;
+  --head: var(--navy);
+  /*
+   * Blue as INK, which in dark is not the same colour as blue as a FILL.
+   * `--blue` stays dark in both themes because it is a background there — the
+   * header and the primary button, both carrying white text. Read as text on a
+   * dark surface it is 3.0:1. Anything blue that is TEXT reads this token; in
+   * light it is `--blue`, so nothing there moves by a pixel.
+   */
+  --link: var(--blue);
+  --disabled: #a0aec0;
+}
+
+/*
+ * Office themes, not the browser's.
+ *
+ * `prefers-color-scheme` is what a browser offers and it is NOT what the pane
+ * lives in: PowerPoint can be dark while the OS is light. `main.ts` reads
+ * `Office.context.officeTheme` and stamps `data-theme`, so this block is what
+ * that stamp selects. The media query is kept as the fallback for the case
+ * Office never answers — a pane opened in a browser, which is exactly how it
+ * is inspected during development.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1420;
+    --surface: #12202f;
+    --sunk: #0d1a27;
+    --text: #dce9f7;
+    --muted: #93a7bc;
+    --hair: #20364b;
+    --head: #dce9f7;
+    --link: #7fb0e0;
+    --calm: #12202f;
+    --lightblue: #122a40;
+    --peach: #2e1f13;
+    --disabled: #4a5a6b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1420;
+  --surface: #12202f;
+  --sunk: #0d1a27;
+  --text: #dce9f7;
+  --muted: #93a7bc;
+  --hair: #20364b;
+  --head: #dce9f7;
+  --link: #7fb0e0;
+  --calm: #12202f;
+  --lightblue: #122a40;
+  --peach: #2e1f13;
+  --disabled: #4a5a6b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    Arial,
+    sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  /*
+   * Nothing a user or a host supplies may push this pane sideways.
+   *
+   * Every long string on screen will come from outside: an element's name, or
+   * whatever PowerPoint put in an error. `readable` caps that at 400
+   * characters and a cap is not a break — 400 characters with no space in them
+   * is one word, and one word cannot wrap. A sibling measured a spaceless host
+   * error at 3751px inside a 320px frame.
+   *
+   * `anywhere` rather than `break-word`, because only `anywhere` shrinks a
+   * flex or grid item's min-content width.
+   */
+  overflow-wrap: anywhere;
+}
+
+header {
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+header b {
+  font-size: 13px;
+  font-weight: 600;
+}
+header span {
+  color: #a8c4e0;
+  font-size: 12.5px;
+}
+
+/* Pushed to the right so it reads as a stamp rather than part of the name. */
+.build {
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+main {
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tick {
+  display: block;
+  width: 26px;
+  height: 3px;
+  background: var(--orange);
+  border-radius: 1px;
+  margin-bottom: 8px;
+}
+
+h1 {
+  color: var(--head);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+  color: var(--text);
+}
+
+/* Why the one button cannot be pressed, said rather than implied. */
+.blocked {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* What the host said, as opposed to what the step needs. */
+.notice {
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  border-radius: 4px;
+  padding: 7px 12px;
+  cursor: pointer;
+  border: 1px solid var(--link);
+  background: transparent;
+  color: var(--link);
+}
+button.primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  font-weight: 600;
+}
+button[disabled] {
+  cursor: not-allowed;
+  border-color: var(--hair);
+  color: var(--disabled);
+  background: transparent;
+}
+
+/*
+ * Where the keyboard is.
+ *
+ * `--link`, not `--blue`, for the reason the ink uses it: `--blue` is a
+ * background in this palette and stays dark, and a dark outline on the dark
+ * theme's dark field is one signal a keyboard user has and barely clears 3:1.
+ * BUTTONS are in this rule from the first day, because a sibling shipped
+ * without them and every button there fell back to Chrome's near-black ring on
+ * a near-black pane, measured at 1.03:1.
+ */
+button:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* Off-screen but in the accessibility tree.
+   `display: none` and `visibility: hidden` both remove a node from that tree,
+   which would silence the live region this class exists for. The clip-path
+   pair is the form that survives a screen reader's own layout pass. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

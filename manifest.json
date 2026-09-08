@@ -1,0 +1,126 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "id": "5eb9457b-eeb7-43e1-b12b-9bf3c01a22f1",
+  "version": "1.0.0.0",
+  "name": {
+    "short": "SSF Slide Elements",
+    "full": "SSF Slide Elements for PowerPoint"
+  },
+  "description": {
+    "short": "Ready-made slide elements, dropped onto the slide you are on.",
+    "full": "A library of ready-made slide elements for PowerPoint. Browse the collection in the task pane and drop any element onto the slide you are on, with every font, colour and placement intact."
+  },
+  "developer": {
+    "name": "StruktureretSundFornuft",
+    "websiteUrl": "https://struktureretsundfornuft.dk",
+    "privacyUrl": "https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html",
+    "termsOfUseUrl": "https://support.office.com/client/61994a3b-2c87-41c4-a88d-a6455efa362d"
+  },
+  "icons": {
+    "outline": "assets/icon-outline-32.png",
+    "color": "assets/icon-192.png"
+  },
+  "accentColor": "#00254C",
+  "localizationInfo": {
+    "defaultLanguageTag": "en-us"
+  },
+  "validDomains": [
+    "localhost:3002"
+  ],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "Document.ReadWrite.User",
+          "type": "Delegated"
+        }
+      ]
+    }
+  },
+  "extensions": [
+    {
+      "requirements": {
+        "scopes": [
+          "presentation"
+        ]
+      },
+      "runtimes": [
+        {
+          "id": "TaskPaneRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://localhost:3002/taskpane.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "ShowTaskpane",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "dashboard"
+            }
+          ]
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": [
+            "default"
+          ],
+          "tabs": [
+            {
+              "builtInTabId": "TabHome",
+              "groups": [
+                {
+                  "id": "SsfSlideElements.Group",
+                  "label": "SSF Slide Elements",
+                  "icons": [
+                    {
+                      "size": 16,
+                      "url": "https://localhost:3002/assets/icon-16.png"
+                    },
+                    {
+                      "size": 32,
+                      "url": "https://localhost:3002/assets/icon-32.png"
+                    },
+                    {
+                      "size": 80,
+                      "url": "https://localhost:3002/assets/icon-80.png"
+                    }
+                  ],
+                  "controls": [
+                    {
+                      "id": "SsfSlideElements.OpenPane",
+                      "type": "button",
+                      "label": "Slide elements",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://localhost:3002/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://localhost:3002/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://localhost:3002/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Slide elements",
+                        "description": "Open SSF Slide Elements to pick a ready-made element and drop it onto the slide you are on."
+                      },
+                      "actionId": "ShowTaskpane"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

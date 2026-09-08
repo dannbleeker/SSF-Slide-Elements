@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SSF Slide Elements — ready-made slide elements for PowerPoint</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="A library of ready-made slide elements for PowerPoint. Browse the collection in the task pane and drop any element onto the slide you are on, formatting intact.">
+<link rel="icon" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icon-80.png">
+
+<!-- What a link to this page unfurls into, in Teams, Slack and anywhere else
+     somebody shares it. Absolute URLs: a relative one resolves against the
+     sharing service rather than against this origin. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="SSF Slide Elements — ready-made slide elements for PowerPoint">
+<meta property="og:description" content="Browse a library of ready-made slide elements in the task pane and drop any element onto the slide you are on, formatting intact.">
+<meta property="og:url" content="https://ssf-slide-elements.struktureretsundfornuft.dk/">
+<meta property="og:image" content="https://ssf-slide-elements.struktureretsundfornuft.dk/assets/icon-80.png">
+<meta name="twitter:card" content="summary">
+
+<style>
+  /* The SSF palette, and only it: navy for headings, blue for chrome and
+     links, one orange accent. The task pane this page is about uses the same
+     three, so the product looks like one thing from the first click. */
+  :root {
+    --navy: #00254c;
+    --blue: #2b6cb0;
+    --orange: #ed8936;
+    --ink: #1a202c;
+    --grey: #6b7280;
+    --calm: #edf2f7;
+    --hair: #cbd5e0;
+  }
+  body {
+    margin: 0;
+    padding: 12vh 24px;
+    background: var(--calm);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 34rem; margin: 0 auto }
+  /* The tick. It marks the start of something without taking up room, and it
+     is the ONE orange here: an accent used twice is not an accent. */
+  .tick {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background: var(--orange);
+    margin-bottom: 14px;
+    border-radius: 1px;
+  }
+  h1 { color: var(--navy); font-size: 2rem; margin: 0 0 12px; letter-spacing: -.02em }
+  p { color: var(--grey); margin: 0 0 12px }
+  .lede { color: var(--ink) }
+  a { color: var(--blue) }
+  code {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: .95em;
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  /* Blue, not orange. The one accent is spent on the tick above. */
+  .get {
+    display: inline-block;
+    margin: 8px 0 20px;
+    padding: 10px 18px;
+    background: var(--blue);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .get:hover { background: var(--navy) }
+  /* A keyboard gets the same affordance a mouse does. */
+  .get:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px }
+  .rule { border: 0; border-top: 1px solid var(--hair); margin: 28px 0 16px }
+  .from { font-size: .95rem }
+</style>
+
+<main>
+  <span class="tick"></span>
+  <h1>SSF Slide Elements</h1>
+  <p class="lede">A library of ready-made slide elements for PowerPoint. Browse the collection in the task pane, click an element, and it lands on the slide you are on with every font, colour and placement intact.</p>
+
+  <p>Not yet released. What can be installed today is the pane itself — it opens, shows which build it is and checks your PowerPoint — and it inserts nothing yet.</p>
+  <a class="get" href="https://github.com/dannbleeker/SSF-Slide-Elements/releases/latest">Get the add-in</a>
+  <p>Download <code>manifest-prod.xml</code> from the latest release once there is one, or take <a href="https://github.com/dannbleeker/SSF-Slide-Elements/raw/main/manifest-prod.xml">the file on <code>main</code></a>, which is the same pointer, and sideload it in PowerPoint.</p>
+
+  <hr class="rule">
+  <p class="from">Source and progress: <a href="https://github.com/dannbleeker/SSF-Slide-Elements">github.com/dannbleeker/SSF-Slide-Elements</a>.<br>
+    From <a href="https://struktureretsundfornuft.dk">StruktureretSundFornuft.dk</a>.<br>
+    <!-- Reachable from the site, not only from a store listing that does not
+         exist yet: a page somebody has to be sent a link to is one nobody
+         finds when they need it. -->
+    <a href="/support.html">Support</a> &middot;
+    <a href="/privacy.html">Privacy policy</a>.</p>
+</main>
+</html>
