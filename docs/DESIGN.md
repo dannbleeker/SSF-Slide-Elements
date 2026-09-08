@@ -2,8 +2,8 @@
 
 This is the design the pane and the insert are built to. It was settled with
 the owner over one day of demos (2026-09-08), decision by decision, and every
-decision below carries its date. Nothing in it is built yet beyond the package
-layer: `docs/BACKLOG.md` is the order the rest arrives in.
+decision below carries its date. The package layer and the harvest (section 3)
+are built; `docs/BACKLOG.md` is the order the rest arrives in.
 
 Two rules keep it honest. A design change updates this file in the same PR, so
 the record and the code never disagree. And everything here is **assumed**
@@ -87,7 +87,7 @@ PowerPoint would settle.
 
 - **Two decks, one per slide size**, authored by the owner and committed under
   `template/`: `library-16x9.pptx` and `library-4x3.pptx`. Both carry the same
-  118 names, and the harvest refuses a name that is not in both, so no element
+  117 keys, and the harvest refuses a key that is not in both, so no element
   is ever scaled from the other size. A deck that is neither 16:9 nor 4:3 (A4,
   16:10, a custom size) borrows the nearest library, scaled to fit, and the
   line under the pane's header says so.
@@ -107,11 +107,16 @@ PowerPoint would settle.
   139 times). A theme-mapped colour follows the destination deck's theme by
   itself when the markup keeps it as a theme reference; the colour switch
   (section 7) pins them to the library's values instead.
-- **The catalogue is static.** A build step harvests the decks into a committed
-  catalogue the pane ships as files on Pages: names, categories, boxes, sizes
-  and landing per element in one JSON, thumbnails and previews as separate
-  files with hashed names (section 11). Adding an element is editing the deck,
-  re-printing, and merging a PR. The site also gets a catalogue page generated
+- **The catalogue is static.** `npm run harvest` reads the decks into the
+  catalogue the pane ships as files on Pages: an index (`catalogue.json`,
+  about 160 KB: names, categories, boxes, sizes and landing per element for
+  both sizes, and a content hash as its version) plus one file per element with
+  its markup, relationships and the parts it carries, and the parts themselves.
+  The index is committed and CI fails when it no longer matches the decks; the
+  element files and parts (about 14 MB, generated JSON) are built on every
+  deploy and never committed. Thumbnails and previews join them with hashed
+  names (section 11). Adding an element is editing the deck, re-printing, and
+  merging a PR. The site also gets a catalogue page generated
   at harvest, every element with picture and name, for browsing outside
   PowerPoint and for the AppSource screenshots.
 

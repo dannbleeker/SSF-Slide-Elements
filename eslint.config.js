@@ -67,6 +67,7 @@ export default tseslint.config(
     // are gated by `test/manifest.test.ts`, which proves each one can still
     // fail — a stronger check than the type of an intermediate.
     files: [
+      "scripts/harvest.mjs",
       "scripts/manifest-rules.mjs",
       "scripts/manifest-source.mjs",
       "scripts/release-assets.mjs",

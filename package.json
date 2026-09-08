@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "coverage": "vitest run --coverage",
     "build:lib": "tsc -p tsconfig.lib.json",
+    "harvest": "node scripts/harvest.mjs",
     "dev": "vite",
     "build": "vite build",
     "icons": "node scripts/build-icons.mjs",

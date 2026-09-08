@@ -18,15 +18,17 @@ SSF-Charts' per-shape failure surfaces exist. `src/core` is pure TypeScript with
 **zero Office imports**, enforced by `test/architecture.test.ts` in both
 directions.
 
-**Today the scaffold and the package layer exist.** Nothing reads a deck from
-PowerPoint yet and nothing splices; `docs/BACKLOG.md` is the order the rest
-arrives in.
+**Today the scaffold, the package layer and the harvest exist.** The two
+library decks under `template/` are read into `public/catalogue/` by
+`npm run harvest` (the index committed, the rest built on deploy). Nothing
+reads a deck from PowerPoint yet and nothing splices; `docs/BACKLOG.md` is the
+order the rest arrives in.
 
 ## Where things live
 
 | directory | what it owns |
 | --- | --- |
-| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`). The harvest and the splice arrive next |
+| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts). The splice arrives next |
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
@@ -210,6 +212,7 @@ npm run typecheck
 npm run lint
 npm run coverage       # enforces the floors in vitest.config.ts
 npm run test:count     # holds the floor in test/fixtures/test-count.json
+npm run harvest        # both decks into public/catalogue; CI diffs the committed index
 npm run manifests      # regenerate the four manifests; test/manifest.test.ts diffs them
 npm run icons          # redraw public/assets; test/manifest.test.ts diffs them
 npm run sibling-watch  # sweep both siblings' tables for findings with no row in TRIAGED

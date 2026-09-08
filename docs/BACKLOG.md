@@ -11,17 +11,6 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Library harvest
-
-The owner's two library decks under `template/` (one per slide size, both
-carrying the same names) read into a committed catalogue: one entry per element
-with its category, English name from `template/names.en.json`, slide markup,
-media, box, size run and landing. A collection slide yields one element per
-shape and its title is their category. Previews are cut from the PDF prints the
-owner commits beside the decks, and a CI job fails a change where the deck, the
-print, the names file and the catalogue disagree. What an element is, how it is
-named and how it is cut is `docs/DESIGN.md` sections 2 and 3.
-
 ### Host probe
 
 Before anything is spliced or drawn: a thin probe pane that asks the six

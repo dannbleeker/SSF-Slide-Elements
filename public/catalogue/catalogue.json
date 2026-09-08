@@ -1,0 +1,6153 @@
+{
+  "version": "60e7f03dd556",
+  "sizes": {
+    "16:9": {
+      "size": "16:9",
+      "width": 12192000,
+      "height": 6858000,
+      "categories": [
+        {
+          "key": "Hvide kasser",
+          "name": "White boxes"
+        },
+        {
+          "key": "Hvide kasser med sorte overskrifter",
+          "name": "White boxes with black headings"
+        },
+        {
+          "key": "Kun streger",
+          "name": "Lines only"
+        },
+        {
+          "key": "Procesflow",
+          "name": "Process flows"
+        },
+        {
+          "key": "Tabeller",
+          "name": "Tables"
+        },
+        {
+          "key": "Trekanter",
+          "name": "Triangles"
+        },
+        {
+          "key": "Dokumentstruktur",
+          "name": "Document structure"
+        },
+        {
+          "key": "Grå kasser",
+          "name": "Grey boxes"
+        },
+        {
+          "key": "Markeringer",
+          "name": "Markers"
+        },
+        {
+          "key": "Stempler og lignende",
+          "name": "Stamps and labels"
+        },
+        {
+          "key": "Flowchart ikoner",
+          "name": "Flowchart shapes"
+        },
+        {
+          "key": "One-page templates",
+          "name": "One-page templates"
+        }
+      ],
+      "elements": [
+        {
+          "id": "hvid-kasse-1-stor",
+          "key": "Hvid kasse, 1 stor",
+          "name": "White box, 1 large",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 3,
+          "kind": "slide",
+          "box": {
+            "x": 0.0575,
+            "y": 0.2061,
+            "w": 0.8833,
+            "h": 0.6866
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-1-stor-med-checkliste-paa-4",
+          "key": "Hvid kasse, 1 stor med checkliste på 4",
+          "name": "White box, 1 large with a 4-item checklist",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 4,
+          "kind": "slide",
+          "box": {
+            "x": 0.0575,
+            "y": 0.2061,
+            "w": 0.8833,
+            "h": 0.6866
+          },
+          "landing": "layout",
+          "shapes": 8,
+          "tags": [
+            "boxes",
+            "checklist",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-uden-skygge-til-citater-1-stor-med-tre-citater",
+          "key": "Hvid kasse uden skygge til citater, 1 stor med tre citater",
+          "name": "White box without shadow, 1 large with three quotes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 5,
+          "kind": "slide",
+          "box": {
+            "x": 0.0575,
+            "y": 0.2061,
+            "w": 0.8833,
+            "h": 0.6866
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "quotes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2x1-vertikale",
+          "key": "Hvid kasse, 2x1 vertikale",
+          "name": "White boxes, 2×1 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 6,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2275,
+            "w": 0.8797,
+            "h": 0.6519
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-1x2-vertikale",
+          "key": "Hvid kasse, 1x2 vertikale",
+          "name": "White boxes, 1×2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 7,
+          "kind": "slide",
+          "box": {
+            "x": 0.0573,
+            "y": 0.2275,
+            "w": 0.8794,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2x2-vertikale",
+          "key": "Hvid kasse, 2x2 vertikale",
+          "name": "White boxes, 2×2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 8,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2275,
+            "w": 0.8787,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale",
+          "key": "Hvid kasse, 2 vertikale",
+          "name": "White boxes, 2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 9,
+          "kind": "slide",
+          "box": {
+            "x": 0.0573,
+            "y": 0.2275,
+            "w": 0.8804,
+            "h": 0.6519
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N vertical",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-med-kausalitet",
+          "key": "Hvid kasse, 2 vertikale med kausalitet",
+          "name": "White boxes, 2 vertical with causality",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 10,
+          "kind": "slide",
+          "box": {
+            "x": 0.0574,
+            "y": 0.227,
+            "w": 0.8803,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-baggrund-og-anbefaling",
+          "key": "Hvid kasse, Baggrund og anbefaling",
+          "name": "White boxes, background and recommendation",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 11,
+          "kind": "slide",
+          "box": {
+            "x": 0.0585,
+            "y": 0.227,
+            "w": 0.8792,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-ligevaerdig",
+          "key": "Hvid kasse, 2 vertikale på vægt - ligeværdig",
+          "name": "White boxes, 2 vertical on a scale, balanced",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 12,
+          "kind": "slide",
+          "box": {
+            "x": 0.186,
+            "y": 0.2795,
+            "w": 0.633,
+            "h": 0.5355
+          },
+          "landing": "layout",
+          "shapes": 13,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-hoejretung",
+          "key": "Hvid kasse, 2 vertikale på vægt - højretung",
+          "name": "White boxes, 2 vertical on a scale, right-heavy",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 13,
+          "kind": "slide",
+          "box": {
+            "x": 0.186,
+            "y": 0.227,
+            "w": 0.633,
+            "h": 0.588
+          },
+          "landing": "layout",
+          "shapes": 13,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-venstretung",
+          "key": "Hvid kasse, 2 vertikale på vægt - venstretung",
+          "name": "White boxes, 2 vertical on a scale, left-heavy",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 14,
+          "kind": "slide",
+          "box": {
+            "x": 0.186,
+            "y": 0.227,
+            "w": 0.633,
+            "h": 0.588
+          },
+          "landing": "layout",
+          "shapes": 13,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-3-vertikale",
+          "key": "Hvid kasse, 3 vertikale",
+          "name": "White boxes, 3 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 15,
+          "kind": "slide",
+          "box": {
+            "x": 0.0565,
+            "y": 0.2268,
+            "w": 0.8816,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N vertical",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "hvid-kasse-3-vertikale-med-kausalitet-uafsluttet",
+          "key": "Hvid kasse, 3 vertikale med kausalitet - uafsluttet",
+          "name": "White boxes, 3 vertical with causality, open-ended",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 16,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2268,
+            "w": 0.8811,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-3-vertikale-med-kausalitet-afsluttet",
+          "key": "Hvid kasse, 3 vertikale med kausalitet - Afsluttet",
+          "name": "White boxes, 3 vertical with causality, closed",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 17,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2268,
+            "w": 0.8803,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-vertikale-1-2-1-proces-afsluttet",
+          "key": "Hvid kasse, vertikale 1-2-1 proces, afsluttet",
+          "name": "White boxes, vertical 1-2-1 process, closed",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 18,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2268,
+            "w": 0.8803,
+            "h": 0.6712
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "process",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-vertikale-1-2-1-proces-uafsluttet",
+          "key": "Hvid kasse, vertikale 1-2-1 proces, uafsluttet",
+          "name": "White boxes, vertical 1-2-1 process, open-ended",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 19,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2268,
+            "w": 0.8811,
+            "h": 0.6712
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "process",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-der-peger-mod-n-i-midten",
+          "key": "Hvid kasse, 2 der peger mod én i midten",
+          "name": "White boxes, 2 pointing at one in the middle",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 20,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2268,
+            "w": 0.8811,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N pointing at 1 in the middle",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hvid-kasse-4-der-peger-mod-n-i-midten",
+          "key": "Hvid kasse, 4 der peger mod én i midten",
+          "name": "White boxes, 4 pointing at one in the middle",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 21,
+          "kind": "slide",
+          "box": {
+            "x": 0.0581,
+            "y": 0.2174,
+            "w": 0.8788,
+            "h": 0.6718
+          },
+          "landing": "layout",
+          "shapes": 18,
+          "tags": [
+            "boxes",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N pointing at 1 in the middle",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "matrix-med-to-ned-og-kasser-med-pile",
+          "key": "Matrix med to ned og kasser med pile",
+          "name": "Matrix, two rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 22,
+          "kind": "slide",
+          "box": {
+            "x": 0.0573,
+            "y": 0.1745,
+            "w": 0.8847,
+            "h": 0.7727
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "matrix-med-tre-ned-og-kasser-med-pile",
+          "key": "Matrix med tre ned og kasser med pile",
+          "name": "Matrix, three rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 23,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.1893,
+            "w": 0.8847,
+            "h": 0.7715
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "matrix-med-fire-ned-og-kasser-med-pile",
+          "key": "Matrix med fire ned og kasser med pile",
+          "name": "Matrix, four rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 24,
+          "kind": "slide",
+          "box": {
+            "x": 0.0583,
+            "y": 0.1893,
+            "w": 0.8847,
+            "h": 0.767
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "matrix-med-fem-ned-og-kasser-med-pile",
+          "key": "Matrix med fem ned og kasser med pile",
+          "name": "Matrix, five rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 25,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.1893,
+            "w": 0.6603,
+            "h": 0.7772
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 5
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-2-kasser",
+          "key": "Hierarki, 2 niveauer, 2 kasser",
+          "name": "Hierarchy, 2 levels, 2 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 26,
+          "kind": "slide",
+          "box": {
+            "x": 0.0576,
+            "y": 0.2165,
+            "w": 0.8829,
+            "h": 0.7491
+          },
+          "landing": "layout",
+          "shapes": 8,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-3-kasser",
+          "key": "Hierarki, 2 niveauer, 3 kasser",
+          "name": "Hierarchy, 2 levels, 3 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 27,
+          "kind": "slide",
+          "box": {
+            "x": 0.0581,
+            "y": 0.2165,
+            "w": 0.8829,
+            "h": 0.7386
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-4-kasser",
+          "key": "Hierarki, 2 niveauer, 4 kasser",
+          "name": "Hierarchy, 2 levels, 4 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 28,
+          "kind": "slide",
+          "box": {
+            "x": 0.0576,
+            "y": 0.2165,
+            "w": 0.8829,
+            "h": 0.7438
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-5-kasser",
+          "key": "Hierarki, 2 niveauer, 5 kasser",
+          "name": "Hierarchy, 2 levels, 5 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 29,
+          "kind": "slide",
+          "box": {
+            "x": 0.0571,
+            "y": 0.2375,
+            "w": 0.8829,
+            "h": 0.7297
+          },
+          "landing": "layout",
+          "shapes": 17,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "hierarki-3-niveauer-1-3-2-kasser",
+          "key": "Hierarki, 3 niveauer, 1-3-2 kasser",
+          "name": "Hierarchy, 3 levels, 1-3-2 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 30,
+          "kind": "slide",
+          "box": {
+            "x": 0.0576,
+            "y": 0.1733,
+            "w": 0.8829,
+            "h": 0.7803
+          },
+          "landing": "layout",
+          "shapes": 26,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ]
+        },
+        {
+          "id": "hierarki-3-niveauer-1-2-3-kasser",
+          "key": "Hierarki, 3 niveauer, 1-2-3 kasser",
+          "name": "Hierarchy, 3 levels, 1-2-3 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 31,
+          "kind": "slide",
+          "box": {
+            "x": 0.0571,
+            "y": 0.1742,
+            "w": 0.8829,
+            "h": 0.7803
+          },
+          "landing": "layout",
+          "shapes": 22,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ]
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-1-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 1 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 1 row, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 32,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1934,
+            "w": 0.9072,
+            "h": 0.7596
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 1
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-2-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 2 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 2 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 33,
+          "kind": "slide",
+          "box": {
+            "x": 0.0347,
+            "y": 0.1952,
+            "w": 0.9072,
+            "h": 0.7596
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-3-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 3 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 3 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 34,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1887,
+            "w": 0.9043,
+            "h": 0.7648
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-4-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 4 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 4 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 35,
+          "kind": "slide",
+          "box": {
+            "x": 0.0347,
+            "y": 0.185,
+            "w": 0.9043,
+            "h": 0.77
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-5-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 5 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 5 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 36,
+          "kind": "slide",
+          "box": {
+            "x": 0.0347,
+            "y": 0.1906,
+            "w": 0.9043,
+            "h": 0.7648
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 5
+          }
+        },
+        {
+          "id": "to-vertikale-kasser-med-sorte-kasser-som-overskrifter-samt-konklusionskasser",
+          "key": "To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser",
+          "name": "Two vertical boxes with black heading boxes and conclusion boxes",
+          "category": {
+            "key": "Hvide kasser med sorte overskrifter",
+            "name": "White boxes with black headings"
+          },
+          "slide": 38,
+          "kind": "slide",
+          "box": {
+            "x": 0.0579,
+            "y": 0.2116,
+            "w": 0.8805,
+            "h": 0.6356
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "columns",
+            "white",
+            "black"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-med-venstrevendt-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med venstrevendt pil",
+          "name": "Commentary on content: content left, comments right, arrow pointing left",
+          "category": {
+            "key": "Hvide kasser med sorte overskrifter",
+            "name": "White boxes with black headings"
+          },
+          "slide": 39,
+          "kind": "slide",
+          "box": {
+            "x": 0.0583,
+            "y": 0.219,
+            "w": 0.8794,
+            "h": 0.6615
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white",
+            "black"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-uden-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre uden pil",
+          "name": "Commentary on content: content left, comments right, no arrow",
+          "category": {
+            "key": "Hvide kasser med sorte overskrifter",
+            "name": "White boxes with black headings"
+          },
+          "slide": 40,
+          "kind": "slide",
+          "box": {
+            "x": 0.0585,
+            "y": 0.2117,
+            "w": 0.8778,
+            "h": 0.6728
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white",
+            "black"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-med-hoejrevendt-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med højrevendt pil",
+          "name": "Commentary on content: content left, comments right, arrow pointing right",
+          "category": {
+            "key": "Hvide kasser med sorte overskrifter",
+            "name": "White boxes with black headings"
+          },
+          "slide": 41,
+          "kind": "slide",
+          "box": {
+            "x": 0.0573,
+            "y": 0.21,
+            "w": 0.8854,
+            "h": 0.672
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white",
+            "black"
+          ]
+        },
+        {
+          "id": "sort-streg-1-stor",
+          "key": "Sort streg, 1 stor",
+          "name": "Black line, 1 large",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 43,
+          "kind": "slide",
+          "box": {
+            "x": 0.0693,
+            "y": 0.2061,
+            "w": 0.842,
+            "h": 0.6858
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "lines",
+            "black"
+          ]
+        },
+        {
+          "id": "sort-streg-2-vertikale",
+          "key": "Sort streg, 2 vertikale",
+          "name": "Black lines, 2 vertical",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 44,
+          "kind": "slide",
+          "box": {
+            "x": 0.0652,
+            "y": 0.2275,
+            "w": 0.8605,
+            "h": 0.6295
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "lines",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical",
+            "noun": "lines",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-3-vertikale",
+          "key": "Sort streg, 3 vertikale",
+          "name": "Black lines, 3 vertical",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 45,
+          "kind": "slide",
+          "box": {
+            "x": 0.0616,
+            "y": 0.2268,
+            "w": 0.8652,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 12,
+          "tags": [
+            "lines",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical",
+            "noun": "lines",
+            "count": 3
+          }
+        },
+        {
+          "id": "sort-streg-2-vertikale-kausalitet",
+          "key": "Sort streg, 2 vertikale - kausalitet",
+          "name": "Black lines, 2 vertical, causality",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 46,
+          "kind": "slide",
+          "box": {
+            "x": 0.0654,
+            "y": 0.227,
+            "w": 0.8678,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 9,
+          "tags": [
+            "lines",
+            "causality",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical, causality",
+            "noun": "lines",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-3-vertikale-kausalitet",
+          "key": "Sort streg, 3 vertikale - kausalitet",
+          "name": "Black lines, 3 vertical, causality",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 47,
+          "kind": "slide",
+          "box": {
+            "x": 0.0616,
+            "y": 0.2268,
+            "w": 0.8652,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "lines",
+            "causality",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical, causality",
+            "noun": "lines",
+            "count": 3
+          }
+        },
+        {
+          "id": "2-kolonner-med-adskillelse",
+          "key": "2 kolonner med adskillelse",
+          "name": "2 columns with a divider",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 48,
+          "kind": "slide",
+          "box": {
+            "x": 0.0712,
+            "y": 0.2568,
+            "w": 0.8576,
+            "h": 0.584
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "lines"
+          ]
+        },
+        {
+          "id": "sort-streg-2-vertikale-med-3-underpunkter-med-billeder-og-tekst",
+          "key": "Sort streg, 2 vertikale med 3 underpunkter med billeder og tekst",
+          "name": "Black lines, 2 vertical with 3 sub-items, pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 49,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.1748,
+            "w": 0.8829,
+            "h": 0.712
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "columns",
+            "black"
+          ]
+        },
+        {
+          "id": "sort-streg-4-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 4 rækker med billeder og tekst",
+          "name": "Black line, 4 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 50,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2045,
+            "w": 0.8832,
+            "h": 0.7288
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "sort-streg-3-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 3 rækker med billeder og tekst",
+          "name": "Black line, 3 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 51,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2165,
+            "w": 0.8842,
+            "h": 0.7115
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "sort-streg-2-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 2 rækker med billeder og tekst",
+          "name": "Black line, 2 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 52,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2165,
+            "w": 0.8832,
+            "h": 0.642
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-1-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 1 rækker med billeder og tekst",
+          "name": "Black line, 1 row with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 53,
+          "kind": "slide",
+          "box": {
+            "x": 0.0575,
+            "y": 0.2165,
+            "w": 0.8837,
+            "h": 0.6772
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-1-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 1 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 1 box with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 55,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.691,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-2-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 2 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 2 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 56,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.6928,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-3-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 3 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 3 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 57,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.6999,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-4-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 4 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 4 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 58,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.694,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-5-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 5 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 5 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 59,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.6851,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-6-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 6 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 6 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 60,
+          "kind": "slide",
+          "box": {
+            "x": 0.1633,
+            "y": 0.2638,
+            "w": 0.6954,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "procesflow-med-1-kasse-og-6-med-noegletal",
+          "key": "Procesflow med 1 kasse og 6 med nøgletal",
+          "name": "Process flow, 1 box and 6 with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 61,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2375,
+            "w": 0.7087,
+            "h": 0.6555
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-med-2-kasser-og-3-omraader-pr-kasse-med-noegletal",
+          "key": "Procesflow med 2 kasser og 3 områder pr kasse med nøgletal",
+          "name": "Process flow, 2 boxes, 3 areas each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 62,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2375,
+            "w": 0.7058,
+            "h": 0.6555
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-med-3-kasser-og-2-omraader-pr-kasse-med-noegletal",
+          "key": "Procesflow med 3 kasser og 2 områder pr kasse med nøgletal",
+          "name": "Process flow, 3 boxes, 2 areas each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 63,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2388,
+            "w": 0.7161,
+            "h": 0.6542
+          },
+          "landing": "layout",
+          "shapes": 16,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-med-4-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 4 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 4 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 64,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2406,
+            "w": 0.7263,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-med-5-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 5 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 5 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 65,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2406,
+            "w": 0.726,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-med-6-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 6 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 6 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 66,
+          "kind": "slide",
+          "box": {
+            "x": 0.1397,
+            "y": 0.2406,
+            "w": 0.7253,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-1-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 1 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 1 box, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 67,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7228
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-2-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 2 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 2 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 68,
+          "kind": "slide",
+          "box": {
+            "x": 0.0347,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7333
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-3-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 3 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 3 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 69,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7438
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-4-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 4 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 4 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 70,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7438
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-5-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 5 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 5 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 71,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7543
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-6-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 6 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 6 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 72,
+          "kind": "slide",
+          "box": {
+            "x": 0.0342,
+            "y": 0.1972,
+            "w": 0.9063,
+            "h": 0.7491
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "tabel-med-8-raekker-og-9-kolonner-kan-ikke-farves-i-cellerne",
+          "key": "Tabel med 8 rækker og 9 kolonner – kan ikke farves i cellerne",
+          "name": "Table, 8 rows and 9 columns, cells cannot be coloured",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 74,
+          "kind": "slide",
+          "box": {
+            "x": 0.0574,
+            "y": 0.2375,
+            "w": 0.8829,
+            "h": 0.5424
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "tabel-med-8-raekker-og-9-kolonner",
+          "key": "Tabel med 8 rækker og 9 kolonner",
+          "name": "Table, 8 rows and 9 columns",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 75,
+          "kind": "slide",
+          "box": {
+            "x": 0.0574,
+            "y": 0.2375,
+            "w": 0.8829,
+            "h": 0.6605
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "tabel-med-8-raekker-og-8-kolonner-en-kasse",
+          "key": "Tabel med 8 rækker og 8 kolonner + en kasse",
+          "name": "Table, 8 rows and 8 columns, plus a box",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 76,
+          "kind": "slide",
+          "box": {
+            "x": 0.0574,
+            "y": 0.2375,
+            "w": 0.8829,
+            "h": 0.6605
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "boxes",
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "plus-minus-liste",
+          "key": "Plus/Minus liste",
+          "name": "Plus/minus list",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 77,
+          "kind": "slide",
+          "box": {
+            "x": 0.0579,
+            "y": 0.2375,
+            "w": 0.8829,
+            "h": 0.6605
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "klassisk-tabel-5x5",
+          "key": "Klassisk tabel, 5x5",
+          "name": "Classic table, 5×5",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 78,
+          "kind": "slide",
+          "box": {
+            "x": 0.0584,
+            "y": 0.227,
+            "w": 0.883,
+            "h": 0.7035
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "tabel-med-ramme-omkring-og-overskrift",
+          "key": "Tabel med ramme omkring og overskrift",
+          "name": "Table with a frame and a heading",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 79,
+          "kind": "slide",
+          "box": {
+            "x": 0.0576,
+            "y": 0.248,
+            "w": 0.8831,
+            "h": 0.6622
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "trekant-enkel-med-tekst-ved-hjoernerne",
+          "key": "Trekant, enkel med tekst ved hjørnerne",
+          "name": "Triangle, simple, with text at the corners",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 81,
+          "kind": "slide",
+          "box": {
+            "x": 0.1716,
+            "y": 0.269,
+            "w": 0.656,
+            "h": 0.4687
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-og-tekst-ved-hjoernerne",
+          "key": "Trekant med cirkler og tekst ved hjørnerne",
+          "name": "Triangle with circles and text at the corners",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 82,
+          "kind": "slide",
+          "box": {
+            "x": 0.3228,
+            "y": 0.269,
+            "w": 0.3543,
+            "h": 0.4935
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-tekst-ved-hjoernerne-og-uddybning",
+          "key": "Trekant med cirkler, tekst ved hjørnerne og uddybning",
+          "name": "Triangle with circles, corner text and elaboration",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 83,
+          "kind": "slide",
+          "box": {
+            "x": 0.1811,
+            "y": 0.248,
+            "w": 0.6851,
+            "h": 0.5355
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-tekst-ved-hjoernerne-uddybning-samt-fremhaevning-af-kanterne",
+          "key": "Trekant med cirkler, tekst ved hjørnerne, uddybning samt fremhævning af kanterne",
+          "name": "Triangle with circles, corner text, elaboration and highlighted edges",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 84,
+          "kind": "slide",
+          "box": {
+            "x": 0.1273,
+            "y": 0.248,
+            "w": 0.7388,
+            "h": 0.693
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "indhold",
+          "key": "INDHOLD",
+          "name": "Contents",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 86,
+          "kind": "slide",
+          "box": {
+            "x": 0.0708,
+            "y": 0.2375,
+            "w": 0.6112,
+            "h": 0.5687
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agenda",
+          "key": "AGENDA",
+          "name": "Agenda",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 87,
+          "kind": "slide",
+          "box": {
+            "x": 0.0935,
+            "y": 0.1853,
+            "w": 0.834,
+            "h": 0.7225
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "aendringslog-til-dokumentet",
+          "key": "Ændringslog til dokumentet",
+          "name": "Change log for the document",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 88,
+          "kind": "slide",
+          "box": {
+            "x": 0.0581,
+            "y": 0.248,
+            "w": 0.8836,
+            "h": 0.6267
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agendapunkt-skriv-navn-som-overskrift-da",
+          "key": "[ Agendapunkt – skriv navn som overskrift - DA ]",
+          "name": "Agenda item (Danish)",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 89,
+          "kind": "slide",
+          "box": {
+            "x": 0.1129,
+            "y": 0.2549,
+            "w": 0.7446,
+            "h": 0.6685
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agendapunkt-skriv-navn-som-overskrift-eng",
+          "key": "[ Agendapunkt – skriv navn som overskrift - ENG ]",
+          "name": "Agenda item (English)",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 90,
+          "kind": "slide",
+          "box": {
+            "x": 0.1129,
+            "y": 0.2549,
+            "w": 0.7446,
+            "h": 0.6023
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "decisions-needed",
+          "key": "Decisions needed",
+          "name": "Decisions needed",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 91,
+          "kind": "slide",
+          "box": {
+            "x": 0.0831,
+            "y": 0.3662,
+            "w": 0.8457,
+            "h": 0.3527
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "tre-2x1-kasser",
+          "key": "Tre (2x1) kasser",
+          "name": "Three boxes (2×1)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 93,
+          "kind": "slide",
+          "box": {
+            "x": 0.0594,
+            "y": 0.2185,
+            "w": 0.8813,
+            "h": 0.6941
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-1x2-kasser",
+          "key": "Tre (1x2) kasser",
+          "name": "Three boxes (1×2)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 94,
+          "kind": "slide",
+          "box": {
+            "x": 0.0573,
+            "y": 0.2185,
+            "w": 0.8831,
+            "h": 0.6941
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "fire-2x2-kasser",
+          "key": "Fire (2x2) kasser",
+          "name": "Four boxes (2×2)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 95,
+          "kind": "slide",
+          "box": {
+            "x": 0.0594,
+            "y": 0.2185,
+            "w": 0.8811,
+            "h": 0.6926
+          },
+          "landing": "layout",
+          "shapes": 12,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-2-1-kasser",
+          "key": "Tre (2+1) kasser",
+          "name": "Three boxes (2+1)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 96,
+          "kind": "slide",
+          "box": {
+            "x": 0.0594,
+            "y": 0.2185,
+            "w": 0.8811,
+            "h": 0.6926
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "to-horisontale-kasser",
+          "key": "To horisontale kasser",
+          "name": "Two horizontal boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 97,
+          "kind": "slide",
+          "box": {
+            "x": 0.0557,
+            "y": 0.2185,
+            "w": 0.8847,
+            "h": 0.6961
+          },
+          "landing": "layout",
+          "shapes": 28,
+          "tags": [
+            "boxes",
+            "rows",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-vertikale-kasser",
+          "key": "Tre vertikale kasser",
+          "name": "Three vertical boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 98,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2228,
+            "w": 0.8823,
+            "h": 0.6836
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "columns",
+            "grey"
+          ],
+          "run": {
+            "key": "N vertical boxes",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "to-vertikale-kasser",
+          "key": "To vertikale kasser",
+          "name": "Two vertical boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 99,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.2228,
+            "w": 0.882,
+            "h": 0.6836
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "grey"
+          ],
+          "run": {
+            "key": "N vertical boxes",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "en-kasse",
+          "key": "En kasse",
+          "name": "One box",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 100,
+          "kind": "slide",
+          "box": {
+            "x": 0.0578,
+            "y": 0.0977,
+            "w": 0.8818,
+            "h": 0.8088
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-kasser-med-pile-mod-n-graa-kasse",
+          "key": "Tre kasser med pile mod én grå kasse",
+          "name": "Three boxes with arrows to one grey box",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 101,
+          "kind": "slide",
+          "box": {
+            "x": 0.0463,
+            "y": 0.2187,
+            "w": 0.8934,
+            "h": 0.6877
+          },
+          "landing": "layout",
+          "shapes": 17,
+          "tags": [
+            "boxes",
+            "arrows",
+            "grey"
+          ]
+        },
+        {
+          "id": "markeringer-1",
+          "key": "Markeringer 1",
+          "name": "Marker: small circle",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.1811,
+            "y": 0.2375,
+            "w": 0.1206,
+            "h": 0.2026
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "markeringer-2",
+          "key": "Markeringer 2",
+          "name": "Marker: wide oval",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.1811,
+            "y": 0.458,
+            "w": 0.6719,
+            "h": 0.2227
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "markeringer-3",
+          "key": "Markeringer 3",
+          "name": "Marker: bold oval",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.3405,
+            "y": 0.2165,
+            "w": 0.247,
+            "h": 0.1989
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "dokumentnavn-aktuelt-afsnit-fra",
+          "key": "Dokumentnavn > Aktuelt afsnit fra…",
+          "name": "Breadcrumb bar: document > section",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.0016,
+            "y": 0,
+            "w": 0.75,
+            "h": 0.038
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "fortroligt",
+          "key": "Fortroligt",
+          "name": "Confidential stamp",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.187,
+            "y": 0.2375,
+            "w": 0.1762,
+            "h": 0.2439
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "udkast",
+          "key": "Udkast",
+          "name": "Draft stamp",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.3523,
+            "y": 0.2375,
+            "w": 0.1728,
+            "h": 0.2634
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "fortroligt-2",
+          "key": "Fortroligt (2)",
+          "name": "Confidential label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.6179,
+            "y": 0.1955,
+            "w": 0.1358,
+            "h": 0.042
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "diskussionsoplaeg",
+          "key": "Diskussionsoplæg",
+          "name": "Discussion paper label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.6179,
+            "y": 0.2658,
+            "w": 0.193,
+            "h": 0.0473
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "arbejdsdokument",
+          "key": "Arbejdsdokument",
+          "name": "Working document label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.6174,
+            "y": 0.3425,
+            "w": 0.193,
+            "h": 0.0473
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "kicker-box",
+          "key": "Kicker box",
+          "name": "Kicker box",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.1929,
+            "y": 0.5735,
+            "w": 0.567,
+            "h": 0.105
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "stempler-og-lignende-1",
+          "key": "Stempler og lignende 1",
+          "name": "Scales",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.3464,
+            "y": 0.7205,
+            "w": 0.2033,
+            "h": 0.231
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "dokument",
+          "key": "Dokument",
+          "name": "Document",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.4637,
+            "y": 0.4074,
+            "w": 0.0777,
+            "h": 0.0541
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "dokumenter",
+          "key": "dokumenter",
+          "name": "Documents (stack)",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.2699,
+            "y": 0.332,
+            "w": 0.079,
+            "h": 0.0754
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "start-stop",
+          "key": "Start / Stop",
+          "name": "Start / stop",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.3664,
+            "y": 0.2596,
+            "w": 0.0776,
+            "h": 0.0533
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "proces-handling",
+          "key": "Proces / Handling",
+          "name": "Process / action",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.3664,
+            "y": 0.332,
+            "w": 0.0777,
+            "h": 0.0552
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "process",
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-1",
+          "key": "Flowchart ikoner 1",
+          "name": "Labelled curved arrow",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.2994,
+            "y": 0.4895,
+            "w": 0.0625,
+            "h": 0.1036
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "beslutning",
+          "key": "Beslutning",
+          "name": "Decision",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.3735,
+            "y": 0.4685,
+            "w": 0.0677,
+            "h": 0.0945
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-2",
+          "key": "Flowchart ikoner 2",
+          "name": "Labelled straight arrow",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.2404,
+            "y": 0.6365,
+            "w": 0.1299,
+            "h": 0.0945
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-3",
+          "key": "Flowchart ikoner 3",
+          "name": "Dashed curved connector",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.4468,
+            "y": 0.563,
+            "w": 0.1361,
+            "h": 0.3406
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-4",
+          "key": "Flowchart ikoner 4",
+          "name": "Waste bin",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.4291,
+            "y": 0.6575,
+            "w": 0.0298,
+            "h": 0.0754
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-5",
+          "key": "Flowchart ikoner 5",
+          "name": "Box with a footer strip",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 105,
+          "kind": "part",
+          "box": {
+            "x": 0.2401,
+            "y": 0.7835,
+            "w": 0.0777,
+            "h": 0.0552
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "problem-statement",
+          "key": "Problem statement",
+          "name": "Problem statement",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 107,
+          "kind": "slide",
+          "box": {
+            "x": 0.0577,
+            "y": 0.1638,
+            "w": 0.872,
+            "h": 0.7594
+          },
+          "landing": "layout",
+          "shapes": 20,
+          "tags": [
+            "one-pager"
+          ]
+        },
+        {
+          "id": "aarsplan-v1",
+          "key": "Årsplan v1",
+          "name": "Annual plan v1",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 108,
+          "kind": "slide",
+          "box": {
+            "x": 0.0592,
+            "y": 0.2025,
+            "w": 0.8809,
+            "h": 0.6731
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "one-pager"
+          ]
+        },
+        {
+          "id": "kpi-definition-skriv-navn-som-overskrift",
+          "key": "[ KPI definition – skriv navn som overskrift ]",
+          "name": "KPI definition",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 109,
+          "kind": "slide",
+          "box": {
+            "x": 0.058,
+            "y": 0.2478,
+            "w": 0.8826,
+            "h": 0.563
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "figures",
+            "one-pager"
+          ]
+        },
+        {
+          "id": "bridging-numbers",
+          "key": "Bridging numbers",
+          "name": "Bridging numbers",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 110,
+          "kind": "slide",
+          "box": {
+            "x": 0.0385,
+            "y": 0.1914,
+            "w": 0.9003,
+            "h": 0.74
+          },
+          "landing": "layout",
+          "shapes": 63,
+          "tags": [
+            "one-pager"
+          ]
+        }
+      ]
+    },
+    "4:3": {
+      "size": "4:3",
+      "width": 9144000,
+      "height": 6858000,
+      "categories": [
+        {
+          "key": "Hvide kasser",
+          "name": "White boxes"
+        },
+        {
+          "key": "Kun streger",
+          "name": "Lines only"
+        },
+        {
+          "key": "Procesflow",
+          "name": "Process flows"
+        },
+        {
+          "key": "Tabeller",
+          "name": "Tables"
+        },
+        {
+          "key": "Trekanter",
+          "name": "Triangles"
+        },
+        {
+          "key": "Dokumentstruktur",
+          "name": "Document structure"
+        },
+        {
+          "key": "Grå kasser",
+          "name": "Grey boxes"
+        },
+        {
+          "key": "Markeringer",
+          "name": "Markers"
+        },
+        {
+          "key": "Stempler og lignende",
+          "name": "Stamps and labels"
+        },
+        {
+          "key": "Flowchart ikoner",
+          "name": "Flowchart shapes"
+        },
+        {
+          "key": "One-page templates",
+          "name": "One-page templates"
+        }
+      ],
+      "elements": [
+        {
+          "id": "hvid-kasse-1-stor",
+          "key": "Hvid kasse, 1 stor",
+          "name": "White box, 1 large",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 2,
+          "kind": "slide",
+          "box": {
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8426,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-1-stor-med-checkliste-paa-4",
+          "key": "Hvid kasse, 1 stor med checkliste på 4",
+          "name": "White box, 1 large with a 4-item checklist",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 3,
+          "kind": "slide",
+          "box": {
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8426,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 8,
+          "tags": [
+            "boxes",
+            "checklist",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-uden-skygge-til-citater-1-stor-med-tre-citater",
+          "key": "Hvid kasse uden skygge til citater, 1 stor med tre citater",
+          "name": "White box without shadow, 1 large with three quotes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 4,
+          "kind": "slide",
+          "box": {
+            "x": 0.059,
+            "y": 0.2165,
+            "w": 0.8899,
+            "h": 0.693
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "quotes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2x1-vertikale",
+          "key": "Hvid kasse, 2x1 vertikale",
+          "name": "White boxes, 2×1 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 5,
+          "kind": "slide",
+          "box": {
+            "x": 0.0826,
+            "y": 0.2284,
+            "w": 0.8505,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-1x2-vertikale",
+          "key": "Hvid kasse, 1x2 vertikale",
+          "name": "White boxes, 1×2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 6,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9329,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2x2-vertikale",
+          "key": "Hvid kasse, 2x2 vertikale",
+          "name": "White boxes, 2×2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 7,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9329,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale",
+          "key": "Hvid kasse, 2 vertikale",
+          "name": "White boxes, 2 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 8,
+          "kind": "slide",
+          "box": {
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8505,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N vertical",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-med-kausalitet",
+          "key": "Hvid kasse, 2 vertikale med kausalitet",
+          "name": "White boxes, 2 vertical with causality",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 9,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9329,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 8,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-baggrund-og-anbefaling",
+          "key": "Hvid kasse, Baggrund og anbefaling",
+          "name": "White boxes, background and recommendation",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 10,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9329,
+            "h": 0.8778
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-ligevaerdig",
+          "key": "Hvid kasse, 2 vertikale på vægt - ligeværdig",
+          "name": "White boxes, 2 vertical on a scale, balanced",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 11,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9251,
+            "h": 0.9737
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-hoejretung",
+          "key": "Hvid kasse, 2 vertikale på vægt - højretung",
+          "name": "White boxes, 2 vertical on a scale, right-heavy",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 12,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9251,
+            "h": 0.9737
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-vertikale-paa-vaegt-venstretung",
+          "key": "Hvid kasse, 2 vertikale på vægt - venstretung",
+          "name": "White boxes, 2 vertical on a scale, left-heavy",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 13,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9251,
+            "h": 0.9737
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "weighing",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-3-vertikale",
+          "key": "Hvid kasse, 3 vertikale",
+          "name": "White boxes, 3 vertical",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 14,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9723,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "columns",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N vertical",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "hvid-kasse-3-vertikale-med-kausalitet-uafsluttet",
+          "key": "Hvid kasse, 3 vertikale med kausalitet - uafsluttet",
+          "name": "White boxes, 3 vertical with causality, open-ended",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 15,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9881,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-3-vertikale-med-kausalitet-afsluttet",
+          "key": "Hvid kasse, 3 vertikale med kausalitet - Afsluttet",
+          "name": "White boxes, 3 vertical with causality, closed",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 16,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9723,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "causality",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-vertikale-1-2-1-proces-afsluttet",
+          "key": "Hvid kasse, vertikale 1-2-1 proces, afsluttet",
+          "name": "White boxes, vertical 1-2-1 process, closed",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 17,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9723,
+            "h": 0.8988
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "boxes",
+            "process",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-vertikale-1-2-1-proces-uafsluttet",
+          "key": "Hvid kasse, vertikale 1-2-1 proces, uafsluttet",
+          "name": "White boxes, vertical 1-2-1 process, open-ended",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 18,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9881,
+            "h": 0.8988
+          },
+          "landing": "layout",
+          "shapes": 12,
+          "tags": [
+            "boxes",
+            "process",
+            "columns",
+            "white"
+          ]
+        },
+        {
+          "id": "hvid-kasse-2-der-peger-mod-n-i-midten",
+          "key": "Hvid kasse, 2 der peger mod én i midten",
+          "name": "White boxes, 2 pointing at one in the middle",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 19,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9487,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N pointing at 1 in the middle",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hvid-kasse-4-der-peger-mod-n-i-midten",
+          "key": "Hvid kasse, 4 der peger mod én i midten",
+          "name": "White boxes, 4 pointing at one in the middle",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 20,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9506,
+            "h": 0.88
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "White boxes, N pointing at 1 in the middle",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "matrix-med-to-ned-og-kasser-med-pile",
+          "key": "Matrix med to ned og kasser med pile",
+          "name": "Matrix, two rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 21,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9628,
+            "h": 0.9618
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "matrix-med-tre-ned-og-kasser-med-pile",
+          "key": "Matrix med tre ned og kasser med pile",
+          "name": "Matrix, three rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 22,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9628,
+            "h": 0.9606
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "matrix-med-fire-ned-og-kasser-med-pile",
+          "key": "Matrix med fire ned og kasser med pile",
+          "name": "Matrix, four rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 23,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9628,
+            "h": 0.9561
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "matrix-med-fem-ned-og-kasser-med-pile",
+          "key": "Matrix med fem ned og kasser med pile",
+          "name": "Matrix, five rows, boxes with arrows",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 24,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9628,
+            "h": 0.9662
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "matrix",
+            "arrows",
+            "white"
+          ],
+          "run": {
+            "key": "Matrix, N rows, boxes with arrows",
+            "noun": "rows",
+            "count": 5
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-2-kasser",
+          "key": "Hierarki, 2 niveauer, 2 kasser",
+          "name": "Hierarchy, 2 levels, 2 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 25,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9762,
+            "h": 0.9653
+          },
+          "landing": "layout",
+          "shapes": 9,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-3-kasser",
+          "key": "Hierarki, 2 niveauer, 3 kasser",
+          "name": "Hierarchy, 2 levels, 3 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 26,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9762,
+            "h": 0.9548
+          },
+          "landing": "layout",
+          "shapes": 12,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-4-kasser",
+          "key": "Hierarki, 2 niveauer, 4 kasser",
+          "name": "Hierarchy, 2 levels, 4 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 27,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9762,
+            "h": 0.9601
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "hierarki-2-niveauer-5-kasser",
+          "key": "Hierarki, 2 niveauer, 5 kasser",
+          "name": "Hierarchy, 2 levels, 5 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 28,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9762,
+            "h": 0.9669
+          },
+          "landing": "layout",
+          "shapes": 18,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ],
+          "run": {
+            "key": "Hierarchy, 2 levels, N boxes",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "hierarki-3-niveauer-1-3-2-kasser",
+          "key": "Hierarki, 3 niveauer, 1-3-2 kasser",
+          "name": "Hierarchy, 3 levels, 1-3-2 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 29,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9998,
+            "h": 1.0071
+          },
+          "landing": "layout",
+          "shapes": 27,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ]
+        },
+        {
+          "id": "hierarki-3-niveauer-1-2-3-kasser",
+          "key": "Hierarki, 3 niveauer, 1-2-3 kasser",
+          "name": "Hierarchy, 3 levels, 1-2-3 boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 30,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9998,
+            "h": 1.0071
+          },
+          "landing": "layout",
+          "shapes": 23,
+          "tags": [
+            "boxes",
+            "hierarchy",
+            "white"
+          ]
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-1-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 1 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 1 row, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 31,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.8946,
+            "h": 0.7596
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 1
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-2-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 2 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 2 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 32,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.8946,
+            "h": 0.7596
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-3-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 3 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 3 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 33,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.8946,
+            "h": 0.7648
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-4-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 4 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 4 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 34,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.8946,
+            "h": 0.77
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "tabel-med-store-hvid-kasse-paa-moerk-baggrund-5-raekker-7-kolonner",
+          "key": "Tabel med store hvid kasse på mørk baggrund – 5 rækker, 7 kolonner",
+          "name": "Table of white boxes on a dark ground, 5 rows, 7 columns",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 35,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.8946,
+            "h": 0.7648
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "table",
+            "rows",
+            "white"
+          ],
+          "run": {
+            "key": "Table of white boxes on a dark ground, N rows, 7 columns",
+            "noun": "rows",
+            "count": 5
+          }
+        },
+        {
+          "id": "kpi-definition-skriv-navn-som-overskrift",
+          "key": "[ KPI definition – skriv navn som overskrift ]",
+          "name": "KPI definition",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 36,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2478,
+            "w": 0.7967,
+            "h": 0.5881
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "boxes",
+            "figures",
+            "white"
+          ]
+        },
+        {
+          "id": "to-vertikale-kasser-med-sorte-kasser-som-overskrifter-samt-konklusionskasser",
+          "key": "To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser",
+          "name": "Two vertical boxes with black heading boxes and conclusion boxes",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 37,
+          "kind": "slide",
+          "box": {
+            "x": 0.0786,
+            "y": 0.2375,
+            "w": 0.8938,
+            "h": 0.7424
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "columns",
+            "white",
+            "black"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-med-venstrevendt-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med venstrevendt pil",
+          "name": "Commentary on content: content left, comments right, arrow pointing left",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 38,
+          "kind": "slide",
+          "box": {
+            "x": 0.0826,
+            "y": 0.2375,
+            "w": 0.8741,
+            "h": 0.7424
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-uden-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre uden pil",
+          "name": "Commentary on content: content left, comments right, no arrow",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 39,
+          "kind": "slide",
+          "box": {
+            "x": 0.0786,
+            "y": 0.2367,
+            "w": 0.8781,
+            "h": 0.7432
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white"
+          ]
+        },
+        {
+          "id": "kommentering-af-indholdselement-indholdselement-til-venstre-kommentering-til-hoejre-med-hoejrevendt-pil",
+          "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med højrevendt pil",
+          "name": "Commentary on content: content left, comments right, arrow pointing right",
+          "category": {
+            "key": "Hvide kasser",
+            "name": "White boxes"
+          },
+          "slide": 40,
+          "kind": "slide",
+          "box": {
+            "x": 0.0786,
+            "y": 0.248,
+            "w": 0.8781,
+            "h": 0.7319
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "arrows",
+            "commentary",
+            "white"
+          ]
+        },
+        {
+          "id": "sort-streg-1-stor",
+          "key": "Sort streg, 1 stor",
+          "name": "Black line, 1 large",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 42,
+          "kind": "slide",
+          "box": {
+            "x": 0.0984,
+            "y": 0.227,
+            "w": 0.8032,
+            "h": 0.651
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "lines",
+            "black"
+          ]
+        },
+        {
+          "id": "sort-streg-2-vertikale",
+          "key": "Sort streg, 2 vertikale",
+          "name": "Black lines, 2 vertical",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 43,
+          "kind": "slide",
+          "box": {
+            "x": 0.0903,
+            "y": 0.227,
+            "w": 0.835,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "lines",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical",
+            "noun": "lines",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-3-vertikale",
+          "key": "Sort streg, 3 vertikale",
+          "name": "Black lines, 3 vertical",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 44,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9606,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "lines",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical",
+            "noun": "lines",
+            "count": 3
+          }
+        },
+        {
+          "id": "sort-streg-2-vertikale-kausalitet",
+          "key": "Sort streg, 2 vertikale - kausalitet",
+          "name": "Black lines, 2 vertical, causality",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 45,
+          "kind": "slide",
+          "box": {
+            "x": 0.0903,
+            "y": 0.227,
+            "w": 0.8901,
+            "h": 0.6524
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "lines",
+            "causality",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical, causality",
+            "noun": "lines",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-3-vertikale-kausalitet",
+          "key": "Sort streg, 3 vertikale - kausalitet",
+          "name": "Black lines, 3 vertical, causality",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 46,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9723,
+            "h": 0.8792
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "lines",
+            "causality",
+            "columns",
+            "black"
+          ],
+          "run": {
+            "key": "Black lines, N vertical, causality",
+            "noun": "lines",
+            "count": 3
+          }
+        },
+        {
+          "id": "2-kolonner-med-adskillelse",
+          "key": "2 kolonner med adskillelse",
+          "name": "2 columns with a divider",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 47,
+          "kind": "slide",
+          "box": {
+            "x": 0.0712,
+            "y": 0.2568,
+            "w": 0.8576,
+            "h": 0.584
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "lines"
+          ]
+        },
+        {
+          "id": "sort-streg-2-vertikale-med-3-underpunkter-med-billeder-og-tekst",
+          "key": "Sort streg, 2 vertikale med 3 underpunkter med billeder og tekst",
+          "name": "Black lines, 2 vertical with 3 sub-items, pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 48,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2165,
+            "w": 0.8189,
+            "h": 0.712
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "columns",
+            "black"
+          ]
+        },
+        {
+          "id": "sort-streg-4-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 4 rækker med billeder og tekst",
+          "name": "Black line, 4 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 49,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2165,
+            "w": 0.8189,
+            "h": 0.7288
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 4
+          }
+        },
+        {
+          "id": "sort-streg-3-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 3 rækker med billeder og tekst",
+          "name": "Black line, 3 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 50,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2165,
+            "w": 0.8189,
+            "h": 0.7115
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 3
+          }
+        },
+        {
+          "id": "sort-streg-2-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 2 rækker med billeder og tekst",
+          "name": "Black line, 2 rows with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 51,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2165,
+            "w": 0.8269,
+            "h": 0.642
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 2
+          }
+        },
+        {
+          "id": "sort-streg-1-raekker-med-billeder-og-tekst",
+          "key": "Sort streg, 1 rækker med billeder og tekst",
+          "name": "Black line, 1 row with pictures and text",
+          "category": {
+            "key": "Kun streger",
+            "name": "Lines only"
+          },
+          "slide": 52,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2165,
+            "w": 0.819,
+            "h": 0.6772
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "lines",
+            "pictures",
+            "rows",
+            "black"
+          ],
+          "run": {
+            "key": "Black line, N rows with pictures and text",
+            "noun": "rows",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-1-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 1 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 1 box with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 54,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9214,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-2-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 2 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 2 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 55,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9238,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-3-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 3 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 3 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 56,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9331,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-4-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 4 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 4 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 57,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9253,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-5-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 5 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 5 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 58,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9135,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-horisontalt-med-6-kasser-og-tilhoerende-tabel",
+          "key": "Procesflow, horisontalt med 6 kasser og tilhørende tabel",
+          "name": "Process flow, horizontal, 6 boxes with table",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 59,
+          "kind": "slide",
+          "box": {
+            "x": 0.0511,
+            "y": 0.2638,
+            "w": 0.9273,
+            "h": 0.5743
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "boxes",
+            "table",
+            "process",
+            "rows"
+          ],
+          "run": {
+            "key": "Process flow, horizontal, N boxes with table",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "procesflow-med-1-kasse-og-6-med-noegletal",
+          "key": "Procesflow med 1 kasse og 6 med nøgletal",
+          "name": "Process flow, 1 box and 6 with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 60,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2375,
+            "w": 0.945,
+            "h": 0.6555
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-med-2-kasser-og-3-omraader-pr-kasse-med-noegletal",
+          "key": "Procesflow med 2 kasser og 3 områder pr kasse med nøgletal",
+          "name": "Process flow, 2 boxes, 3 areas each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 61,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2375,
+            "w": 0.9411,
+            "h": 0.6555
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-med-3-kasser-og-2-omraader-pr-kasse-med-noegletal",
+          "key": "Procesflow med 3 kasser og 2 områder pr kasse med nøgletal",
+          "name": "Process flow, 3 boxes, 2 areas each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 62,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2388,
+            "w": 0.9548,
+            "h": 0.6542
+          },
+          "landing": "layout",
+          "shapes": 16,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-med-4-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 4 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 4 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 63,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2406,
+            "w": 0.9684,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-med-5-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 5 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 5 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 64,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2406,
+            "w": 0.9679,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-med-6-kasser-og-1-omraade-pr-kasse-med-noegletal",
+          "key": "Procesflow med 6 kasser og 1 område pr kasse med nøgletal",
+          "name": "Process flow, 6 boxes, 1 area each with key figures",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 65,
+          "kind": "slide",
+          "box": {
+            "x": 0.0196,
+            "y": 0.2406,
+            "w": 0.9671,
+            "h": 0.6413
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "process",
+            "figures"
+          ],
+          "run": {
+            "key": "Process flow, N boxes with key figures",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-1-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 1 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 1 box, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 66,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.9198
+          },
+          "landing": "layout",
+          "shapes": 3,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 1
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-2-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 2 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 2 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 67,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.9303
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-3-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 3 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 3 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 68,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.9408
+          },
+          "landing": "layout",
+          "shapes": 5,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-4-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 4 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 4 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 69,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.9408
+          },
+          "landing": "layout",
+          "shapes": 6,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 4
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-5-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 5 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 5 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 70,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.9513
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 5
+          }
+        },
+        {
+          "id": "procesflow-vertikalt-6-kasser-8-kolonner",
+          "key": "Procesflow, vertikalt 6 kasser, 8 kolonner",
+          "name": "Process flow, vertical, 6 boxes, 8 columns",
+          "category": {
+            "key": "Procesflow",
+            "name": "Process flows"
+          },
+          "slide": 71,
+          "kind": "slide",
+          "box": {
+            "x": 0.0002,
+            "y": 0.0002,
+            "w": 0.9125,
+            "h": 0.946
+          },
+          "landing": "layout",
+          "shapes": 8,
+          "tags": [
+            "boxes",
+            "process",
+            "columns"
+          ],
+          "run": {
+            "key": "Process flow, vertical, N boxes, 8 columns",
+            "noun": "boxes",
+            "count": 6
+          }
+        },
+        {
+          "id": "tabel-med-8-raekker-og-9-kolonner-kan-ikke-farves-i-cellerne",
+          "key": "Tabel med 8 rækker og 9 kolonner – kan ikke farves i cellerne",
+          "name": "Table, 8 rows and 9 columns, cells cannot be coloured",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 73,
+          "kind": "slide",
+          "box": {
+            "x": 0.0848,
+            "y": 0.2375,
+            "w": 0.86,
+            "h": 0.5691
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "tabel-med-8-raekker-og-9-kolonner",
+          "key": "Tabel med 8 rækker og 9 kolonner",
+          "name": "Table, 8 rows and 9 columns",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 74,
+          "kind": "slide",
+          "box": {
+            "x": 0.0848,
+            "y": 0.2375,
+            "w": 0.86,
+            "h": 0.6872
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "tabel-med-8-raekker-og-8-kolonner-en-kasse",
+          "key": "Tabel med 8 rækker og 8 kolonner + en kasse",
+          "name": "Table, 8 rows and 8 columns, plus a box",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 75,
+          "kind": "slide",
+          "box": {
+            "x": 0.0848,
+            "y": 0.2375,
+            "w": 0.8916,
+            "h": 0.6872
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "boxes",
+            "table",
+            "rows"
+          ]
+        },
+        {
+          "id": "plus-minus-liste",
+          "key": "Plus/Minus liste",
+          "name": "Plus/minus list",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 76,
+          "kind": "slide",
+          "box": {
+            "x": 0.0848,
+            "y": 0.2375,
+            "w": 0.8425,
+            "h": 0.6605
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "klassisk-tabel-5x5",
+          "key": "Klassisk tabel, 5x5",
+          "name": "Classic table, 5×5",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 77,
+          "kind": "slide",
+          "box": {
+            "x": 0.0855,
+            "y": 0.227,
+            "w": 0.824,
+            "h": 0.7035
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "tabel-med-ramme-omkring-og-overskrift",
+          "key": "Tabel med ramme omkring og overskrift",
+          "name": "Table with a frame and a heading",
+          "category": {
+            "key": "Tabeller",
+            "name": "Tables"
+          },
+          "slide": 78,
+          "kind": "slide",
+          "box": {
+            "x": 0.0788,
+            "y": 0.248,
+            "w": 0.8937,
+            "h": 0.6622
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "table"
+          ]
+        },
+        {
+          "id": "trekant-enkel-med-tekst-ved-hjoernerne",
+          "key": "Trekant, enkel med tekst ved hjørnerne",
+          "name": "Triangle, simple, with text at the corners",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 80,
+          "kind": "slide",
+          "box": {
+            "x": 0.0621,
+            "y": 0.269,
+            "w": 0.8747,
+            "h": 0.471
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-og-tekst-ved-hjoernerne",
+          "key": "Trekant med cirkler og tekst ved hjørnerne",
+          "name": "Triangle with circles and text at the corners",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 81,
+          "kind": "slide",
+          "box": {
+            "x": 0.2638,
+            "y": 0.269,
+            "w": 0.4725,
+            "h": 0.4935
+          },
+          "landing": "layout",
+          "shapes": 4,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-tekst-ved-hjoernerne-og-uddybning",
+          "key": "Trekant med cirkler, tekst ved hjørnerne og uddybning",
+          "name": "Triangle with circles, corner text and elaboration",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 82,
+          "kind": "slide",
+          "box": {
+            "x": 0.0748,
+            "y": 0.248,
+            "w": 0.9135,
+            "h": 0.5355
+          },
+          "landing": "layout",
+          "shapes": 7,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "trekant-med-cirkler-tekst-ved-hjoernerne-uddybning-samt-fremhaevning-af-kanterne",
+          "key": "Trekant med cirkler, tekst ved hjørnerne, uddybning samt fremhævning af kanterne",
+          "name": "Triangle with circles, corner text, elaboration and highlighted edges",
+          "category": {
+            "key": "Trekanter",
+            "name": "Triangles"
+          },
+          "slide": 83,
+          "kind": "slide",
+          "box": {
+            "x": 0.0031,
+            "y": 0.248,
+            "w": 0.9851,
+            "h": 0.693
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "triangle"
+          ]
+        },
+        {
+          "id": "indhold",
+          "key": "INDHOLD",
+          "name": "Contents",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 85,
+          "kind": "slide",
+          "box": {
+            "x": 0.0944,
+            "y": 0.2375,
+            "w": 0.815,
+            "h": 0.5687
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agenda",
+          "key": "AGENDA",
+          "name": "Agenda",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 86,
+          "kind": "slide",
+          "box": {
+            "x": 0.0935,
+            "y": 0.1853,
+            "w": 0.834,
+            "h": 0.7225
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "aendringslog-til-dokumentet",
+          "key": "Ændringslog til dokumentet",
+          "name": "Change log for the document",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 87,
+          "kind": "slide",
+          "box": {
+            "x": 0.0788,
+            "y": 0.248,
+            "w": 0.836,
+            "h": 0.6267
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agendapunkt-skriv-navn-som-overskrift-da",
+          "key": "[ Agendapunkt – skriv navn som overskrift - DA ]",
+          "name": "Agenda item (Danish)",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 88,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2478,
+            "w": 0.8416,
+            "h": 0.6416
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "agendapunkt-skriv-navn-som-overskrift-eng",
+          "key": "[ Agendapunkt – skriv navn som overskrift - ENG ]",
+          "name": "Agenda item (English)",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 89,
+          "kind": "slide",
+          "box": {
+            "x": 0.1129,
+            "y": 0.2549,
+            "w": 0.7446,
+            "h": 0.6023
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "decisions-needed",
+          "key": "Decisions needed",
+          "name": "Decisions needed",
+          "category": {
+            "key": "Dokumentstruktur",
+            "name": "Document structure"
+          },
+          "slide": 90,
+          "kind": "slide",
+          "box": {
+            "x": 0.0831,
+            "y": 0.3662,
+            "w": 0.8457,
+            "h": 0.3527
+          },
+          "landing": "layout",
+          "shapes": 2,
+          "tags": [
+            "meeting"
+          ]
+        },
+        {
+          "id": "tre-2x1-kasser",
+          "key": "Tre (2x1) kasser",
+          "name": "Three boxes (2×1)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 92,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9252,
+            "h": 0.9125
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-1x2-kasser",
+          "key": "Tre (1x2) kasser",
+          "name": "Three boxes (1×2)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 93,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9252,
+            "h": 0.9111
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "fire-2x2-kasser",
+          "key": "Fire (2x2) kasser",
+          "name": "Four boxes (2×2)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 94,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9252,
+            "h": 0.9111
+          },
+          "landing": "layout",
+          "shapes": 14,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-2-1-kasser",
+          "key": "Tre (2+1) kasser",
+          "name": "Three boxes (2+1)",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 95,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9252,
+            "h": 0.9111
+          },
+          "landing": "layout",
+          "shapes": 11,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "to-horisontale-kasser",
+          "key": "To horisontale kasser",
+          "name": "Two horizontal boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 96,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9485,
+            "h": 0.9086
+          },
+          "landing": "layout",
+          "shapes": 28,
+          "tags": [
+            "boxes",
+            "rows",
+            "grey"
+          ]
+        },
+        {
+          "id": "tre-vertikale-kasser",
+          "key": "Tre vertikale kasser",
+          "name": "Three vertical boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 97,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9882,
+            "h": 0.8943
+          },
+          "landing": "layout",
+          "shapes": 41,
+          "tags": [
+            "boxes",
+            "columns",
+            "grey"
+          ],
+          "run": {
+            "key": "N vertical boxes",
+            "noun": "boxes",
+            "count": 3
+          }
+        },
+        {
+          "id": "tre-kasser-med-pile-mod-n-graa-kasse",
+          "key": "Tre kasser med pile mod én grå kasse",
+          "name": "Three boxes with arrows to one grey box",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 98,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9725,
+            "h": 0.9739
+          },
+          "landing": "layout",
+          "shapes": 20,
+          "tags": [
+            "boxes",
+            "arrows",
+            "grey"
+          ]
+        },
+        {
+          "id": "to-vertikale-kasser",
+          "key": "To vertikale kasser",
+          "name": "Two vertical boxes",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 99,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9213,
+            "h": 0.8937
+          },
+          "landing": "layout",
+          "shapes": 18,
+          "tags": [
+            "boxes",
+            "columns",
+            "grey"
+          ],
+          "run": {
+            "key": "N vertical boxes",
+            "noun": "boxes",
+            "count": 2
+          }
+        },
+        {
+          "id": "en-kasse",
+          "key": "En kasse",
+          "name": "One box",
+          "category": {
+            "key": "Grå kasser",
+            "name": "Grey boxes"
+          },
+          "slide": 100,
+          "kind": "slide",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 0.9213,
+            "h": 0.8937
+          },
+          "landing": "layout",
+          "shapes": 15,
+          "tags": [
+            "boxes",
+            "grey"
+          ]
+        },
+        {
+          "id": "markeringer-1",
+          "key": "Markeringer 1",
+          "name": "Marker: small circle",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 102,
+          "kind": "part",
+          "box": {
+            "x": 0.0748,
+            "y": 0.2375,
+            "w": 0.1608,
+            "h": 0.2026
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "markeringer-2",
+          "key": "Markeringer 2",
+          "name": "Marker: wide oval",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 102,
+          "kind": "part",
+          "box": {
+            "x": 0.0748,
+            "y": 0.458,
+            "w": 0.8958,
+            "h": 0.2227
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "markeringer-3",
+          "key": "Markeringer 3",
+          "name": "Marker: bold oval",
+          "category": {
+            "key": "Markeringer",
+            "name": "Markers"
+          },
+          "slide": 102,
+          "kind": "part",
+          "box": {
+            "x": 0.2874,
+            "y": 0.2165,
+            "w": 0.3294,
+            "h": 0.1989
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "fortroligt",
+          "key": "Fortroligt",
+          "name": "Confidential stamp",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.0826,
+            "y": 0.2375,
+            "w": 0.235,
+            "h": 0.2439
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "udkast",
+          "key": "Udkast",
+          "name": "Draft stamp",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.3031,
+            "y": 0.2375,
+            "w": 0.2304,
+            "h": 0.2634
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "fortroligt-2",
+          "key": "Fortroligt (2)",
+          "name": "Confidential label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.6572,
+            "y": 0.1955,
+            "w": 0.1811,
+            "h": 0.042
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "diskussionsoplaeg",
+          "key": "Diskussionsoplæg",
+          "name": "Discussion paper label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.6572,
+            "y": 0.2658,
+            "w": 0.2573,
+            "h": 0.0473
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "arbejdsdokument",
+          "key": "Arbejdsdokument",
+          "name": "Working document label",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.6565,
+            "y": 0.3425,
+            "w": 0.2573,
+            "h": 0.0473
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "kicker-box",
+          "key": "Kicker box",
+          "name": "Kicker box",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.0905,
+            "y": 0.5735,
+            "w": 0.756,
+            "h": 0.105
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "stempler-og-lignende-1",
+          "key": "Stempler og lignende 1",
+          "name": "Scales",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0.2953,
+            "y": 0.7205,
+            "w": 0.271,
+            "h": 0.231
+          },
+          "landing": "top-right",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "small"
+          ]
+        },
+        {
+          "id": "dokumentnavn-aktuelt-afsnit-fra",
+          "key": "Dokumentnavn > Aktuelt afsnit fra…",
+          "name": "Breadcrumb bar: document > section",
+          "category": {
+            "key": "Stempler og lignende",
+            "name": "Stamps and labels"
+          },
+          "slide": 103,
+          "kind": "part",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "w": 1,
+            "h": 0.038
+          },
+          "landing": "as-authored",
+          "shapes": 1,
+          "tags": [
+            "stamps",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "dokument",
+          "key": "Dokument",
+          "name": "Document",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.4516,
+            "y": 0.4074,
+            "w": 0.1035,
+            "h": 0.0541
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "dokumenter",
+          "key": "dokumenter",
+          "name": "Documents (stack)",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.1932,
+            "y": 0.332,
+            "w": 0.1053,
+            "h": 0.0754
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "start-stop",
+          "key": "Start / Stop",
+          "name": "Start / stop",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.3219,
+            "y": 0.2596,
+            "w": 0.1035,
+            "h": 0.0533
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "proces-handling",
+          "key": "Proces / Handling",
+          "name": "Process / action",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.3219,
+            "y": 0.332,
+            "w": 0.1035,
+            "h": 0.0552
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "process",
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-1",
+          "key": "Flowchart ikoner 1",
+          "name": "Labelled curved arrow",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.2326,
+            "y": 0.4895,
+            "w": 0.0834,
+            "h": 0.1036
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "beslutning",
+          "key": "Beslutning",
+          "name": "Decision",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.3314,
+            "y": 0.4685,
+            "w": 0.0902,
+            "h": 0.0945
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "meeting",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-2",
+          "key": "Flowchart ikoner 2",
+          "name": "Labelled straight arrow",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.1538,
+            "y": 0.6365,
+            "w": 0.1732,
+            "h": 0.0945
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-3",
+          "key": "Flowchart ikoner 3",
+          "name": "Dashed curved connector",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.4291,
+            "y": 0.563,
+            "w": 0.1814,
+            "h": 0.3406
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-4",
+          "key": "Flowchart ikoner 4",
+          "name": "Waste bin",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.4055,
+            "y": 0.6575,
+            "w": 0.0397,
+            "h": 0.0754
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "flowchart-ikoner-5",
+          "key": "Flowchart ikoner 5",
+          "name": "Box with a footer strip",
+          "category": {
+            "key": "Flowchart ikoner",
+            "name": "Flowchart shapes"
+          },
+          "slide": 104,
+          "kind": "part",
+          "box": {
+            "x": 0.1535,
+            "y": 0.7835,
+            "w": 0.1035,
+            "h": 0.0552
+          },
+          "landing": "cursor",
+          "shapes": 1,
+          "tags": [
+            "flowchart",
+            "icons",
+            "small"
+          ]
+        },
+        {
+          "id": "problem-statement",
+          "key": "Problem statement",
+          "name": "Problem statement",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 106,
+          "kind": "slide",
+          "box": {
+            "x": 0.0526,
+            "y": 0.1638,
+            "w": 0.8771,
+            "h": 0.7594
+          },
+          "landing": "layout",
+          "shapes": 20,
+          "tags": [
+            "one-pager"
+          ]
+        },
+        {
+          "id": "aarsplan-v1",
+          "key": "Årsplan v1",
+          "name": "Annual plan v1",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 107,
+          "kind": "slide",
+          "box": {
+            "x": 0.0592,
+            "y": 0.2025,
+            "w": 0.8809,
+            "h": 0.6731
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "one-pager"
+          ]
+        },
+        {
+          "id": "bridging-numbers",
+          "key": "Bridging numbers",
+          "name": "Bridging numbers",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 108,
+          "kind": "slide",
+          "box": {
+            "x": 0.0385,
+            "y": 0.1914,
+            "w": 0.9003,
+            "h": 0.74
+          },
+          "landing": "layout",
+          "shapes": 63,
+          "tags": [
+            "one-pager"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -33,7 +33,7 @@ small file that says where that page is.
 | Piece | What it does | State |
 | --- | --- | --- |
 | The pane | Opens from **Slide elements** on the Home tab, shows its build, checks the host | built |
-| The library | A curated deck of elements — boxes, flows, tables, markers — harvested into the pane | planned |
+| The library | Two curated decks of elements — boxes, flows, tables, markers, stamps — harvested into the catalogue the pane will read | built |
 | The picker | Browse the library by section, search it, see a thumbnail of each element | planned |
 | The insert | Drop the chosen element onto the slide you are on, formatting intact | planned |
 | Taking it back | Remove what an insert added, and nothing else | planned |
@@ -56,14 +56,47 @@ Microsoft's `office.js` library — see
 
 ## Adding an element to the library
 
-- *Planned.* The library deck is the authoring surface: open it in PowerPoint,
-  draw the element on a slide, give the slide a title — that is the name the
-  picker will show — and save. A script harvests the deck into the catalogue
-  the pane ships, and CI fails a change where the deck and the catalogue
-  disagree.
-- *Planned.* The layout says what a slide is for, the title placeholder is the
-  name, and everything that is not a placeholder is the element. No sidecar
-  file and no naming convention.
+The two decks under `template/` are the library: `library-16x9.pptx` and
+`library-4x3.pptx`, one per slide size, and both must carry the same elements.
+The deck is the authoring surface, and these are its rules:
+
+- **A heading slide starts a category**: a slide with a title and nothing else.
+  Everything under it, until the next heading, belongs to that category.
+- **Every other slide is one element**, named by its title. The title is the
+  element's key and stays in Danish; the English name the pane shows comes from
+  `template/names.en.json`, and a title with no entry there fails the harvest,
+  all of them listed at once.
+- **What is on the slide is the element**: everything that is not layout chrome
+  (the title, the footer, the slide number, the date) or an empty placeholder.
+  A table or a picture in a content placeholder counts. A shape pushed off the
+  slide's right or bottom edge does not.
+- **A collection slide yields one element per shape.** Write the line
+  `SSF: ét element pr. figur` in the notes of the category's heading slide, and
+  every top-level shape on the slides under it becomes an element of its own,
+  the slide's title becomes their category, and each is named by its own text
+  (brackets stripped, cut at a colon), else by the name PowerPoint's selection
+  pane shows when it is not a made-up one like `Gruppe 12`, else by the slide's
+  title numbered. `SSF: ét element pr. dias` in a slide's own notes takes that
+  slide out again; the English spellings, `one element per shape` and `per
+  slide`, work too.
+- **Stamps and labels** are the parts of a collection slide whose title
+  contains "Stempl": they land top-right. Other parts land at the cursor, and a
+  part wider than half the slide lands where it sits.
+- **Sizes** need no authoring: elements whose English names differ only by one
+  count ("Process flow, horizontal, 3 boxes with table" for 1 to 6) become one
+  tile with a stepper by themselves.
+
+Then run `npm run harvest`. It reads both decks and the names file, writes the
+catalogue's index to `public/catalogue/catalogue.json` and the elements'
+markup and media beside it, and refuses a deck whose keys differ from the other
+deck's. Commit the decks, the names file and the index; CI runs the harvest
+again and fails when the committed index no longer matches the decks. The
+markup and media are not committed: the site builds them from the decks on
+every deploy.
+
+- *Planned.* Previews. The pane's pictures of the elements will be cut from a
+  PDF print of each deck, committed beside it, so every deck change is followed
+  by a re-print.
 
 ## Installing it
 

@@ -62,6 +62,10 @@ jobs:
       # 2 while every gate stayed green. See ci.yml.
       - name: Library build
         run: npm run build:lib
+      - name: Catalogue is current
+        run: npm run harvest
+      - name: Catalogue is committed
+        run: git diff --exit-code -- public/catalogue/catalogue.json
       # The PANE build, which is the artifact a user actually loads.
       #
       # Everything above checks the source; `npm run build` is what turns it
@@ -105,6 +109,12 @@ jobs:
       # landing page and the CNAME that binds the custom domain — alongside it.
       # A pane change therefore ships through main with no re-sideload; only a
       # manifest change costs the owner that.
+      #
+      # The catalogue's markup and parts are BUILT here, not committed: 14 MB of
+      # generated JSON per deck change is no diff anyone reads. The gate above
+      # proved the committed index matches the decks.
+      - run: npm run build:lib
+      - run: npm run harvest
       - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
