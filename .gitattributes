@@ -1,0 +1,23 @@
+# LF in the working tree, on every platform.
+#
+# Prettier's `endOfLine` defaults to "lf", and `format:check` is the FIRST step
+# of the gate. Without this file a clone on a Windows machine with the default
+# `core.autocrlf=true` checks out CRLF and fails that step on every file in the
+# repo — a sibling counted 248 on a clone whose tree was byte-clean against
+# HEAD. The repair looks like `prettier --write .`, which rewrites the whole
+# repo into a diff that hides whatever was actually being worked on.
+#
+# The failure is worse than the gate step that finds it: Vite's shebang strip
+# matches `#!...\n` only, so `scripts/*.mjs` checked out as
+# `#!/usr/bin/env node\r\n` fail to PARSE, and every test that imports a
+# script fails naming the script rather than anything it asserts.
+#
+# `text=auto` so git still keeps binaries out of it; `eol=lf` so the checkout
+# matches what the gate demands rather than what the platform prefers.
+* text=auto eol=lf
+
+# Decks and images are bytes. Normalising them corrupts them. Declared rather
+# than left to git's binary heuristic, which is good and is still a guess.
+*.pptx binary
+*.png binary
+*.jpg binary

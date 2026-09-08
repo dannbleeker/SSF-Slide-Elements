@@ -1,0 +1,99 @@
+/**
+ * A raise as a sentence, bounded.
+ *
+ * Ported from SSF-Merge ahead of its first caller here, which is the host
+ * layer's insert. There, two uncapped copies of this existed, and the reason
+ * the cap matters is the same for this add-in: Office echoes an argument back
+ * into `debugInfo`, and the argument to `insertSlidesFromBase64` is an entire
+ * deck as base64. A failed insert could put the whole package into the pane as
+ * text, with the sentence that explains the failure at the front and nothing
+ * after it readable. SSF-Charts recorded the same defect from the other end: a
+ * diagnosis of theirs sat behind about 100 KB of base64 for the same reason.
+ */
+
+/** Longest error text that reaches a user. Enough for a real sentence. */
+export const ERROR_CHARS = 400;
+
+/** What every branch answers when there is no describable reason in the raise. */
+const NOTHING_IN_IT = "the host raised nothing this pane can describe.";
+
+/** `s`, cut to `max` with what was dropped counted rather than merely elided. */
+export function short(s: string, max = ERROR_CHARS): string {
+  // The count, not a bare ellipsis: "…" alone leaves a reader unable to tell a
+  // truncated sentence from one that ended oddly, and unable to say whether
+  // what is missing was a paragraph or a megabyte.
+  return s.length <= max ? s : `${s.slice(0, max)}… (${s.length - max} more characters)`;
+}
+
+/**
+ * Whatever was thrown, as a bounded sentence.
+ *
+ * `String(e)` was the fallback, and for an object it reaches Object's default
+ * stringification: a thrown `{ message: "InvalidArgument", code: 5 }` reached
+ * the user as **"[object Object]"**, throwing away the message sitting inside
+ * it. `undefined` reached them as the word "undefined".
+ *
+ * SSF-Merge's trace formatter refuses to do that, with the same reasoning
+ * written next to it — "a line that occupies space and answers nothing". This
+ * is the same rule on the path that reaches a PERSON rather than a log.
+ *
+ * Every branch answers something a reader can act on or repeat to somebody who
+ * can. The last one names the shape rather than pretending to a sentence,
+ * because "the host raised something with no message in it" is a fact and
+ * "[object Object]" is not.
+ */
+export function readable(e: unknown): string {
+  // NOTHING here may raise. This is meant to run inside a catch, as the pane's
+  // error-to-sentence handler — so a throw of its own would replace the report
+  // with a second failure and leave the pane stuck in its busy state, which is
+  // the failure the caller exists to survive. Reading `.message` is the risk: it is a property, and a
+  // getter may throw. Office.js is not known to produce one; the guard costs a
+  // wrapper and removes the whole class.
+  try {
+    return describe(e);
+  } catch {
+    return "the host raised something this pane could not read.";
+  }
+}
+
+function describe(e: unknown): string {
+  // The MESSAGE having content, not merely the value being an Error. An
+  // `OfficeExtension.Error` routinely carries an empty message and puts the
+  // content in `debugInfo`, and this answered "" for it — so the sentence the
+  // pane builds around it stopped mid-air after its own prefix. An empty
+  // answer is the same defect as "[object Object]", which is what the rest of
+  // this function exists to refuse: it occupies the space where a reason goes
+  // and says nothing.
+  if (e instanceof Error) return e.message === "" ? NOTHING_IN_IT : short(e.message);
+  if (typeof e === "string") return e === "" ? NOTHING_IN_IT : short(e);
+  if (e === null || e === undefined) return NOTHING_IN_IT;
+  // An Office.js async failure is not always an `Error`: it is routinely a
+  // plain object carrying `name`, `message` and `code`, and the message in it
+  // is the whole point.
+  if (typeof e === "object") {
+    // An empty message falls THROUGH rather than answering. The object may
+    // still carry a `name` and a `code`, and "InvalidArgument / 5010" is
+    // something a reader can repeat to somebody who can act on it.
+    if ("message" in e && typeof e.message === "string" && e.message !== "") return short(e.message);
+    try {
+      // `JSON.stringify` answers `undefined` for a few shapes that reach here,
+      // so the shape is named rather than falling through to a stringification
+      // this whole function exists to avoid.
+      return short(JSON.stringify(e) ?? "the host raised something with no message in it.");
+    } catch {
+      // Circular, which an Office error object can be.
+      return "the host raised something this pane could not read.";
+    }
+  }
+  // A thrown function is a caller's slip, and `String(fn)` prints its whole
+  // source into the sentence. Named, not rendered — the same answer the
+  // sibling's trace formatter gives it.
+  if (typeof e === "function") return "the host raised a function, which is a bug in this add-in.";
+  if (typeof e === "symbol") return short(e.toString());
+  // Each primitive named, rather than one `String` over what is left. That is
+  // the shape the sibling's trace formatter settled on for the same reason, and it is what the
+  // `no-base-to-string` rule is asking for: `String` over a bare `unknown` is
+  // exactly the call that put "[object Object]" on the screen.
+  if (typeof e === "number" || typeof e === "boolean" || typeof e === "bigint") return short(String(e));
+  return "the host raised something this pane could not read.";
+}

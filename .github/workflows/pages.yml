@@ -1,0 +1,143 @@
+name: Pages
+
+# The add-in is hosted from GitHub Pages, so a code or task-pane change ships
+# through main with no re-install in PowerPoint. Only a change to the MANIFEST
+# needs the owner to re-sideload.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  # One deploy at a time, and never cancel an in-flight publish: a cancelled
+  # `deploy-pages` does not merely stop waiting, it cancels the deployment
+  # GitHub was still working on, which is the outage the timeout below is
+  # about. A second push queues behind the first instead.
+  cancel-in-progress: false
+
+jobs:
+  # The deploy waits for the gate, and that is the whole point of this job.
+  #
+  # Without it Pages would run on every push to main with nothing between the
+  # push and the live add-in: CI would run too, but CONCURRENTLY, so a commit
+  # could be serving from ssf-slide-elements.struktureretsundfornuft.dk before
+  # its tests had finished — and if they then failed, the broken pane would
+  # already be what PowerPoint loads. A sibling ran that way for weeks and was
+  # spared only by never having had a red commit on main; the ordering is what
+  # was missing there, not the tests.
+  #
+  # The same checks CI runs, in the same order, one per step — a named step
+  # says which one failed at a glance.
+  #
+  # Listed rather than wrapped in one `npm run gate`, because a script chaining
+  # `npm run a && npm run b` cannot run on the owner's own machine: npm spawns a
+  # shell for the `&&` and AppLocker refuses it. A gate the maintainer cannot
+  # run locally is a gate that only ever speaks through CI.
+  #
+  # Two lists is a drift risk, so `test/release.test.ts` holds them against
+  # each other: the same commands, in the same order, in both workflows.
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Format
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      # `typecheck` is `tsc --noEmit` and cannot see this: TypeScript 6 refused
+      # to infer `rootDir` for the library build, so `npm run build:lib` exited
+      # 2 while every gate stayed green. See ci.yml.
+      - name: Library build
+        run: npm run build:lib
+      # The PANE build, which is the artifact a user actually loads.
+      #
+      # Everything above checks the source; `npm run build` is what turns it
+      # into `dist/`, and on a sibling no required check ran it for months. The only
+      # place it happened there was the Pages DEPLOY job, which is `push: main` only —
+      # so a pull request that broke the bundle went green, merged, and failed
+      # after the fact, with the deploy as the first thing to notice. That is
+      # the same shape as the library build above, one artifact further out.
+      - name: Pane build
+        run: npm run build
+      - name: Tests and coverage
+        run: npm run coverage
+      - name: Test count
+        run: npm run test:count
+      # The floor RAISES itself and exits 0, printing "Commit
+      # test/fixtures/test-count.json" — advice nothing enforced. A run that
+      # forgot to commit it therefore passed, and the floor stayed wherever it
+      # was: the guard against deleted tests silently protecting a smaller
+      # number than the suite has. Same pattern `release.yml` already uses for
+      # the manifests.
+      - name: Test count is recorded
+        run: git diff --exit-code -- test/fixtures/test-count.json
+
+  deploy:
+    needs: gate
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # From .nvmrc, like CI. The version lived in two places and they were
+          # already the same only by luck; a bump to one would have left the
+          # other building on a Node nobody tested.
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Builds the task pane to dist/taskpane.html and copies public/ — the
+      # landing page and the CNAME that binds the custom domain — alongside it.
+      # A pane change therefore ships through main with no re-sideload; only a
+      # manifest change costs the owner that.
+      - run: npm run build
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v5
+        with:
+          # Half an hour, against the action's default of ten minutes. A sibling
+          # lost an afternoon to the default: six deployments of a 250 KB
+          # artifact were accepted by GitHub, polled as in progress for ten
+          # minutes, and then KILLED by this action's own timeout — which does
+          # not merely stop waiting, it CANCELS the deployment GitHub was still
+          # working on. The only dial this repo owns is how long it will wait.
+          timeout: 1800000
+
+      # ASK THE LIVE SITE, because nothing else ever does between releases.
+      #
+      # The manifest points at four URLs on this host, and the failure mode when
+      # a deploy publishes a broken or empty `dist` is "installs perfectly,
+      # blank ribbon button, empty pane" — which nobody reports as a deploy
+      # problem. `manifest-urls.mjs` + `curl` already does this on the RELEASE
+      # workflow, so it only ran on a manual release; a deploy between two
+      # releases was invisible.
+      #
+      # Into a variable rather than through a pipe, for the reason
+      # `release.yml` gives at its own copy: a pipe runs in a subshell, and a
+      # `curl` that fails inside one does not fail the step.
+      - name: The deploy actually serves the pane
+        run: |
+          page="${{ steps.deploy.outputs.page_url }}"
+          for path in taskpane.html assets/icon-32.png support.html privacy.html; do
+            echo "checking ${page}${path}"
+            curl --fail --silent --show-error --location --retry 5 --retry-delay 5 --retry-all-errors \
+              --output /dev/null "${page}${path}"
+          done

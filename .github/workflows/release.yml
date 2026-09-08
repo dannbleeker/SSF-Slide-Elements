@@ -1,0 +1,185 @@
+name: Release
+
+# Manual only. A release is a decision, not a consequence of merging — and the
+# thing it publishes is a manifest somebody sideloads, which is the one artifact
+# in this repo that reaches a user's PowerPoint directly.
+#
+# The tag is created server-side by `gh release create`, because pushing a tag
+# from a session is rejected by the git proxy this project is developed through.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without a leading v — e.g. 0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # Everything `test` runs, because a release must not be the first thing to
+      # discover a red suite.
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      # `typecheck` is `tsc --noEmit` and cannot see this: TypeScript 6 refused
+      # to infer `rootDir` for the library build, so `npm run build:lib` exited
+      # 2 while every gate stayed green. See ci.yml.
+      - name: Library build
+        run: npm run build:lib
+      - run: npm run coverage
+      - run: npm run test:count
+      # The two `test` runs that this job claimed and skipped. The count gate
+      # RAISES its own floor on a run, so without the diff a release could ship
+      # a fixture the repo has not recorded; and the pane build is what a user
+      # actually loads, which no other step here compiles.
+      - run: git diff --exit-code -- test/fixtures/test-count.json
+      - run: npm run build
+
+      # The manifests about to be attached are regenerated from their source and
+      # compared. `test` already gates staleness — but "current in the tree" and
+      # "what this job is about to upload" are different questions, and a
+      # sibling project spent twelve days with a release whose manifests were
+      # neither.
+      - name: Manifests are current
+        run: |
+          node scripts/build-manifests.mjs
+          git diff --exit-code -- 'manifest*.xml' 'manifest*.json'
+
+      # Microsoft's own validator, on exactly the files being shipped — BOTH of
+      # them. This validated the XML alone while the release also attaches
+      # `manifest-prod.json`, which is the file the note below tells
+      # administrators to deploy to a whole tenant.
+      - name: Manifests are valid
+        run: |
+          for m in manifest-prod.xml manifest-prod.json; do
+            echo "--- $m"
+            npx --yes office-addin-manifest validate "$m"
+            # The tool prints "The manifest is valid." for XML and NOTHING AT
+            # ALL for JSON, so a JSON line in this log is otherwise a filename
+            # followed by silence — indistinguishable from a file it skipped.
+            # It does validate them: a JSON manifest missing `id`, missing
+            # `version` and carrying a wrong `manifestVersion` exits 1 with all
+            # three named. This line is so the log says which happened.
+            echo "$m: validated"
+          done
+
+      # The manifest is four URLs into GitHub Pages, and nothing else in this
+      # repo ever asks whether that host is SERVING. `checkManifest` asks whether
+      # a production manifest points at localhost, which is a different question
+      # and passes cleanly for a manifest pointing at a domain that 404s — so a
+      # release could tell people to sideload a file that installs perfectly and
+      # shows a blank ribbon button and an empty pane.
+      #
+      # On the release job only, never on CI: a third-party outage must not
+      # block a merge, which is the reasoning that already keeps the validator
+      # out of `test`. A release is manual, so a genuine outage failing it is
+      # the right outcome — do not ship pointing at a host that is down.
+      - name: The manifest's own URLs are being served
+        run: |
+          # Into a variable first, never `… | while read`. A loop on the right of
+          # a pipe runs in a subshell, and a `curl` that fails inside one is a
+          # step that goes green while the host is down — which is the exact
+          # failure this step exists to catch.
+          urls=$(node scripts/manifest-urls.mjs manifest-prod.xml manifest-prod.json)
+          test -n "$urls" || { echo "no URLs to check — the manifest named none"; exit 1; }
+          for url in $urls; do
+            echo "--- $url"
+            curl --fail --silent --show-error --location --retry 2 --output /dev/null "$url"
+          done
+
+      # Production only, no localhost, and every manifest the documentation
+      # tells a reader to download is actually attached.
+      # The version too, which the dispatch box takes as free text and nothing
+      # had ever looked at: `v9.9.9` would have been tagged, released and
+      # attached to assets saying something else, reconcilable afterwards only
+      # by deleting a published tag. Checked against `package.json` and against
+      # the changelog having a section to read.
+      - name: Release assets are the ones the docs promise
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node scripts/check-release.mjs
+
+      # Written to a file rather than piped, so the heredoc's indentation
+      # cannot reach the notes. An indented heredoc body keeps its leading
+      # spaces, which markdown renders as a code block — the whole release note
+      # in a grey box.
+      # The ACCESSIBILITY audit, on a release and nowhere else.
+      #
+      # It renders every pane state at both widths in both themes and measures
+      # contrast, overflow, focus and axe — minutes of work, which is why it is
+      # a weekly job and deliberately not a required check: a slow gate in front
+      # of every merge is one that gets switched off after the first bad week.
+      #
+      # A release is manual and rare, and accessibility is an AppSource
+      # certification criterion, so this is the one place the cost is worth
+      # paying. Same argument the live-URL check below already makes for itself.
+      # The browser itself, which `npm ci` does not fetch.
+      - run: npx playwright install --with-deps chromium
+
+      # Server and measurement in ONE step, and the wait POLLED rather than
+      # slept — both for the reasons `pane-audit.yml` gives at its own copy: a
+      # `&` in its own step leaves a process whose lifetime is the job's, and a
+      # fixed wait is either too short on a slow runner or wasted on a fast one.
+      - name: The pane is still accessible
+        run: |
+          npx vite --port 5199 --strictPort > /tmp/vite.log 2>&1 &
+          vite=$!
+          for _ in $(seq 1 60); do
+            curl --silent --fail --output /dev/null http://localhost:5199/taskpane.html && break
+            sleep 1
+          done
+          curl --silent --fail --output /dev/null http://localhost:5199/taskpane.html || {
+            echo "the dev server never answered"; cat /tmp/vite.log; kill "$vite"; exit 1;
+          }
+          set +e
+          node scripts/pane-shots.mjs
+          code=$?
+          set -e
+          kill "$vite"
+          exit "$code"
+
+      - name: Write the release notes
+        run: |
+          cat > /tmp/notes.md <<'NOTES'
+          Sideload **`manifest-prod.xml`** below. In PowerPoint on the web:
+          Home → Add-ins → More Add-ins → **My Add-ins** → Upload My Add-in.
+          Other platforms, and what does and does not need re-installing later,
+          are in [the manual](https://github.com/dannbleeker/SSF-Slide-Elements/blob/main/docs/MANUAL.md#installing-it).
+
+          Administrators deploying to a tenant want **`manifest-prod.json`**.
+
+          The pane itself is served from
+          <https://ssf-slide-elements.struktureretsundfornuft.dk>, so most changes reach
+          you without re-installing anything. Only a change to the manifest
+          costs you a re-sideload, and the changelog says when that is.
+
+          The manifest's own `<Version>` is deliberately not this release
+          number: it is a separate sequence, bumped only when the manifest
+          changes, because that is exactly when Office needs to be told an
+          installed add-in has been updated.
+          NOTES
+          sed -i 's/^          //' /tmp/notes.md
+          cat /tmp/notes.md
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v${VERSION}" \
+            --target "${GITHUB_SHA}" \
+            --title "v${VERSION}" \
+            --notes-file /tmp/notes.md \
+            manifest-prod.xml manifest-prod.json
