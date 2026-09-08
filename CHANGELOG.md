@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the design record
+
+- `docs/DESIGN.md` says what the pane and the insert will do, decision by
+  decision and dated: what counts as an element, how the library is authored,
+  where each kind of element lands, what the footer reports, and what is still
+  a question for a real PowerPoint. `template/names.en.json` carries the
+  English name of every element in the library. Nothing in the pane changes
+  yet.
+
 ### Added — the package layer
 
 - The engine can now open a .pptx, read and change its parts, relationships,
