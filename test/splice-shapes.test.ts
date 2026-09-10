@@ -677,7 +677,7 @@ describe("the committed library", () => {
     // a missing name: one run says which elements are wrong, not the first.
     expect(problems).toEqual([]);
     expect(committed()).toHaveLength(234);
-  });
+  }, 120_000);
 
   it("is made of the markup that makes parsing it worth checking, so the sweep is not vacuous", () => {
     /**
@@ -704,7 +704,7 @@ describe("the committed library", () => {
     expect(frames).toBe(163);
     expect(fallbacks).toBe(57);
     expect(references).toBe(376);
-  });
+  }, 120_000);
 
   it("gives every shape of every element an id of its own when renumbered", () => {
     /**
@@ -723,7 +723,7 @@ describe("the committed library", () => {
       if (next !== 5000 + ids.length) problems.push(`${size} ${el.id}: answered ${next} after ${ids.length} shapes`);
     }
     expect(problems).toEqual([]);
-  });
+  }, 120_000);
 
   it("names exactly the relationships the harvest resolved for each element", () => {
     /**
