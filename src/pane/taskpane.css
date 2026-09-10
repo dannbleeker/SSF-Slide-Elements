@@ -209,7 +209,17 @@ button[disabled] {
  * without them and every button there fell back to Chrome's near-black ring on
  * a near-black pane, measured at 1.03:1.
  */
-button:focus-visible {
+/*
+ * Every focusable control, not only the buttons.
+ *
+ * This said `button:focus-visible`, and the picker added a search box: the one
+ * control a keyboard user reaches first had the browser's default ring, which
+ * `pane-shots` measured at 1.03:1 against the dark surface. A ring nobody can
+ * see is the same as no ring.
+ */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--link);
   outline-offset: 2px;
 }
@@ -321,11 +331,20 @@ button:focus-visible {
   cursor: pointer;
 }
 
+/*
+ * ON, in both themes.
+ *
+ * This said `--navy` on `--lightblue`, and only one of the two is a themed
+ * token: in dark the fill went to #122a40 and the text stayed #00254c, which
+ * `pane-shots` measured at 1.05:1 — a picked tag that cannot be read on the
+ * theme half the users are in. `--head` is the token that means "what a
+ * heading is in this theme", so both ends move together.
+ */
 .choice.on,
 .chip.on {
   background: var(--lightblue);
   border-color: var(--blue);
-  color: var(--navy);
+  color: var(--head);
 }
 
 .tags {
@@ -468,14 +487,27 @@ button:focus-visible {
   border: 0;
   border-radius: 4px;
   background: transparent;
-  color: var(--disabled);
+  /*
+   * NOT `--disabled`. A star is a control the user acts on, and `--disabled`
+   * is the colour of something they cannot: `pane-shots` measured it at
+   * 2.26:1 in light and 2.62:1 in dark, both under the 4.5 floor.
+   */
+  color: var(--muted);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
 }
 
+/*
+ * A starred tile is BLUE, not orange.
+ *
+ * `docs/DESIGN.md` section 4 spends the orange budget on the tick and says so
+ * in the same breath: "Hover rings, the star, the ghost frame and the coach
+ * marks are blue or navy." This was orange for one afternoon and the audit
+ * caught it twice over — as a second orange in the same glance, and at 2.55:1.
+ */
 .star.on {
-  color: var(--orange);
+  color: var(--link);
 }
 
 .stepper {
@@ -508,6 +540,7 @@ button:focus-visible {
 .step.on {
   background: var(--lightblue);
   border-color: var(--blue);
+  color: var(--head);
 }
 
 .footer {

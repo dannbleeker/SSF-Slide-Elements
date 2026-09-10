@@ -64,10 +64,172 @@ const LONG =
  * measurement taken from it is about something else. A sibling had exactly
  * that for an unknown number of runs.
  */
+/**
+ * A library small enough to read in a shot and varied enough to exercise the
+ * tile: a plain element, a sized run that draws a stepper, and a second
+ * category so a closed header is measured beside an open one.
+ *
+ * Built here rather than fetched: the audit calls `render` directly, so it
+ * never loads a catalogue, and a fixture that had to be fetched would make the
+ * shots depend on the network.
+ */
+const el = (id, over = {}) => ({
+  id,
+  key: over.key ?? id,
+  name: over.name ?? id,
+  category: over.category ?? { key: "boxes", name: "White boxes" },
+  slide: 1,
+  kind: "slide",
+  box: over.box ?? { x: 0.06, y: 0.23, w: 0.88, h: 0.65 },
+  landing: "layout",
+  shapes: 4,
+  tags: over.tags ?? ["boxes", "white"],
+  markup: { xml: "", rels: [], parts: [] },
+  ...over,
+});
+
+const LIBRARY = {
+  size: "16:9",
+  width: 12192000,
+  height: 6858000,
+  version: "shots",
+  categories: [
+    { key: "boxes", name: "White boxes" },
+    { key: "stamps", name: "Stamps and labels" },
+  ],
+  elements: [
+    el("one-box", { name: "One box" }),
+    el("two-boxes", { name: "Two boxes" }),
+    el("flow-1", {
+      name: "Process flow, 1 box",
+      tags: ["flow"],
+      run: { key: "Process flow, N boxes", noun: "boxes", count: 1 },
+    }),
+    el("flow-2", {
+      name: "Process flow, 2 boxes",
+      tags: ["flow"],
+      run: { key: "Process flow, N boxes", noun: "boxes", count: 2 },
+    }),
+    el("flow-3", {
+      name: "Process flow, 3 boxes",
+      tags: ["flow"],
+      run: { key: "Process flow, N boxes", noun: "boxes", count: 3 },
+    }),
+    el("approved", {
+      name: "Approved stamp",
+      key: "Godkendt",
+      category: { key: "stamps", name: "Stamps and labels" },
+      landing: "top-right",
+      kind: "part",
+      tags: ["stamp"],
+    }),
+  ],
+};
+
+/** The shape every browse state starts from. */
+const BROWSING = {
+  query: "",
+  tags: [],
+  open: ["boxes"],
+  settings: { target: "onto", group: true },
+  undo: 0,
+  favourites: [],
+  recent: [],
+  library: LIBRARY,
+  slide: 2,
+};
+
+/**
+ * The states the pane can be in today, each with what it claims to draw.
+ *
+ * `shows` and `hides` are asserted before anything is measured: a state named
+ * for a control it does not render is a shot of the wrong screen, and every
+ * measurement taken from it is about something else. A sibling had exactly
+ * that for an unknown number of runs.
+ */
 const STATES = [
-  { name: "start", step: "start", state: {}, shows: ["insert"] },
-  { name: "start-spaceless-notice", step: "start", state: { notice: SPACELESS }, shows: ["insert"] },
-  { name: "start-long-notice", step: "start", state: { notice: LONG }, shows: ["insert"] },
+  { name: "loading", step: "loading", state: { ...BROWSING, library: undefined }, shows: ["insert"] },
+  {
+    name: "problem",
+    step: "problem",
+    state: { ...BROWSING, library: undefined, problem: "The library did not load: the site did not answer." },
+    shows: ["retry"],
+    hides: ["search", "tile"],
+  },
+  { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
+  {
+    name: "browse-closed",
+    step: "browse",
+    state: { ...BROWSING, open: [] },
+    shows: ["search", "category"],
+    hides: ["tile"],
+  },
+  {
+    name: "browse-chosen",
+    step: "browse",
+    state: { ...BROWSING, chosen: "one-box" },
+    shows: ["insert", "tile"],
+  },
+  {
+    name: "browse-gear",
+    step: "browse",
+    state: { ...BROWSING, gear: true },
+    shows: ["target", "group"],
+  },
+  {
+    name: "browse-searched",
+    step: "browse",
+    state: { ...BROWSING, query: "flow" },
+    shows: ["search", "tile"],
+  },
+  {
+    name: "browse-nothing-found",
+    step: "browse",
+    state: { ...BROWSING, query: "nothing at all matches this" },
+    shows: ["clear"],
+    hides: ["tile"],
+  },
+  {
+    name: "browse-busy",
+    step: "browse",
+    state: { ...BROWSING, chosen: "one-box", busy: true },
+    shows: ["tile"],
+  },
+  {
+    name: "browse-after-insert",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      chosen: "one-box",
+      favourites: ["one-box"],
+      recent: ["one-box"],
+      undo: 1,
+      outcome: { ok: true, byHand: false, name: "One box", detail: "12 → 13 → 12 slides, slide 2 replaced." },
+    },
+    shows: ["again", "undo", "star"],
+  },
+  {
+    name: "browse-by-hand",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      outcome: {
+        ok: false,
+        byHand: true,
+        name: "One box",
+        detail: "The deck grew by one but the copy could not be removed: delete slide 2 by hand.",
+      },
+    },
+    shows: ["gear"],
+  },
+  {
+    name: "browse-borrowed",
+    step: "browse",
+    state: { ...BROWSING, library: { ...LIBRARY, borrowed: "4:3 library, scaled to A4 slides." } },
+    shows: ["search"],
+  },
+  { name: "browse-spaceless-notice", step: "browse", state: { ...BROWSING, notice: SPACELESS }, shows: ["search"] },
+  { name: "browse-long-notice", step: "browse", state: { ...BROWSING, notice: LONG }, shows: ["search"] },
 ];
 
 // The bundled browser and the installed playwright can disagree on build
