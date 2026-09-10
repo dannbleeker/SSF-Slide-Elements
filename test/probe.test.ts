@@ -11,6 +11,7 @@ import { P_NS, element, elements } from "../src/core/pptx/xml.js";
 import { API_FLOOR } from "../src/host/capability.js";
 import {
   API_SETS,
+  PROBE_MARKER,
   PROBE_TAG,
   PROBE_UNDO_VALUE,
   exportPartsVerdict,
@@ -116,15 +117,23 @@ describe("the probe's fixture decks", () => {
     // JSZip writes dates in LOCAL time and the engine re-files an edited part
     // with the clock, so the first CI run diffed a snippet that differed from
     // the committed one in every deck. `stableZip` overwrites the DOS fields;
-    // JSZip reads them back as a local Date, so the components are compared
-    // rather than the instant.
+    // JSZip reads them back through Date.UTC, so the UTC components are what
+    // carry the pinned value. Read as local components this was 14:00 on the
+    // owner's UTC+2 box and 12:00 on CI, and the suite was red at home only.
     for (const name of DECKS) {
       const zip = await JSZip.loadAsync(Buffer.from(deckFromSnippet(name), "base64"));
       const entries = Object.values(zip.files).filter((f) => !f.dir);
       expect(entries.length, name).toBeGreaterThan(5);
       for (const entry of entries) {
         const d = entry.date;
-        const stamp = [d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()];
+        const stamp = [
+          d.getUTCFullYear(),
+          d.getUTCMonth(),
+          d.getUTCDate(),
+          d.getUTCHours(),
+          d.getUTCMinutes(),
+          d.getUTCSeconds(),
+        ];
         expect(stamp, `${name} ${entry.name}`).toEqual([2026, 8, 8, 12, 0, 0]);
       }
     }
@@ -197,7 +206,31 @@ describe("the probe snippet", () => {
     const undo = code.indexOf("answers.undo =");
     expect(sweep).toBeGreaterThan(-1);
     expect(undo).toBeGreaterThan(sweep);
-    expect(code).toContain("undoAtStart.found !== true");
+    // A second run is one that found the previous run's slide OR its marker:
+    // the slide alone was the test once, and a second run after a successful
+    // Ctrl+Z looked like a first and left a slide of its own.
+    expect(code).toContain("const secondRun = undoAtStart.found === true || marker.found");
+    expect(code).toContain("const leaveBehind = !secondRun");
+  });
+
+  it("writes the marker BEFORE the slide it leaves, and touches the settings nowhere after", () => {
+    // The document's settings are outside the undo stack, which is what lets
+    // the marker outlive the slide. A save AFTER the insert is reported to
+    // disable undo on Excel (office-js#3141), which would take the user's one
+    // Ctrl+Z away from the insert this question is about.
+    const leave = code.indexOf("insertDeck(UNDO_DECK");
+    const mark = code.indexOf("await writeMarker(");
+    expect(mark).toBeGreaterThan(-1);
+    expect(mark).toBeLessThan(leave);
+    expect(code.indexOf("Marker(", leave)).toBe(-1);
+    expect(code.indexOf("saveAsync", leave)).toBe(-1);
+  });
+
+  it("clears the marker on the second run, so the run after is a first run again", () => {
+    const clear = code.indexOf("await clearMarker()");
+    const start = code.indexOf("answers.deckAtStart");
+    expect(clear).toBeGreaterThan(-1);
+    expect(clear).toBeLessThan(start);
   });
 
   it("removes a previous run's slide by position before measuring anything", () => {
@@ -224,6 +257,7 @@ describe("the probe snippet", () => {
 
   it("carries the same constants as the engine", () => {
     expect(snippet).toContain(`const PROBE_TAG = "${PROBE_TAG}"`);
+    expect(snippet).toContain(`const PROBE_MARKER = "${PROBE_MARKER}"`);
     expect(snippet).toContain(`const API_FLOOR = "${API_FLOOR}"`);
     expect(snippet).toContain(`const API_SETS = ${JSON.stringify(API_SETS)}`);
   });
@@ -593,9 +627,31 @@ describe("undoVerdict", () => {
     );
   });
 
-  it("says NOT YET on a first run, and NOT ASKED on a lone second sheet", () => {
+  it("says NOT YET on a first run, and NOT ASKED on a lone second sheet without a marker", () => {
     expect(undoVerdict({ foundAtStart: false, leftBehind: true }).detail).toContain("NOT YET");
     expect(undoVerdict({ foundAtStart: false, leftBehind: false }).detail).toContain("NOT ASKED");
+  });
+
+  it("answers a lone second sheet from the marker, and prefers the previous sheet when it has it", () => {
+    // The marker holds the deck size BEFORE the slide was left; the previous
+    // sheet holds the size after. One more than the marker is the same
+    // number, so a second sheet on its own can say what happened.
+    const alone = undoVerdict({ foundAtStart: false, deckAtStart: 3, previousDeckBeforeLeave: 3 });
+    expect(alone).toMatchObject({ verdict: "yes" });
+    expect(alone.detail).toContain("marker");
+    expect(undoVerdict({ foundAtStart: false, deckAtStart: 4, previousDeckBeforeLeave: 3 }).detail).toContain(
+      "something else happened",
+    );
+    expect(undoVerdict({ foundAtStart: "unsupported", deckAtStart: 4, previousDeckBeforeLeave: 3 })).toMatchObject({
+      verdict: "no",
+    });
+    expect(undoVerdict({ foundAtStart: "unsupported", deckAtStart: 3, previousDeckBeforeLeave: 3 })).toMatchObject({
+      verdict: "yes",
+    });
+    // Both given: the sheet is the measurement, the marker the note; the sheet wins.
+    const both = undoVerdict({ foundAtStart: false, deckAtStart: 3, previousDeckAtEnd: 4, previousDeckBeforeLeave: 9 });
+    expect(both).toMatchObject({ verdict: "yes" });
+    expect(both.detail).toContain("the previous sheet");
   });
 });
 

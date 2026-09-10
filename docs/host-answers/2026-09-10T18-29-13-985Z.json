@@ -1,0 +1,208 @@
+{
+  "probe": "ssf-slide-elements",
+  "takenAt": "2026-09-10T18:29:13.985Z",
+  "platform": "OfficeOnline",
+  "host": "0.0.0.0",
+  "requirementSets": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "1.5",
+    "1.6",
+    "1.7",
+    "1.8",
+    "1.9",
+    "1.10"
+  ],
+  "floor": "1.2",
+  "undoAtStart": {
+    "found": false
+  },
+  "undoMarker": {
+    "found": true,
+    "value": {
+      "takenAt": "2026-09-10T18:13:10.866Z",
+      "deckBeforeLeave": 3
+    },
+    "cleared": "saved"
+  },
+  "deckAtStart": 3,
+  "ownRead": {
+    "ms": 40167,
+    "bytes": 39600
+  },
+  "partsAtStart": {
+    "total": 53,
+    "slides": 3,
+    "masters": 2,
+    "layouts": 12,
+    "themes": 2,
+    "comments": 1,
+    "authors": true,
+    "media": 0
+  },
+  "insertOwn": {
+    "before": 3,
+    "after": 6,
+    "ms": 12044,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepOwn": "removed 3 slide(s) from index 3",
+  "insertOwnDestTheme": {
+    "before": 3,
+    "after": 6,
+    "ms": 770,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepOwnDestTheme": "removed 3 slide(s) from index 3",
+  "insertListed": {
+    "before": 3,
+    "after": 5,
+    "ms": 702,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "insertPruned": {
+    "before": 5,
+    "after": 6,
+    "ms": 508,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "insertUnlisted": {
+    "before": 6,
+    "after": 7,
+    "ms": 120032,
+    "error": "gave up waiting for: inserting a deck",
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepPruning": "removed 4 slide(s) from index 3",
+  "order": {
+    "n": 3,
+    "first": {
+      "before": 3,
+      "after": 5,
+      "ms": 120037,
+      "error": "gave up waiting for: inserting a deck",
+      "mastersBefore": 2,
+      "mastersAfter": 2
+    },
+    "afterFirst": [
+      "259#424201",
+      "260#424202"
+    ],
+    "targetAdded": {
+      "ok": true
+    },
+    "second": {
+      "before": 5,
+      "after": 6,
+      "ms": 606,
+      "mastersBefore": 2,
+      "mastersAfter": 2
+    },
+    "afterSecond": [
+      "259#424201",
+      "261#424203",
+      "260#424202"
+    ],
+    "deletedIndex": 3,
+    "afterDelete": [
+      "261#424203",
+      "260#424202"
+    ],
+    "sweep": "removed 2 slide(s) from index 3"
+  },
+  "selection": {
+    "supported": true,
+    "selectedIds": [
+      "256#109857222"
+    ],
+    "deckSize": 3,
+    "positionalRead": 3,
+    "selectedIndexes": [
+      0
+    ],
+    "sldIdLstEntries": 3,
+    "apiIdsHaveHash": true,
+    "sldIdLstMatches": true,
+    "sldIdLstHead": [
+      "256",
+      "257",
+      "258"
+    ],
+    "apiIdsHead": [
+      "256#109857222",
+      "257#3054621588",
+      "258#3918362509"
+    ]
+  },
+  "exportParts": {
+    "supported": true,
+    "ms": 717,
+    "bytes": 31639,
+    "source": {
+      "total": 53,
+      "slides": 3,
+      "masters": 2,
+      "layouts": 12,
+      "themes": 2,
+      "comments": 1,
+      "authors": true,
+      "media": 0
+    },
+    "exported": {
+      "total": 41,
+      "slides": 3,
+      "masters": 1,
+      "layouts": 11,
+      "themes": 1,
+      "comments": 0,
+      "authors": false,
+      "media": 0
+    },
+    "missing": [
+      "ppt/slideMasters/slideMaster2.xml",
+      "ppt/slideLayouts/_rels/slideLayout12.xml.rels",
+      "ppt/slideLayouts/slideLayout12.xml",
+      "ppt/slideMasters/_rels/slideMaster2.xml.rels",
+      "ppt/webextensions/webextension1.xml",
+      "ppt/webextensions/_rels/taskpanes.xml.rels",
+      "ppt/comments/modernComment_101_B611D394.xml",
+      "ppt/authors.xml",
+      "ppt/theme/theme2.xml",
+      "ppt/webextensions/taskpanes.xml",
+      "ppt/changesInfos/changesInfo1.xml",
+      "ppt/revisionInfo.xml"
+    ],
+    "addedByExport": []
+  },
+  "sweep": "left everything alone (start 3, now 3)",
+  "undo": {
+    "leftBehind": false,
+    "previous": {
+      "takenAt": "2026-09-10T18:13:10.866Z",
+      "deckBeforeLeave": 3
+    }
+  },
+  "ownReadAtEnd": {
+    "ms": 3743,
+    "bytes": 39740
+  },
+  "partsAtEnd": {
+    "total": 53,
+    "slides": 3,
+    "masters": 2,
+    "layouts": 12,
+    "themes": 2,
+    "comments": 1,
+    "authors": true,
+    "media": 0
+  },
+  "deckAtEnd": 3,
+  "totalMs": 302861
+}

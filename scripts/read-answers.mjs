@@ -12,7 +12,9 @@
  *   node scripts/read-answers.mjs first.json second.json --save
  *
  * Two sheets, in the order they were taken, answer the Ctrl+Z question: the
- * first leaves a tagged slide behind, the second looks for it. With `--save`
+ * first leaves a tagged slide behind, the second looks for it. A second sheet
+ * on its own answers too, from the marker the first run wrote before the
+ * slide; the pair is the cross-check. With `--save`
  * every sheet given is filed under `docs/host-answers/`, stamped with when it
  * was taken.
  */
@@ -132,9 +134,20 @@ console.log("\n5. Does PowerPoint's own Ctrl+Z revert the insert?");
     leftBehind: sheet.undo?.leftBehind,
     deckAtStart: sheet.deckAtStart,
     previousDeckAtEnd: previous?.deckAtEnd,
+    previousDeckBeforeLeave: sheet.undo?.previous?.deckBeforeLeave,
     error: sheet.undoAtStart?.error,
   });
   line("verdict", `${v.verdict} — ${v.detail}`);
+  if (sheet.undoMarker?.found) {
+    const m = sheet.undoMarker.value ?? {};
+    line(
+      "marker at start",
+      `found, written ${m.takenAt ?? "?"} with ${m.deckBeforeLeave ?? "?"} slides before the slide was left; clearing it: ${sheet.undoMarker.cleared ?? "not reported"}`,
+    );
+  } else if (sheet.undoMarker?.error) {
+    line("marker at start", `could not be read: ${sheet.undoMarker.error}`);
+  }
+  if (sheet.undo?.marker) line("marker written", sheet.undo.marker.status ?? "not reported");
   if (sheet.undo?.insert) {
     const u = insertVerdict({ ...sheet.undo.insert, expected: 1 });
     line("slide left behind", `${u.verdict} — ${u.detail}`);

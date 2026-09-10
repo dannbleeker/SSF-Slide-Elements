@@ -17,8 +17,26 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   the two ways of reading the deck drops your comments, whether PowerPoint's
   own Ctrl+Z takes an insert back, and how long a read takes on a big deck.
   `docs/PROBE.md` has the steps; `scripts/read-answers.mjs` says what each
-  answer means and files the sheet. Nothing in the pane changes, and no round
-  has been run yet.
+  answer means and files the sheet. Nothing in the pane changes.
+- The first round, on PowerPoint for the web (2026-09-10): two pairs of
+  sheets under `docs/host-answers/`, the second pair taken with the marker
+  below. Every insert landed, both prunings land as one slide, the export
+  drops comments and the authors part, and PowerPoint's own Ctrl+Z reverts an
+  insert. `docs/PROBE.md` carries the summary.
+
+### Fixed — the host probe
+
+- The second run of a pair left a slide of its own. The only thing that told a
+  second run from a first was the slide the first run leaves for Ctrl+Z, which
+  is exactly what a successful Ctrl+Z removes, so on the web the second run
+  took itself for a first. The first run now writes a marker into the
+  document's settings, outside the undo stack, before it leaves the slide; the
+  second run reads it, clears it, and leaves nothing. A lone second sheet also
+  answers question 5 now, from the marker, and the reader says which source
+  it read.
+- The fixture-timestamp test compared local time components against an
+  instant JSZip reads back in UTC, so the suite was red on any machine east
+  of Greenwich and green on CI.
 
 ### Added — the library harvest
 
