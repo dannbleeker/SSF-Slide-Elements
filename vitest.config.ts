@@ -6,6 +6,25 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     environment: "node",
+    /**
+     * Vitest's default is five seconds, and this suite does real work: several
+     * files harvest one or both committed library decks — 1.5 MB of .pptx, 117
+     * elements, a megabyte of markup — and the splice sweep runs every one of
+     * them through a package build and an integrity check.
+     *
+     * Those cases take six or seven seconds on a CI runner and about eleven
+     * here, so the default killed them THERE and nowhere else: the same commit
+     * was green locally and red on Linux twice, once for three cases and once
+     * for a fourth nobody had noticed. Per-case timeouts fixed the three that
+     * failed and left the fourth, which is what a per-case fix does.
+     *
+     * Raised for the whole suite instead, because a slow test here means a slow
+     * MACHINE, never a wedged one: nothing in the suite waits on a network, a
+     * host or a clock. A hung test now takes a minute to say so, which costs a
+     * minute of CI and is worth it.
+     */
+    testTimeout: 60_000,
+    hookTimeout: 180_000,
     coverage: {
       provider: "v8",
       // The engine and the pure decisions are the product, and the pane's

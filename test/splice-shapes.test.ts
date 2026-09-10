@@ -749,5 +749,5 @@ describe("the committed library", () => {
     }
     expect(problems).toEqual([]);
     expect(naming).toBe(73);
-  });
+  }, 120_000);
 });
