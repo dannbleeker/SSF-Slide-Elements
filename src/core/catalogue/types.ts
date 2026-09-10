@@ -54,7 +54,20 @@ export interface Markup {
   xml: string;
   /** Every relationship the xml names, by id. */
   rels: MarkupRel[];
-  /** Every package part reachable from those relationships (media, charts, embeddings, diagrams, tags), by path. */
+  /**
+   * The carried parts this element is the FIRST to reach, by path.
+   *
+   * A manifest of what this element contributes to the shared part store, not
+   * the element's own closure — and the difference bites. Parts are collected
+   * once per deck, so an element that shares a picture with an earlier one
+   * lists nothing for it while still naming it in `rels`: measured on the
+   * committed library, 14 of the 16:9 elements' relationship targets and 50 of
+   * the 4:3 elements' are absent from their own `parts`.
+   *
+   * **So the splice resolves what to copy from `rels`, and walks each part's
+   * own relationships from there.** This list is what the harvest writes to
+   * disk under `<size>/parts/`, and nothing should read it as a dependency set.
+   */
   parts: string[];
 }
 
@@ -85,6 +98,20 @@ export interface Catalogue {
   height: number;
   categories: { key: string; name: string }[];
   elements: Element[];
+  /**
+   * Every carried part in this size's store, with the content type the library
+   * deck declared for it.
+   *
+   * The splice writes these parts into somebody else's package, and a part with
+   * no content type declared there is a package PowerPoint refuses outright.
+   * Carried from the source rather than inferred from the extension: a table
+   * mapping `.bin` to an embedded object and `.emf` to a picture is right for
+   * today's library and silently wrong for the first family the owner adds.
+   *
+   * On the CATALOGUE rather than on an element, because the store is shared:
+   * two elements using the same picture must not disagree about what it is.
+   */
+  carried: Record<string, string>;
 }
 
 /** The names a locale adds to the deck: categories and elements, keyed by the deck's Danish titles. */

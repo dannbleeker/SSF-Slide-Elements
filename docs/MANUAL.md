@@ -40,11 +40,44 @@ small file that says where that page is.
 
 ## The pane
 
-One step today, **Start here**. It shows which build you are running — seven
-characters in the header, on the right — and one button, **Insert an element**,
-which is disabled until there is a library to insert from. Above it the pane
-says why: there is nothing to insert yet, and the element library arrives in a
-later release.
+Open it from the ribbon: **Script Lab** is not it — look for **Slide elements**.
+The pane shows which build you are running, seven characters in the header on
+the right, and then one of three screens.
+
+**Loading the library.** The catalogue is fetched from the add-in's own site.
+It is about 110 KB and takes a moment; an element's own markup and pictures are
+fetched only when you insert it.
+
+**Slide elements**, once it has arrived. Top to bottom:
+
+- a line saying which slide you are on, and — only when your deck is neither
+  16:9 nor 4:3 — which library was borrowed for it and what it was scaled to;
+- **Search**, which matches an element's English name, its Danish name in the
+  owner's deck, its category and its tags. Every word has to match, so
+  "white box" finds "White boxes, 2x1 vertical". Press `/` to jump to the box
+  and `Esc` to clear it;
+- a line of **tags**, most used first. Picking one narrows the list, and a
+  picked tag moves to the front so it stays visible;
+- the **gear**, beside the search, holding the two settings: whether an element
+  lands **onto this slide** or **as a new slide** after it, and whether its
+  shapes arrive **as one group** or **loose**. The line at the bottom of the
+  pane always says what those are set to, and opens the gear when clicked;
+- **Favourites** and **Recent**, when you have any. The star on a tile adds and
+  removes a favourite, and the last six things you inserted are remembered;
+- the **categories**, collapsed until you open one. Searching or picking a tag
+  opens whatever it found. Each tile shows the element's name and a small
+  drawing of where on the slide it lands and how much of it it covers;
+- an element that comes in several sizes is **one tile with a stepper** naming
+  what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list;
+- the **footer**, carrying what the last insert did, measured: "12 → 13 slides"
+  for a new slide, "12 → 13 → 12 slides, slide 4 replaced" for one onto the
+  slide you were on. Beside it, **Again** repeats the last insert and **Undo**
+  takes it back;
+- and the one primary button, **Insert an element**, which inserts whatever
+  tile the keyboard is on. Clicking a tile inserts it directly.
+
+**The library did not load** is the third screen, with **Try again** on it. It
+says what happened. That is almost always the network rather than the add-in.
 
 If your PowerPoint is below the floor (see
 [which PowerPoint](#why-it-does-not-say-which-powerpoint-it-needs)) the pane
@@ -53,6 +86,42 @@ says so instead, and draws no button at all.
 If the pane shows its header and nothing else, PowerPoint could not fetch
 Microsoft's `office.js` library — see
 [When something goes wrong](#when-something-goes-wrong).
+
+### The keyboard
+
+`/` focuses the search box. `Esc` closes the gear, then clears the search and
+the tags. `Tab` reaches the tiles; the arrow keys move between them and `Enter`
+or `Space` inserts the one you are on. Every outcome is announced to a screen
+reader as well as shown.
+
+### What Undo does, and what Ctrl+Z does
+
+The pane's **Undo** takes back the LAST insert and only that one. For an
+element that landed as a new slide it removes that slide; for one that landed
+onto a slide it puts the slide it replaced back, exactly as it was.
+
+It is one deep rather than ten, and the reason is worth knowing: putting a
+replaced slide back means handing PowerPoint a package containing it, and
+holding ten of those means holding ten copies of your presentation inside the
+task pane. PowerPoint's own **Ctrl+Z** reverts an insert — measured on
+PowerPoint for the web on 2026-09-10 — and that is the deeper history. Press it
+on the slide canvas rather than in the pane.
+
+### Where an element lands
+
+Decided by the library rather than by you, per kind of element:
+
+- a **stamp or a label** lands top-right, clear of the edge;
+- a **marker, a flowchart shape or an icon** lands on the shape you have
+  selected, or in the middle of the slide when nothing is; a marker sized to
+  wrap the shape, unless the shape is more than about a third of the slide;
+- a **wide part** lands where it sits in the library;
+- a **whole-slide element** lands below your slide's own title and is scaled to
+  fit the space under it when it would not otherwise. When it already fits, it
+  is left exactly where the library put it.
+
+Empty "Click to add text" placeholders are removed when a whole-slide element
+lands over them. A placeholder you have typed into is content, and stays.
 
 ## Adding an element to the library
 

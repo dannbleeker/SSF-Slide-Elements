@@ -16,11 +16,17 @@ Worth stating plainly, because a presentation is often confidential.
   library will ship inside the pane as static files built from the owner's own
   deck; the user's presentation will be read and written through Microsoft's
   Office JavaScript interface, in the pane, and never uploaded.
-- **It makes no network calls.** There is no `fetch`, no `XMLHttpRequest` and
-  no socket anywhere in `src/`. The pane and its assets are served from
-  `ssf-slide-elements.struktureretsundfornuft.dk` and nothing else is requested
-  after that, other than Microsoft's own `office.js`, which every Office add-in
-  is required to load.
+- **It sends nothing anywhere.** There is no `XMLHttpRequest`, no socket and no
+  `sendBeacon` anywhere in `src/`, so the add-in has no way to transmit
+  anything at all. It does make one kind of request: the element library is
+  static files on this same site, and the pane fetches the catalogue index when
+  it opens and an element's markup and pictures when you insert one. Those are
+  plain GETs for the add-in's own files, from one file — `src/pane/catalogue.ts`
+  — which may not name an absolute address and may not pass a method, a body or
+  a header. Nothing from your presentation is ever put into a request.
+  Everything else the pane loads is served from
+  `ssf-slide-elements.struktureretsundfornuft.dk`, other than Microsoft's own
+  `office.js`, which every Office add-in is required to load.
 - **The add-in has no backend.** There is no server to breach and no log to
   leak.
 - **The manifest asks for nothing beyond its own host.** No `AppDomains`, so the
@@ -52,8 +58,9 @@ security sweeps produced, and each rule is executed in `test/security.test.ts`:
   red test.
 - **Text reaches XML as text and only as text.** Nothing here builds markup by
   string concatenation, and the one rule for characters XML cannot carry at all
-  (`xmlSafe`) replaces them with a space. The pane writes nothing into a deck
-  yet; when the splice does, its cases join the same file.
+  (`xmlSafe`) replaces them with a space. The splice writes into a deck through
+  a parsed document; the one thing it builds by concatenation is a tag part,
+  whose values run through `xmlSafe` and then through a single escape.
 
 The claims on the front of this page are executable too: that file reads the
 source and fails on a network call or a markup sink.

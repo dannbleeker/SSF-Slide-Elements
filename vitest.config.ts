@@ -30,10 +30,19 @@ export default defineConfig({
       // branches, 100 functions, 99.7 lines. The branches that are not reached
       // are `Pkg`'s and `xml.ts`'s defensive nulls — an attribute list that is
       // not there, a document with no root — which `@xmldom/xmldom` never
-      // produces. Raise them the same way when the harvest and the splice land:
-      // measure, then leave two or three points of headroom, and say what you
-      // measured. (The scaffold alone measured 98.1 / 95.1 / 100 / 97.7.)
-      thresholds: { statements: 95, branches: 85, functions: 97, lines: 97 },
+      // produces. (The scaffold alone measured 98.1 / 95.1 / 100 / 97.7.)
+      //
+      // Measured again with the splice, the host handshake and the picker in,
+      // 2026-09-10: **97.7 statements, 91.9 branches, 100 functions, 98.9
+      // lines**. Branches rose by four and a half points because the new code
+      // is mostly decisions, and every decision is a pure function the suite
+      // can put both ways. So the branch floor rises 85 → 88, which is three
+      // points of headroom; the rest keep theirs, which they already had.
+      //
+      // Raise them the same way next time: measure, leave two or three points,
+      // and say what you measured. A threshold that follows coverage upward on
+      // its own only ever ratchets, and the first hard week gets it deleted.
+      thresholds: { statements: 95, branches: 88, functions: 97, lines: 97 },
     },
   },
 });

@@ -7,6 +7,84 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the splice, the host handshake and the picker
+
+- **The product does what it says on the tin: open the pane, click an element,
+  and it lands on the slide you are on.** Three pieces arrived together, because
+  none of them is worth anything alone.
+
+- **The splice** (`src/core/splice/`) puts a library element's markup into a
+  copy of the destination slide, in the file. It renumbers every shape id
+  against the slide it is joining, repoints every relationship reference —
+  anchored on the relationships NAMESPACE, so `r:embed`, `r:id` and `r:link` are
+  all reached and a spelling nobody thought of is not silently skipped — copies
+  every part the element carries into the package under a name the deck is not
+  using, walks each of those parts' own relationships and rewrites them too, and
+  declares a content type for every one. Then it lands the element where
+  `docs/DESIGN.md` section 5 says: a stamp top-right, a marker around whatever
+  shape you have selected, a whole-slide element below your own title and scaled
+  into the space under it when it would not otherwise fit — including the
+  table's grid, because PowerPoint draws a table from its rows and columns and
+  ignores the frame around them. Every insert writes a tag naming the element
+  and the catalogue it came from, in the package, before the insert, because a
+  slide the run just added does not round-trip through the API.
+
+- **A sweep over all 117 elements of the committed 16:9 library**, into a real
+  deck, on every commit: every package is put through
+  `scripts/package-integrity.mjs` and every shape id checked for collisions.
+  `docs/BACKLOG.md` asked for exactly that. Both guards were proved by breaking
+  the code and watching them go red.
+
+- **The host handshake** (`src/office/powerpoint.ts`, `src/host/insert.ts`)
+  reads the deck with `getFileAsync`, inserts with a `targetSlideId`, and takes
+  the replaced slide away **by position**, with the deck counted before, after
+  the insert and after the removal. The count is the evidence and the raise is
+  not: a call can raise and still have done the work, and a call that raises
+  nothing has not necessarily happened. Every sentence the footer shows is
+  computed from those three numbers.
+
+- **The picker** (`src/pane/`): search over the English name, the owner's Danish
+  name, the category and the tags; a tag line; collapsible categories; a tile
+  per element drawing where on the slide it lands; one tile with a stepper for
+  an element that comes in several sizes; favourites and recent; a gear holding
+  the insert target and whether shapes arrive grouped; a footer with the
+  measured slide count, **Again** and **Undo**; the keyboard (`/`, `Esc`,
+  arrows, Enter); a live region; Windows high contrast; and the pane reopening
+  where you left it. Loading, failure and floor states all say what happened and
+  what to do.
+
+### Changed
+
+- **Undo is one deep, not ten.** Taking back an insert that landed onto a slide
+  means handing PowerPoint a package containing the slide it replaced, and ten
+  of those is ten copies of your presentation inside a task pane. PowerPoint's
+  own Ctrl+Z reverts an insert — measured on the web on 2026-09-10 — so the
+  deeper history already exists. `docs/DESIGN.md` section 6 records the change
+  and the reason.
+
+- **The catalogue index now carries each carried part's content type**, read
+  from the library deck rather than guessed from its extension at insert time. A
+  part with no content type declared is a package PowerPoint refuses without
+  saying which part.
+
+- **`SECURITY.md`'s "it makes no network calls" is now "it sends nothing
+  anywhere"**, which is both true and stronger. The pane fetches its own
+  catalogue from its own origin, as `docs/DESIGN.md` sections 3 and 11 always
+  said it would; the test that used to ban `fetch` outright now holds the
+  property that matters — one named file may fetch, it may not name an absolute
+  address, and it may not pass a method, a body or a header, so there is no way
+  to send anything to anyone.
+
+### Fixed
+
+- The harvest's `parts` list was documented as "every package part reachable
+  from those relationships", and it is not: parts are collected once per deck,
+  so the second element to use a picture lists nothing for it. Measured on the
+  committed library, 64 relationship targets across the two sizes are absent
+  from their own element's list. The splice resolves what to copy from the
+  element's relationships instead, and the type says so.
+
+
 ### Added — the host probe
 
 - A way to ask a real PowerPoint the questions the design rests on, before

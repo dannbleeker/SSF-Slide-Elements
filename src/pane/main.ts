@@ -2,19 +2,65 @@
  * The pane's entry point, and the only file here that touches Office.js.
  *
  * Everything it shows comes from `render.ts` and everything it decides comes
- * from `steps.ts`, both checked by the suite without a PowerPoint anywhere.
- * `test/architecture.test.ts` holds that seam: a decision that migrates into
- * this file becomes untestable the moment it arrives.
+ * from `steps.ts` and `src/host`, all checked by the suite without a PowerPoint
+ * anywhere. `test/architecture.test.ts` holds that seam: a decision that
+ * migrates into this file becomes untestable the moment it arrives.
  *
- * Excluded from coverage for the same reason — pooling it with the engine
- * would produce one number that hides both.
+ * Excluded from coverage for the same reason — pooling it with the engine would
+ * produce one number that hides both.
  */
-import { ready as hostReady } from "../office/powerpoint.js";
+import { slideSize } from "../core/pptx/layout.js";
+import { Pkg } from "../core/pptx/pkg.js";
+import { onlySlide, splice } from "../core/splice/splice.js";
+import { INSERTING, mayRemove, outcomeOf, announcement } from "../host/insert.js";
+import { readable } from "../host/errors.js";
+import {
+  currentSlide,
+  insertPackage,
+  ready as hostReady,
+  readDeck,
+  removeSlideAt,
+  selectedShape,
+  slideCount,
+} from "../office/powerpoint.js";
+import { Store, carriedTypes, libraryFor, loadIndex, type Index } from "./catalogue.js";
 import { render } from "./render.js";
-import { EMPTY, type PaneState, type StepId } from "./steps.js";
+import {
+  DEFAULT_SETTINGS,
+  EMPTY,
+  RECENT_DEPTH,
+  elementOf,
+  remember,
+  stepFor,
+  toggle,
+  type Library,
+  type PaneState,
+} from "./steps.js";
 
-const state: PaneState = EMPTY;
-const step: StepId = "start";
+let state: PaneState = { ...EMPTY };
+let index: Index | undefined;
+let store: Store | undefined;
+
+/**
+ * What Undo needs to put the deck back, for the LAST insert only.
+ *
+ * One deep, and `docs/DESIGN.md` section 6 records why that is not the ten it
+ * originally promised: undoing an insert that landed onto a slide means putting
+ * the REPLACED slide back, and the only way to put a slide back is to hand
+ * PowerPoint a package containing it. Ten of those is ten copies of the user's
+ * presentation held in a task-pane WebView, which is the memory that killed a
+ * sibling's run. PowerPoint's own Ctrl+Z reverts an insert — measured on the
+ * web on 2026-09-10, `docs/host-answers/` — and that is the deeper history.
+ */
+interface Undoable {
+  target: "onto" | "new";
+  /** Which slide the insert was aimed at, counting from zero. */
+  slide: number;
+  /** The deck as it was before the insert. */
+  before: string;
+  name: string;
+}
+let undoable: Undoable | undefined;
 
 function root(): HTMLElement {
   const node = document.getElementById("pane");
@@ -30,10 +76,8 @@ function root(): HTMLElement {
  * exist first and have text put into it. So this one lives outside the pane, is
  * made on the first draw, and is only ever written to.
  *
- * Made here rather than in `taskpane.html` so there is one definition and the
- * jsdom wiring tests get it without keeping a copy of the page's markup in step
- * with the real one. It is off-screen rather than `display: none`, which would
- * take it out of the accessibility tree along with everything in it.
+ * It is off-screen rather than `display: none`, which would take it out of the
+ * accessibility tree along with everything in it.
  */
 function liveRegion(): HTMLElement {
   const existing = document.getElementById("announcer");
@@ -60,12 +104,384 @@ function announce(text: string): void {
   liveRegion().textContent = text;
 }
 
+/** Where the search caret was, so a redraw does not throw it away. */
 function draw(): void {
-  render(root(), state, step);
-  // The region exists from the first draw, so the first sentence that ever
-  // reaches it is announced rather than merely present.
+  const active = document.activeElement;
+  const wasSearch = active instanceof HTMLInputElement && active.dataset["action"] === "search";
+  const caret = wasSearch ? active.selectionStart : null;
+
+  render(root(), state, stepFor(state));
   liveRegion();
   announce(state.notice ?? "");
+
+  if (wasSearch) {
+    const search = root().querySelector<HTMLInputElement>('[data-action="search"]');
+    if (search) {
+      search.focus();
+      if (caret !== null) search.setSelectionRange(caret, caret);
+    }
+  }
+}
+
+function set(changes: Partial<PaneState>): void {
+  state = { ...state, ...changes };
+  draw();
+}
+
+// ---------------------------------------------------------------------------
+// Settings, kept per machine.
+// ---------------------------------------------------------------------------
+
+const KEY = "ssf-slide-elements";
+
+/**
+ * The pane reopens where you left it (`docs/DESIGN.md` section 4).
+ *
+ * Wrapped, because storage is not always there: a WebView with site data
+ * blocked throws on the accessor itself rather than answering empty, and a pane
+ * that will not open because it could not remember a search box is worse than
+ * one that forgets.
+ */
+function remembered(): Partial<PaneState> {
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return {};
+    const held = JSON.parse(raw) as Partial<PaneState>;
+    return {
+      settings: { ...DEFAULT_SETTINGS, ...(held.settings ?? {}) },
+      favourites: held.favourites ?? [],
+      recent: held.recent ?? [],
+      open: held.open ?? [],
+    };
+  } catch {
+    return {};
+  }
+}
+
+function keep(): void {
+  try {
+    window.localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        settings: state.settings,
+        favourites: state.favourites,
+        recent: state.recent,
+        open: state.open,
+      }),
+    );
+  } catch {
+    // A pane that cannot remember is still a pane that works.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading the library.
+// ---------------------------------------------------------------------------
+
+/** The deck's slide size, read from the file, because no API answers it. */
+async function deckShape(): Promise<{ width: number; height: number } | undefined> {
+  try {
+    const deck = await readDeck();
+    return await slideSize(await Pkg.open(deck.base64));
+  } catch {
+    return undefined;
+  }
+}
+
+async function load(): Promise<void> {
+  set({ problem: undefined, library: undefined });
+  try {
+    index = await loadIndex();
+  } catch (e) {
+    set({
+      problem: `The library did not load: ${readable(e)}. That is usually the network rather than a fault in the add-in.`,
+    });
+    return;
+  }
+  // The index first, so tiles are on screen while the deck is being measured.
+  // 16:9 is what almost every modern deck is, and the shape read below corrects
+  // it — visibly, through the line under the header — when it is not.
+  const provisional = libraryFor(index, 12192000, 6858000);
+  set({ library: provisional });
+  store = new Store(provisional.size);
+
+  const shape = await deckShape();
+  if (!shape || !index) return;
+  const library: Library = libraryFor(index, shape.width, shape.height);
+  if (library.size !== provisional.size || library.borrowed !== provisional.borrowed) {
+    store = new Store(library.size);
+    set({ library });
+  }
+  const current = await currentSlide();
+  set({ slide: current === undefined ? undefined : current.index + 1 });
+}
+
+// ---------------------------------------------------------------------------
+// Inserting.
+// ---------------------------------------------------------------------------
+
+async function insert(id: string): Promise<void> {
+  const library = state.library;
+  const element = elementOf(library, id);
+  if (!library || !element || !store || !index || state.busy === true) return;
+
+  set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined });
+  try {
+    const markup = await store.markup(element);
+    const deck = await readDeck();
+    const current = await currentSlide();
+    const at = current?.index ?? 0;
+    const before = await slideCount();
+    const selection = element.landing === "cursor" ? await selectedShape() : undefined;
+
+    const report = await splice({
+      deck: deck.base64,
+      slide: at,
+      element: {
+        id: element.id,
+        name: element.name,
+        kind: element.kind,
+        box: element.box,
+        landing: element.landing,
+        ...(element.category.key.toLowerCase().includes("mark") ? { wraps: true } : {}),
+        markup: { xml: markup.xml, rels: markup.rels },
+      },
+      options: state.settings,
+      catalogue: { version: library.version, carried: carriedTypes(index, library.size) },
+      store: (path) => (store as Store).part(path),
+      ...(selection ? { selection } : {}),
+    });
+
+    const targetId = current?.id;
+    if (targetId === undefined) {
+      set({
+        busy: false,
+        notice: undefined,
+        outcome: {
+          ok: false,
+          byHand: false,
+          name: element.name,
+          detail:
+            "PowerPoint would not say which slide you are on, so nothing was inserted. Click a slide and try again.",
+        },
+      });
+      return;
+    }
+
+    const error = await insertPackage(report.base64, targetId);
+    const inserted = await slideCount();
+    let removed: number | undefined;
+    if (state.settings.target === "onto" && mayRemove({ before, inserted })) {
+      // The rebuilt slide landed AFTER the original, so the original is still
+      // at its own index. Positional, never by id: a slide next to one the run
+      // has just added is exactly where an id read is not to be trusted.
+      const failure = await removeSlideAt(at);
+      removed = failure === undefined ? await slideCount() : inserted;
+    }
+
+    const outcome = outcomeOf({
+      target: state.settings.target,
+      slide: at + 1,
+      before,
+      inserted,
+      ...(removed === undefined ? {} : { removed }),
+      ...(error === undefined ? {} : { error }),
+    });
+    undoable = outcome.ok
+      ? { target: state.settings.target, slide: at, before: deck.base64, name: element.name }
+      : undefined;
+    state = {
+      ...state,
+      busy: false,
+      recent: outcome.ok ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
+      undo: outcome.ok ? 1 : 0,
+      outcome: { ...outcome, name: element.name },
+    };
+    delete state.notice;
+    keep();
+    draw();
+    announce(announcement(outcome, element.name));
+  } catch (e) {
+    state = {
+      ...state,
+      busy: false,
+      outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
+    };
+    delete state.notice;
+    draw();
+  }
+}
+
+/**
+ * Put the deck back the way it was.
+ *
+ * Count-checked at every step, and positional throughout. Nothing here reads an
+ * id: `CLAUDE.md` records that a slide the run just added does not resolve by
+ * one on the web, and undo is working right next to one.
+ */
+async function undo(): Promise<void> {
+  const entry = undoable;
+  if (!entry || state.busy === true) return;
+  set({ busy: true, notice: "Undoing…" });
+  try {
+    const before = await slideCount();
+    if (entry.target === "new") {
+      // The added slide sits immediately after the one it was inserted against.
+      await removeSlideAt(entry.slide + 1);
+    } else {
+      const original = await onlySlide(entry.before, entry.slide);
+      const current = await currentSlide();
+      const targetId = current?.id;
+      if (targetId === undefined) throw new Error("PowerPoint would not say which slide is selected");
+      await insertPackage(original.base64, targetId);
+      const grown = await slideCount();
+      if (grown === before + 1) await removeSlideAt(entry.slide + 1);
+    }
+    const after = await slideCount();
+    undoable = undefined;
+    state = {
+      ...state,
+      busy: false,
+      undo: 0,
+      outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
+    };
+    delete state.notice;
+    draw();
+    announce(`${entry.name} taken back.`);
+  } catch (e) {
+    state = {
+      ...state,
+      busy: false,
+      outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
+    };
+    delete state.notice;
+    draw();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Wiring.
+// ---------------------------------------------------------------------------
+
+function actionOf(target: EventTarget | null): { action: string; el: HTMLElement } | undefined {
+  let node = target instanceof HTMLElement ? target : undefined;
+  while (node && !node.dataset["action"]) node = node.parentElement ?? undefined;
+  const action = node?.dataset["action"];
+  return node && action ? { action, el: node } : undefined;
+}
+
+function onClick(event: MouseEvent): void {
+  const found = actionOf(event.target);
+  if (!found) return;
+  const { action, el } = found;
+  const id = el.dataset["id"];
+  const value = el.dataset["value"];
+  switch (action) {
+    case "tile":
+    case "step":
+      if (id) void insert(id);
+      break;
+    case "insert":
+      if (state.chosen) void insert(state.chosen);
+      break;
+    case "again":
+      if (state.recent[0]) void insert(state.recent[0]);
+      break;
+    case "undo":
+      void undo();
+      break;
+    case "retry":
+      void load();
+      break;
+    case "star":
+      if (id) {
+        set({ favourites: toggle(state.favourites, id) });
+        keep();
+      }
+      break;
+    case "gear":
+      set({ gear: state.gear !== true });
+      break;
+    case "target":
+      if (value === "onto" || value === "new") {
+        set({ settings: { ...state.settings, target: value } });
+        keep();
+      }
+      break;
+    case "group":
+      set({ settings: { ...state.settings, group: value === "group" } });
+      keep();
+      break;
+    case "tag":
+      if (value) set({ tags: toggle(state.tags, value) });
+      break;
+    case "category":
+      if (el.dataset["key"]) {
+        set({ open: toggle(state.open, el.dataset["key"]) });
+        keep();
+      }
+      break;
+    case "clear":
+      set({ query: "", tags: [] });
+      break;
+    default:
+      break;
+  }
+}
+
+function onInput(event: Event): void {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || target.dataset["action"] !== "search") return;
+  set({ query: target.value });
+}
+
+/**
+ * The keyboard, as `docs/DESIGN.md` section 9 specifies it.
+ *
+ * `/` focuses search, Esc clears it, arrows move between tiles, Enter inserts
+ * the one the focus is on. Nothing here fights the browser: a tile is a real
+ * button, so Enter and Space already work on it, and the arrows only move
+ * focus.
+ */
+function onKey(event: KeyboardEvent): void {
+  const inSearch = event.target instanceof HTMLInputElement;
+  if (event.key === "/" && !inSearch) {
+    const search = root().querySelector<HTMLInputElement>('[data-action="search"]');
+    if (search) {
+      event.preventDefault();
+      search.focus();
+    }
+    return;
+  }
+  if (event.key === "Escape") {
+    if (state.gear === true) set({ gear: false });
+    else if (state.query !== "" || state.tags.length > 0) set({ query: "", tags: [] });
+    return;
+  }
+  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+    return;
+  }
+  const tiles = [...root().querySelectorAll<HTMLElement>('[data-action="tile"]')];
+  if (tiles.length === 0) return;
+  const at = tiles.findIndex((t) => t === document.activeElement);
+  if (at < 0) {
+    event.preventDefault();
+    tiles[0]?.focus();
+    return;
+  }
+  const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+  const next = tiles[Math.min(tiles.length - 1, Math.max(0, at + step))];
+  if (next) {
+    event.preventDefault();
+    next.focus();
+    const id = next.dataset["id"];
+    if (id) set({ chosen: id });
+  }
+}
+
+function onFocus(event: FocusEvent): void {
+  const found = actionOf(event.target);
+  if (found?.action === "tile" && found.el.dataset["id"]) set({ chosen: found.el.dataset["id"] });
 }
 
 /**
@@ -98,9 +514,6 @@ function applyTheme(): void {
  * soon after a deploy tests code the host never fetched, and the result reads
  * as a clean run of the wrong build. The sibling projects record whole rounds
  * lost to it. Seven characters in the header is how the two are told apart.
- *
- * In the HEADER rather than in the pane, because the layout rule the pane was
- * approved on is that the primary button is the last element in the view.
  */
 function showBuild(): void {
   const build = typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : "unknown";
@@ -109,7 +522,6 @@ function showBuild(): void {
   const span = document.createElement("span");
   span.className = "build";
   span.textContent = build;
-  // Named, because seven hex characters in a header is a mystery otherwise.
   span.title = `SSF Slide Elements was built from commit ${build}`;
   header.append(span);
 }
@@ -131,5 +543,11 @@ void Office.onReady(() => {
     node.append(p);
     return;
   }
+  state = { ...state, ...remembered() };
+  document.addEventListener("click", onClick);
+  document.addEventListener("input", onInput);
+  document.addEventListener("keydown", onKey);
+  document.addEventListener("focusin", onFocus);
   draw();
+  void load();
 });

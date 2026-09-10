@@ -195,9 +195,18 @@ exception for width.
   after the slide and remove the original. Two inserts 0.4 s apart killed a
   sibling's tab; the lock is that rule made visible. The delta is the evidence,
   never the absence of an error.
-- **Undo** goes ten deep, in order, and answers Ctrl+Z while the pane has
-  focus. It is positional and count-checked, never by id. **Again** repeats the
-  last insert on the current slide or selection.
+- **Undo** goes **one deep**, positional and count-checked, never by id.
+  **Again** repeats the last insert on the current slide or selection.
+
+  Ten deep was the decision on 2026-09-08 and it did not survive the build.
+  Taking back an insert that landed ONTO a slide means putting the replaced
+  slide back, and the only way to put a slide into a deck is to hand PowerPoint
+  a package containing it — so ten steps of history is ten copies of the user's
+  presentation held inside a task-pane WebView, which is the memory that killed
+  a sibling's run. One step is what the pane can honestly hold. PowerPoint's own
+  **Ctrl+Z reverts an insert**, measured on the web on 2026-09-10
+  (`docs/host-answers/`), so the deeper history already exists and the pane's
+  job is to stay out of its way rather than to duplicate it badly.
 - **A whole-slide element onto a slide with content** gets the footer offer
   "Move to a new slide" beside Undo. **Empty content placeholders** on the
   slide are removed when a whole-slide element lands, so no "Click to add
@@ -337,16 +346,38 @@ marker line, then a fresh PDF print of each.
 
 ## 15. Measured and assumed
 
-**Measured**: nothing against a real PowerPoint by this repo. Every host fact
-here is borrowed from SSF-Charts and SSF-Merge and dated in `docs/SIBLING.md`.
+**Measured, on PowerPoint for the web, 2026-09-10.** Two pairs of answer sheets
+under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
+
+- A package pruned to **one listed slide** is accepted and lands exactly that
+  slide, with the other slides' parts still in the zip. The splice is built on
+  it: the user's whole deck goes back with one slide added and every other slide
+  unlisted, which is the cheap route section 6 hoped for.
+- An insert of the deck's **own** bytes adds **no** master under either
+  formatting option (1 → 1), where a foreign fixture deck adds one (1 → 2). This
+  is why the rebuilt slide is cloned from the user's own deck rather than
+  assembled from the library's.
+- Insert-after-target followed by a **positional delete** keeps the order the
+  engine expects, and a slide the run has just added IS accepted as a
+  `targetSlideId`.
+- `getSelectedSlides` names the slide the user is on, and the API's order is the
+  file's `<p:sldIdLst>` order.
+- `exportAsBase64Presentation` **drops** the deck's comment part and
+  `ppt/authors.xml`, so the insert reads with `getFileAsync` instead.
+- PowerPoint's own **Ctrl+Z reverts an insert**, which is why the pane's Undo is
+  one deep (section 6) rather than fighting it.
+- `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
+  40 seconds for 40 KB on one that had been through a session-timeout reload.
+  Both are facts about a minute rather than about the host.
+
 Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
 them parts of four collection slides, twelve runs of sizes, 42 whole-slide
 elements without a group; the stamps are rotated 29° and 35°; a table's frame is
 narrower than the table PowerPoint draws.
 
-**Assumed**: everything in sections 5, 6 and 10 that depends on the host, the
-two-second budget in section 11, and the certification reading in section 12.
-The six questions in section 13 are the first things to measure.
+**Assumed**: every host fact above on **Windows, Mac and iPad**, where no round
+has been run; the two-second budget in section 11; and the certification reading
+in section 12.
 
 ## 16. Decisions log
 
@@ -371,4 +402,8 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | iPad included at launch; the owner cannot measure it, so the first measurement is a borrowed iPad, a device cloud or the validators | approved |
 | The design record into the repo as a docs-only PR; everything in v1; host probe before the splice and the picker | approved |
 | The host probe as a Script Lab snippet with every verdict a tested pure function, rather than a probe pane that would need hosting and a re-install first; one slide left behind on purpose for the Ctrl+Z question | decided in the build, 2026-09-08 |
+| The splice sends the user's WHOLE deck back with one slide added and every other slide unlisted, rather than removing the others properly — licensed by probe question 1, and the rebuilt slide is cloned from the user's own deck so the insert adds no master (question 1b) | measured in the build, 2026-09-10 |
+| Undo one deep instead of ten, because putting a replaced slide back means holding a copy of the deck, and PowerPoint's own Ctrl+Z was measured to revert an insert | decided in the build, 2026-09-10 |
+| A tile draws the element's landing as a diagram rather than a picture, because the PDF prints section 3 cuts previews from are not committed yet | decided in the build, 2026-09-10 |
+| The pane fetches its catalogue from its own origin, so SECURITY.md's "no network calls" became the stronger "sends nothing anywhere": one named file, GET only, no absolute URL, no request options | decided in the build, 2026-09-10 |
 | The probe tells a second run from a first by a marker in the document settings, written before the slide it leaves so the user's Ctrl+Z still lands on the insert; the slide alone could not, because Ctrl+Z is what removes it (web round, 2026-09-10) | decided in the build, 2026-09-10 |

@@ -3,9 +3,10 @@
  * all. Every incident the comments below narrate — a merged copy sharing a
  * part, a sweep deleting the wrong one, a measurement in milliseconds or
  * megabytes — happened THERE, in its merge engine, and "shipped" means shipped
- * in SSF-Merge. Functions they name that are not in this repo (`cloneSlide`,
- * `cloneSlideGraphics`, `writeSlideTags`, `src/office/merge.ts`) are
- * SSF-Merge's; the ones this repo needs arrive with the splice. The reasoning
+ * in SSF-Merge. `cloneSlide` and the tag writer arrived here with the splice on
+ * 2026-09-10 and sit in `clone.ts` and `tags.ts` beside this file; the ones the
+ * comments name that are still only SSF-Merge's — `cloneSlideGraphics` and
+ * `src/office/merge.ts` — are that project's. The reasoning
  * transfers because the package is the same format and this add-in takes the
  * same route: one deck in, one deck out, through one `insertSlidesFromBase64`.
  */
@@ -384,8 +385,16 @@ export class Pkg {
    * The id is the highest existing number plus one rather than the count, so a
    * package whose relationships were never renumbered after a deletion cannot
    * produce a duplicate.
+   *
+   * `external` is for a target that is not a part: a hyperlink's URL, or a
+   * linked picture's path on disk. Without `TargetMode="External"` a consumer
+   * reads the URL as a part name, finds nothing, and reports the file as
+   * damaged. Nothing in today's library has one — all 112 relationships across
+   * the 16:9 elements are internal — but `MarkupRel` carries the flag, so the
+   * splice can honour it the day the owner puts a link in an element rather
+   * than shipping the first broken package and finding out.
    */
-  async addRel(ownerPart: string, type: string, target: string): Promise<string> {
+  async addRel(ownerPart: string, type: string, target: string, external = false): Promise<string> {
     const path = Pkg.relsPathFor(ownerPart);
     if (!this.has(path)) {
       this.setText(
@@ -409,6 +418,7 @@ export class Pkg {
     rel.setAttribute("Id", id);
     rel.setAttribute("Type", type);
     rel.setAttribute("Target", target);
+    if (external) rel.setAttribute("TargetMode", "External");
     root.appendChild(rel);
     return id;
   }
