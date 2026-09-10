@@ -7,7 +7,7 @@ import { packageProblems } from "../scripts/package-integrity.mjs";
 import { Pkg, harvest } from "../src/core/index.js";
 import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/index.js";
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
-import { A_NS, P_NS, child, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
+import { A_NS, P_NS, R_NS, child, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -562,5 +562,94 @@ describe("where an element lands, through the whole splice", () => {
       .filter((n) => Number.isFinite(n));
     expect(xs.length).toBeGreaterThan(0);
     expect(Math.min(...xs)).toBeGreaterThanOrEqual(report.landed.x - 1);
+  });
+});
+
+describe("a slide that carries a comment", () => {
+  /**
+   * A modern comment as PowerPoint for the web writes one.
+   *
+   * The shape matters, not just the presence: the comment part hangs off the
+   * SLIDE under a Microsoft-namespaced relationship, and the slide ANCHORS it
+   * from its own extension list. That anchor is why `cloneSlide` keeps the
+   * relationship — its drop pass only removes what nothing names — and keeping
+   * it is right for a slide being rebuilt and wrong for one being made new.
+   *
+   * Measured on the web on 2026-09-10 before it was written down here: a slide
+   * with one comment, replaced twice and then used as the basis for a new
+   * slide, came back with the comment on both.
+   */
+  const COMMENT_REL = "http://schemas.microsoft.com/office/2018/10/relationships/comments";
+  const COMMENT_TYPE = "application/vnd.ms-powerpoint.comments+xml";
+
+  async function deckWithComment(): Promise<Uint8Array> {
+    const pkg = await Pkg.open(await destination());
+    const slide = (await pkg.slidePaths())[1] as string;
+    const part = "ppt/comments/modernComment_101_TEST.xml";
+    pkg.setText(part, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p188:cmLst/>');
+    await pkg.addContentTypeOverride(`/${part}`, COMMENT_TYPE);
+    const rId = await pkg.addRel(slide, COMMENT_REL, "../comments/modernComment_101_TEST.xml");
+
+    // The anchor, in the slide's own extension list, naming the relationship.
+    const doc = await pkg.doc(slide);
+    const cSld = child(doc.documentElement, P_NS, "cSld");
+    if (!cSld) throw new Error("the fixture slide has no cSld");
+    const extLst = doc.createElementNS(P_NS, "p:extLst");
+    const ext = doc.createElementNS(P_NS, "p:ext");
+    ext.setAttribute("uri", "{575DDBBC-B0F2-4D9E-9E05-8B25F5ED30E1}");
+    const anchor = doc.createElementNS("http://schemas.microsoft.com/office/powerpoint/2018/8/main", "p188:commentRel");
+    anchor.setAttributeNS(R_NS, "r:id", rId);
+    ext.appendChild(anchor);
+    extLst.appendChild(ext);
+    cSld.appendChild(extLst);
+    return pkg.toBytes();
+  }
+
+  async function commentsOn(base64: string, slidePath: string): Promise<string[]> {
+    const out = await Pkg.open(base64);
+    return (await out.relatedParts(slidePath)).filter((p) => p.startsWith("ppt/comments/"));
+  }
+
+  it("keeps the comment when the slide is REBUILT, because it is still that slide", async () => {
+    // Losing a reviewer's thread because somebody dropped a box on the slide is
+    // the worst thing this add-in could quietly do.
+    const report = await splice({
+      deck: await deckWithComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toHaveLength(1);
+  });
+
+  it("drops it for a NEW slide, so a review thread is not duplicated", async () => {
+    const report = await splice({
+      deck: await deckWithComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toEqual([]);
+    // And the package is still whole: the comment part is left behind as an
+    // orphan rather than deleted out from under a relationship.
+    expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
+  });
+
+  it("drops the previous slide's notes for a new slide too, for the same reason", async () => {
+    const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]], notes: "private note" }]);
+    const report = await splice({
+      deck,
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    expect((await out.relatedParts(report.slidePath)).filter((p) => p.startsWith("ppt/notesSlides/"))).toEqual([]);
   });
 });

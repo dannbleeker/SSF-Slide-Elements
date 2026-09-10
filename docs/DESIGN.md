@@ -366,6 +366,18 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   `ppt/authors.xml`, so the insert reads with `getFileAsync` instead.
 - PowerPoint's own **Ctrl+Z reverts an insert**, which is why the pane's Undo is
   one deep (section 6) rather than fighting it.
+- The SPLICE ITSELF was run against this host on 2026-09-10, three inserts, the
+  real engine bundled into a Script Lab snippet: a four-shape element onto a
+  slide, an element carrying an embedded object and a picture (five parts
+  copied) onto a slide, and one as a new slide. All three landed, and the deck
+  went 3 → 4 → 3, 3 → 4 → 3 and 3 → 4. Reading the deck took 0.5 to 1.9
+  seconds, the splice 76 to 179 ms, the insert 0.6 to 1.4 seconds.
+- **A comment survives its slide being rebuilt, and a new slide must not carry
+  one.** A modern comment on the web is anchored from the slide's own
+  extension list, so a clone keeps it — which is right for "onto this slide"
+  and was wrong for "as a new slide": the first round put the same comment on
+  two slides. Section 6's new-slide rule now drops comments the way it already
+  dropped notes, measured again afterwards on the same host.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host.

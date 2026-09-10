@@ -28,7 +28,7 @@ import type { MarkupRel } from "../catalogue/types.js";
 import { cloneSlide } from "../pptx/clone.js";
 import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
-import { REL_TYPE } from "../pptx/parts.js";
+import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, writeShapeTags } from "../pptx/tags.js";
 import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, element, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
@@ -178,11 +178,21 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
  * one it follows — and a slide whose layout is not in the deck is a slide
  * PowerPoint has to invent a design for.
  *
- * Placeholders stay and are emptied; everything else goes. The notes page goes
- * too: a new slide carrying the previous slide's speaker notes is a surprise
- * nobody asked for, and the part it points at is left in the package as an
- * orphan, which `scripts/package-integrity.mjs` treats as weight rather than
- * damage and which the insert never reaches, because nothing lists it.
+ * Placeholders stay and are emptied; everything else goes. So do the notes page
+ * and the COMMENTS, and both for the same reason: a new slide carrying the
+ * previous slide's speaker notes or somebody's review thread is a surprise
+ * nobody asked for. The parts they point at are left in the package as orphans,
+ * which `scripts/package-integrity.mjs` treats as weight rather than damage and
+ * which the insert never reaches, because nothing lists them.
+ *
+ * The comments half was measured rather than reasoned. On PowerPoint for the
+ * web on 2026-09-10 a slide carrying one comment was replaced twice and then
+ * used as the basis for a new slide, and the deck came back with the comment on
+ * BOTH — `ppt/comments/modernComment_104_*` and `_105_*`, one each. A modern
+ * comment on the web is anchored from the slide's own extension list, so
+ * `cloneSlide`'s drop-what-nothing-names pass keeps it, which is right for
+ * "onto this slide" — the user's comment survives their slide being rebuilt —
+ * and wrong for a slide that is meant to be new.
  */
 async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   const spTree = await spTreeOf(pkg, slidePath);
@@ -215,7 +225,8 @@ async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   if (!pkg.has(relsPath)) return;
   const rels = await pkg.doc(relsPath);
   for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
-    if (rel.getAttribute("Type") === REL_TYPE.notesSlide) rel.parentNode?.removeChild(rel);
+    const type = rel.getAttribute("Type") ?? "";
+    if (type === REL_TYPE.notesSlide || COMMENT_REL_TYPES.includes(type)) rel.parentNode?.removeChild(rel);
   }
 }
 

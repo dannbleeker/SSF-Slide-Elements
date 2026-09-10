@@ -77,6 +77,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A new slide carried the previous slide's comments.** Found by running the
+  real engine against PowerPoint for the web on 2026-09-10 and then reading the
+  deck back: one comment came out on two slides. A modern comment is anchored
+  from the slide's own extension list, so cloning a slide keeps it — right when
+  the slide is being rebuilt, wrong when it is meant to be new. "As a new
+  slide" now drops comments the way it already dropped speaker notes, and the
+  same round afterwards showed the new slide with none.
 - The harvest's `parts` list was documented as "every package part reachable
   from those relationships", and it is not: parts are collected once per deck,
   so the second element to use a picture lists nothing for it. Measured on the
