@@ -128,6 +128,46 @@ export function mayRemove(attempt: Pick<Attempt, "before" | "inserted">): boolea
   return attempt.inserted === attempt.before + 1;
 }
 
+/** Which two slides an undo has to touch, and in which order. */
+export interface UndoPlan {
+  /**
+   * The index of the slide to insert the restored copy AFTER, or undefined when
+   * the undo only removes something.
+   */
+  after?: number;
+  /** The index to remove, once the deck is the size the plan expects. */
+  remove: number;
+  /** What the deck should hold after the insert half, when there is one. */
+  grownTo: (before: number) => number;
+}
+
+/**
+ * What taking back an insert actually means, as indices.
+ *
+ * This was three lines inside a callback and it was WRONG, in the way that is
+ * worst: it reported success and changed nothing. Undoing an insert that landed
+ * onto slide N means putting the user's original slide N back and taking the
+ * rebuilt one away — and the rebuilt one is at index N, so the restored copy
+ * lands at N+1 and it is **N** that must go. The code removed N+1, which is the
+ * copy it had just restored, so the deck came back to its old size, the count
+ * check passed, and the pane said "Undone" over a slide that had not moved.
+ * Caught by pressing Undo in PowerPoint and looking at the slide.
+ *
+ * The insert is aimed at the REBUILT slide rather than at whatever the user has
+ * selected, which is the other half of the same lesson: an undo that depends on
+ * where the selection happens to be is an undo that puts a slide somewhere else
+ * the moment the user clicks away before pressing it.
+ *
+ * A new slide is the simple case. It sits immediately after the slide it was
+ * inserted against, and taking it back is one removal.
+ */
+export function undoPlan(entry: { target: Target; slide: number }): UndoPlan {
+  if (entry.target === "new") {
+    return { remove: entry.slide + 1, grownTo: (before) => before };
+  }
+  return { after: entry.slide, remove: entry.slide, grownTo: (before) => before + 1 };
+}
+
 /**
  * What the pane announces while an insert runs.
  *
