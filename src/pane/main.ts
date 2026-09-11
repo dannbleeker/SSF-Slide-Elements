@@ -507,6 +507,11 @@ function onClick(event: MouseEvent): void {
     case "clear":
       set({ query: "", tags: [] });
       break;
+    // A "Did you mean" suggestion is a name the library really has, so putting
+    // it in the search box is a search that will find something.
+    case "guess":
+      if (value) set({ query: value, previewing: undefined });
+      break;
     default:
       break;
   }

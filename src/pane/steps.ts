@@ -306,6 +306,71 @@ export function landingLine(element: Element, settings: Settings): string {
     : "Lands below your slide's own title, scaled to fit the room under it.";
 }
 
+/**
+ * How far apart two strings are, counting single-character edits.
+ *
+ * The ordinary Levenshtein distance, one row at a time so a 117-element library
+ * costs a few thousand numbers rather than a matrix per name.
+ */
+function distance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const substitute = (row[j - 1] as number) + (a[i - 1] === b[j - 1] ? 0 : 1);
+      next[j] = Math.min(substitute, (row[j] as number) + 1, (next[j - 1] as number) + 1);
+    }
+    row = next;
+  }
+  return row[b.length] as number;
+}
+
+/**
+ * What the user might have meant, for a query that found nothing.
+ *
+ * `docs/DESIGN.md` section 8. A search that returns an empty list is a dead end;
+ * this turns it into a route, and it only ever offers names the library really
+ * has, so picking one cannot fail.
+ *
+ * Measured against each WORD of a name as well as the whole of it, because a
+ * query is usually one word and "triangel" should reach "Triangle, simple, with
+ * text at the corners" — which as a whole string is 30 edits away from it.
+ *
+ * The threshold grows with the query: one edit for a short word, more for a
+ * long one. Without that, a three-letter typo would reach half the library.
+ */
+export function didYouMean(library: Library, query: string, limit = 3): string[] {
+  const q = query.trim().toLowerCase();
+  if (q.length < 3) return [];
+  const allowed = Math.max(1, Math.floor(q.length / 3));
+
+  const scored: { name: string; cost: number }[] = [];
+  for (const element of library.elements) {
+    const name = element.name;
+    const words = name
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean);
+    let best = distance(q, name.toLowerCase());
+    for (const word of words) best = Math.min(best, distance(q, word));
+    if (best <= allowed) scored.push({ name, cost: best });
+  }
+
+  scored.sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name, "en"));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const { name } of scored) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    out.push(name);
+    if (out.length === limit) break;
+  }
+  return out;
+}
+
 /** How many recent elements the pane remembers. Section 4: the last six inserts. */
 export const RECENT_DEPTH = 6;
 

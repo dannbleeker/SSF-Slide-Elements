@@ -387,3 +387,33 @@ describe("the preview card", () => {
     expect(root.querySelector(".card")).toBeNull();
   });
 });
+
+describe("a search that found nothing", () => {
+  const missed = { ...browsing, query: "trianglee" };
+
+  it("offers what the user might have meant, as chips", () => {
+    render(root, { ...browsing, query: "bax" }, "browse");
+    // the query really did find nothing …
+    expect(root.querySelector(".count")?.textContent).toBe("Nothing matches that.");
+    // … and the dead end has a way out of it
+    const guesses = [...root.querySelectorAll('[data-action="guess"]')];
+    expect(guesses.length).toBeGreaterThan(0);
+    expect(guesses.map((g) => g.textContent)).toContain("One box");
+  });
+
+  it("offers nothing when the query is near nothing, and still offers to clear", () => {
+    render(root, { ...browsing, query: "xylophone" }, "browse");
+    expect(root.querySelector(".meant")).toBeNull();
+    expect(root.querySelector('[data-action="clear"]')).not.toBeNull();
+  });
+
+  it("puts a name the library really has on each chip", () => {
+    render(root, missed, "browse");
+    const guesses = [...root.querySelectorAll('[data-action="guess"]')] as HTMLElement[];
+    const names = new Set(LIBRARY.elements.map((e) => e.name));
+    for (const guess of guesses) {
+      expect(names.has(guess.dataset["value"] ?? "")).toBe(true);
+      expect(guess.textContent).toBe(guess.dataset["value"]);
+    }
+  });
+});

@@ -158,6 +158,16 @@ const STATES = [
   },
   { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
   {
+    // A search that found nothing, WITH a way out of it. The existing
+    // nothing-found state has a query that is near nothing, so it shows only
+    // the clear button; this one is a typo of a real name.
+    name: "browse-did-you-mean",
+    step: "browse",
+    state: { ...BROWSING, query: "bax" },
+    shows: ["search", "guess", "clear"],
+    hides: ["tile"],
+  },
+  {
     // The preview card, which at 512 docks beside the list and at 320 pins over
     // the top of it. Both widths are shot, so the audit measures the card in the
     // narrow case where it overlaps and the wide one where it must not.

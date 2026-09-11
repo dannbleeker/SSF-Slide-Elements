@@ -8,6 +8,7 @@ import {
   STEP_TITLE,
   blockedReason,
   borrowedLine,
+  didYouMean,
   elementOf,
   footerOf,
   groups,
@@ -332,5 +333,51 @@ describe("finding an element by id", () => {
     expect(elementOf(LIBRARY, "gone")).toBeUndefined();
     expect(elementOf(undefined, "one-box")).toBeUndefined();
     expect(elementOf(LIBRARY, undefined)).toBeUndefined();
+  });
+});
+
+describe("what the user might have meant", () => {
+  const library: Library = {
+    ...LIBRARY,
+    elements: [
+      element({ id: "a", name: "Triangle, simple, with text at the corners" }),
+      element({ id: "b", name: "White box, 1 large" }),
+      element({ id: "c", name: "Confidential stamp" }),
+      element({ id: "d", name: "Process flow, 3 boxes" }),
+    ],
+  };
+
+  it("reaches a name through one of its WORDS, not only the whole string", () => {
+    // "triangel" is thirty edits from the whole name and one from its first
+    // word, and a query is usually one word.
+    expect(didYouMean(library, "triangel")).toContain("Triangle, simple, with text at the corners");
+  });
+
+  it("only ever offers names the library really has, so picking one cannot fail", () => {
+    const names = new Set(library.elements.map((e) => e.name));
+    for (const suggestion of didYouMean(library, "stemp")) expect(names.has(suggestion)).toBe(true);
+  });
+
+  it("says nothing for a query too short to be a typo of anything", () => {
+    expect(didYouMean(library, "ab")).toEqual([]);
+    expect(didYouMean(library, "  ")).toEqual([]);
+  });
+
+  it("says nothing when the query is near nothing", () => {
+    expect(didYouMean(library, "xylophone")).toEqual([]);
+  });
+
+  it("holds a short query to a tighter threshold than a long one", () => {
+    // Without that, a three-letter typo reaches half the library.
+    expect(didYouMean(library, "bax")).toContain("White box, 1 large");
+    expect(didYouMean(library, "zzz")).toEqual([]);
+  });
+
+  it("gives at most three", () => {
+    const many: Library = {
+      ...LIBRARY,
+      elements: Array.from({ length: 10 }, (_, i) => element({ id: String(i), name: "Box " + i })),
+    };
+    expect(didYouMean(many, "box").length).toBeLessThanOrEqual(3);
   });
 });
