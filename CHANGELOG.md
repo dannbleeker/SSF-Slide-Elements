@@ -120,6 +120,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **An undo could report failure and leave the deck wrong.** PowerPoint on the
+  web can still give the OLD slide count after an insert that has already
+  happened — 2.8 seconds of it, measured on 2026-09-11 by polling the count
+  through a real insert. Undo read the count once, immediately after putting
+  the user's slide back, got the old number, concluded the insert had not
+  landed and stopped there: the deck kept six slides where five belonged, with
+  the restored slide and the rebuilt one both in it. It said "Undo did not
+  work" while it was the reading that had failed, not the insert. Every count
+  that decides something is now asked again on a backoff until the deck agrees,
+  and the ordinary case still costs one read.
+
 - **A deck read that came back short would have named the wrong slide.**
   PowerPoint on the web answers a collection load of more than about fifty
   items with fewer than it has, and this add-in turns that list into a POSITION

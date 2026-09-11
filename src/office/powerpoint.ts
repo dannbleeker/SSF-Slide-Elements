@@ -22,7 +22,7 @@
  */
 import { checkFloor, type Readiness, type Supports } from "../host/capability.js";
 import { readable } from "../host/errors.js";
-import { BUDGET, withTimeout } from "../host/timeout.js";
+import { BUDGET, CONFIRM, withTimeout } from "../host/timeout.js";
 
 /**
  * What the host says it supports.
@@ -69,6 +69,32 @@ export function slideCount(): Promise<number> {
     BUDGET.read,
     "counting the deck's slides",
   );
+}
+
+/**
+ * The deck's size, asked again until it is the size it ought to be.
+ *
+ * `slideCount` above answers what the host says NOW, and the host can be
+ * behind: `src/host/timeout.ts` carries the measurement and what it cost.
+ * This is the one to use wherever a count is EVIDENCE that a call did
+ * something — after an insert, after a removal — and `slideCount` the one to
+ * use for a size nothing turns on.
+ *
+ * It stops at the first read that matches, so the ordinary case costs exactly
+ * what it always did. It returns whatever it last saw rather than raising:
+ * whether that number means success is a judgement, and judgements live in
+ * `src/host`, not here. A deck that ends up the wrong size on purpose — two
+ * slides where one was expected — comes back as that wrong size, and the
+ * sentence for it is already written.
+ */
+export async function countReaching(want: number): Promise<number> {
+  let count = await slideCount();
+  for (const pause of CONFIRM) {
+    if (count === want) return count;
+    await new Promise((resolve) => setTimeout(resolve, pause));
+    count = await slideCount();
+  }
+  return count;
 }
 
 export interface DeckBytes {

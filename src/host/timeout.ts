@@ -38,6 +38,31 @@ export const BUDGET = {
   remove: 60_000,
 } as const;
 
+/**
+ * The pauses between reads when confirming that the deck changed size.
+ *
+ * **The slide count can lag an insert that has already happened.** Measured on
+ * PowerPoint for the web on 2026-09-11, polling `slides.getCount()` every
+ * 300 ms through a real insert: the count stayed at its old value for 2.8
+ * seconds after the click and then went up. The undo read it once, immediately
+ * after `insertSlidesFromBase64` resolved, got the old number, concluded the
+ * insert had not landed and stopped — leaving the user with the slide it had
+ * just put back AND the rebuilt one it never removed. It reported the failure
+ * honestly and the deck was still wrong.
+ *
+ * So a size that decides anything is read more than once. Five reads over about
+ * six and a half seconds, stopping the moment the deck agrees, which it almost
+ * always does on the first. Backed off rather than evenly spaced because **the
+ * web forces a full presentation save on every `context.sync()`**
+ * (`CLAUDE.md`), read-only ones included: a tight poll would be fifteen saves
+ * of the user's deck to answer one question.
+ *
+ * This is re-reading the MEASUREMENT, never re-trying the call. Nothing here
+ * inserts or removes twice; a second insert on a deck whose shape this code has
+ * already misread is how the wrong slide goes.
+ */
+export const CONFIRM = [500, 1000, 2000, 3000] as const;
+
 /** A promise that rejects by name if it has not settled in time. */
 export function withTimeout<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {

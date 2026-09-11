@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { BUDGET, CONFIRM } from "../src/host/timeout.js";
 
 /**
  * The one call the pane makes before it has decided anything.
@@ -199,5 +200,107 @@ describe("a deck read that came back short", () => {
   it("still answers undefined for a position past the end of a whole read", async () => {
     const mod = await host({ deck: ["a", "b"] });
     expect(await mod.slideIdAt(5)).toBeUndefined();
+  });
+});
+
+/**
+ * A count that lags the call it is meant to be evidence for.
+ *
+ * On PowerPoint for the web the slide count can still be the OLD number after
+ * an insert that has already happened — measured on 2026-09-11 by polling
+ * `getCount()` every 300 ms through a real insert, where it stayed put for 2.8
+ * seconds and then went up. The undo read it once, got the old number,
+ * concluded the insert had not landed, and stopped between putting the user's
+ * slide back and removing the rebuilt one. It said so honestly and the deck was
+ * still wrong, with six slides where five belonged.
+ *
+ * The fake answers a SERIES, one value per read, so the lag is something a case
+ * can state rather than something it has to wait for the real host to produce.
+ * It also counts the reads, because "it eventually got there" is only half of
+ * it: a confirm that kept asking after the deck agreed would be saves of the
+ * user's presentation nobody asked for.
+ */
+function counting(series: number[]): { reads: () => number } {
+  let read = 0;
+  const context = {
+    presentation: {
+      slides: {
+        getCount() {
+          const box = { value: -1 };
+          // On the RESPONSE. A double that answers when ASKED cannot show a
+          // lag, because the lag is the gap between the two.
+          pending.push(() => {
+            box.value = series[Math.min(read, series.length - 1)] ?? -1;
+            read += 1;
+          });
+          return box;
+        },
+      },
+    },
+    sync: () => {
+      for (const fill of pending.splice(0)) fill();
+      return Promise.resolve();
+    },
+  };
+  const pending: (() => void)[] = [];
+  (globalThis as unknown as { Office: unknown }).Office = {
+    context: { requirements: { isSetSupported: () => true } },
+  };
+  (globalThis as unknown as { PowerPoint: unknown }).PowerPoint = {
+    run: async (cb: (c: typeof context) => unknown) => await cb(context),
+  };
+  return { reads: () => read };
+}
+
+async function counter(series: number[]) {
+  vi.resetModules();
+  const spy = counting(series);
+  const mod = await import("../src/office/powerpoint.js");
+  return { countReaching: mod.countReaching, reads: spy.reads };
+}
+
+describe("confirming that the deck changed size", () => {
+  afterEach(() => {
+    delete (globalThis as unknown as { PowerPoint?: unknown }).PowerPoint;
+  });
+
+  it("costs one read when the deck already agrees", async () => {
+    const { countReaching, reads } = await counter([6]);
+    expect(await countReaching(6)).toBe(6);
+    expect(reads(), "the ordinary case must not pay for the rare one").toBe(1);
+  });
+
+  it("keeps asking while the count lags, and stops the moment it agrees", async () => {
+    // The failure this exists for: two stale answers, then the truth.
+    const { countReaching, reads } = await counter([5, 5, 6, 6, 6]);
+    expect(await countReaching(6)).toBe(6);
+    expect(reads(), "it must stop at the answer, not run the backoff out").toBe(3);
+  });
+
+  it("answers what it last saw when the deck never agrees", async () => {
+    // A real no-op, and it must still be reported as one. Five reads is the
+    // whole backoff; the number that comes back is the deck's, not the hope.
+    const { countReaching, reads } = await counter([5]);
+    expect(await countReaching(6)).toBe(5);
+    expect(reads()).toBe(CONFIRM.length + 1);
+  });
+
+  it("answers a deck that overshot, rather than waiting for a number it will never see", async () => {
+    // Two slides where one was expected. `outcomeOf` has a sentence for it, and
+    // it can only say it if this hands back what is really there.
+    const { countReaching } = await counter([7]);
+    expect(await countReaching(6)).toBe(7);
+  });
+
+  it("backs off rather than polling evenly, because every read saves the deck", () => {
+    // PowerPoint on the web forces a full presentation save on every
+    // `context.sync()`, read-only ones included (`CLAUDE.md`). A tight poll
+    // over the same span would be three times the saves for the same answer.
+    expect(CONFIRM.length).toBeGreaterThan(2);
+    for (let i = 1; i < CONFIRM.length; i++) {
+      expect(CONFIRM[i], "each wait is longer than the one before").toBeGreaterThan(CONFIRM[i - 1] ?? 0);
+    }
+    const total = CONFIRM.reduce((a, b) => a + b, 0);
+    expect(total, "the whole backoff has to fit inside one read's budget").toBeLessThan(BUDGET.read);
   });
 });
