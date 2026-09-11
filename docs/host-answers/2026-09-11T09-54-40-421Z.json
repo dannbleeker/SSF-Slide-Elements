@@ -1,0 +1,204 @@
+{
+  "probe": "ssf-slide-elements",
+  "takenAt": "2026-09-11T09:54:40.421Z",
+  "platform": "PC",
+  "host": "16.0.20326.20132",
+  "requirementSets": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "1.5",
+    "1.6",
+    "1.7",
+    "1.8",
+    "1.9",
+    "1.10"
+  ],
+  "floor": "1.2",
+  "undoAtStart": {
+    "found": false
+  },
+  "undoMarker": {
+    "found": false
+  },
+  "deckAtStart": 4,
+  "ownRead": {
+    "ms": 3036,
+    "bytes": 14819393
+  },
+  "partsAtStart": {
+    "total": 51,
+    "slides": 4,
+    "masters": 1,
+    "layouts": 12,
+    "themes": 1,
+    "comments": 1,
+    "authors": true,
+    "media": 1
+  },
+  "insertOwn": {
+    "before": 4,
+    "after": 8,
+    "ms": 891,
+    "mastersBefore": 1,
+    "mastersAfter": 1
+  },
+  "sweepOwn": "removed 4 slide(s) from index 4",
+  "insertOwnDestTheme": {
+    "before": 4,
+    "after": 8,
+    "ms": 858,
+    "mastersBefore": 1,
+    "mastersAfter": 1
+  },
+  "sweepOwnDestTheme": "removed 4 slide(s) from index 4",
+  "insertListed": {
+    "before": 4,
+    "after": 6,
+    "ms": 47,
+    "mastersBefore": 1,
+    "mastersAfter": 2
+  },
+  "insertPruned": {
+    "before": 6,
+    "after": 7,
+    "ms": 33,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "insertUnlisted": {
+    "before": 7,
+    "after": 8,
+    "ms": 43,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepPruning": "removed 4 slide(s) from index 4",
+  "order": {
+    "n": 4,
+    "first": {
+      "before": 4,
+      "after": 6,
+      "ms": 38,
+      "mastersBefore": 1,
+      "mastersAfter": 2
+    },
+    "afterFirst": [
+      "260#424201",
+      "261#424202"
+    ],
+    "targetAdded": {
+      "ok": true
+    },
+    "second": {
+      "before": 6,
+      "after": 7,
+      "ms": 32,
+      "mastersBefore": 2,
+      "mastersAfter": 2
+    },
+    "afterSecond": [
+      "260#424201",
+      "262#424203",
+      "261#424202"
+    ],
+    "deletedIndex": 4,
+    "afterDelete": [
+      "262#424203",
+      "261#424202"
+    ],
+    "sweep": "removed 2 slide(s) from index 4"
+  },
+  "selection": {
+    "supported": true,
+    "selectedIds": [
+      "257#772194328"
+    ],
+    "deckSize": 4,
+    "positionalRead": 4,
+    "selectedIndexes": [
+      1
+    ],
+    "sldIdLstEntries": 4,
+    "apiIdsHaveHash": true,
+    "sldIdLstMatches": true,
+    "sldIdLstHead": [
+      "256",
+      "257",
+      "258",
+      "259"
+    ],
+    "apiIdsHead": [
+      "256#3672688800",
+      "257#772194328",
+      "258#3618972889",
+      "259#3236456120"
+    ]
+  },
+  "exportParts": {
+    "supported": true,
+    "ms": 1062,
+    "bytes": 14816624,
+    "source": {
+      "total": 51,
+      "slides": 4,
+      "masters": 1,
+      "layouts": 12,
+      "themes": 1,
+      "comments": 1,
+      "authors": true,
+      "media": 1
+    },
+    "exported": {
+      "total": 46,
+      "slides": 4,
+      "masters": 1,
+      "layouts": 12,
+      "themes": 1,
+      "comments": 0,
+      "authors": false,
+      "media": 1
+    },
+    "missing": [
+      "ppt/webextensions/webextension1.xml",
+      "ppt/comments/modernComment_100_DAE8C8A0.xml",
+      "ppt/webextensions/_rels/taskpanes.xml.rels",
+      "ppt/webextensions/taskpanes.xml",
+      "ppt/authors.xml"
+    ],
+    "addedByExport": []
+  },
+  "sweep": "left everything alone (start 4, now 4)",
+  "undo": {
+    "leftBehind": true,
+    "deckBeforeLeave": 4,
+    "marker": {
+      "written": true,
+      "status": "saved"
+    },
+    "insert": {
+      "before": 4,
+      "after": 5,
+      "ms": 38,
+      "mastersBefore": 1,
+      "mastersAfter": 2
+    }
+  },
+  "ownReadAtEnd": {
+    "ms": 3070,
+    "bytes": 14824225
+  },
+  "partsAtEnd": {
+    "total": 59,
+    "slides": 5,
+    "masters": 2,
+    "layouts": 13,
+    "themes": 2,
+    "comments": 1,
+    "authors": true,
+    "media": 1
+  },
+  "deckAtEnd": 5,
+  "totalMs": 9411
+}

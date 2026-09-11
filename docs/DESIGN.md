@@ -107,9 +107,9 @@ PowerPoint would settle.
   missing its leading `/` — `ppt/notesSlides/notesSlide2.xml` and
   `notesSlide3.xml` in the 16:9 deck, `notesSlide13.xml` and `notesSlide14.xml`
   in the 4:3 deck. OPC requires an absolute part name, and `Package.Open` refuses
-  both decks with "Part URI must start with a forward slash." Adding the two
-  slashes is enough on its own: copies with that one change open, 110 and 108
-  slides, with no repair prompt. Nothing else about the package is wrong — the
+  both decks with "Part URI must start with a forward slash." Adding those four
+  slashes — two per deck — is enough on its own: copies with that one change
+  open, 110 and 108 slides, with no repair prompt. Nothing else about the package is wrong — the
   zip is intact, no relationship dangles, and every part carries a content type.
   **Accepting the Repair is not the way out**: on a copy it opened the deck but
   dropped ten of the fifteen `ppt/embeddings/oleObject*.bin` parts and
@@ -445,9 +445,75 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   pane's own Office.js, which is the only place on the web it exists.
 
 **Measured, on PowerPoint on Windows, 2026-09-11.** PowerPoint 16.0.20326.20132,
-Microsoft 365 Current Channel, x64. This is about the DECKS and the print, not
-about Office.js: the host probe and the product round have still had no Windows
-round, so every API fact above remains a web measurement.
+Microsoft 365 Current Channel, x64; the probe reports the platform as `PC` and
+the host as `16.0.20326.20132`, PowerPointApi up to 1.10. Two answer sheets
+under `docs/host-answers/`, and the whole product run from the pane afterwards.
+
+**Every one of the six questions answered the way the web answered it.** The
+package route is not web-specific:
+
+- A package pruned to **one listed slide** is accepted and lands exactly that
+  slide, under both prunings, with the other slides' parts still in the zip.
+- An insert of the deck's **own** bytes adds **no** master under either
+  formatting option (1 → 1); the foreign fixture deck adds one (1 → 2), the
+  same asymmetry the web showed.
+- Insert-after-target then a **positional delete** keeps the order, and a slide
+  the run has just added IS accepted as a `targetSlideId`.
+- `getSelectedSlides` named the slide that was clicked — slide 2 of 4 — and the
+  API's order is the file's `<p:sldIdLst>` order.
+- `exportAsBase64Presentation` **drops** the comment part and `ppt/authors.xml`
+  here too (51 parts in, 46 out; it also drops the three `ppt/webextensions/`
+  parts). So the insert reads with `getFileAsync` on Windows for the same
+  reason it does on the web.
+- PowerPoint's own **Ctrl+Z reverts an insert**: the first run left its tagged
+  slide, one Ctrl+Z on the canvas took the deck from 5 slides back to 4 with
+  slide id 260 gone, and the second run found the marker, found no tag, and
+  left nothing behind.
+
+**Every timing difference went the other way from the worry — Windows is
+faster.** The two workarounds the code carries are not load-bearing here, and
+stay because the web still needs them:
+
+- **The slide count does not lag an insert.** Measured twice, polling
+  `slides.getCount()` every 300 ms through an `insertSlidesFromBase64` whose
+  promise was timestamped: the new count was already being returned **240 ms
+  and 247 ms before the call resolved**. The web sat at the old value for 2.8
+  seconds. The backoff in `src/host/timeout.ts` therefore does NOT need raising
+  for Windows. (A first attempt at this measurement polled through the pane's
+  own insert, which goes 4 → 5 → 4 by design; that run could not tell a lagging
+  count from the real transient and was discarded.)
+- **A selection read straight after an insert does not hang.** 3 ms, against
+  the four seconds the pane allows a glance; 4 ms again at +1 s and +4 s.
+- **Reads are fast and scale.** `getFileAsync` returned a 14.13 MB deck in
+  2816 ms and 3036 ms (4.6 to 5.0 MB/s); `exportAsBase64Presentation` did the
+  same deck in about 1050 ms (13.3 MB/s). The web's healthy reading was 34 KB
+  in 874 ms and its degraded one 40 KB in 40 seconds. At 4.8 MB/s a **50 MB
+  deck reads in about 10 seconds** on this machine, which is the first real
+  evidence for question 6 — the web never had a deck big enough to ask it.
+- The whole probe took **8.1 and 9.4 seconds** against a 4-slide, 14.8 MB deck,
+  with no call reaching its 120-second budget. The web's second pair spent 302
+  seconds and had an insert time out and land anyway.
+
+**The whole product was run from the pane on Windows on 2026-09-11**, build
+`6c906b4`, sideloaded from a trusted shared-folder catalogue:
+
+- The line under the header names the slide you are on and follows a click.
+  **Three clicks a quarter-second apart settle on the last one clicked**, twice
+  over — slides 4, 2, 3 ended on "Slide 3." and slides 3, 4, 1 on "Slide 1.",
+  each agreeing with what PowerPoint itself reported.
+- **Four insert-and-undo rounds held**, on different slides, under both insert
+  targets, each with a payload the slide did not already carry so that a
+  working undo and a broken one could not look alike. Judged on the shape
+  inventory — slide id, and every shape's id and name — never on the count:
+  a triangle onto a slide holding `2:Title 1 | 3:Text Placeholder 2`
+  (`4 → 5 → 4 slides, slide 1 replaced`); a white box onto a slide that also
+  held `5:Picture 4` (slide 3 replaced); a hierarchy **as a new slide** after
+  slide 2 (`4 → 5 slides`, nine shapes, removed again by Undo); and a draft
+  stamp onto slide 4 (slide 4 replaced, arriving as `6:Group 4`). After every
+  Undo the deck was identical to before, slide id by slide id and shape id by
+  shape id.
+
+The rest of this section is about the DECKS and the print rather than Office.js.
 
 - **Neither committed deck opens.** Both are refused with "PowerPoint found a
   problem with content", offering Repair, in the UI and through COM alike
@@ -482,10 +548,12 @@ them parts of four collection slides, twelve runs of sizes, 42 whole-slide
 elements without a group; the stamps are rotated 29° and 35°; a table's frame is
 narrower than the table PowerPoint draws.
 
-**Assumed**: every host fact above on **Windows, Mac and iPad**. Windows has had
-the deck-and-print round recorded above and no Office.js round at all; Mac and
-iPad have had neither. Also assumed: the two-second budget in section 11, and
-the certification reading in section 12.
+**Assumed**: every host fact above on **Mac and iPad**, where no round has been
+run. Also assumed: the two-second budget in section 11, and the certification
+reading in section 12. Windows is no longer assumed — the section above is its
+round — but one Windows machine is one machine, and the "50 MB in about ten
+seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a
+50 MB one.
 
 ## 16. Decisions log
 
