@@ -14,11 +14,18 @@
  * shape collection.
  *
  * **What it removes is what the add-in put there, and nothing else.** The
- * shapes are found by the `SSF_SLIDE_ELEMENT` tag, per top-level shape, through
+ * shapes are found by the `SSF_SLIDE_ELEMENT` tag, per shape, through
  * `readShapeTags` — which keys on the tag NAME rather than on the part's path,
  * because a deck that has been through another add-in carries ITS tags in the
  * same folder, numbered around ours. A user's own shape has no tag of ours and
  * cannot be reached from here at all.
+ *
+ * **Wherever the user has since put it.** Grouping our stamp with a shape of
+ * their own is one gesture, and it puts the tag one level down. Sweeping only
+ * the top level left that shape on the slide while reporting the element
+ * removed, so the sweep goes into the user's groups too — taking out the tagged
+ * shape, leaving their own beside it, and taking the group as well only when
+ * the removal is what emptied it.
  *
  * **Two things it deliberately leaves behind.** The tag parts the removed
  * shapes pointed at stay in the package as orphans, and so do any pictures they
@@ -32,6 +39,7 @@ import { Pkg } from "../pptx/pkg.js";
 import { readShapeTags } from "../pptx/tags.js";
 import { P_NS, child } from "../pptx/xml.js";
 import { keepOnly } from "./listing.js";
+import { slideShapes } from "./shapes.js";
 
 export interface RemoveRequest {
   /** The user's deck, as `getFileAsync` handed it over. */
@@ -49,7 +57,7 @@ export interface RemoveReport {
   deckSlides: number;
   /** The rebuilt slide inside the package. */
   slidePath: string;
-  /** How many top-level shapes came off. */
+  /** How many tagged shapes came off, at any depth. */
   removed: number;
   /** What is left of that element on that slide: zero unless something was refused. */
   left: number;
@@ -80,7 +88,7 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
   return spTree;
 }
 
-/** A top-level shape's `<p:cNvPr id>`, by the path the schema names for its kind. */
+/** A shape's `<p:cNvPr id>`, by the path the schema names for its kind. */
 function idOf(shape: Element): string | undefined {
   for (const node of Array.from(shape.childNodes)) {
     if (node.nodeType !== 1) continue;
@@ -123,14 +131,35 @@ export async function removeElement(request: RemoveRequest): Promise<RemoveRepor
   const rebuilt = await cloneSlide(pkg, source);
   const spTree = await spTreeOf(pkg, rebuilt);
   let removed = 0;
-  for (const node of Array.from(spTree.childNodes)) {
-    if (node.nodeType !== 1) continue;
-    const shape = node as Element;
-    const id = idOf(shape);
-    if (id === undefined || !wanted.has(id)) continue;
-    spTree.removeChild(shape);
-    removed += 1;
-  }
+  /**
+   * Take the tagged shapes out, wherever the user has since put them.
+   *
+   * A shape that has been grouped with one of the user's own is one level down,
+   * and a removal that only swept the top level left it on the slide while
+   * reporting the element gone. What comes out is still only what carries our
+   * tag: the user's own shape in that group is not touched, and neither is a
+   * group of theirs that still holds something.
+   */
+  const strip = (container: Element): void => {
+    for (const node of Array.from(container.childNodes)) {
+      if (node.nodeType !== 1) continue;
+      const shape = node as Element;
+      const id = idOf(shape);
+      if (id !== undefined && wanted.has(id)) {
+        container.removeChild(shape);
+        removed += 1;
+        continue;
+      }
+      if (shape.namespaceURI !== P_NS || shape.localName !== "grpSp") continue;
+      strip(shape);
+      // A group with nothing left in it is not a group any more. PowerPoint
+      // writes `<p:grpSp>` with at least one shape in it, and the schema says
+      // the same; leaving an empty one behind would be this add-in producing
+      // the very thing it refuses to produce elsewhere.
+      if (slideShapes(shape).length === 0) container.removeChild(shape);
+    }
+  };
+  strip(spTree);
 
   // Read back off the REBUILT slide rather than trusting the loop: this is the
   // evidence the caller reports, and the whole point of the feature is that the

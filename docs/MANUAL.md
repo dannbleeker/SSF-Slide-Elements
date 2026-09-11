@@ -109,7 +109,10 @@ fetched only when you insert it.
   than every time it opens, because reading means reading your whole deck.
   Elements the add-in inserted are recognised by a mark it leaves on the shapes;
   anything you drew yourself, or pasted in from elsewhere, is not from the
-  library and does not appear;
+  library and does not appear. Grouping an element with a shape of your own
+  keeps the mark, so it stays listed and can still be removed — and a removal
+  takes only the element out of that group, leaving your own shape where it
+  was;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag

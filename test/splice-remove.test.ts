@@ -8,6 +8,7 @@ import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/
 import { readShapeTags } from "../src/core/pptx/tags.js";
 import { removeElement, slidesHolding } from "../src/core/splice/remove.js";
 import { splice, type SpliceElement } from "../src/core/splice/splice.js";
+import { P_NS, child } from "../src/core/pptx/xml.js";
 import { makeDeck } from "./fixtures/deck.js";
 
 /**
@@ -173,5 +174,106 @@ describe("taking it off", () => {
     const left = await readShapeTags(after, report.slidePath);
     expect(left.filter((t) => t.element === ID)).toEqual([]);
     expect(left.filter((t) => t.element === "markeringer-1").length).toBeGreaterThan(0);
+  });
+});
+
+describe("a stamp the user has since grouped with a shape of their own", () => {
+  const ID = "hvid-kasse-2x1-vertikale";
+
+  /**
+   * Group the slide's tagged shape with a shape of the user's own, the way one
+   * gesture in PowerPoint does, and answer the deck that comes out.
+   *
+   * Built by moving the tagged shape into a new `<p:grpSp>` rather than by
+   * hand-writing a tagged shape inside one: what goes in the group is exactly
+   * what the insert produced, which is the point of every case in this file.
+   * `withTheirs` is what the user grouped it WITH — false leaves our shape
+   * alone in the group, which is the deck they are left with after grouping and
+   * then deleting the other shape.
+   */
+  async function afterGrouping(deck: string, withTheirs: boolean): Promise<{ base64: string; slide: number }> {
+    const pkg = await Pkg.open(deck);
+    const path = (await pkg.slidePaths())[0] as string;
+    const tagged = (await readShapeTags(pkg, path)).filter((t) => t.element === ID);
+    expect(tagged.length, "the insert tagged nothing to group").toBeGreaterThan(0);
+    const ids = new Set(tagged.map((t) => t.shapeId));
+
+    const doc = await pkg.doc(path);
+    const cSld = child(doc.documentElement, P_NS, "cSld") as Element;
+    const spTree = child(cSld, P_NS, "spTree") as Element;
+
+    const group = doc.createElementNS(P_NS, "p:grpSp");
+    const nvGrpSpPr = doc.createElementNS(P_NS, "p:nvGrpSpPr");
+    const cNvPr = doc.createElementNS(P_NS, "p:cNvPr");
+    cNvPr.setAttribute("id", "900");
+    cNvPr.setAttribute("name", "Brugerens gruppe");
+    nvGrpSpPr.appendChild(cNvPr);
+    nvGrpSpPr.appendChild(doc.createElementNS(P_NS, "p:cNvGrpSpPr"));
+    nvGrpSpPr.appendChild(doc.createElementNS(P_NS, "p:nvPr"));
+    group.appendChild(nvGrpSpPr);
+    group.appendChild(doc.createElementNS(P_NS, "p:grpSpPr"));
+
+    if (withTheirs) {
+      const own = doc.createElementNS(P_NS, "p:sp");
+      const nvSpPr = doc.createElementNS(P_NS, "p:nvSpPr");
+      const ownId = doc.createElementNS(P_NS, "p:cNvPr");
+      ownId.setAttribute("id", "901");
+      ownId.setAttribute("name", "Min egen kasse");
+      nvSpPr.appendChild(ownId);
+      nvSpPr.appendChild(doc.createElementNS(P_NS, "p:cNvSpPr"));
+      nvSpPr.appendChild(doc.createElementNS(P_NS, "p:nvPr"));
+      own.appendChild(nvSpPr);
+      own.appendChild(doc.createElementNS(P_NS, "p:spPr"));
+      group.appendChild(own);
+    }
+
+    let anchored = false;
+    for (const node of Array.from(spTree.childNodes)) {
+      if (node.nodeType !== 1) continue;
+      const shape = node as Element;
+      const first = Array.from(shape.childNodes).find((n) => n.nodeType === 1) as Element | undefined;
+      const id = first ? child(first, P_NS, "cNvPr")?.getAttribute("id") : undefined;
+      if (id === null || id === undefined || !ids.has(id)) continue;
+      if (!anchored) {
+        spTree.insertBefore(group, shape);
+        anchored = true;
+      }
+      group.appendChild(shape);
+    }
+    expect(anchored, "no tagged shape was found to move into the group").toBe(true);
+    return { base64: await pkg.toBase64(), slide: 0 };
+  }
+
+  it("is still listed as used, because it is still on the slide", async () => {
+    const grouped = await afterGrouping(await afterInserting(ID), true);
+    const pkg = await Pkg.open(grouped.base64);
+    expect(await slidesHolding(pkg, ID)).toEqual([0]);
+  });
+
+  it("comes off, and the shape the user drew stays where it was", async () => {
+    const grouped = await afterGrouping(await afterInserting(ID), true);
+    const report = await removeElement({ deck: grouped.base64, slide: grouped.slide, element: ID });
+    expect(report.removed).toBeGreaterThan(0);
+    expect(report.left).toBe(0);
+
+    const after = await Pkg.open(report.base64);
+    const xml = await after.text(report.slidePath);
+    expect(xml, "the user's own shape went with it").toContain("Min egen kasse");
+    expect(xml, "the group the user made was taken apart").toContain("Brugerens gruppe");
+    expect(await slidesHolding(after, ID)).toEqual([]);
+    expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
+  });
+
+  it("takes the user's group with it when the removal is what emptied it", async () => {
+    // A group with nothing in it is not something PowerPoint writes, and the
+    // schema does not allow it either. The user is left with the slide they
+    // would have had if the stamp had never been grouped.
+    const grouped = await afterGrouping(await afterInserting(ID), false);
+    const report = await removeElement({ deck: grouped.base64, slide: grouped.slide, element: ID });
+    const after = await Pkg.open(report.base64);
+    const xml = await after.text(report.slidePath);
+    expect(xml, "an empty group was left on the slide").not.toContain("Brugerens gruppe");
+    expect(await slidesHolding(after, ID)).toEqual([]);
+    expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
   });
 });

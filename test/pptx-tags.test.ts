@@ -866,3 +866,70 @@ describe("what the whole deck already uses", () => {
     expect(await usedInDeck(pkg)).toEqual([{ element: "fortroligt", slides: [1], shapes: 1, catalogues: [] }]);
   });
 });
+
+describe("a tag the user has since grouped away", () => {
+  /**
+   * Group our stamp with a shape of their own and the tag is one level down.
+   *
+   * A top-level sweep was what this read first, and it answered that the
+   * element was not in the deck while it sat on the slide in front of them —
+   * so "Used in this deck" under-reported and "Remove from N slides" was never
+   * offered. The `GROUP` fixture is exactly that shape: a group of the user's
+   * own with a shape inside it.
+   */
+  it("is read from inside the user's group", async () => {
+    const pkg = await deck([{ paragraphs: [["a"]], noBody: true, shapes: [GROUP] }]);
+    const group = await shapeNamed(pkg, "Gruppe 50");
+    const inner = children(group, P_NS, "sp")[0];
+    expect(inner, "the fixture stopped putting a shape inside the group").toBeDefined();
+    await writeShapeTags(pkg, SLIDE, inner as Element, OURS);
+
+    expect(await readShapeTags(pkg, SLIDE)).toEqual([
+      { element: "hvid-kasse-2x1-vertikale", catalogue: "2026-09-10", shapeId: "51" },
+    ]);
+    expect((await usedInDeck(pkg)).map((u) => [u.element, u.slides, u.shapes])).toEqual([
+      ["hvid-kasse-2x1-vertikale", [1], 1],
+    ]);
+  });
+
+  it("is read from a group inside a group, which is two gestures and no rarer", async () => {
+    const pkg = await deck([{ paragraphs: [["a"]], noBody: true, shapes: [GROUP] }]);
+    const outer = await shapeNamed(pkg, "Gruppe 50");
+    const inner = children(outer, P_NS, "sp")[0] as Element;
+    // Wrap the inner shape in a second group of the user's own, in place.
+    const doc = outer.ownerDocument;
+    const nested = doc.createElementNS(P_NS, "p:grpSp");
+    const nv = doc.createElementNS(P_NS, "p:nvGrpSpPr");
+    const cNvPr = doc.createElementNS(P_NS, "p:cNvPr");
+    cNvPr.setAttribute("id", "52");
+    cNvPr.setAttribute("name", "Gruppe i gruppen");
+    nv.appendChild(cNvPr);
+    nv.appendChild(doc.createElementNS(P_NS, "p:cNvGrpSpPr"));
+    nv.appendChild(doc.createElementNS(P_NS, "p:nvPr"));
+    nested.appendChild(nv);
+    nested.appendChild(doc.createElementNS(P_NS, "p:grpSpPr"));
+    outer.replaceChild(nested, inner);
+    nested.appendChild(inner);
+    await writeShapeTags(pkg, SLIDE, inner, OURS);
+
+    expect((await readShapeTags(pkg, SLIDE)).map((t) => t.shapeId)).toEqual(["51"]);
+  });
+
+  it("counts a tagged group once, rather than once per shape inside it", async () => {
+    /**
+     * The other direction, and the reason the walk stops at a tagged shape. A
+     * grouped insert puts the tag on the GROUP, and the group IS the element:
+     * a sweep that carried on into it would report one insert as several uses
+     * and offer to remove an element that is already gone once it is gone.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]], noBody: true, shapes: [GROUP] }]);
+    const group = await shapeNamed(pkg, "Gruppe 50");
+    await writeShapeTags(pkg, SLIDE, group, OURS);
+    const inner = children(group, P_NS, "sp")[0] as Element;
+    // The insert never does this; a hand edit could, and the answer must still
+    // be the group, because that is what a removal takes off.
+    await writeShapeTags(pkg, SLIDE, inner, OURS);
+
+    expect((await readShapeTags(pkg, SLIDE)).map((t) => t.shapeId)).toEqual(["50"]);
+  });
+});
