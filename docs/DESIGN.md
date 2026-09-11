@@ -308,9 +308,12 @@ the XML manifest is submitted and the listing is free.
 
 Covered by the design or the release plan: a stable GUID and a version bump per
 submission; an HTTPS-only origin, no localhost, no `AppDomains` because nothing
-navigates the pane; `ReadWriteDocument` only; no sign-in, no network calls, no
-data collection; the support and privacy pages on the site, the privacy page
-naming the browser storage (favourites, pane state, the first-run flag) and
+navigates the pane; `ReadWriteDocument` only; no sign-in and no data collection;
+**requests only to the add-in's own origin** — the pane fetches its catalogue
+from the site it is served from, which is why `SECURITY.md` says "it sends
+nothing anywhere" rather than "no network calls"; the support and privacy pages
+on the site, the privacy page naming the browser storage (the gear's settings,
+favourites, the last six inserted, and which categories were left open) and
 that nothing leaves the machine; Microsoft's standard EULA; the publisher
 StruktureretSundFornuft as a company; first-run guidance; keyboard, focus rings,
 live region, high contrast, 320 px; the runtime floor check with a plain message
@@ -318,6 +321,14 @@ instead of a `<Requirements>` element; Office.js from the official CDN; the
 store logo 300×300, at least one screenshot 1366×768 (the docked 512 px view
 serves), descriptions, testing notes and a validators' test deck; one measured
 round on web, Windows and Mac, and iPad as section 9 says.
+
+**Not checked by anyone yet: the listing NAME.** Section 12 was read against the
+certification policies' section 1120 and the submission form; nothing here has
+been read against the naming policy. The sibling SSF Merge is held on exactly
+that question — whether policy 1100.7 permits its name — and "SSF Slide
+Elements" is the same publisher and the same shape of name, so the answer there
+decides the answer here. It is the owner's to settle before a submission, not a
+build task.
 
 ## 13. Open questions for the host
 
@@ -383,7 +394,24 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   dropped notes, measured again afterwards on the same host.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
-  Both are facts about a minute rather than about the host.
+  Both are facts about a minute rather than about the host. Worse again on
+  2026-09-11, and worth the number: a 65 KB deck **exceeded the 180-second
+  budget** on a browser session that had been open for hours, and answered in
+  **2.1 seconds** on the same deck immediately after a page reload. An insert
+  refused for that reason left the deck untouched and said so, which is the
+  behaviour section 6 asks for — but the first thing to try when a read is slow
+  is a reload, not a larger budget.
+- **The tags an insert writes SURVIVE `insertSlidesFromBase64`, and they are
+  what "Used in this deck" and "Remove from N slides" will be read from.**
+  Measured on the web on 2026-09-11 by reading the throwaway deck back out of
+  PowerPoint with `getFileAsync` after a session of inserts: seven
+  `SSF_SLIDE_ELEMENT` tag parts, each paired with its
+  `SSF_SLIDE_ELEMENTS_CATALOGUE` version, referenced from the shapes through
+  `<p:custDataLst>` on four different slides with every relationship intact.
+  Nothing in the two features above therefore rests on an unmeasured host
+  capability. The same read found **think-cell's own `THINKCELLSHAPEDONOTDELETE`
+  tags sharing `ppt/tags/` with ours**, numbered around them — which is the
+  case `nextTagNumber` exists for, met in the wild rather than in a fixture.
 - **The deck's slide count lags an insert by up to about three seconds.**
   Measured on the web on 2026-09-11, polling `slides.getCount()` every 300 ms
   through a real insert: 2.8 seconds at the old value, then the new one. One

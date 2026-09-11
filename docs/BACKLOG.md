@@ -28,7 +28,7 @@ gear, the footer with the measured delta, Undo, Again, the keyboard, the live
 region, high contrast, and the pane reopening where you left it. Still to come,
 all of it from `docs/DESIGN.md` sections 4, 6 and 8: the preview card that
 opens after a third of a second of hover and docks beside the list at 512 px;
-**Used in this deck**, read from the tags the insert writes; **Remove from N
+**Used in this deck**, read from the tags the insert writes (measured on 2026-09-11: they survive the insert, see `docs/DESIGN.md` section 15); **Remove from N
 slides** for a stamp; the three first-run coach marks; right-click for the other
 insert target on one insert; category chips with counts while searching, and
 "Did you mean …" for a query with no hits.
