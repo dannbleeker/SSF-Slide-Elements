@@ -163,8 +163,20 @@ const isMedia = (part: string): boolean => part.startsWith("ppt/media/");
  * `freeName` extends the destination's `image` sequence, so inserting the same
  * marker twice wrote `image3.emf` and `image4.emf` — byte for byte the same 29
  * KB picture, twice. Measured on the validators' deck: four inserts of
- * `markeringer-1` left four identical copies and cost 11.6 KB each. A user who
- * stamps thirty slides carries thirty.
+ * `markeringer-1` left four identical copies and cost 11.6 KB each, and 1.9 KB
+ * each once they are shared.
+ *
+ * **What that buys, at the right scope.** Not the size of the user's file:
+ * PowerPoint merges identical pictures when it saves, measured on Windows on
+ * 2026-09-11 — four copies in, one out (`docs/DESIGN.md` section 15). What it
+ * buys is the size of the package this add-in builds, base64s, hands to
+ * `insertSlidesFromBase64` and reads back, ON EVERY INSERT. That package grows
+ * with each insert of the same element, and it crosses the slowest boundary in
+ * the product twice; the picture is the largest thing in it.
+ *
+ * The same measurement says the name itself is ours only until the host
+ * rewrites the file: `ssf-93397c1904353bcf-29552.emf` opened with no repair
+ * prompt and came back saved as `image1.emf`.
  *
  * Derived from the CONTENT rather than found by searching the package, and that
  * is the whole point: a search means decompressing every picture in the user's

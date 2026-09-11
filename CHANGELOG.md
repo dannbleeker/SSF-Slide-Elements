@@ -40,16 +40,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   reordered between asking what the deck uses and pressing Remove, the pane
   worked from the older list. It now asks the deck it is about to change.
 
-### Changed — an element with a picture in it stops making your deck bigger
+### Changed — inserting a marker over and over stays cheap
 
 - **Every insert of an element that carries a picture used to put another copy
-  of that picture in your presentation.** Stamp thirty slides with the same
-  marker and the file carried thirty identical copies of the same image. It now
-  carries one: the second insert finds the picture already there and points at
-  it, which is what PowerPoint does with its own.
-- Measured on the test deck: the second and later inserts of a marker cost
-  **1.9 KB instead of 11.6 KB**, and inserting it four times leaves one copy of
-  its image rather than four.
+  of that picture into the presentation the add-in is working on.** It now uses
+  the one that is already there. On the test deck the second and later inserts
+  of a marker cost **1.9 KB instead of 11.6 KB** of the package that has to be
+  handed to PowerPoint and back on every single insert — which is the slowest
+  part of an insert, so a long session of stamping stays as quick as the first
+  one.
+- **Your saved file was never carrying those copies:** PowerPoint merges
+  identical pictures when it saves, and we measured it doing so — four copies in,
+  one out. This is about the work per insert, not about the size of your file.
 - A chart or an embedded workbook is still copied per insert, deliberately —
   two charts sharing one workbook would mean editing one edits both.
 
