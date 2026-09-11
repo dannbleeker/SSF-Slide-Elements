@@ -148,6 +148,19 @@ export function carriedTypes(index: Index, size: string): Record<string, string>
   return index.sizes[size]?.carried ?? {};
 }
 
+/**
+ * The library theme's colour map for one size, which the "As in the library"
+ * setting pins an element's scheme colours to (`docs/DESIGN.md` section 7).
+ *
+ * Empty for a size the index does not carry, and an empty map pins nothing:
+ * the element keeps its scheme colours and follows the destination's theme,
+ * which is the other setting. A missing map must degrade to the harmless
+ * position, never to a colour invented here.
+ */
+export function themeColours(index: Index, size: string): Record<string, string> {
+  return index.sizes[size]?.theme ?? {};
+}
+
 /** One element's markup and everything it needs, fetched and cached. */
 export class Store {
   private readonly elements = new Map<string, Promise<Markup>>();

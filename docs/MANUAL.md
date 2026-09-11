@@ -65,10 +65,19 @@ fetched only when you insert it.
   see only that section, tap it again to see them all;
 - a line of **tags**, most used first. Picking one narrows the list, and a
   picked tag moves to the front so it stays visible;
-- the **gear**, beside the search, holding the two settings: whether an element
-  lands **onto this slide** or **as a new slide** after it, and whether its
-  shapes arrive **as one group** or **loose**. The line at the bottom of the
-  pane always says what those are set to, and opens the gear when clicked;
+- the **gear**, beside the search, holding three settings: whether an element
+  lands **onto this slide** or **as a new slide** after it, whether its
+  shapes arrive **as one group** or **loose**, and whether its colours follow
+  **this deck's theme** or come out **as in the library**. The line at the
+  bottom of the pane always says what those are set to, and opens the gear when
+  clicked;
+- **colours, in a little more detail.** Left alone — the setting you start on —
+  an element takes the theme of the deck you put it in, so it comes out in your
+  own colours and follows you if you change the deck's design later. Switch to
+  **as in the library** and every colour is fixed to the value it has in the
+  library deck, in that element and in any chart it brings with it, and it stays
+  that colour wherever the slide ends up. Colours the library states outright
+  are the same either way;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag

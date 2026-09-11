@@ -32,9 +32,19 @@ export interface Settings {
   target: "onto" | "new";
   /** Multi-shape elements land as one group, or loose. */
   group: boolean;
+  /**
+   * `deck`: theme-referenced colours follow the deck the element lands in, so
+   * an element takes the customer's blue. `library`: every one of them is
+   * pinned to the value the library's own theme gave it.
+   *
+   * `deck` is the default because it is what most people want most of the time
+   * — an element that looks like the deck it is in — and because it is what
+   * happens by itself.
+   */
+  colours: "deck" | "library";
 }
 
-export const DEFAULT_SETTINGS: Settings = { target: "onto", group: true };
+export const DEFAULT_SETTINGS: Settings = { target: "onto", group: true, colours: "deck" };
 
 /** The catalogue as the pane holds it: one size's worth. */
 export interface Library {
@@ -323,7 +333,11 @@ export function footerOf(state: PaneState): Footer {
 export function settingsLine(settings: Settings): string {
   const where = settings.target === "onto" ? "onto this slide" : "as a new slide";
   const how = settings.group ? "as one group" : "loose";
-  return `Inserting ${where}, ${how}.`;
+  // The colours only get a clause when they are NOT the default, so the line
+  // stays short for the setting almost everybody is on and says the surprising
+  // thing out loud for the one they are not.
+  const colours = settings.colours === "library" ? ", in the library's own colours" : "";
+  return `Inserting ${where}, ${how}${colours}.`;
 }
 
 /** Which slide an insert would land on, as the pane says it. */

@@ -327,6 +327,33 @@ exception for width.
   follow the destination deck, or "As in the library", where every colour is
   pinned to the value it had in the library deck. Explicit colours stay either
   way.
+
+  Built 2026-09-11, and four things about it were decided in the building:
+
+  - **The library's colours come from the harvest, one map per SIZE.** A
+    `<a:schemeClr val="accent1"/>` means nothing without a theme, and the theme
+    part is in the library deck, which the pane never sees — so the harvest
+    resolves the twelve slots and the four names the master's `<p:clrMap>`
+    redirects, and the catalogue carries the answer. A deck whose elements are
+    spread over two themes is REFUSED rather than resolved: one map cannot be
+    right for both halves, and a wrong map would pin every element to colours
+    no slide in the library ever had, invisibly.
+  - **The two library decks are not on the same theme.** Measured 2026-09-11:
+    the 16:9 deck is on the stock Office palette, the 4:3 deck on the owner's
+    "07 Blå". So the same element pinned in the two sizes comes out in
+    different colours. That is a fact about the decks, not about the switch,
+    and the only place it could be fixed is the decks.
+  - **A carried chart is pinned too.** The library's one chart states 17 scheme
+    colours of its own, and a switch that rewrote an element's shapes but not
+    the chart inside it would leave the two disagreeing about which deck they
+    belong to.
+  - **`phClr` is never pinned, and neither is a name the theme has no colour
+    for.** The placeholder colour is a style's argument rather than a theme
+    slot, so there is nothing here to resolve it to; an unknown name is left as
+    a scheme colour and goes on following the destination. Better a colour that
+    moves than a colour invented by this code. A colour transform —
+    `<a:lumMod>`, `<a:alpha>` — is carried across onto the pinned value, since
+    a pin that kept the colour and lost the shade would be wrong twice.
 - **Report a problem**: opens the support page in the browser with the build
   stamp, host and platform prefilled, so a report is usable.
 - **Browse the catalogue on the site**: opens the catalogue page.
@@ -683,3 +710,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | A tile draws the element's landing as a diagram rather than a picture, because the PDF prints section 3 cuts previews from are not committed yet | decided in the build, 2026-09-10 |
 | The pane fetches its catalogue from its own origin, so SECURITY.md's "no network calls" became the stronger "sends nothing anywhere": one named file, GET only, no absolute URL, no request options | decided in the build, 2026-09-10 |
 | The probe tells a second run from a first by a marker in the document settings, written before the slide it leaves so the user's Ctrl+Z still lands on the insert; the slide alone could not, because Ctrl+Z is what removes it (web round, 2026-09-10) | decided in the build, 2026-09-10 |
+| The colour switch resolves the library theme at HARVEST time, one map per size, and refuses a deck with two themes — rather than carrying the theme part into the user's package, which would make every insert add a theme the user did not ask for | decided in the build, 2026-09-11 |

@@ -27,6 +27,12 @@ const REL = 'xmlns="http://schemas.openxmlformats.org/package/2006/relationships
 export interface SlideSpec {
   /** Paragraphs, each given as the runs it is split into. Split a placeholder to reproduce the real thing. */
   paragraphs: string[][];
+  /**
+   * Which master this slide sits on: the deck's only one, or the second that
+   * `ThemeSpec.second` adds. A deck where the two are both used is a deck with
+   * two themes in it.
+   */
+  theme?: 1 | 2;
   /** true for stock notes text, or the text itself — a placeholder in it is the point. */
   notes?: boolean | string;
   /**
@@ -555,9 +561,63 @@ const REL_TYPE = {
   diagramDrawing: "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing",
 } as const;
 
+/**
+ * What the deck's THEME says, for the tests that are about colour.
+ *
+ * The fixture's theme is otherwise `<a:themeElements/>` — enough to be a part,
+ * and empty, which is its own useful case: a deck that resolves no scheme
+ * colour at all. These options fill it in.
+ */
+export interface ThemeSpec {
+  /**
+   * The colour each slot states, by slot name (`dk1`, `accent1`, …).
+   *
+   * A plain six-digit value writes `<a:srgbClr>`. A value spelled
+   * `sys:windowText:000000` writes `<a:sysClr val="windowText"
+   * lastClr="000000"/>`, which is what PowerPoint writes for `dk1` and `lt1` on
+   * the stock Office theme and what the committed 16:9 library deck carries —
+   * a reader that only understands `srgbClr` loses black and white.
+   */
+  scheme?: Record<string, string>;
+  /**
+   * The master's `<p:clrMap>`, as attribute pairs, merged over the light
+   * default. `{ bg1: "dk1", tx1: "lt1" }` is a dark master, where `tx1` is the
+   * LIGHT colour — the swap a resolver that assumes `tx1` means `dk1` gets
+   * exactly backwards.
+   */
+  clrMap?: Record<string, string>;
+  /**
+   * A second master, layout and theme, for the slides that name `theme: 2`.
+   *
+   * One deck, two themes: what a harvest of a library deck must refuse rather
+   * than resolve, because the catalogue carries one colour map per size.
+   */
+  second?: { scheme?: Record<string, string> };
+}
+
+/** The `<a:clrScheme>` a theme part states, or an empty `<a:themeElements/>`. */
+function themeXml(scheme: Record<string, string> | undefined, name: string): string {
+  const elements =
+    scheme === undefined
+      ? "<a:themeElements/>"
+      : `<a:themeElements><a:clrScheme name="${name}">` +
+        Object.entries(scheme)
+          .map(([slot, value]) => {
+            const system = value.startsWith("sys:") ? value.split(":") : undefined;
+            const colour = system
+              ? `<a:sysClr val="${system[1]}" lastClr="${system[2]}"/>`
+              : `<a:srgbClr val="${value}"/>`;
+            return `<a:${slot}>${colour}</a:${slot}>`;
+          })
+          .join("") +
+        `</a:clrScheme></a:themeElements>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme ${A} name="${name}">${elements}</a:theme>`;
+}
+
 /** Build a deck whose slides are exactly the specs given. */
-export async function makeDeck(slides: SlideSpec[]): Promise<Uint8Array> {
+export async function makeDeck(slides: SlideSpec[], theme: ThemeSpec = {}): Promise<Uint8Array> {
   const zip = new JSZip();
+  const second = theme.second !== undefined;
 
   const overrides = slides
     .map((_, i) => `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="${TYPE.slide}"/>`)
@@ -608,6 +668,11 @@ export async function makeDeck(slides: SlideSpec[]): Promise<Uint8Array> {
       `<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>` +
       `<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>` +
       `<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>` +
+      (second
+        ? `<Override PartName="/ppt/slideMasters/slideMaster2.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>` +
+          `<Override PartName="/ppt/slideLayouts/slideLayout2.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>` +
+          `<Override PartName="/ppt/theme/theme2.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`
+        : "") +
       `${overrides}</Types>`,
   );
 
@@ -621,7 +686,9 @@ export async function makeDeck(slides: SlideSpec[]): Promise<Uint8Array> {
   zip.file(
     "ppt/presentation.xml",
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:presentation ${P} ${A} ${R}>` +
-      `<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>` +
+      `<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/>` +
+      (second ? `<p:sldMasterId id="2147483650" r:id="rId100"/>` : "") +
+      `</p:sldMasterIdLst>` +
       `<p:sldIdLst>${sldIds}</p:sldIdLst>` +
       `<p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`,
   );
@@ -633,39 +700,56 @@ export async function makeDeck(slides: SlideSpec[]): Promise<Uint8Array> {
     "ppt/_rels/presentation.xml.rels",
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
       `<Relationship Id="rId1" Type="${REL_TYPE.master}" Target="slideMasters/slideMaster1.xml"/>` +
+      (second ? `<Relationship Id="rId100" Type="${REL_TYPE.master}" Target="slideMasters/slideMaster2.xml"/>` : "") +
       `${presRels}</Relationships>`,
   );
 
-  zip.file(
-    "ppt/slideMasters/slideMaster1.xml",
+  const clrMap = {
+    bg1: "lt1",
+    tx1: "dk1",
+    bg2: "lt2",
+    tx2: "dk2",
+    accent1: "accent1",
+    accent2: "accent2",
+    accent3: "accent3",
+    accent4: "accent4",
+    accent5: "accent5",
+    accent6: "accent6",
+    hlink: "hlink",
+    folHlink: "folHlink",
+    ...(theme.clrMap ?? {}),
+  };
+  const master = (n: number): string =>
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldMaster ${P} ${A} ${R}>` +
-      `<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>` +
-      `<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>` +
-      `<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`,
-  );
-  zip.file(
-    "ppt/slideMasters/_rels/slideMaster1.xml.rels",
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
-      `<Relationship Id="rId1" Type="${REL_TYPE.layout}" Target="../slideLayouts/slideLayout1.xml"/>` +
-      `<Relationship Id="rId2" Type="${REL_TYPE.theme}" Target="../theme/theme1.xml"/></Relationships>`,
-  );
-
-  zip.file(
-    "ppt/slideLayouts/slideLayout1.xml",
+    `<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>` +
+    `<p:clrMap ${Object.entries(clrMap)
+      .map(([k, v]) => `${k}="${v}"`)
+      .join(" ")}/>` +
+    `<p:sldLayoutIdLst><p:sldLayoutId id="${2147483648 + n}" r:id="rId1"/></p:sldLayoutIdLst></p:sldMaster>`;
+  const layout =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:sldLayout ${P} ${A} ${R} type="blank">` +
-      `<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>` +
-      `<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`,
-  );
-  zip.file(
-    "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
-      `<Relationship Id="rId1" Type="${REL_TYPE.master}" Target="../slideMasters/slideMaster1.xml"/></Relationships>`,
-  );
+    `<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>` +
+    `<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
 
-  zip.file(
-    "ppt/theme/theme1.xml",
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme ${A} name="Test"><a:themeElements/></a:theme>`,
-  );
+  for (const n of second ? [1, 2] : [1]) {
+    zip.file(`ppt/slideMasters/slideMaster${n}.xml`, master(n));
+    zip.file(
+      `ppt/slideMasters/_rels/slideMaster${n}.xml.rels`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
+        `<Relationship Id="rId1" Type="${REL_TYPE.layout}" Target="../slideLayouts/slideLayout${n}.xml"/>` +
+        `<Relationship Id="rId2" Type="${REL_TYPE.theme}" Target="../theme/theme${n}.xml"/></Relationships>`,
+    );
+    zip.file(`ppt/slideLayouts/slideLayout${n}.xml`, layout);
+    zip.file(
+      `ppt/slideLayouts/_rels/slideLayout${n}.xml.rels`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
+        `<Relationship Id="rId1" Type="${REL_TYPE.master}" Target="../slideMasters/slideMaster${n}.xml"/></Relationships>`,
+    );
+    zip.file(
+      `ppt/theme/theme${n}.xml`,
+      themeXml(n === 1 ? theme.scheme : theme.second?.scheme, n === 1 ? "Test" : "Test two"),
+    );
+  }
 
   for (const [i, spec] of slides.entries()) {
     const n = i + 1;
@@ -707,7 +791,7 @@ export async function makeDeck(slides: SlideSpec[]): Promise<Uint8Array> {
     zip.file(
       `ppt/slides/_rels/slide${n}.xml.rels`,
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL}>` +
-        `<Relationship Id="rId1" Type="${REL_TYPE.layout}" Target="../slideLayouts/slideLayout1.xml"/>` +
+        `<Relationship Id="rId1" Type="${REL_TYPE.layout}" Target="../slideLayouts/slideLayout${spec.theme ?? 1}.xml"/>` +
         `${notesRel}${chartRel}${diagramRels}${modernRels}${iconRels}${shapeTagRels}</Relationships>`,
     );
     if (spec.chart) {

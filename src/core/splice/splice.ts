@@ -32,6 +32,7 @@ import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, writeShapeTags } from "../pptx/tags.js";
 import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, element, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
+import { pinColoursInXml, pinSchemeColours } from "./colours.js";
 import { authored, moveFrom, place, type Box, type Landing, type Rect } from "./landing.js";
 import {
   applyMove,
@@ -68,6 +69,15 @@ export interface SpliceOptions {
   target: "onto" | "new";
   /** Section 7 again: multi-shape elements land as one group, or loose. */
   group: boolean;
+  /**
+   * Section 7 once more: `deck` leaves every scheme colour alone, so the
+   * element takes the destination's theme, and `library` pins each of them to
+   * the value the library's theme gave it.
+   *
+   * `deck` is the default and costs nothing — it is what happens when this pass
+   * does not run at all.
+   */
+  colours: "deck" | "library";
 }
 
 export interface SpliceRequest {
@@ -77,7 +87,13 @@ export interface SpliceRequest {
   slide: number;
   element: SpliceElement;
   options: SpliceOptions;
-  catalogue: { version: string; carried: Record<string, string> };
+  /**
+   * What the catalogue knows that this element's own entry does not: the
+   * version stamped into every inserted shape's tag, the content type of every
+   * carried part, and the library theme's colour map the "As in the library"
+   * setting pins to.
+   */
+  catalogue: { version: string; carried: Record<string, string>; theme?: Record<string, string> };
   store: PartStore;
   /** The selected shape's rectangle, when the host could name one. */
   selection?: Rect;
@@ -104,6 +120,12 @@ export interface SpliceReport {
   grouped: boolean;
   /** Carried parts copied into the package. */
   parts: number;
+  /**
+   * Scheme colours pinned to the library's own values, across the element's
+   * markup and every XML part it carried. Zero under "This deck's theme", and
+   * zero for the five library elements that state no scheme colour at all.
+   */
+  pinned: number;
   /** Empty content placeholders taken off the rebuilt slide. */
   placeholders: number;
 }
@@ -280,6 +302,15 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   // layout's placeholder is and the landing computed below is thrown away.
   unplaceholder(tops);
 
+  // `docs/DESIGN.md` section 7's colour switch, and it is a rewrite of the
+  // element's OWN markup only — the destination slide is never touched, so a
+  // deck whose theme the user likes keeps it everywhere except on what they
+  // just inserted. Done here, before the shapes are moved or grouped, so
+  // everything after this works on markup that already says what it means.
+  const theme = request.catalogue.theme ?? {};
+  let pinned = 0;
+  if (request.options.colours === "library") pinned += pinSchemeColours(fragment, theme).pinned;
+
   let nextId = highestShapeId(spTree) + 1;
   nextId = renumber(fragment, nextId);
 
@@ -289,6 +320,15 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
     rels: request.element.markup.rels,
     types: request.catalogue.carried,
     store: request.store,
+    ...(request.options.colours === "library"
+      ? {
+          transform: (_path: string, xml: string) => {
+            const done = pinColoursInXml(xml, theme);
+            pinned += done.result.pinned;
+            return done.xml;
+          },
+        }
+      : {}),
   });
   repoint(fragment, carried.ids);
 
@@ -353,6 +393,7 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
     shapes: added.length,
     grouped: wanted,
     parts: carried.parts.size,
+    pinned,
     placeholders,
   };
 }

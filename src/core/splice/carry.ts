@@ -52,6 +52,20 @@ export interface CarryRequest {
   /** Content type by library path, from the catalogue's `carried` map. */
   types: Record<string, string>;
   store: PartStore;
+  /**
+   * A last pass over a copied XML part's text, before it is written.
+   *
+   * One caller and one purpose: pinning the scheme colours inside a carried
+   * chart when the user asked for the library's own colours
+   * (`docs/DESIGN.md` section 7). The library's one chart states 17 of them,
+   * and a switch that rewrote the shapes but not the chart they sit beside
+   * would leave the two disagreeing.
+   *
+   * Given the LIBRARY path, so a caller can tell one part from another, and
+   * never applied to a `.rels` part — those carry targets, not colours, and
+   * this runs before they are rewritten.
+   */
+  transform?: (path: string, xml: string) => string;
 }
 
 export interface Carried {
@@ -143,8 +157,10 @@ async function copyPart(request: CarryRequest, carried: Carried, part: string): 
   // Reserved before the recursion below, so a part that reaches itself through
   // its own relationships cannot loop.
   carried.parts.set(part, name);
-  if (typeof bytes === "string") request.pkg.setText(name, bytes);
-  else request.pkg.setBytes(name, bytes);
+  if (typeof bytes === "string") {
+    const text = request.transform && part.endsWith(".xml") ? request.transform(part, bytes) : bytes;
+    request.pkg.setText(name, text);
+  } else request.pkg.setBytes(name, bytes);
 
   const type = request.types[part];
   if (type !== undefined) await request.pkg.addContentTypeOverride(`/${name}`, type);

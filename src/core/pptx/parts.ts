@@ -38,6 +38,16 @@ export const REL_TYPE = {
    */
   slideLayout: `${REL}/slideLayout`,
   slideMaster: `${REL}/slideMaster`,
+  /**
+   * The theme a master points at: where the twelve colours a `<a:schemeClr>`
+   * names actually live.
+   *
+   * READ, like the two above, and only out of the LIBRARY deck — the harvest
+   * takes the colour map from it so the pane can pin an element's colours to
+   * what the library gave them (`docs/DESIGN.md` section 7). The destination
+   * deck's theme is the destination's business and is never touched.
+   */
+  theme: `${REL}/theme`,
   tags: `${REL}/tags`,
   image: `${REL}/image`,
   chart: `${REL}/chart`,

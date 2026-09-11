@@ -244,7 +244,17 @@ describe("what the pane says about the deck", () => {
 
   it("shows the settings without opening the gear", () => {
     expect(settingsLine(DEFAULT_SETTINGS)).toBe("Inserting onto this slide, as one group.");
-    expect(settingsLine({ target: "new", group: false })).toBe("Inserting as a new slide, loose.");
+    expect(settingsLine({ target: "new", group: false, colours: "deck" })).toBe("Inserting as a new slide, loose.");
+  });
+
+  it("says the colours out loud only when they are NOT the deck's own", () => {
+    // The default is the quiet one, because it is what almost everybody is on
+    // and what the pane would be doing anyway. The other is a surprise worth a
+    // clause: an element that ignores the deck it is in.
+    expect(settingsLine(DEFAULT_SETTINGS)).not.toContain("colours");
+    expect(settingsLine({ ...DEFAULT_SETTINGS, colours: "library" })).toBe(
+      "Inserting onto this slide, as one group, in the library's own colours.",
+    );
   });
 });
 
@@ -254,7 +264,9 @@ describe("where the preview card says an element will land", () => {
     expect(landingLine(whole, DEFAULT_SETTINGS)).toBe(
       "Lands below your slide's own title, scaled to fit the room under it.",
     );
-    expect(landingLine(whole, { target: "new", group: true })).toBe("Lands as a new slide after this one.");
+    expect(landingLine(whole, { target: "new", group: true, colours: "deck" })).toBe(
+      "Lands as a new slide after this one.",
+    );
   });
 
   it("IGNORES the gear for a part, because the engine does", () => {
@@ -262,7 +274,7 @@ describe("where the preview card says an element will land", () => {
     // on. Saying "as a new slide" over a stamp would be the pane promising
     // something the insert does not do.
     const stamp = element({ id: "stamp", kind: "part", landing: "top-right" });
-    const asNew = landingLine(stamp, { target: "new", group: true });
+    const asNew = landingLine(stamp, { target: "new", group: true, colours: "deck" });
     expect(asNew).toBe(landingLine(stamp, DEFAULT_SETTINGS));
     expect(asNew).not.toContain("new slide");
   });
