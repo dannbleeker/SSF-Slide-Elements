@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the other insert target, without changing the setting
+
+- **Right-click a tile** — or long-press it on a touch screen — and it offers to
+  insert the other way for that one insert: as a new slide when you are set to
+  land on the slide you are on, and the other way round. Your setting stays as
+  it was.
+- Stamps and markers offer nothing, because they always land on the slide you
+  are on whatever the setting says.
+
 ### Added — what this deck already uses
 
 - **The pane can tell you which library elements are already in the open deck**,

@@ -52,6 +52,34 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
 }));
 
+/**
+ * The splice, stubbed to record what it was asked for.
+ *
+ * The engine is tested against real decks elsewhere; what this file needs is
+ * the one thing only the wiring knows — which insert TARGET the pane passed for
+ * a given click. The stub answers a report, and the pane then stops of its own
+ * accord because `currentSlide` names no slide, which is a path this file
+ * already covers.
+ */
+const spliced: { target: string }[] = [];
+vi.mock("../src/core/splice/splice.js", () => ({
+  splice: (request: { options: { target: string } }) => {
+    spliced.push({ target: request.options.target });
+    return Promise.resolve({
+      base64: "",
+      deckSlides: 3,
+      slidePath: "ppt/slides/slide1.xml",
+      landed: { x: 0, y: 0, cx: 1, cy: 1 },
+      shapes: 1,
+      grouped: false,
+      parts: 0,
+      placeholders: 0,
+      pinned: 0,
+    });
+  },
+  onlySlide: () => Promise.resolve({ base64: "", path: "ppt/slides/slide1.xml" }),
+}));
+
 /** Every URL the pane asked the host to open, and whether the host obliged. */
 const opened: string[] = [];
 let externalOpens = true;
@@ -62,6 +90,17 @@ vi.mock("../src/pane/catalogue.js", async () => {
   const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
   return {
     ...actual,
+    // The real store fetches an element's markup from the site, and there is no
+    // site here. Everything it would have fetched is empty: what these cases
+    // are about is which options the pane hands the splice, not what it splices.
+    Store: class {
+      markup(): Promise<{ xml: string; rels: []; parts: [] }> {
+        return Promise.resolve({ xml: "", rels: [], parts: [] });
+      }
+      part(): Promise<undefined> {
+        return Promise.resolve(undefined);
+      }
+    },
     loadIndex: () =>
       indexMode === "hang"
         ? new Promise(() => undefined)
@@ -140,6 +179,7 @@ afterEach(() => {
   opened.length = 0;
   externalOpens = true;
   deckBase64 = undefined;
+  spliced.length = 0;
   window.localStorage.clear();
 });
 
@@ -405,5 +445,94 @@ describe("the stub keeps up with the module it stands in for", () => {
     for (const name of exported) {
       expect(Object.keys(stub), `the stub has no ${name}`).toContain(name);
     }
+  });
+});
+
+describe("the other insert target, on right-click", () => {
+  async function openWithTiles(): Promise<HTMLElement> {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    // The library's one category starts collapsed; open it so there is a tile.
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    return pane;
+  }
+
+  const rightClick = (node: HTMLElement): boolean =>
+    !node.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+
+  it("opens on a tile, and takes the browser's own menu with it", async () => {
+    const pane = await openWithTiles();
+    const tile = pane.querySelector('[data-action="tile"]') as HTMLElement;
+    // The event is CANCELLED — a browser menu over our own would be two menus.
+    expect(rightClick(tile)).toBe(true);
+    expect(pane.querySelector('[data-action="other-target"]')?.textContent).toBe("Insert as a new slide");
+  });
+
+  it("leaves the browser's menu alone everywhere else, so paste still works", async () => {
+    const pane = await openWithTiles();
+    const search = pane.querySelector('[data-action="search"]') as HTMLElement;
+    expect(rightClick(search)).toBe(false);
+    expect(pane.querySelector('[data-action="other-target"]')).toBeNull();
+  });
+
+  it("closes on Escape, before the search is cleared", async () => {
+    // The Escape chain backs out of what was opened last. A menu that took the
+    // search with it would cost the user their query for a menu they opened by
+    // accident.
+    const pane = await openWithTiles();
+    const search = pane.querySelector('[data-action="search"]') as HTMLInputElement;
+    // A query the fixture's one element still matches, so there is a tile to
+    // right-click after the search narrows the list.
+    search.value = "box";
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    rightClick(pane.querySelector('[data-action="tile"]') as HTMLElement);
+    expect(pane.querySelector('[data-action="other-target"]')).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(pane.querySelector('[data-action="other-target"]')).toBeNull();
+    expect((pane.querySelector('[data-action="search"]') as HTMLInputElement).value).toBe("box");
+  });
+
+  it("closes when the next click lands anywhere else", async () => {
+    const pane = await openWithTiles();
+    rightClick(pane.querySelector('[data-action="tile"]') as HTMLElement);
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    expect(pane.querySelector('[data-action="other-target"]')).toBeNull();
+  });
+});
+
+describe("what the menu actually inserts", () => {
+  async function tileAndMenu(): Promise<HTMLElement> {
+    indexMode = "ok";
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    return pane;
+  }
+
+  /** Let the insert run as far as it can with no host to talk to. */
+  async function ran(): Promise<void> {
+    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+  }
+
+  it("uses the OTHER target for that one insert, and leaves the setting alone", async () => {
+    const pane = await tileAndMenu();
+    const tile = pane.querySelector('[data-action="tile"]') as HTMLElement;
+    tile.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    (pane.querySelector('[data-action="other-target"]') as HTMLElement).click();
+    await ran();
+    expect(spliced.map((s) => s.target)).toEqual(["new"]);
+    // The gear still says what it said: this was one insert, not a setting.
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    expect(pane.querySelector('[data-action="target"][data-value="onto"]')?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("uses the setting for an ordinary click on the same tile", async () => {
+    const pane = await tileAndMenu();
+    (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
+    await ran();
+    expect(spliced.map((s) => s.target)).toEqual(["onto"]);
   });
 });

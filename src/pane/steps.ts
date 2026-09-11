@@ -135,6 +135,15 @@ export interface PaneState {
   used?: DeckUsage[];
   /** True while that read is running. */
   reading?: boolean;
+  /**
+   * The tile whose right-click menu is open, by element id.
+   *
+   * An id rather than a position: the menu is drawn anchored to its own tile,
+   * so where the pointer was is the browser's business and never the pane's
+   * state. A state carrying coordinates could not be rendered by the shot
+   * audit, and a menu that outlived its tile would float over nothing.
+   */
+  menuFor?: string;
 }
 
 export const EMPTY: PaneState = {
@@ -343,6 +352,35 @@ export function footerOf(state: PaneState): Footer {
 }
 
 /** The gear's own line, so the settings are visible without opening it. */
+/**
+ * The insert target the gear is NOT set to.
+ *
+ * `docs/DESIGN.md` section 6: right-click a tile and the pane offers the other
+ * target for that one insert, without touching the setting. So there is exactly
+ * one other thing to offer, and this is it.
+ */
+export function otherTarget(settings: Settings): Settings["target"] {
+  return settings.target === "onto" ? "new" : "onto";
+}
+
+/**
+ * Whether right-clicking this element offers anything.
+ *
+ * Only a whole-slide element. A PART — a stamp, a marker, a flowchart shape —
+ * ignores the insert target entirely and always lands on the slide the user is
+ * on (section 5), so a menu offering it "as a new slide" would be the pane
+ * promising something the engine does not do. The preview card's landing line
+ * already says as much for the same reason.
+ */
+export function offersOtherTarget(element: Element): boolean {
+  return element.kind === "slide";
+}
+
+/** What that one menu item says, which is an action rather than a setting. */
+export function otherTargetLabel(settings: Settings): string {
+  return otherTarget(settings) === "new" ? "Insert as a new slide" : "Insert onto this slide";
+}
+
 /** One element the deck already carries: the engine's answer, as the pane holds it. */
 export interface DeckUsage {
   /** The catalogue id out of the shape's tag. */

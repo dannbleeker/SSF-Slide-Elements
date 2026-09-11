@@ -36,6 +36,7 @@ open.
 | Splice — an element into the slide you are on, and the package self-check | done — proven over all 117 elements against the package integrity check |
 | The picker — browse by section, search, insert, Recent, favourites, Undo one deep | done |
 | Used in this deck — which library elements the open deck already holds, and where, read from the tags an insert writes | done |
+| Right-click a tile for the other insert target, for one insert | done |
 | The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |
 | Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad still unmeasured |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |

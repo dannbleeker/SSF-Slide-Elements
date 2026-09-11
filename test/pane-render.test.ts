@@ -548,3 +548,51 @@ describe("the first-run coach marks", () => {
     expect(root.querySelector(".coach")?.getAttribute("aria-label")).toBe("Getting started");
   });
 });
+
+describe("the tile's right-click menu", () => {
+  it("draws the other target, on the tile it belongs to", () => {
+    render(root, { ...browsing, menuFor: "one-box" }, "browse");
+    const tile = root.querySelector('.tile [data-action="other-target"]') as HTMLElement;
+    expect(tile).not.toBeNull();
+    expect(tile.textContent).toBe("Insert as a new slide");
+    expect(tile.dataset["id"]).toBe("one-box");
+    // Anchored to its own tile, so it cannot outlive the thing it belongs to.
+    expect(tile.closest(".tile")?.querySelector(".tile-name")?.textContent).toBe("One box");
+    // One menu, on one tile.
+    expect(root.querySelectorAll('[data-action="other-target"]').length).toBe(1);
+  });
+
+  it("follows the gear, so it always offers the one you are not on", () => {
+    const asNew = { ...browsing, menuFor: "one-box", settings: { ...browsing.settings, target: "new" as const } };
+    render(root, asNew, "browse");
+    expect(root.querySelector('[data-action="other-target"]')?.textContent).toBe("Insert onto this slide");
+  });
+
+  it("draws nothing on a part, because a part ignores the target", () => {
+    const stamps = { key: "stamps", name: "Stamps and labels" };
+    const withStamp: Library = {
+      ...LIBRARY,
+      categories: [...LIBRARY.categories, stamps],
+      elements: [
+        ...LIBRARY.elements,
+        element({ id: "approved", name: "Approved stamp", kind: "part", landing: "top-right", category: stamps }),
+      ],
+    };
+    render(root, { ...browsing, library: withStamp, menuFor: "approved", open: ["stamps"] }, "browse");
+    // The part's tile IS on screen — otherwise this would pass by drawing
+    // nothing at all, which is the vacuous version of the same assertion.
+    const tile = [...root.querySelectorAll(".tile")].find(
+      (t) => t.querySelector(".tile-name")?.textContent === "Approved stamp",
+    );
+    expect(tile, "the part's tile is not drawn, so this case proves nothing").toBeTruthy();
+    expect(root.querySelector('[data-action="other-target"]')).toBeNull();
+  });
+
+  it("is a menu to a screen reader, not a stray button", () => {
+    render(root, { ...browsing, menuFor: "one-box" }, "browse");
+    const menu = root.querySelector(".tile-menu") as HTMLElement;
+    expect(menu.getAttribute("role")).toBe("menu");
+    expect(menu.getAttribute("aria-label")).toBe("One box");
+    expect(menu.querySelector('[role="menuitem"]')).not.toBeNull();
+  });
+});

@@ -39,6 +39,8 @@ import {
   EMPTY,
   RECENT_DEPTH,
   elementOf,
+  offersOtherTarget,
+  otherTarget,
   remember,
   stepFor,
   toggle,
@@ -281,12 +283,22 @@ let followed = false;
 // Inserting.
 // ---------------------------------------------------------------------------
 
-async function insert(id: string): Promise<void> {
+/**
+ * Insert an element, optionally onto the target the gear is NOT set to.
+ *
+ * `once` is section 6's right-click: the other target for this one insert,
+ * without touching the setting. It is threaded through everything downstream
+ * that asks where the element went — the splice, whether the replaced slide is
+ * removed, what the footer says, and what Undo puts back — because those four
+ * have to agree, and the setting is no longer the answer for this call.
+ */
+async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   const library = state.library;
   const element = elementOf(library, id);
   if (!library || !element || !store || !index || state.busy === true) return;
+  const target = once ?? state.settings.target;
 
-  set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined });
+  set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
   try {
     const markup = await store.markup(element);
     const deck = await readDeck();
@@ -307,7 +319,7 @@ async function insert(id: string): Promise<void> {
         ...(element.category.key.toLowerCase().includes("mark") ? { wraps: true } : {}),
         markup: { xml: markup.xml, rels: markup.rels },
       },
-      options: state.settings,
+      options: { ...state.settings, target },
       catalogue: {
         version: library.version,
         carried: carriedTypes(index, library.size),
@@ -338,7 +350,7 @@ async function insert(id: string): Promise<void> {
     // `countReaching`. One read here would report a landed insert as a no-op.
     const inserted = await countReaching(before + 1);
     let removed: number | undefined;
-    if (state.settings.target === "onto" && mayRemove({ before, inserted })) {
+    if (target === "onto" && mayRemove({ before, inserted })) {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
@@ -347,7 +359,7 @@ async function insert(id: string): Promise<void> {
     }
 
     const outcome = outcomeOf({
-      target: state.settings.target,
+      target,
       slide: at + 1,
       before,
       inserted,
@@ -358,9 +370,9 @@ async function insert(id: string): Promise<void> {
     // the slide the user was on and took the original away, so it is that
     // slide; "as a new slide" put one after it. The same arithmetic `undoPlan`
     // does, from the other end.
-    const landedOn = state.settings.target === "new" ? at + 2 : at + 1;
+    const landedOn = target === "new" ? at + 2 : at + 1;
     undoable = outcome.ok
-      ? { target: state.settings.target, index: at, before: deck.base64, name: element.name, id: element.id, landedOn }
+      ? { target, index: at, before: deck.base64, name: element.name, id: element.id, landedOn }
       : undefined;
     state = {
       ...state,
@@ -537,8 +549,63 @@ async function readUsed(): Promise<void> {
   }
 }
 
+/**
+ * The right-click menu on a tile (`docs/DESIGN.md` section 6).
+ *
+ * Opened by the `contextmenu` event, which is the right mouse button AND the
+ * keyboard's own menu key or Shift+F10 — so this is not a mouse-only feature by
+ * accident. `preventDefault` only when a menu of ours actually opens: a user who
+ * right-clicks the search box should still get the browser's own menu, with
+ * paste in it.
+ */
+function onContextMenu(event: MouseEvent): void {
+  const found = actionOf(event.target);
+  const id = found?.el.dataset["id"];
+  const element = elementOf(state.library, id);
+  if (!found || found.action !== "tile" || !element || !offersOtherTarget(element) || state.busy === true) {
+    // A part ignores the insert target, so there is nothing to offer on one.
+    if (state.menuFor !== undefined) set({ menuFor: undefined });
+    return;
+  }
+  event.preventDefault();
+  set({ menuFor: element.id });
+}
+
+/**
+ * Long-press is the same menu, for touch (section 6).
+ *
+ * Pointer events rather than touch events: one code path for a finger and a
+ * pen, and `pointerType` is what tells them from a mouse — a mouse already has
+ * the right button and a press-and-hold on one would be a surprise. The press
+ * is abandoned as soon as the finger moves, because a hold that travels is a
+ * scroll, and a menu that opened mid-scroll would be under the finger when it
+ * lifted.
+ */
+const LONG_PRESS = 500;
+let pressing: ReturnType<typeof setTimeout> | undefined;
+
+function cancelPress(): void {
+  if (pressing !== undefined) clearTimeout(pressing);
+  pressing = undefined;
+}
+
+function onPointerDown(event: PointerEvent): void {
+  cancelPress();
+  if (event.pointerType === "mouse") return;
+  const found = actionOf(event.target);
+  const element = elementOf(state.library, found?.el.dataset["id"]);
+  if (!found || found.action !== "tile" || !element || !offersOtherTarget(element)) return;
+  pressing = setTimeout(() => {
+    pressing = undefined;
+    if (state.busy !== true) set({ menuFor: element.id });
+  }, LONG_PRESS);
+}
+
 function onClick(event: MouseEvent): void {
   const found = actionOf(event.target);
+  // Any click that is not ON the menu closes it, which is what every other
+  // menu on every other platform does.
+  if (state.menuFor !== undefined && found?.action !== "other-target") set({ menuFor: undefined });
   if (!found) return;
   const { action, el } = found;
   const id = el.dataset["id"];
@@ -597,6 +664,11 @@ function onClick(event: MouseEvent): void {
       break;
     case "used":
       void readUsed();
+      break;
+    // Section 6: the other insert target, for this one insert, without touching
+    // the setting.
+    case "other-target":
+      if (id) void insert(id, otherTarget(state.settings));
       break;
     case "tag":
       if (value) set({ tags: toggle(state.tags, value) });
@@ -661,7 +733,10 @@ function onKey(event: KeyboardEvent): void {
   if (event.key === "Escape") {
     // The card first: it is the most recently opened thing and the one the user
     // is most likely to mean, and shutting it must not also clear their search.
-    if (state.previewing !== undefined) closePreview();
+    // The tile menu first, then the card, then the gear: back out of what was
+    // opened last, and never clear a search on the way past something else.
+    if (state.menuFor !== undefined) set({ menuFor: undefined });
+    else if (state.previewing !== undefined) closePreview();
     else if (state.gear === true) set({ gear: false });
     else if (state.query !== "" || state.tags.length > 0) set({ query: "", tags: [] });
     return;
@@ -804,6 +879,12 @@ void Office.onReady(() => {
   }
   state = { ...state, ...remembered() };
   document.addEventListener("click", onClick);
+  document.addEventListener("contextmenu", onContextMenu);
+  // Long-press for touch, and every way a press can end without becoming one.
+  document.addEventListener("pointerdown", onPointerDown);
+  document.addEventListener("pointerup", cancelPress);
+  document.addEventListener("pointermove", cancelPress);
+  document.addEventListener("pointercancel", cancelPress);
   document.addEventListener("input", onInput);
   document.addEventListener("keydown", onKey);
   document.addEventListener("focusin", onFocus);

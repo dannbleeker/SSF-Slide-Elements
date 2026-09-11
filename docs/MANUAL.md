@@ -88,6 +88,12 @@ fetched only when you insert it.
   library deck, in that element and in any chart it brings with it, and it stays
   that colour wherever the slide ends up. Colours the library states outright
   are the same either way;
+- **right-click a tile** — or long-press it on a touch screen — and it offers
+  the insert target you are **not** set to, for that one insert: **Insert as a
+  new slide** when you are set to land on the current slide, **Insert onto this
+  slide** when you are set to a new one. It does not change the setting, and
+  `Esc` closes it. Stamps and markers offer nothing, because they always land on
+  the slide you are on whatever the setting says;
 - **Used in this deck**, which starts as one line: *See what this deck already
   uses*. Click it and the pane reads the open presentation and lists the library
   elements it finds, with the slides each one is on. It reads on request rather
