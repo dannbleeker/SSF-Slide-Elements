@@ -21,6 +21,7 @@
  * delta proves whether it landed.
  */
 import JSZip from "jszip";
+import { base64From, bytesFrom } from "./base64.js";
 import { CT_NS, PKG_REL_NS, P_NS, R_NS, element, elements, parseXml, serializeXml } from "./xml.js";
 import { COMMENT_REL_TYPES, OWNABLE_BY_GRAPHIC, OWNED_BY_SLIDE, REL_TYPE } from "./parts.js";
 
@@ -167,8 +168,19 @@ export class Pkg {
     return index;
   }
 
+  /**
+   * A package from bytes, or from the base64 a host hands over.
+   *
+   * The base64 is DECODED here rather than by JSZip, and that is a measured
+   * decision rather than a tidy one: on 45 MB, JSZip's own decoder costs 1.6
+   * seconds and the platform's costs 27 milliseconds (`base64.ts` has the
+   * table). It falls back to handing the string to JSZip when no route is
+   * available, so the only thing that changes on such a platform is the clock.
+   */
   static async open(input: Uint8Array | ArrayBuffer | string): Promise<Pkg> {
-    const zip = await JSZip.loadAsync(input, typeof input === "string" ? { base64: true } : undefined);
+    if (typeof input !== "string") return new Pkg(await JSZip.loadAsync(input));
+    const bytes = bytesFrom(input);
+    const zip = bytes ? await JSZip.loadAsync(bytes) : await JSZip.loadAsync(input, { base64: true });
     return new Pkg(zip);
   }
 
@@ -890,7 +902,19 @@ export class Pkg {
     for (const [path, doc] of this.docs) this.zip.file(path, serializeXml(doc));
   }
 
+  /**
+   * The package as base64, for `insertSlidesFromBase64`.
+   *
+   * Generated as BYTES and encoded here, for the reason `open` decodes here:
+   * measured on 45 MB, JSZip's own encoder costs 2.5 seconds of character
+   * shuffling on top of the zip work, and the platform's costs 24
+   * milliseconds. Same fallback, same rule — a platform with no route gets the
+   * old path rather than a wrong answer.
+   */
   async toBase64(): Promise<string> {
+    const bytes = await this.toBytes();
+    const base64 = base64From(bytes);
+    if (base64 !== undefined) return base64;
     this.flush();
     return this.zip.generateAsync({ type: "base64", compression: "DEFLATE" });
   }

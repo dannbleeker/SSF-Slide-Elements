@@ -559,6 +559,40 @@ categories, boxes, no pictures), tile thumbnails about 300 px wide as WebP
 demand when the card opens, all with long-lived hashed filenames on Pages so a
 release never serves a stale catalogue.
 
+**What the engine costs on a big deck, measured 2026-09-11** by
+`npm run bench` (`scripts/bench-engine.mjs`), on this machine, in Node — so
+these are the engine's numbers and not the host's:
+
+| deck | open | "Used in this deck" | a slide's boxes | one insert |
+| --- | --- | --- | --- | --- |
+| 40 slides, 0.1 MB | 1 ms | 20 ms | 0 ms | 66 ms |
+| 200 slides, 0.3 MB | 3 ms | 86 ms | 1 ms | 134 ms |
+| 60 slides, 20 MB | 37 ms | 23 ms | 0 ms | 114 ms |
+| 120 slides, 45 MB | 81 ms | 45 ms | 0 ms | 228 ms |
+
+Three readings, and the third is why the table is here at all:
+
+- **Weight, not slide count, is what a deck costs.** 200 slides of XML open in
+  3 ms; 45 MB of pictures takes 81. The tag sweep behind "Used in this deck" is
+  the one thing that scales with SLIDES, at about half a millisecond each, and
+  reading what a slide holds is free.
+- **An insert on a 45 MB deck is a quarter of a second of engine time.** The
+  host's own two calls — `getFileAsync` and `insertSlidesFromBase64` — are not
+  in that number and are still unmeasured (section 13, question 6).
+- **It was four seconds until the same day**, and every one of those seconds was
+  BASE64. Office hands the deck over as base64 and takes it back the same way,
+  and JSZip's own encoder and decoder are pure JavaScript: 1.6 s to decode 45 MB
+  and 2.5 s to encode it, against 27 ms and 24 ms for the platform's own. The
+  package layer now converts either side of JSZip rather than through it
+  (`src/core/pptx/base64.ts`), which is an eighteen-fold difference on the
+  largest deck anybody is likely to open — and it was invisible until somebody
+  measured, because every deck in the suite is a few hundred kilobytes.
+
+  The memory that buys it is worth knowing: a package handed back as base64
+  exists briefly as both bytes and characters, so a 45 MB deck peaks around
+  105 MB. That is the same shape the old path had, and it is why the pane holds
+  ONE deck copy for undo rather than ten (section 6).
+
 ## 12. What AppSource certification needs
 
 Checked against Microsoft's commercial-marketplace certification policies for
@@ -868,3 +902,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | A rectangle measured on the user's slide is divided by the USER's slide size, never the library deck's — they differ exactly on a borrowed library, which is the case that would never have shown up in testing | fixed in the build, 2026-09-11 |
 | A removal re-reads which slides carry the element from the deck it is about to change, rather than trusting the list the question was asked about | fixed in the build, 2026-09-11 |
 | Anything anchored to a tile — the right-click menu, the question before a removal — is keyed by TILE rather than by element, because one element is drawn in up to three lists at once | fixed in the build, 2026-09-11 |
+| Base64 is converted by the platform rather than by JSZip, on both sides of the package layer — measured as the single largest cost in the insert path, 4.1 s to 0.23 s on a 45 MB deck | fixed in the build, 2026-09-11 |
