@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — the same element, the same colours in both slide sizes
+
+- **The two library decks were on different colour palettes**, and 79 of the 117
+  elements came out in different colours depending on your deck's shape: the
+  same box Office orange on a widescreen deck and light blue on a 4:3 one. The
+  4:3 deck now uses the same palette as the 16:9 one, so an element looks like
+  itself whichever size you are working in.
+
 ### Added — the library, on the web
 
 - **Every element is now on the site**, in both slide sizes, with PowerPoint's
