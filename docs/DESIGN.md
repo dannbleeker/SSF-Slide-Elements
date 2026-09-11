@@ -270,7 +270,13 @@ PowerPoint would settle.
   wider it docks beside the list and hides no tiles, the list giving up a gutter
   for it and only while one is open.
   **The grey boxes for what the slide already holds are built** (2026-09-11),
-  and they are a SNAPSHOT rather than a live read. They come out of the deck
+  and they are a SNAPSHOT rather than a live read. Everything measured against
+  the user's slide — those boxes, and where the splice says an element landed —
+  is in the USER's slide size, never the library deck's: the two are different
+  numbers exactly when a deck borrows the nearest library, which is the case
+  nobody tests on. The card's little slide is drawn in the user's own shape for
+  the same reason, so the element's own frame is the approximate one there,
+  which is what the borrowed line under the header already says. They come out of the deck
   read the pane already does when it opens — the same one that measures the
   slide size, so they cost nothing extra — and they are stamped with the slide
   they were read from. On another slide the card draws none: the boxes answer
@@ -853,3 +859,5 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | Right-click opens on `contextmenu` rather than a mouse-only handler, offers nothing on a part, and anchors to the top of its own tile rather than to the pointer — so the keyboard reaches it, the pane never promises a landing the engine does not do, and no coordinate reaches the state | decided in the build, 2026-09-11 |
 | The preview card's grey boxes are a snapshot stamped with the slide it was read from, drawn only while the user is still on that slide, rather than a read per slide change — and they are read out of the FILE, so they need no host capability the insert does not already use | decided in the build, 2026-09-11 |
 | "Remove from N slides" asks before it removes, runs one confirmed cycle per slide, stops at the first step it cannot verify and says how far it got — and reaches only shapes this add-in tagged | decided in the build, 2026-09-11 |
+| A rectangle measured on the user's slide is divided by the USER's slide size, never the library deck's — they differ exactly on a borrowed library, which is the case that would never have shown up in testing | fixed in the build, 2026-09-11 |
+| A removal re-reads which slides carry the element from the deck it is about to change, rather than trusting the list the question was asked about | fixed in the build, 2026-09-11 |

@@ -14,7 +14,7 @@ import type { Box } from "../core/catalogue/types.js";
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { usedInDeck } from "../core/pptx/tags.js";
-import { removeElement } from "../core/splice/remove.js";
+import { removeElement, slidesHolding } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
@@ -42,6 +42,7 @@ import {
   EMPTY,
   RECENT_DEPTH,
   elementOf,
+  fractionOf,
   offersOtherTarget,
   otherTarget,
   remember,
@@ -272,6 +273,7 @@ async function load(): Promise<void> {
   const current = await currentSlide();
   set({
     slide: current == null ? undefined : current.index + 1,
+    deck: { width: shape.width, height: shape.height },
     ...(shape.slide !== undefined && shape.boxes ? { onSlide: { slide: shape.slide, boxes: shape.boxes } } : {}),
   });
   void follow();
@@ -435,19 +437,13 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // reason to start claiming the deck has been looked at.
       used: outcome.ok ? withInsert(state.used, element.id, landedOn) : state.used,
       // The card's grey boxes keep up the same way: the splice says where the
-      // element landed, in EMU, and the library says how big the slide is.
+      // element landed, in EMU **on the user's slide**, so it is the USER's
+      // slide size that turns it into a fraction. The library's size is a
+      // different number whenever a deck borrowed the nearest library, and
+      // dividing by that one draws the right rectangle in the wrong place on
+      // exactly the decks nobody tests on.
       onSlide: outcome.ok
-        ? withLanded(
-            state.onSlide,
-            landedOn,
-            {
-              x: report.landed.x / library.width,
-              y: report.landed.y / library.height,
-              w: report.landed.cx / library.width,
-              h: report.landed.cy / library.height,
-            },
-            target === "new",
-          )
+        ? withLanded(state.onSlide, landedOn, fractionOf(report.landed, state.deck), target === "new")
         : state.onSlide,
     };
     delete state.notice;
@@ -660,9 +656,17 @@ async function removeEverywhere(id: string): Promise<void> {
   set({ busy: true, notice: `Taking ${element.name} off ${plan.slides.length} slide(s)…`, outcome: undefined });
 
   let done = 0;
+  let wanted = plan.slides;
   try {
     const deck = await readDeck();
-    for (const slide of plan.slides) {
+    // Which slides carry it, asked of the bytes THIS run is working from rather
+    // than of the list the question was asked about. Between the two the user
+    // may have added a slide, deleted one, or moved them: the list is 1-based
+    // positions, and a position that has moved names a different slide. The
+    // read is already paid for here, and `slidesHolding` is the same sweep
+    // "Used in this deck" uses.
+    wanted = (await slidesHolding(await Pkg.open(deck.base64), id)).map((i) => i + 1);
+    for (const slide of wanted) {
       // Counting from one in the state, from zero in the engine and the host.
       const at = slide - 1;
       const before = await slideCount();
@@ -682,7 +686,7 @@ async function removeEverywhere(id: string): Promise<void> {
     // through to the end, and the outcome below reports it.
   }
 
-  const outcome = removalOutcome(element.name, done, plan.slides.length);
+  const outcome = removalOutcome(element.name, done, wanted.length);
   state = {
     ...state,
     busy: false,

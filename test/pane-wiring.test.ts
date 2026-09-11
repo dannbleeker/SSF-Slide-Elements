@@ -690,3 +690,63 @@ describe("removing a part from every slide it is on", () => {
     expect(pane.querySelector('[data-action="used"]')?.textContent).toBe("See what this deck already uses");
   });
 });
+
+describe("a removal asks the deck it is about to change", () => {
+  /** A deck of three slides carrying the part on the ones named, 1-based. */
+  async function deckTagging(slides: number[]): Promise<string> {
+    const pkg = await Pkg.open(
+      await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }, { paragraphs: [["Third"]] }]),
+    );
+    for (const n of slides) {
+      const path = `ppt/slides/slide${n}.xml`;
+      const doc = await pkg.doc(path);
+      const shape = doc.getElementsByTagName("p:sp")[0] as unknown as Element;
+      await writeShapeTags(pkg, path, shape, [
+        [TAG_ELEMENT, "markeringer-1"],
+        [TAG_CATALOGUE, "v1"],
+      ]);
+    }
+    return pkg.toBase64();
+  }
+
+  it("re-derives which slides carry it, instead of trusting the list the question was asked about", async () => {
+    // The list behind "Remove from N slides" comes from an EARLIER read. In
+    // between, the user can add a slide, delete one, or drag them around — the
+    // list is 1-based positions, and a position that has moved names a
+    // different slide. Here the pane reads a deck carrying the part on two
+    // slides, and the deck it is then handed carries it on one.
+    indexMode = "ok";
+    deckBase64 = await deckTagging([1, 2]);
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="used"]') as HTMLElement).click();
+    for (let i = 0; i < 300; i++) {
+      if (pane.querySelector(".used-list")) break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    expect(pane.querySelector(".used-where")?.textContent).toBe("slides 1 and 2");
+
+    // The deck moves on under the pane.
+    deckBase64 = await deckTagging([1]);
+
+    const stamps = [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].find(
+      (c) => c.dataset["key"] === "stamps",
+    );
+    stamps?.click();
+    expect(pane.querySelector('[data-action="remove"]')?.textContent).toBe("Remove from 2 slides");
+    (pane.querySelector('[data-action="remove"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    let said = "";
+    for (let i = 0; i < 300; i++) {
+      said = pane.querySelector(".outcome")?.textContent ?? "";
+      if (said) break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    // One slide carries it now, so one cycle runs and the footer counts what
+    // the DECK said. Trusting the list gives "Removed from 1 of 2 slides" and
+    // an attempt against a slide that holds nothing of ours.
+    expect(said).toContain("Removed from 1 slide");
+    expect(said).not.toContain("of 2");
+    expect(host.cycles).toBe(1);
+  });
+});

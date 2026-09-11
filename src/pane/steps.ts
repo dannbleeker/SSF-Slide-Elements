@@ -157,6 +157,17 @@ export interface PaneState {
    */
   onSlide?: { slide: number; boxes: Box[] };
   /**
+   * The user's own slide size in EMU, when the deck has been read.
+   *
+   * NOT `library.width`/`library.height`, which are the LIBRARY deck's — and
+   * the two are different numbers exactly when a deck borrows the nearest
+   * library (A4, 16:10, anything custom). Everything measured against the
+   * user's slide — the boxes the card draws in grey, and where the splice says
+   * an element landed — is in these units, so mixing the two draws the right
+   * rectangle in the wrong place on precisely the decks nobody tests on.
+   */
+  deck?: { width: number; height: number };
+  /**
    * The removal the user is being asked to confirm, and how far it has got.
    *
    * `docs/DESIGN.md` section 6's deck-wide stamps. Confirmed rather than done on
@@ -466,6 +477,30 @@ export function removalOutcome(element: string, done: number, wanted: number): O
 }
 
 /**
+ * A rectangle on the user's slide, in EMU, as a fraction of that slide.
+ *
+ * The size is the USER's, never the library's, and the two are different
+ * numbers exactly when a deck borrowed the nearest library — A4, 16:10,
+ * anything custom. The splice reports where an element landed in the
+ * destination deck's EMU; dividing that by the library deck's size draws the
+ * right rectangle in the wrong place, and only ever on the decks nobody tests
+ * on. Answers undefined when the size is not known, because a fraction
+ * measured against a size nobody read is a guess with a decimal point.
+ */
+export function fractionOf(
+  landed: { x: number; y: number; cx: number; cy: number },
+  deck: { width: number; height: number } | undefined,
+): Box | undefined {
+  if (!deck || !(deck.width > 0) || !(deck.height > 0)) return undefined;
+  return {
+    x: landed.x / deck.width,
+    y: landed.y / deck.height,
+    w: landed.cx / deck.width,
+    h: landed.cy / deck.height,
+  };
+}
+
+/**
  * The snapshot of what a slide holds, with an insert that just landed in it.
  *
  * The pane does not re-read the deck after an insert — it already knows what it
@@ -482,9 +517,13 @@ export function removalOutcome(element: string, done: number, wanted: number): O
 export function withLanded(
   onSlide: PaneState["onSlide"],
   slide: number,
-  box: Box,
+  box: Box | undefined,
   blank: boolean,
 ): PaneState["onSlide"] {
+  // No box means the pane never learned the user's slide size, so it cannot
+  // turn EMU into a fraction. The snapshot goes rather than gaining a rectangle
+  // measured against a size nobody read.
+  if (!box) return undefined;
   if (blank) return { slide, boxes: [box] };
   if (onSlide?.slide !== slide) return undefined;
   return { slide, boxes: [...onSlide.boxes, box] };
