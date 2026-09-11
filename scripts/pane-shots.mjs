@@ -216,6 +216,20 @@ const STATES = [
     shows: ["target", "group", "colours", "report", "catalogue"],
   },
   {
+    // A part already in the deck, with the confirm open. The only thing in this
+    // pane that takes something OUT of a deck, so it is the state worth seeing:
+    // the question, what it would touch, and that the pane cannot undo it.
+    name: "browse-removing",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      open: ["stamps"],
+      used: [{ element: "approved", slides: [2, 5, 9] }],
+      removing: { id: "approved", slides: [2, 5, 9], done: 0 },
+    },
+    shows: ["remove-go", "remove-cancel"],
+  },
+  {
     // The preview card over a slide the pane has read: the element's landing in
     // blue, and in grey what the slide already holds.
     name: "browse-card-on-slide",

@@ -33,6 +33,9 @@ import {
   occupiedFor,
   offersOtherTarget,
   otherTargetLabel,
+  removableFrom,
+  removeLabel,
+  removeQuestion,
   primary,
   runOf,
   settingsLine,
@@ -239,11 +242,42 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
     item.appendChild(stepper);
   }
 
+  // Section 4: a part already in the deck can be taken off every slide it is
+  // on. Only once the deck has been READ — before that the pane does not know
+  // what is in it, and `removableFrom` is what decides.
+  const removable = removableFrom(element, state);
+  if (removable.length > 0 && state.removing === undefined) {
+    const take = button("remove", "tile-remove", removeLabel(removable));
+    take.dataset["id"] = element.id;
+    if (state.busy === true) take.disabled = true;
+    item.appendChild(take);
+  }
+
+  // The confirm, in the same place the right-click menu goes: it is the only
+  // thing here that takes something OUT of the user's deck, so it is asked
+  // rather than done, and the question names the slides.
+  if (state.removing?.id === element.id) {
+    const ask = el("div", "tile-menu");
+    ask.setAttribute("role", "group");
+    ask.setAttribute("aria-label", removeLabel(state.removing.slides));
+    ask.appendChild(el("p", "tile-ask", removeQuestion(element, state.removing.slides)));
+    const go = button("remove-go", "tile-menu-item danger", "Remove");
+    go.dataset["id"] = element.id;
+    const no = button("remove-cancel", "tile-menu-item", "Keep them");
+    if (state.busy === true) {
+      go.disabled = true;
+      no.disabled = true;
+    }
+    ask.appendChild(go);
+    ask.appendChild(no);
+    item.appendChild(ask);
+  }
+
   // Section 6: right-click (or the keyboard's own menu key, which fires the
   // same event) offers the OTHER insert target for this one insert, without
   // touching the gear. Anchored to the tile rather than to the pointer, so the
   // menu cannot outlive the thing it belongs to and the audit can draw it.
-  if (state.menuFor === element.id && offersOtherTarget(element)) {
+  if (state.menuFor === element.id && state.removing === undefined && offersOtherTarget(element)) {
     const menu = el("div", "tile-menu");
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", element.name);

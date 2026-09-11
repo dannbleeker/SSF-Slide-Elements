@@ -7,6 +7,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — taking a stamp off every slide it is on
+
+- **A stamp or marker already in your deck now carries "Remove from N slides"**,
+  under its tile, once you have asked what the deck uses. It asks before it does
+  anything, names the slides it would touch, and says that the pane cannot undo
+  it.
+- It only ever takes off what the add-in put there. A shape you drew yourself
+  carries none of its marks, and neither does another add-in's.
+- If a step cannot be confirmed the run stops there, leaves the rest of the deck
+  alone, and the footer says how far it got.
+- **This one has not been run against a real PowerPoint yet.** The mechanism is
+  the insert's, which has; a sequence of them has not.
+
 ### Added — see what is already on your slide
 
 - **The preview card now shows your own slide's shapes in grey**, behind where
