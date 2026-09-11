@@ -18,11 +18,14 @@ SSF-Charts' per-shape failure surfaces exist. `src/core` is pure TypeScript with
 **zero Office imports**, enforced by `test/architecture.test.ts` in both
 directions.
 
-**Today the scaffold, the package layer and the harvest exist.** The two
+**The whole path exists and has been run against a real PowerPoint.** The two
 library decks under `template/` are read into `public/catalogue/` by
-`npm run harvest` (the index committed, the rest built on deploy). Nothing
-reads a deck from PowerPoint yet and nothing splices; `docs/BACKLOG.md` is the
-order the rest arrives in.
+`npm run harvest` (the index committed, the rest built on deploy); the pane
+reads the open deck, splices an element into a copy of the slide you are on,
+hands it back in one insert and removes the original by position. What is NOT
+built is in `docs/BACKLOG.md`, and the largest of it is the library's own
+pictures — every tile draws a diagram of where the element lands, because no
+PDF print of either deck is committed for the harvest to cut from.
 
 ## Where things live
 

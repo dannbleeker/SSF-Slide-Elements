@@ -67,6 +67,26 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   part with no content type declared is a package PowerPoint refuses without
   saying which part.
 
+- **The privacy page said nothing is stored on your device. Four things are.**
+  The pane keeps your gear settings, which elements you have starred, the last
+  six you inserted and which categories you left open, in the browser's local
+  storage. The page had said otherwise since before the picker existed, and it
+  was live on the site saying it. It now lists all four, names the key they sit
+  under, says they never leave the device and that clearing site data removes
+  them, and says plainly that the section was wrong until today. A test reads
+  the page against the code, field by field, so a fifth thing stored without a
+  word on the page turns the build red.
+
+  The page had carried its own discipline in the same paragraph — "If that ever
+  changes, this section changes with it" — which is the sentence nobody comes
+  back to. That is the second false claim about user data found in this repo in
+  one day, after the security page's, and both were written the same way: a
+  promise with nothing executing it.
+
+- **The site's front page said the add-in inserts nothing yet.** It inserts.
+  The lockstep guard now reads the two public pages as well as the manual, the
+  README and the security page, which is where it should have been looking.
+
 - **The security page said the add-in reads nothing and writes nothing.** It
   reads your whole presentation and writes it back, which is what an insert is
   here, and that page is the one people read when deciding whether to trust the

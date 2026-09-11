@@ -280,3 +280,76 @@ describe("the XML parser does not fetch or expand what a deck tells it to", () =
     expect(text).toBe("&e;");
   });
 });
+
+describe("the privacy page says what the pane actually stores", () => {
+  /**
+   * A public page making a false statement about a user's data.
+   *
+   * `public/privacy.html` said "Nothing. SSF Slide Elements writes nothing to
+   * your browser's storage" while `src/pane/main.ts` wrote four fields to
+   * `localStorage` on every settings change, star, insert and category toggle.
+   * It was live on the site for three days, and the page carried its own
+   * discipline in the same paragraph — "If that ever changes, this section
+   * changes with it" — which is exactly the sentence nobody comes back to.
+   *
+   * The same shape as `SECURITY.md`'s "the pane reads nothing and writes
+   * nothing" in the same repository, found the same day. A claim about user
+   * data that nothing executes is a claim that goes stale silently, so this
+   * one is read off the source instead: what the code stores decides what the
+   * page is allowed to say.
+   */
+  const privacy = readFileSync("public/privacy.html", "utf8");
+  const pane = readFileSync("src/pane/main.ts", "utf8");
+
+  it("does not claim nothing is stored while the pane writes to storage", () => {
+    const writes = /localStorage\.setItem/.test(pane);
+    expect(writes, "the pane no longer writes to localStorage — this guard needs rewriting, not deleting").toBe(true);
+    for (const denial of ["writes nothing to your browser", "nothing is stored", "stores nothing"]) {
+      expect(privacy.toLowerCase(), `the privacy page still says "${denial}"`).not.toContain(denial);
+    }
+  });
+
+  it("names the key the pane stores under", () => {
+    // Read off the source, so a rename breaks this rather than quietly making
+    // the page wrong. The key is what a user would look for in devtools.
+    const key = /const KEY = "([^"]+)"/.exec(pane)?.[1];
+    expect(key, "the pane's storage key could not be read out of main.ts").toBeTruthy();
+    expect(privacy, `the privacy page does not name the key "${key ?? ""}"`).toContain(key ?? " ");
+  });
+
+  it("accounts for every field the pane keeps", () => {
+    // The fields out of `keep()` itself. A fifth one added without a word on
+    // the page turns this red — which is the whole point, because the page is
+    // read by someone deciding whether to trust the add-in with a deck.
+    const body = pane.slice(pane.indexOf("function keep()"));
+    const block = body.slice(body.indexOf("JSON.stringify({"), body.indexOf("}),"));
+    const fields = [...block.matchAll(/^\s*(\w+):/gm)].map((m) => m[1] ?? "");
+    expect(fields.length, "no stored fields found — the pattern has stopped matching").toBeGreaterThan(2);
+    // Whitespace-collapsed: prettier reflows this page, and a phrase split
+    // across two lines is the same promise to a reader.
+    const said = privacy.toLowerCase().replace(/\s+/g, " ");
+    const WORDS: Record<string, string[]> = {
+      settings: ["behind the gear"],
+      favourites: ["starred"],
+      recent: ["the last six you inserted"],
+      open: ["categories you left open"],
+    };
+    for (const field of fields) {
+      const words = WORDS[field];
+      expect(words, `the privacy page has no wording mapped for the stored field "${field}"`).toBeTruthy();
+      const mentioned = (words ?? []).some((w) => said.includes(w));
+      expect(mentioned, `the privacy page does not describe the stored field "${field}"`).toBe(true);
+    }
+  });
+
+  it("does not promise a network silence the security page has already qualified", () => {
+    // Both pages describe the same behaviour to the same reader. SECURITY.md
+    // settled on "it sends nothing anywhere" because the pane DOES fetch its
+    // own catalogue; the privacy page may not go back to the stronger claim.
+    const security = readFileSync("SECURITY.md", "utf8");
+    expect(security).toContain("sends nothing anywhere");
+    expect(privacy.toLowerCase(), "the privacy page claims no network calls at all").not.toContain(
+      "makes no network calls",
+    );
+  });
+});
