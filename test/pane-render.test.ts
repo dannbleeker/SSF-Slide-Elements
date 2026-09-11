@@ -300,3 +300,49 @@ describe("the ghost on a tile", () => {
     expect(Number(box.getAttribute("height"))).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("the element's photograph on a tile", () => {
+  const shotOf = (): HTMLImageElement => {
+    render(root, browsing, "browse");
+    return root.querySelector(".tile-img") as HTMLImageElement;
+  };
+
+  it("points at the preview cut from the deck's print, for this size and build", () => {
+    const img = shotOf();
+    expect(img.getAttribute("src")).toBe(`./catalogue/16x9/previews/one-box.png?v=${LIBRARY.version}`);
+  });
+
+  it("carries the catalogue version, so a rebuilt preview is not served from cache", () => {
+    // The file name is derived from the element id rather than hashed, so it
+    // does not change when the picture does; the version is the only thing that
+    // tells a browser to look again.
+    expect(shotOf().getAttribute("src")).toContain(`?v=${LIBRARY.version}`);
+  });
+
+  it("is decorative, because the name beside it is the label", () => {
+    const img = shotOf();
+    expect(img.getAttribute("alt")).toBe("");
+    expect(img.getAttribute("loading")).toBe("lazy");
+  });
+
+  it("sits ON the ghost rather than instead of it, so nothing reflows when it lands", () => {
+    render(root, browsing, "browse");
+    const frame = root.querySelector(".tile-shot") as HTMLElement;
+    expect(frame.querySelector("svg.ghost")).not.toBeNull();
+    expect(frame.querySelector(".tile-img")).not.toBeNull();
+  });
+
+  it("takes itself out when there is no picture, leaving the ghost", () => {
+    // A tree where the previews have not been built, or a deploy that has not
+    // caught up with a new element.
+    render(root, browsing, "browse");
+    const tile = root.querySelector('[data-action="tile"]') as HTMLElement;
+    const img = tile.querySelector(".tile-img") as HTMLImageElement;
+    img.dispatchEvent(new Event("error"));
+    expect(tile.querySelector(".tile-img")).toBeNull();
+    expect(tile.querySelector("svg.ghost")).not.toBeNull();
+    // and only that tile's: a preview missing for one element says nothing
+    // about the others
+    expect(root.querySelectorAll(".tile-img").length).toBe(1);
+  });
+});

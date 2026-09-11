@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — every tile shows the element itself
+
+- **A tile is a picture of the element now, not a diagram of where it lands.**
+  PowerPoint's own rendering, cut out of a print of the library deck, so what
+  you pick from looks like what you will get. The little landing diagram stays
+  as what you see while a picture is still on its way, or if one is missing.
+
 ### Added — a print cannot go stale unnoticed
 
 - **Each committed PDF print now records which deck it came from**, and the

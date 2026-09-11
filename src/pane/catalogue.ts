@@ -51,6 +51,24 @@ export function dirOf(size: string): string {
   return size.replace(":", "x");
 }
 
+/**
+ * Where an element's picture is, cut from the deck's print at deploy time by
+ * `scripts/build-previews.mjs`.
+ *
+ * The name is derived from the element's id rather than hashed, so the
+ * catalogue's own `version` has to be the cache key — without it a rebuilt
+ * preview would sit behind whatever the browser cached the first time. See the
+ * header of the build script for why a hash of the rendered bytes cannot go in
+ * the committed index.
+ *
+ * The file may not be there: the previews are built, not committed, so a tree
+ * where the build has not run has none. The tile treats that as a miss and
+ * draws the landing ghost instead, which is why nothing here throws.
+ */
+export function previewUrl(size: string, id: string, version: string): string {
+  return `${ROOT}/${dirOf(size)}/previews/${encodeURIComponent(id)}.png?v=${encodeURIComponent(version)}`;
+}
+
 async function getText(path: string): Promise<string> {
   const response = await fetch(path);
   if (!response.ok) throw new Error(`ssf-slide-elements: ${path} answered ${response.status}`);
