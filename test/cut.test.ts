@@ -112,6 +112,22 @@ describe("masking a rotated part", () => {
     });
     expect(cutFor(stamp, []).mask).toHaveLength(4);
   });
+
+  it("leaves the element the same air the crop does, so a thick outline is not shaved", () => {
+    // Masking to the BARE frame cut the ends off both stamps' ellipses in the
+    // first prints taken with this: an outline is drawn centred on its path, so
+    // it reaches past the frame. The mask removes what is in the CORNERS, not
+    // part of the element.
+    const frame = { x: 0.3, y: 0.4, w: 0.2, h: 0.1 };
+    const stamp = el({ kind: "part", rotation: { deg: 0.0001, frame } });
+    const mask = cutFor(stamp, []).mask!;
+    const xs = mask.map((p) => p.x);
+    const ys = mask.map((p) => p.y);
+    expect(Math.min(...xs)).toBeLessThan(frame.x);
+    expect(Math.max(...xs)).toBeGreaterThan(frame.x + frame.w);
+    expect(Math.min(...ys)).toBeLessThan(frame.y);
+    expect(Math.max(...ys)).toBeGreaterThan(frame.y + frame.h);
+  });
 });
 
 describe("intersect", () => {

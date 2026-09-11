@@ -15,3 +15,6 @@ test/zz*
 # is committed, and CI fails when it no longer matches the decks.
 public/catalogue/16x9/
 public/catalogue/4x3/
+
+# Diagnostics from `npm run previews`, alongside the previews themselves.
+public/catalogue/previews-report.json

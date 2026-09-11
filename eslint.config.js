@@ -61,7 +61,7 @@ export default tseslint.config(
   {
     // A Node script whose `page.evaluate` callbacks are serialised and run
     // inside the browser, so `document` there is real.
-    files: ["scripts/pane-shots.mjs"],
+    files: ["scripts/pane-shots.mjs", "scripts/build-previews.mjs"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
@@ -71,6 +71,7 @@ export default tseslint.config(
     // are gated by `test/manifest.test.ts`, which proves each one can still
     // fail — a stronger check than the type of an intermediate.
     files: [
+      "scripts/build-previews.mjs",
       "scripts/build-probe.mjs",
       "scripts/harvest.mjs",
       "scripts/read-answers.mjs",
