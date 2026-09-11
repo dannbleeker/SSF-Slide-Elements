@@ -112,7 +112,8 @@ fetched only when you insert it.
   library and does not appear. Grouping an element with a shape of your own
   keeps the mark, so it stays listed and can still be removed — and a removal
   takes only the element out of that group, leaving your own shape where it
-  was;
+  was. Ungrouping one keeps it too: the shapes inside carry the mark as well, so
+  an element you have taken apart is still listed and can still be taken off;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag

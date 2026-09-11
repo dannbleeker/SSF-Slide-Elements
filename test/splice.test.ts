@@ -99,14 +99,18 @@ async function spliceOne(
   });
 }
 
-/** The rebuilt slide's shape tree, out of the package the splice produced. */
-async function rebuiltTree(base64: string, slidePath: string): Promise<Element> {
-  const out = await Pkg.open(base64);
-  const doc = await out.doc(slidePath);
+/** A slide's shape tree, out of a package the caller still holds and may change. */
+async function treeOf(pkg: Pkg, slidePath: string): Promise<Element> {
+  const doc = await pkg.doc(slidePath);
   const cSld = child(doc.documentElement, P_NS, "cSld");
   const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
   if (!spTree) throw new Error("the rebuilt slide has no shape tree");
   return spTree;
+}
+
+/** The rebuilt slide's shape tree, out of the package the splice produced. */
+async function rebuiltTree(base64: string, slidePath: string): Promise<Element> {
+  return treeOf(await Pkg.open(base64), slidePath);
 }
 
 function topLevelOf(spTree: Element): Element[] {
@@ -198,6 +202,48 @@ describe("one element into a deck", () => {
     const spTree = await rebuiltTree(report.base64, report.slidePath);
     const group = topLevelOf(spTree).find((s) => s.localName === "grpSp");
     expect(group, "the element did not land as a group").toBeDefined();
+  });
+
+  it("tags the shapes INSIDE the group too, so one ungroup does not lose the element", async () => {
+    /**
+     * Ungrouping is one gesture, and it destroys the group and the tag on it
+     * together. Measured before this: a five-shape element, ungrouped, went
+     * from one use of "hvid-kasse-1-stor" to an empty list — not in the deck at
+     * all, with every one of its shapes still on the slide.
+     *
+     * While it is still a group the answer is unchanged, because the reader
+     * stops at a tagged shape: one element, one use.
+     */
+    const el = element("hvid-kasse-2x1-vertikale");
+    const report = await spliceOne(el, { group: true });
+    const out = await Pkg.open(report.base64);
+    expect((await readShapeTags(out, report.slidePath)).map((t) => t.element)).toEqual([el.id]);
+
+    // Ungroup it the way PowerPoint does: the group's shape children take its
+    // place in the tree, and the group goes.
+    const pkg = await Pkg.open(report.base64);
+    const spTree = await treeOf(pkg, report.slidePath);
+    let freed = 0;
+    for (const node of Array.from(spTree.childNodes)) {
+      if (node.nodeType !== 1) continue;
+      const shape = node as Element;
+      if (shape.namespaceURI !== P_NS || shape.localName !== "grpSp") continue;
+      for (const kid of Array.from(shape.childNodes)) {
+        if (kid.nodeType !== 1) continue;
+        const kidEl = kid as Element;
+        if (kidEl.namespaceURI === P_NS && (kidEl.localName === "nvGrpSpPr" || kidEl.localName === "grpSpPr")) continue;
+        spTree.insertBefore(kidEl, shape);
+        freed += 1;
+      }
+      spTree.removeChild(shape);
+    }
+    expect(freed, "the element did not land as a group with shapes in it").toBe(el.shapes);
+
+    const after = await Pkg.open(await pkg.toBytes());
+    const tagged = await readShapeTags(after, report.slidePath);
+    expect(tagged.length, "the ungrouped shapes lost the mark that finds them").toBe(el.shapes);
+    expect(new Set(tagged.map((t) => t.element))).toEqual(new Set([el.id]));
+    expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
   });
 
   it("tags every shape when they land loose, so the deck can still be read back", async () => {
