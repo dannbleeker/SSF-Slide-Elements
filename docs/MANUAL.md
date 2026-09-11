@@ -5,10 +5,11 @@ the task pane, click an element, and it lands on the slide you are on with every
 font, colour and placement intact.
 
 > **Status.** The picker, the insert and taking it back are built, and were run
-> end to end in PowerPoint for the web on 2026-09-11. Windows, Mac and iPad have
-> had no round yet. Everything still marked *planned* below is designed and not
-> built, and a line moves out of *planned* in the same change that makes it true
-> — never before. [The backlog](BACKLOG.md) is the order the rest arrives in.
+> end to end in PowerPoint for the web and in PowerPoint on Windows, both on
+> 2026-09-11. Mac and iPad have had no round yet. Everything still marked
+> *planned* below is designed and not built, and a line moves out of *planned*
+> in the same change that makes it true — never before.
+> [The backlog](BACKLOG.md) is the order the rest arrives in.
 
 ## Contents
 
@@ -104,8 +105,9 @@ It is one deep rather than ten, and the reason is worth knowing: putting a
 replaced slide back means handing PowerPoint a package containing it, and
 holding ten of those means holding ten copies of your presentation inside the
 task pane. PowerPoint's own **Ctrl+Z** reverts an insert — measured on
-PowerPoint for the web on 2026-09-10 — and that is the deeper history. Press it
-on the slide canvas rather than in the pane.
+PowerPoint for the web on 2026-09-10 and on PowerPoint on Windows on
+2026-09-11 — and that is the deeper history. Press it on the slide canvas
+rather than in the pane.
 
 ### Where an element lands
 

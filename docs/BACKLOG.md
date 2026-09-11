@@ -55,11 +55,13 @@ option yet, because a switch with one working position is worse than no switch.
 ### The rest of the host round
 
 PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
-pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. Windows, Mac and
-iPad are not, and `docs/DESIGN.md` section 9 says how the first iPad measurement
-will be taken. The whole product has been run against the web host — the pane,
-the insert and the Undo, 2026-09-11 — so what is left is a round on each of the
-other three, which is what turns the design's "assumed" column into "measured".
+pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. **Windows is
+measured too** — one pair of sheets from 2026-09-11 and a product round of four
+inserts and undos from the pane the same day, both read in `docs/DESIGN.md`
+section 15. Mac and iPad are not, and `docs/DESIGN.md` section 9 says how the
+first iPad measurement will be taken. So what is left is a round on each of
+those two, which is what turns the last of the design's "assumed" column into
+"measured".
 
 ### Release and AppSource
 

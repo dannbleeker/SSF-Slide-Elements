@@ -7,6 +7,23 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Measured — PowerPoint on Windows
+
+- **The add-in has now been run on PowerPoint for Windows, not only in the
+  browser.** Every behaviour the pane depends on works there the same way, and
+  nothing had to change to make it so. Four rounds of picking an element and
+  pressing Undo put the slide back exactly as it was, shape for shape, whether
+  the element landed on the slide you were on or as a new slide after it.
+  PowerPoint's own Ctrl+Z still takes an insert back, and the line under the
+  header still keeps up when you click quickly through the slide strip.
+- **Windows is faster than the browser, by a lot.** Reading a 14 MB
+  presentation takes about three seconds where the browser needed as long for a
+  file a thousandth of the size, and the pane no longer has to wait for the
+  slide count to catch up after an insert — on Windows it is right immediately.
+  The waiting the pane does for the browser costs nothing on Windows and stays
+  put, because the browser still needs it.
+- Mac and iPad have still had no round, and the manual says so.
+
 ### Added — the splice, the host handshake and the picker
 
 - **The product does what it says on the tin: open the pane, click an element,

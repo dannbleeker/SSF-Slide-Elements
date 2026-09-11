@@ -241,8 +241,25 @@ the minute, not the host: the document session had been through a
 session-timeout reload, and every read was slow (`getFileAsync` 40 s for
 40 KB where the first pair measured under a second), so one fixture insert
 landed only after the probe's 120 s budget and is recorded as a timed-out
-insert that landed, not a refusal. `docs/host-answers/` is the count, not this
-line; Windows and Mac are still to come.
+insert that landed, not a refusal.
+
+**PowerPoint on Windows, 2026-09-11** — one pair
+(`2026-09-11T09-54-40-421Z.json` and `2026-09-11T09-57-30-334Z.json`, platform
+`PC`, host `16.0.20326.20132`, PowerPointApi up to 1.10, runs of 9.4 and 8.1
+seconds against a 4-slide, 14.8 MB deck carrying one comment). **Every question
+answered the way the web answered it**: both prunings land as one slide; the
+deck's own master is not duplicated under either formatting option while the
+fixture deck's is; a just-added slide is accepted as `targetSlideId` and
+insert-then-positional-delete keeps the order; `getSelectedSlides` named slide
+2, the slide that had been clicked, at its file position; the export drops the
+comment part and `ppt/authors.xml` (and the three `ppt/webextensions/` parts);
+and **Ctrl+Z reverts an insert** — one press took the deck from 5 slides to 4
+with the tagged slide gone, and the second run cleared its marker and left
+nothing. What differs is speed: `getFileAsync` read 14.13 MB in 2.8 to 3.0
+seconds where the web's healthy reading was 34 KB in 874 ms, and no call came
+near the 120 s budget.
+
+`docs/host-answers/` is the count, not this line; Mac is still to come.
 
 ## One answer is not evidence about your host
 

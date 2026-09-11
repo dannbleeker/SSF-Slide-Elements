@@ -60,12 +60,27 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-**PowerPoint for the web, and only the web.** Four answer sheets under
-`docs/host-answers/`, 2026-09-10; `docs/DESIGN.md` section 15 reads them and is
-the one place to change when a sheet is filed. The splice ran against the same
-host the same day, and the whole product — pane, insert and Undo — on
-2026-09-11. **Windows, Mac and iPad have had no round**, so every claim about
-those three is still borrowed and must say so.
+**PowerPoint for the web and PowerPoint on Windows.** Six answer sheets under
+`docs/host-answers/` — four from the web on 2026-09-10, a Windows pair on
+2026-09-11; `docs/DESIGN.md` section 15 reads them and is the one place to
+change when a sheet is filed. The splice ran against the web on 2026-09-10, and
+the whole product — pane, insert and Undo — against the web and then against
+Windows on 2026-09-11. **Mac and iPad have had no round**, so every claim about
+those two is still borrowed and must say so.
+
+**Windows answered every question the way the web did**, and every timing
+difference went the same direction: faster. Two of them matter, because the
+code carries a workaround for each and neither workaround is load-bearing on
+Windows — they stay because the web still needs them:
+
+- **The slide count does NOT lag an insert on Windows.** Measured twice on
+  2026-09-11, polling `slides.getCount()` every 300 ms through an
+  `insertSlidesFromBase64` whose promise was timestamped: the new count was
+  already being returned 240 ms and 247 ms BEFORE the call resolved. The web
+  sat at the old value for 2.8 seconds. `countReaching` costs nothing here and
+  is not evidence about Windows.
+- **A selection read straight after an insert does not hang on Windows.** 3 ms,
+  against a four-second budget in the pane. The web could take seconds.
 
 Two rules about the INSTRUMENT, both learned on 2026-09-11, when a round that
 should have settled the undo defect settled nothing:
