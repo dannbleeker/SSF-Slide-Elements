@@ -29,6 +29,14 @@ export interface Reading {
 export const PROBE_TAG = "SSF_SLIDE_ELEMENTS_PROBE";
 /** Its value on the slide left behind. */
 export const PROBE_UNDO_VALUE = "undo";
+/**
+ * The document-settings key the probe writes BEFORE it leaves that slide. The
+ * settings live outside the undo stack, so the marker survives the Ctrl+Z the
+ * slide does not, and the next run can tell it is the second of a pair even
+ * when the slide is gone. Without it the second run looked like a first and
+ * left a slide of its own (the web round of 2026-09-10).
+ */
+export const PROBE_MARKER = "SSF_SLIDE_ELEMENTS_PROBE_UNDO";
 
 // ---------------------------------------------------------------------------
 // Inserts: the delta is the evidence, never the absence of an error.
@@ -511,48 +519,62 @@ export interface UndoObservation {
   deckAtStart?: number;
   /** The deck size the PREVIOUS sheet ended at, when the reader was given two sheets. */
   previousDeckAtEnd?: number;
+  /**
+   * The deck size the previous run wrote into its marker right BEFORE it left
+   * the slide, when this run found the marker. One more than this is what
+   * that run left, so a lone second sheet can answer without the first.
+   */
+  previousDeckBeforeLeave?: number;
   error?: string;
 }
 
 /**
  * Whether PowerPoint's own undo reverts `insertSlidesFromBase64`.
  *
- * Two runs, because the probe cannot press Ctrl+Z. The first leaves one
- * tagged slide at the end of the deck and says so; the user presses Ctrl+Z
- * once on the slide canvas and runs the snippet again. The second run looks
- * for the tag. Gone, with the deck one smaller than the first run left it:
- * Ctrl+Z reverts the insert and the pane's Undo must not fight it. Still
- * there: it does not, and the pane's Undo is the only way back.
+ * Two runs, because the probe cannot press Ctrl+Z. The first writes a marker
+ * into the document's settings, leaves one tagged slide at the end of the deck
+ * and says so; the user presses Ctrl+Z once on the slide canvas and runs the
+ * snippet again. The second run looks for the tag. Gone, with the deck one
+ * smaller than the first run left it: Ctrl+Z reverts the insert and the
+ * pane's Undo must not fight it. Still there: it does not, and the pane's
+ * Undo is the only way back.
  *
- * A first run cannot answer this and says so; the second cannot tell a
- * Ctrl+Z from a hand delete, which is why the instructions say not to.
+ * "One smaller than the first run left it" comes from the previous sheet when
+ * the reader has it, else from the marker, which the first run wrote before
+ * the slide and Ctrl+Z cannot reach. A first run cannot answer this and says
+ * so; the second cannot tell a Ctrl+Z from a hand delete, which is why the
+ * instructions say not to.
  */
 export function undoVerdict(o: UndoObservation): Reading {
   if (o.error !== undefined) return { verdict: "threw", detail: `the tag read threw: ${o.error}` };
+  const previousEnd =
+    o.previousDeckAtEnd ?? (o.previousDeckBeforeLeave === undefined ? undefined : o.previousDeckBeforeLeave + 1);
+  const source =
+    o.previousDeckAtEnd !== undefined
+      ? "the previous sheet"
+      : `the marker the previous run wrote before it left the slide (${o.previousDeckBeforeLeave ?? "?"} slides, so ${previousEnd ?? "?"} after it)`;
   if (o.foundAtStart === "unsupported") {
-    if (o.previousDeckAtEnd === undefined || o.deckAtStart === undefined) {
+    if (previousEnd === undefined || o.deckAtStart === undefined) {
       return {
         verdict: "unknown",
         detail:
-          "NOT ASKED — this host cannot read tags (PowerPointApi 1.3) and the reader was not given the previous sheet, so the deck counts cannot be compared either.",
+          "NOT ASKED — this host cannot read tags (PowerPointApi 1.3), and neither the previous sheet nor a marker from the previous run was there, so the deck counts cannot be compared either.",
       };
     }
-    const delta = o.previousDeckAtEnd - o.deckAtStart;
+    const delta = previousEnd - o.deckAtStart;
     if (delta === 1)
       return {
         verdict: "yes",
-        detail:
-          "by count alone: the deck is one slide smaller than the previous run left it, which is the slide Ctrl+Z took back. Tags could not be read to confirm it was ours.",
+        detail: `by count alone, against ${source}: the deck is one slide smaller than the previous run left it, which is the slide Ctrl+Z took back. Tags could not be read to confirm it was ours.`,
       };
     if (delta === 0)
       return {
         verdict: "no",
-        detail:
-          "by count alone: the deck is the size the previous run left it, so Ctrl+Z took nothing back. Tags could not be read to confirm the slide is ours.",
+        detail: `by count alone, against ${source}: the deck is the size the previous run left it, so Ctrl+Z took nothing back. Tags could not be read to confirm the slide is ours.`,
       };
     return {
       verdict: "unknown",
-      detail: `the deck changed by ${-delta} slide(s) since the previous run, which is not the one slide this question is about.`,
+      detail: `the deck changed by ${-delta} slide(s) since the previous run (against ${source}), which is not the one slide this question is about.`,
     };
   }
   if (o.foundAtStart === true) {
@@ -562,18 +584,17 @@ export function undoVerdict(o: UndoObservation): Reading {
         "the tagged slide from the previous run was still there, so PowerPoint's Ctrl+Z did NOT revert the insert (or was not pressed). The pane's Undo is the only way back; this run removed the slide.",
     };
   }
-  if (o.foundAtStart === false && o.previousDeckAtEnd !== undefined && o.deckAtStart !== undefined) {
-    const delta = o.previousDeckAtEnd - o.deckAtStart;
+  if (o.foundAtStart === false && previousEnd !== undefined && o.deckAtStart !== undefined) {
+    const delta = previousEnd - o.deckAtStart;
     if (delta === 1) {
       return {
         verdict: "yes",
-        detail:
-          "the tagged slide from the previous run is gone and the deck is exactly one smaller than that run left it: PowerPoint's Ctrl+Z reverts an insert, so the pane's Undo must not fight it.",
+        detail: `the tagged slide from the previous run is gone and the deck is exactly one smaller than that run left it, by ${source}: PowerPoint's Ctrl+Z reverts an insert, so the pane's Undo must not fight it.`,
       };
     }
     return {
       verdict: "unknown",
-      detail: `the tagged slide is gone but the deck changed by ${-delta} slide(s) rather than one since the previous run, so something else happened between the runs.`,
+      detail: `the tagged slide is gone but the deck changed by ${-delta} slide(s) rather than one since the previous run (against ${source}), so something else happened between the runs.`,
     };
   }
   if (o.leftBehind === true) {

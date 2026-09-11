@@ -11,39 +11,51 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Splice, and the package self-check
+### The library's own pictures
 
-An element's markup into the slide the user is on, in the file: part names,
-nested relationship targets, relationship ids and shape ids all rewritten, each
-with a failure that opens as "PowerPoint found a problem with this file"; the
-landing rules; the tag written at insert; theme colours pinned or kept per the
-colour switch. A sweep over every element in the library into fixture decks
-(empty, dark theme, tall title, 4:3, A4), every package validated by the
-integrity checker, on every commit.
+Every tile draws a small diagram of where the element lands, because that is
+what the catalogue knows. What it does not have is a PICTURE of the element:
+`docs/DESIGN.md` section 3 has previews cut from a PDF print of each library
+deck, and neither print is committed. Until the owner prints both decks to PDF
+and commits them beside the `.pptx`, the harvest has nothing to cut, and the
+pane is a list of names and landings rather than a picture book. The tile has
+the slot; nothing else is blocked by it.
 
-### The picker
+### The preview card, and the rest of section 4
 
-`steps.ts` grows from one step to browse → choose → insert; `render.ts` draws
-the library as `docs/DESIGN.md` sections 4 to 10 describe it, all of it in v1:
-search, tags, categories, sizes, the preview card, favourites, recent, used in
-this deck, the footer with the measured delta, Undo, Again, the gear, the
-first-run guide, keyboard, touch, high contrast, the loading and failure
-states. `pane-shots` states grow with it; the manual's pane section stops being
-planned.
+Built: search, tags, categories, tiles, the stepper, favourites, recent, the
+gear, the footer with the measured delta, Undo, Again, the keyboard, the live
+region, high contrast, and the pane reopening where you left it. Still to come,
+all of it from `docs/DESIGN.md` sections 4, 6 and 8: the preview card that
+opens after a third of a second of hover and docks beside the list at 512 px;
+**Used in this deck**, read from the tags the insert writes; **Remove from N
+slides** for a stamp; the three first-run coach marks; right-click for the other
+insert target on one insert; category chips with counts while searching, and
+"Did you mean …" for a query with no hits.
 
-### Host handshake, and the first real-host round
+### The colour switch
 
-`src/office/powerpoint.ts` reads the deck, inserts with a `targetSlideId`, and
-removes the replaced slide positionally, each step proven by the deck delta;
-`test/fixtures/host.ts` fakes the host far enough to drive it; then one round
-against PowerPoint on the web, Windows and Mac, recorded, and iPad as
-`docs/DESIGN.md` section 9 says.
+`docs/DESIGN.md` section 7 offers "This deck's theme" against "As in the
+library". The first is what the splice does today and costs nothing — a
+theme-referenced colour follows the destination deck by itself. The second means
+pinning every `<a:schemeClr>` to the value the library's theme gives it, which
+needs the harvest to carry that theme's colour map. The gear does not show the
+option yet, because a switch with one working position is worse than no switch.
+
+### The rest of the host round
+
+PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
+pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. Windows, Mac and
+iPad are not, and `docs/DESIGN.md` section 9 says how the first iPad measurement
+will be taken. The insert path itself has been run against the web host; a round
+on each of the others is what turns the design's "assumed" column into
+"measured".
 
 ### Release and AppSource
 
-The 300×300 store icon, a 1366×768 screenshot, the descriptions, the
-validators' testing notes and test deck, the catalogue page on the site, the
-privacy page naming the browser storage, then the Partner Center submission of
+The 300×300 store icon, a 1366×768 screenshot, the descriptions, the validators'
+testing notes and test deck, the catalogue page on the site, the privacy page
+naming the browser storage, then the Partner Center submission of
 `manifest-prod.xml`, and v0.1.0 on the releases page.
 
 ## Rejected — do not re-propose

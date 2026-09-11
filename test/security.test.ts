@@ -44,12 +44,53 @@ describe("the claims on the front of SECURITY.md are executable", () => {
     expect(sources().length).toBeGreaterThan(5);
   });
 
-  it("makes no network call", () => {
+  /**
+   * This used to forbid `fetch(` outright, and that was the right guard for a
+   * pane with nothing to load. The picker has something to load: the catalogue
+   * is static files on the add-in's own site, because the element markup and
+   * the parts it carries come to about 18 MB and `docs/DESIGN.md` sections 3
+   * and 11 put them behind lazy requests rather than in the bundle. A blanket
+   * ban and the design record could not both be right, and the record is what
+   * the build is held to.
+   *
+   * So the guard is narrower and STRONGER: it now asserts the property anybody
+   * actually cares about rather than a proxy for it. The add-in can only GET a
+   * static file from its own origin, and has no way to send anything anywhere.
+   * One named file may fetch; it may not name an absolute URL, and it may not
+   * pass request options, which is where a method, a body or a header would
+   * have to go.
+   */
+  const LOADER = "src/pane/catalogue.ts";
+
+  it("sends nothing anywhere: no channel that could carry data out exists at all", () => {
     for (const path of sources()) {
       const src = code(path);
-      for (const call of ["fetch(", "XMLHttpRequest", "WebSocket", "sendBeacon"]) {
-        expect(src.includes(call), `${path} calls ${call}`).toBe(false);
+      for (const call of ["XMLHttpRequest", "WebSocket", "sendBeacon"]) {
+        expect(src.includes(call), `${path} uses ${call}`).toBe(false);
       }
+    }
+  });
+
+  it("reaches the network from one named file and nowhere else", () => {
+    const others = sources()
+      .map((p) => p.replaceAll("\\", "/"))
+      .filter((p) => !p.endsWith(LOADER))
+      .filter((p) => code(p).includes("fetch("));
+    expect(others, `only ${LOADER} may fetch`).toEqual([]);
+    // The vacuity guard: if the loader stops fetching, this block would pass by
+    // finding nothing and the two rules below would be asserting about nothing.
+    expect(code(LOADER).includes("fetch("), "the loader no longer fetches, so these rules check nothing").toBe(true);
+  });
+
+  it("can only GET, and only from the origin the pane was served from", () => {
+    const loader = code(LOADER);
+    // An absolute or protocol-relative URL is a request to somewhere else.
+    expect(/["'`](?:https?:)?\/\//.test(loader), `${LOADER} names an absolute URL`).toBe(false);
+    // `fetch` with one argument is a GET and can carry nothing. A second
+    // argument is the only place a method, a body or a header could go.
+    expect(/fetch\([^)]*,/.test(loader), `${LOADER} passes request options to fetch`).toBe(false);
+    for (const sink of ["method:", "body:", "headers:"]) {
+      expect(loader.includes(sink), `${LOADER} sets ${sink}`).toBe(false);
     }
   });
 

@@ -8,15 +8,56 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  *
  * `pane-render.test.ts` calls `render` directly, so `main.ts` — the only file
  * that touches Office.js — would otherwise run nowhere in the suite. It runs
- * here with `Office` stubbed to the two things it reads: `onReady`, which calls
- * back at once, and `context.officeTheme`, which the theme stamp reads.
+ * here with `Office` stubbed to the two things it reads, and with the host
+ * calls and the catalogue fetch mocked, because neither a PowerPoint nor a site
+ * to fetch from exists in a test runner.
+ *
+ * What this file is for is the WIRING, not the decisions: that the pane boots,
+ * that it stops with a sentence on a host below the floor, that the live region
+ * is made once and outside the pane, and that a library which does not arrive
+ * ends as a screen with a retry on it rather than a blank one.
  */
 type Readiness = { ok: boolean; detail: string };
 let readiness: Readiness = { ok: true, detail: "fine" };
+type IndexMode = "fail" | "ok" | "hang";
+let indexMode: IndexMode = "fail";
 
 vi.mock("../src/office/powerpoint.js", () => ({
   ready: () => readiness,
+  // Every call the pane can make, so a missing export cannot be mistaken for a
+  // pane that decided not to make it.
+  slideCount: () => Promise.resolve(3),
+  readDeck: () => Promise.reject(new Error("no deck in a test runner")),
+  currentSlide: () => Promise.resolve(undefined),
+  selectedShape: () => Promise.resolve(undefined),
+  insertPackage: () => Promise.resolve(undefined),
+  removeSlideAt: () => Promise.resolve(undefined),
 }));
+
+vi.mock("../src/pane/catalogue.js", async () => {
+  const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
+  return {
+    ...actual,
+    loadIndex: () =>
+      indexMode === "hang"
+        ? new Promise(() => undefined)
+        : indexMode === "fail"
+          ? Promise.reject(new Error("the site did not answer"))
+          : Promise.resolve({
+              version: "v1",
+              sizes: {
+                "16:9": {
+                  size: "16:9",
+                  width: 12192000,
+                  height: 6858000,
+                  categories: [{ key: "boxes", name: "White boxes" }],
+                  elements: [],
+                  carried: {},
+                },
+              },
+            }),
+  };
+});
 
 async function openPane(theme?: string): Promise<HTMLElement> {
   document.body.innerHTML = '<header><b>SSF</b><span>Slide Elements</span></header><div id="pane"></div>';
@@ -33,16 +74,25 @@ async function openPane(theme?: string): Promise<HTMLElement> {
   return document.getElementById("pane") as HTMLElement;
 }
 
+/** Let the loading chain settle: `Office.onReady` starts it and does not await it. */
+const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 afterEach(() => {
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("data-theme");
   readiness = { ok: true, detail: "fine" };
+  indexMode = "fail";
+  window.localStorage.clear();
 });
 
 describe("booting the pane", () => {
-  it("draws the start step with its one disabled primary", async () => {
+  it("draws the loading step first, with its one disabled primary", async () => {
+    // The index is left HANGING on purpose: a mocked failure settles before the
+    // import returns, so the loading screen would never be observable and this
+    // case would silently be asserting about the problem screen instead.
+    indexMode = "hang";
     const pane = await openPane();
-    expect(pane.querySelector("h1")?.textContent).toBe("Start here");
+    expect(pane.querySelector("h1")?.textContent).toBe("Loading the library");
     const button = pane.querySelector("button.primary") as HTMLButtonElement;
     expect(button.disabled).toBe(true);
   });
@@ -87,5 +137,29 @@ describe("booting the pane", () => {
   it("leaves the theme alone when the host does not say", async () => {
     await openPane();
     expect(document.documentElement.getAttribute("data-theme")).toBeNull();
+  });
+});
+
+describe("when the library does not arrive", () => {
+  it("ends on a screen that says so and offers a retry, never a blank one", async () => {
+    const pane = await openPane();
+    await settle();
+    expect(pane.querySelector("h1")?.textContent).toBe("The library did not load");
+    const button = pane.querySelector("button.primary") as HTMLButtonElement;
+    expect(button.textContent).toBe("Try again");
+    expect(button.disabled).toBe(false);
+    expect(pane.querySelector("p.blocked")?.textContent).toContain("the site did not answer");
+  });
+});
+
+describe("when it does arrive", () => {
+  it("shows the library, and admits it could not tell which slide the user is on", async () => {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    expect(pane.querySelector("h1")?.textContent).toBe("Slide elements");
+    // `currentSlide` answers undefined here, and the pane says so rather than
+    // quietly aiming at the first slide.
+    expect(pane.querySelector(".slide")?.textContent).toMatch(/did not say/i);
   });
 });

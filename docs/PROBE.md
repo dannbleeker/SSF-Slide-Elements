@@ -6,7 +6,10 @@ the picker should be built on a guess about any of them.
 
 Running it takes a few minutes and leaves your deck as it found it, apart from
 one slide it leaves on purpose and takes back on the second run (see
-[question 5](#5-does-powerpoints-own-ctrlz-revert-the-insert)).
+[question 5](#5-does-powerpoints-own-ctrlz-revert-the-insert)), and one
+master, one layout and one theme that come in with the probe's own fixture
+deck and that no API call can take out again (measured on the web,
+2026-09-10). That is why the deck should be a throwaway copy.
 
 ## Why a Script Lab snippet and not a probe pane
 
@@ -58,7 +61,11 @@ slide number it found so you can compare.
 9. The deck now has **one extra slide at the end**, left on purpose. Click the
    slide canvas, press **Ctrl+Z once**, and look at whether the slide went away.
 10. **Run** the snippet again, and copy the second sheet into `second.json`.
-    The second run removes the extra slide if Ctrl+Z did not.
+    The second run removes the extra slide if Ctrl+Z did not, and leaves none
+    of its own: it knows it is the second of the pair from a marker the first
+    run wrote into the document's settings before it left the slide. In Script
+    Lab, "run again" is the runner's own **refresh** button beside the snippet
+    name; the ribbon's **Run** does nothing while the runner is already open.
 
 If the console shows `the probe itself failed:` instead of an answer sheet, send
 that line too. It is an answer about the host as well.
@@ -161,6 +168,24 @@ it by position. A second run cannot tell a Ctrl+Z from a hand delete, which is
 why the steps say to press it and not to delete. On a host below 1.3 the tag
 cannot be read and the reader falls back to the counts.
 
+**How the second run knows it is the second.** The slide is the one thing a
+successful Ctrl+Z removes, so it cannot also be what tells the runs apart: on
+the first web round the second run found no tag, took itself for a first run,
+and left a slide of its own. So before the first run leaves the slide it writes
+a marker into the document's settings (`Office.context.document.settings`),
+which live outside the undo stack and survive the Ctrl+Z the slide does not.
+The marker carries the deck size just before the slide was left, so a second
+sheet on its own can answer the question; the pair is the cross-check. The
+second run clears the marker, so the run after it is a first run again.
+
+The marker goes in **before** the slide, never after. A settings save is
+reported to disable undo on Excel
+([office-js#3141](https://github.com/OfficeDev/office-js/issues/3141)), and a
+save after the insert would take your one Ctrl+Z away from the very insert
+this question is about. PowerPoint on the web measured otherwise on 2026-09-10
+(a save after an add still left Ctrl+Z on the add), but the order costs
+nothing and holds on hosts not yet measured.
+
 ### 6. Timing and the floor
 
 Every read is timed and sized: `getFileAsync` at the start and at the end,
@@ -183,12 +208,41 @@ The one slide it leaves is for question 5, and the reader's clean-up line
 accounts for it. If the deck ends any other size than it started plus that
 slide, the reader warns rather than pretending it is clean. The package is
 read again at the end, so a master, a theme or a layout an insert left behind
-is listed too.
+is listed too. On the web that list is not empty: the fixture decks carry
+their own master, `KeepSourceFormatting` brings it in once (the second fixture
+insert finds it already there), and the sweep can remove slides but not
+masters, layouts or themes. The first run also writes one entry into the
+document's settings, the marker for question 5, which the second run clears.
 
 ## What it has answered so far
 
-Nothing yet. `docs/host-answers/` is the count, not this line; the first sheets
-are the owner's rounds on the web, Windows and Mac.
+**PowerPoint for the web, 2026-09-10** — two sheets under `docs/host-answers/`
+(`2026-09-10T17-34-14-659Z.json` and `2026-09-10T17-41-19-168Z.json`, host
+`0.0.0.0`, platform `OfficeOnline`, PowerPointApi up to 1.10, a run of about
+seven seconds on a three-slide deck): every insert landed; both prunings land
+as one slide, so the host reads the slide list and ignores an unlisted part;
+the deck's own master is not duplicated under either formatting option; a
+slide the run had just added is accepted as `targetSlideId`, and
+insert-then-positional-delete keeps the order; `getSelectedSlides` named slide
+2 at its file position; the export drops the comment part and
+`ppt/authors.xml` (and, once a foreign master is in the deck, that master, its
+layout and its theme); a 34 KB `getFileAsync` took under a second; and
+**Ctrl+Z reverts an insert** (four slides down to three, the tag gone). Those
+sheets predate the marker: the second one took itself for a first run and left
+a slide behind, which is the defect the marker fixes.
+
+**Same host, same day, with the marker** — a second pair
+(`2026-09-10T18-13-10-866Z.json` and `2026-09-10T18-29-13-985Z.json`): the
+first run wrote the marker and left its slide, Ctrl+Z took the slide, and the
+second run found the marker, found no tag, cleared the marker and left
+nothing, the deck ending at the three slides it started with. The second sheet
+reads "yes" on its own, from the marker. Two things about that pair are about
+the minute, not the host: the document session had been through a
+session-timeout reload, and every read was slow (`getFileAsync` 40 s for
+40 KB where the first pair measured under a second), so one fixture insert
+landed only after the probe's 120 s budget and is recorded as a timed-out
+insert that landed, not a refusal. `docs/host-answers/` is the count, not this
+line; Windows and Mac are still to come.
 
 ## One answer is not evidence about your host
 

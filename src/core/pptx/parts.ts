@@ -27,6 +27,17 @@ const MS_REL_2014 = "http://schemas.microsoft.com/office/2014/relationships";
 export const REL_TYPE = {
   slide: `${REL}/slide`,
   notesSlide: `${REL}/notesSlide`,
+  /**
+   * The layout a slide is built on, and the master behind that.
+   *
+   * The splice READS these rather than writing them. A placeholder on a slide
+   * routinely carries no geometry of its own and inherits it from the layout,
+   * and the layout's from the master; where a whole-slide element lands depends
+   * on where the destination's title actually is, so the chain has to be walked
+   * rather than assumed. `layout.ts` is that walk.
+   */
+  slideLayout: `${REL}/slideLayout`,
+  slideMaster: `${REL}/slideMaster`,
   tags: `${REL}/tags`,
   image: `${REL}/image`,
   chart: `${REL}/chart`,

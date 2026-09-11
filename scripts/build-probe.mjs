@@ -26,7 +26,7 @@
 import { writeFileSync } from "node:fs";
 import { Pkg, PKG_REL_NS, P_NS, element, elements } from "../dist-lib/core/index.js";
 import { API_FLOOR } from "../dist-lib/host/capability.js";
-import { API_SETS, PROBE_TAG, PROBE_UNDO_VALUE } from "../dist-lib/host/probe.js";
+import { API_SETS, PROBE_MARKER, PROBE_TAG, PROBE_UNDO_VALUE } from "../dist-lib/host/probe.js";
 import { makeDeck, stableZip } from "./probe-fixture.mjs";
 
 const b64 = (bytes) => Buffer.from(bytes).toString("base64");
@@ -91,6 +91,7 @@ const UNLISTED_DECK = "${UNLISTED}";
 const SINGLE_DECK = "${SINGLE}";
 const UNDO_DECK = "${UNDO}";
 const PROBE_TAG = "${PROBE_TAG}";
+const PROBE_MARKER = "${PROBE_MARKER}";
 const API_FLOOR = "${API_FLOOR}";
 const API_SETS = ${JSON.stringify(API_SETS)};
 
@@ -573,6 +574,67 @@ async function findUndoSlide(): Promise<{ found: boolean | "unsupported"; index?
   }
 }
 
+interface Marker {
+  takenAt: string;
+  deckBeforeLeave: number;
+}
+
+/**
+ * Question 5, the marker: what tells a second run from a first once Ctrl+Z
+ * has taken the slide.
+ *
+ * The document's settings live outside the undo stack, so a note written
+ * BEFORE the slide is left survives the Ctrl+Z that removes the slide. Before
+ * it, never after: a settings save is reported to disable undo on Excel
+ * (office-js#3141), and a save after the insert would take the user's one
+ * Ctrl+Z away from the very insert this question is about. PowerPoint on the
+ * web measured otherwise on 2026-09-10 (a save after an add still left Ctrl+Z
+ * on the add); the order costs nothing and holds on hosts not yet measured.
+ */
+function readMarker(): { found: boolean; value?: Marker; error?: string } {
+  try {
+    const value = Office.context.document.settings.get(PROBE_MARKER);
+    return value ? { found: true, value: value as Marker } : { found: false };
+  } catch (e) {
+    return { found: false, error: message(e) };
+  }
+}
+
+function saveSettings(what: string): Promise<string> {
+  return withTimeout(
+    new Promise<string>((resolve) => {
+      Office.context.document.settings.saveAsync((res) =>
+        resolve(
+          res.status === Office.AsyncResultStatus.Succeeded
+            ? "saved"
+            : \`failed: \${res.error ? res.error.message : "no error text"}\`,
+        ),
+      );
+    }),
+    20000,
+    what,
+  );
+}
+
+async function writeMarker(value: Marker): Promise<{ written: boolean; status: string }> {
+  try {
+    Office.context.document.settings.set(PROBE_MARKER, value);
+    const status = await saveSettings("saving the marker");
+    return { written: status === "saved", status };
+  } catch (e) {
+    return { written: false, status: message(e) };
+  }
+}
+
+async function clearMarker(): Promise<string> {
+  try {
+    Office.context.document.settings.remove(PROBE_MARKER);
+    return await saveSettings("clearing the marker");
+  } catch (e) {
+    return message(e);
+  }
+}
+
 async function main() {
   const started = Date.now();
   const answers: Record<string, unknown> = {
@@ -597,6 +659,14 @@ async function main() {
     (undoAtStart as Record<string, unknown>).removed = \`removed the tagged slide at index \${undoAtStart.index} (\${before} → \${await slideCount()})\`;
   }
   answers.undoAtStart = undoAtStart;
+
+  // The marker the previous run wrote before it left that slide. It survives
+  // the Ctrl+Z the slide does not, so a second run knows what it is even
+  // with the slide gone — and never leaves a slide of its own. Cleared here,
+  // so the run after this one is a first run again.
+  const marker = readMarker();
+  const secondRun = undoAtStart.found === true || marker.found;
+  answers.undoMarker = marker.found ? { found: true, value: marker.value, cleared: await clearMarker() } : marker;
 
   const deckAtStart = await slideCount();
   answers.deckAtStart = deckAtStart;
@@ -650,11 +720,22 @@ async function main() {
   answers.sweep = await sweep(deckAtStart, (await slideCount()) - deckAtStart);
 
   // Question 5, first run: leave one tagged slide behind for Ctrl+Z. Never
-  // twice in a row — a second run has just removed the first one's.
-  const leaveBehind = undoAtStart.found !== true;
-  answers.undo = leaveBehind
-    ? { leftBehind: true, insert: await insertDeck(UNDO_DECK, "KeepSourceFormatting") }
-    : { leftBehind: false };
+  // twice in a row — a second run has found the first one's slide or its
+  // marker. The marker goes in BEFORE the slide, so the user's one Ctrl+Z
+  // lands on the insert and nothing this run does after it can move it.
+  const leaveBehind = !secondRun;
+  if (leaveBehind) {
+    const deckBeforeLeave = await slideCount();
+    const marked = await writeMarker({ takenAt: answers.takenAt as string, deckBeforeLeave });
+    answers.undo = {
+      leftBehind: true,
+      deckBeforeLeave,
+      marker: marked,
+      insert: await insertDeck(UNDO_DECK, "KeepSourceFormatting"),
+    };
+  } else {
+    answers.undo = { leftBehind: false, previous: marker.value };
+  }
 
   // The package at the end, so the reader can say what the sweep could not
   // reach: a master, a theme, a layout that came in with an insert.
@@ -675,8 +756,14 @@ async function main() {
     console.log(
       "One slide was left at the END of the deck on purpose. Click the slide canvas, press Ctrl+Z once, then Run this snippet again and copy the second sheet too.",
     );
+  } else if (undoAtStart.found === true) {
+    console.log(
+      "The slide the previous run left behind was still there and was removed. The deck should be as you found it.",
+    );
   } else {
-    console.log("The slide the previous run left behind was removed. The deck should be as you found it.");
+    console.log(
+      "The slide the previous run left behind was already gone; its marker was still here and has been cleared. The deck should be as you found it.",
+    );
   }
 }
 

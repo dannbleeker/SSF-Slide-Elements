@@ -209,7 +209,17 @@ button[disabled] {
  * without them and every button there fell back to Chrome's near-black ring on
  * a near-black pane, measured at 1.03:1.
  */
-button:focus-visible {
+/*
+ * Every focusable control, not only the buttons.
+ *
+ * This said `button:focus-visible`, and the picker added a search box: the one
+ * control a keyboard user reaches first had the browser's default ring, which
+ * `pane-shots` measured at 1.03:1 against the dark surface. A ring nobody can
+ * see is the same as no ring.
+ */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--link);
   outline-offset: 2px;
 }
@@ -228,4 +238,398 @@ button:focus-visible {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * The picker.
+ *
+ * The rules at the top of this file still hold and this section is written to
+ * them: one orange (the tick), blue as chrome, navy as headings, and the one
+ * primary control last. Two things it adds:
+ *
+ * TILES ARE A GRID, not a column. The "one column" rule is about the pane's
+ * SECTIONS — search above tags above categories above the footer — and
+ * `docs/DESIGN.md` section 4 asks for tiles two across, three from 400px. A
+ * column of 85 tiles is a scroll nobody finishes.
+ *
+ * EVERY HIT AREA IS 24px ON THE SHORT SIDE, which `scripts/pane-shots.mjs`
+ * measures. The star sits ON the tile and is the one that gets this wrong, so
+ * it is given its own padding rather than relying on the glyph's size.
+ * ------------------------------------------------------------------------- */
+
+.borrowed,
+.slide {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.tools {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.search {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.gear {
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.gear-panel {
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--sunk);
+}
+
+.option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.option:last-child {
+  margin-bottom: 0;
+}
+
+.option-name {
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 52px;
+}
+
+.choice,
+.chip {
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/*
+ * ON, in both themes.
+ *
+ * This said `--navy` on `--lightblue`, and only one of the two is a themed
+ * token: in dark the fill went to #122a40 and the text stayed #00254c, which
+ * `pane-shots` measured at 1.05:1 — a picked tag that cannot be read on the
+ * theme half the users are in. `--head` is the token that means "what a
+ * heading is in this theme", so both ends move together.
+ */
+.choice.on,
+.chip.on {
+  background: var(--lightblue);
+  border-color: var(--blue);
+  color: var(--head);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 26px;
+  overflow: hidden;
+}
+
+.tags.open {
+  max-height: none;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.category {
+  margin-bottom: 10px;
+}
+
+.category-head {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  background: var(--bg);
+  color: var(--head);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  /* Category headers stick while scrolling (`docs/DESIGN.md` section 4). */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.category-name {
+  color: var(--head);
+  font-size: 14px;
+  margin: 0 0 4px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.tiles {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 400px) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+}
+
+.tile-pick {
+  display: block;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile-pick:hover:not(:disabled),
+.tile-pick[aria-current="true"] {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+
+.tile-pick[aria-current="true"] .tile-name {
+  font-weight: 600;
+}
+
+.tile-pick:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+
+.ghost {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ghost-slide {
+  fill: var(--sunk);
+  stroke: var(--hair);
+  stroke-width: 1;
+}
+
+.ghost-box {
+  fill: var(--lightblue);
+  stroke: var(--blue);
+  stroke-width: 1;
+}
+
+.tile-name {
+  display: block;
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 3px;
+  /* Wrapped, never clipped: a truncated name is a tile nobody can identify. */
+  overflow-wrap: anywhere;
+}
+
+.tile-busy {
+  display: block;
+  font-size: 11px;
+  color: var(--link);
+}
+
+.star {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  /*
+   * NOT `--disabled`. A star is a control the user acts on, and `--disabled`
+   * is the colour of something they cannot: `pane-shots` measured it at
+   * 2.26:1 in light and 2.62:1 in dark, both under the 4.5 floor.
+   */
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/*
+ * A starred tile is BLUE, not orange.
+ *
+ * `docs/DESIGN.md` section 4 spends the orange budget on the tick and says so
+ * in the same breath: "Hover rings, the star, the ghost frame and the coach
+ * marks are blue or navy." This was orange for one afternoon and the audit
+ * caught it twice over — as a second orange in the same glance, and at 2.55:1.
+ */
+.star.on {
+  color: var(--link);
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.stepper-noun {
+  color: var(--muted);
+  font-size: 10px;
+  margin-right: 2px;
+}
+
+.step {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--hair);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.step.on {
+  background: var(--lightblue);
+  border-color: var(--blue);
+  color: var(--head);
+}
+
+.footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hair);
+}
+
+.outcome {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/*
+ * The one state that needs the user to do something, marked as such.
+ *
+ * Peach rather than orange text: the orange budget is spent on the tick, and a
+ * second orange in the same glance is how neither one means anything. The
+ * colour is a FILL here and the text stays at full contrast on it.
+ */
+.outcome.by-hand {
+  background: var(--peach);
+  border-left: 3px solid var(--orange);
+  padding: 6px 8px;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.secondary {
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.secondary:disabled {
+  border-color: var(--hair);
+  color: var(--disabled);
+  cursor: default;
+}
+
+.settings-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/*
+ * Windows high-contrast mode: forced colours replace every one of the tokens
+ * above, so the things that carried meaning through COLOUR alone have to carry
+ * it through a border as well. `docs/DESIGN.md` section 9.
+ */
+@media (forced-colors: active) {
+  .chip.on,
+  .choice.on,
+  .step.on,
+  .tile-pick[aria-current="true"] {
+    border: 2px solid;
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .ghost-slide,
+  .ghost-box {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+
+  .outcome.by-hand {
+    border: 1px solid;
+  }
 }

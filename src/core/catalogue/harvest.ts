@@ -293,6 +293,19 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     if (run && el.kind === "slide") el.run = run;
   }
 
-  const catalogue: Catalogue = { size: options.size, width, height, categories, elements: elementsOut };
+  // What each carried part IS, asked of the deck that holds it. The splice
+  // declares these in the user's package, and a part it cannot name a content
+  // type for is one PowerPoint refuses the whole file over — so the answer is
+  // read here, once, rather than guessed from the extension at insert time.
+  const carried: Record<string, string> = {};
+  for (const path of [...parts.keys()].sort()) {
+    const type = await pkg.contentTypeOf(path);
+    if (type !== undefined) carried[path] = type;
+    else problems.push(`the carried part "${path}" has no content type in the ${options.size} deck`);
+  }
+  if (problems.length)
+    throw new HarvestError(`the ${options.size} deck cannot be harvested: ${problems.length} problem(s)`, problems);
+
+  const catalogue: Catalogue = { size: options.size, width, height, categories, elements: elementsOut, carried };
   return { catalogue, parts };
 }

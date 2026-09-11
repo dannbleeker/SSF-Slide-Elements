@@ -6,6 +6,25 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     environment: "node",
+    /**
+     * Vitest's default is five seconds, and this suite does real work: several
+     * files harvest one or both committed library decks — 1.5 MB of .pptx, 117
+     * elements, a megabyte of markup — and the splice sweep runs every one of
+     * them through a package build and an integrity check.
+     *
+     * Those cases take six or seven seconds on a CI runner and about eleven
+     * here, so the default killed them THERE and nowhere else: the same commit
+     * was green locally and red on Linux twice, once for three cases and once
+     * for a fourth nobody had noticed. Per-case timeouts fixed the three that
+     * failed and left the fourth, which is what a per-case fix does.
+     *
+     * Raised for the whole suite instead, because a slow test here means a slow
+     * MACHINE, never a wedged one: nothing in the suite waits on a network, a
+     * host or a clock. A hung test now takes a minute to say so, which costs a
+     * minute of CI and is worth it.
+     */
+    testTimeout: 60_000,
+    hookTimeout: 180_000,
     coverage: {
       provider: "v8",
       // The engine and the pure decisions are the product, and the pane's
@@ -30,10 +49,19 @@ export default defineConfig({
       // branches, 100 functions, 99.7 lines. The branches that are not reached
       // are `Pkg`'s and `xml.ts`'s defensive nulls — an attribute list that is
       // not there, a document with no root — which `@xmldom/xmldom` never
-      // produces. Raise them the same way when the harvest and the splice land:
-      // measure, then leave two or three points of headroom, and say what you
-      // measured. (The scaffold alone measured 98.1 / 95.1 / 100 / 97.7.)
-      thresholds: { statements: 95, branches: 85, functions: 97, lines: 97 },
+      // produces. (The scaffold alone measured 98.1 / 95.1 / 100 / 97.7.)
+      //
+      // Measured again with the splice, the host handshake and the picker in,
+      // 2026-09-10: **97.7 statements, 91.9 branches, 100 functions, 98.9
+      // lines**. Branches rose by four and a half points because the new code
+      // is mostly decisions, and every decision is a pure function the suite
+      // can put both ways. So the branch floor rises 85 → 88, which is three
+      // points of headroom; the rest keep theirs, which they already had.
+      //
+      // Raise them the same way next time: measure, leave two or three points,
+      // and say what you measured. A threshold that follows coverage upward on
+      // its own only ever ratchets, and the first hard week gets it deleted.
+      thresholds: { statements: 95, branches: 88, functions: 97, lines: 97 },
     },
   },
 });
