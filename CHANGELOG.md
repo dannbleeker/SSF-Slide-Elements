@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the library, on the web
+
+- **Every element is now on the site**, in both slide sizes, with PowerPoint's
+  own rendering of each one:
+  <https://ssf-slide-elements.struktureretsundfornuft.dk/catalogue.html>. It is
+  generated from the same catalogue the pane reads, so it cannot fall behind the
+  library, and it is linked from every page of the site.
+
 ### Added — an element in the library's own colours
 
 - **The gear now holds a colour setting.** Left where it starts, an element takes

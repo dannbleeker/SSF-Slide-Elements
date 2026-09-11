@@ -1,0 +1,203 @@
+/**
+ * The catalogue page on the site: every element, with its picture and its name.
+ *
+ * `docs/DESIGN.md` section 3 asks for it "generated at harvest, every element
+ * with picture and name, for browsing outside PowerPoint and for the AppSource
+ * screenshots", and section 7 gives the gear a link to it. So it is written by
+ * `scripts/harvest.mjs` from the same catalogue the pane reads, and CI diffs
+ * the result the way it diffs the index: the page cannot fall behind the decks
+ * without the build saying so.
+ *
+ * Static HTML with no script in it at all. The page is 234 pictures on a
+ * publicly reachable site, and every line of JavaScript on it would be a line
+ * somebody has to audit against `SECURITY.md`'s promise that this project
+ * sends nothing anywhere. The two sizes are two sections with a jump link,
+ * rather than a toggle, for the same reason.
+ *
+ * The rules live here rather than in the harvest script so the suite can hold
+ * them to an answer (`test/catalogue-page.test.ts`), which is how every other
+ * generated artifact in this repo is gated.
+ */
+
+/** HTML-escaped: every name on this page comes out of the owner's deck. */
+export function esc(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+/** The directory a size's files live under: `16:9` is not a legal path segment. */
+export function dirOf(size) {
+  return size.replace(":", "x");
+}
+
+/**
+ * One element's figure.
+ *
+ * The picture is the same PNG the pane's tiles use, cut from the deck's print
+ * at deploy time — so in a tree where the previews have not been built the
+ * browser draws its own broken-image mark and the name underneath still says
+ * what the element is. The pane can hide a missing picture because it has
+ * JavaScript; this page would rather show the gap than carry a script.
+ */
+function figure(element, size, version) {
+  const src = `catalogue/${dirOf(size)}/previews/${encodeURIComponent(element.id)}.png?v=${encodeURIComponent(version)}`;
+  // The name and nothing else. A sized element's count is already IN its name —
+  // "Hierarchy, 2 levels, 3 boxes" — so the run's own "3 boxes" beside it read
+  // as a stutter on every one of the 45 elements that has one. The pane shows
+  // that count because it collapses a run to one tile and the stepper needs a
+  // label; this page shows every member, so there is nothing to label.
+  return (
+    `<figure class="element" id="${esc(dirOf(size))}-${esc(element.id)}">` +
+    `<img src="${esc(src)}" alt="${esc(element.name)}" loading="lazy" decoding="async">` +
+    `<figcaption>${esc(element.name)}</figcaption>` +
+    `</figure>`
+  );
+}
+
+/** One category: its name, how many elements it holds, and their figures. */
+function category(name, elements, size, version) {
+  return (
+    `<section class="category">` +
+    `<h3>${esc(name)} <span class="count">${elements.length}</span></h3>` +
+    `<div class="grid">${elements.map((e) => figure(e, size, version)).join("")}</div>` +
+    `</section>`
+  );
+}
+
+/**
+ * The whole page.
+ *
+ * `sizes` is the committed index's own `sizes` map: size to catalogue. Every
+ * element is shown, including the members of a sized run — the pane collapses a
+ * run to one tile with a stepper because it is 320 px wide, and this page is
+ * not, so somebody looking for "the one with five boxes" can see all six.
+ */
+export function catalogueHtml(sizes, version) {
+  const order = Object.keys(sizes).sort();
+  const sections = order
+    .map((size) => {
+      const catalogue = sizes[size];
+      const byKey = new Map(catalogue.categories.map((c) => [c.key, []]));
+      for (const element of catalogue.elements) {
+        const into = byKey.get(element.category.key);
+        if (into) into.push(element);
+        else byKey.set(element.category.key, [element]);
+      }
+      const named = new Map(catalogue.categories.map((c) => [c.key, c.name]));
+      const body = [...byKey.entries()]
+        .filter(([, elements]) => elements.length > 0)
+        .map(([key, elements]) => category(named.get(key) ?? key, elements, size, version))
+        .join("");
+      return (
+        `<section class="size" id="size-${esc(dirOf(size))}">` +
+        `<h2>${esc(size)} <span class="count">${catalogue.elements.length} elements</span></h2>` +
+        body +
+        `</section>`
+      );
+    })
+    .join("");
+
+  const jumps = order.map((size) => `<a class="jump" href="#size-${esc(dirOf(size))}">${esc(size)}</a>`).join("");
+
+  return `<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>The element library — SSF Slide Elements</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Every element in SSF Slide Elements, in both slide sizes, with PowerPoint's own rendering of each one.">
+<link rel="icon" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icon-80.png">
+
+<!-- GENERATED by scripts/harvest.mjs from the committed catalogue. Do not edit:
+     run \`npm run harvest\`. CI diffs this file, so an element added to a deck
+     and not reflected here fails the build. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="The element library — SSF Slide Elements">
+<meta property="og:description" content="Every element in SSF Slide Elements, in both slide sizes.">
+<meta property="og:url" content="https://ssf-slide-elements.struktureretsundfornuft.dk/catalogue.html">
+<meta property="og:image" content="https://ssf-slide-elements.struktureretsundfornuft.dk/assets/icon-80.png">
+<meta name="twitter:card" content="summary">
+
+<style>
+  /* The landing page's palette and rhythm, so the site is one site. */
+  :root {
+    --navy: #00254c;
+    --blue: #2b6cb0;
+    --orange: #ed8936;
+    --ink: #1a202c;
+    --grey: #6b7280;
+    --calm: #edf2f7;
+    --hair: #cbd5e0;
+  }
+  body {
+    margin: 0;
+    padding: 6vh 24px 12vh;
+    background: var(--calm);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 64rem; margin: 0 auto }
+  .tick {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background: var(--orange);
+    margin-bottom: 14px;
+    border-radius: 1px;
+  }
+  h1 { color: var(--navy); font-size: 2rem; margin: 0 0 4px; letter-spacing: -.02em }
+  h2 { color: var(--navy); font-size: 1.4rem; margin: 40px 0 4px }
+  h3 { color: var(--navy); font-size: 1.05rem; margin: 28px 0 10px }
+  p { color: var(--grey); margin: 0 0 12px }
+  .lede { color: var(--ink) }
+  a { color: var(--blue) }
+  .count { color: var(--grey); font-size: .85rem; font-weight: normal }
+  .jumps { display: flex; gap: 10px; margin: 18px 0 8px }
+  .jump {
+    border: 1px solid var(--hair);
+    border-radius: 12px;
+    padding: 2px 12px;
+    background: #fff;
+    text-decoration: none;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .element { margin: 0 }
+  .element img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 4px;
+  }
+  figcaption { color: var(--ink); font-size: .9rem; margin-top: 6px }
+  .rule { border: 0; border-top: 1px solid var(--hair); margin: 40px 0 16px }
+  .from { font-size: .95rem }
+</style>
+
+<main>
+  <span class="tick"></span>
+  <h1>The element library</h1>
+  <p class="lede">Every element SSF Slide Elements can put on a slide, in both slide sizes, as
+    PowerPoint itself draws it. In the add-in you find these in the task pane and click one; here
+    they are only to look at.</p>
+  <div class="jumps">${jumps}</div>
+  ${sections}
+  <hr class="rule">
+  <p class="from"><a href="/">SSF Slide Elements</a> &middot;
+    <a href="/support.html">Support</a> &middot;
+    <a href="/privacy.html">Privacy</a> &middot;
+    From <a href="https://struktureretsundfornuft.dk">StruktureretSundFornuft.dk</a>.</p>
+  <p class="from">Catalogue ${esc(version)}.</p>
+</main>
+</html>
+`;
+}

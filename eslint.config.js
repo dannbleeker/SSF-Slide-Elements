@@ -73,6 +73,7 @@ export default tseslint.config(
     files: [
       "scripts/build-previews.mjs",
       "scripts/build-probe.mjs",
+      "scripts/catalogue-page.mjs",
       "scripts/harvest.mjs",
       "scripts/read-answers.mjs",
       "scripts/manifest-rules.mjs",

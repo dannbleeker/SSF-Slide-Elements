@@ -433,6 +433,20 @@ describe("the icons the manifests point at", () => {
     expect(Buffer.compare(outline, readFileSync("public/assets/icon-outline-32.png")), "icon-outline-32.png").toBe(0);
   });
 
+  it("includes the 300x300 store logo, which no manifest names and the submission form asks for", async () => {
+    // Committed like the rest, and gated for the same reason — but it is
+    // uploaded to Partner Center rather than served, so nothing else in the
+    // repo would notice it going missing or going stale. AppSource is specific
+    // about the size: 300x300, and it is rejected at any other.
+    // @ts-expect-error — plain .mjs with no types.
+    const { STORE_LOGO, png, markPixel } = await import("../scripts/build-icons.mjs");
+    expect(STORE_LOGO).toBe(300);
+    const bytes = readFileSync(`public/assets/store-${STORE_LOGO as number}.png`);
+    expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([300, 300]);
+    expect(Buffer.compare(png(STORE_LOGO, markPixel(STORE_LOGO)) as Buffer, bytes)).toBe(0);
+  });
+
   it("are real PNGs of the size they claim", () => {
     // A truncated or zero-byte file still satisfies existsSync, and a blank
     // square in the ribbon is what a user sees.

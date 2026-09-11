@@ -40,7 +40,7 @@ jobs:
       - name: Catalogue is current
         run: npm run harvest
       - name: Catalogue is committed
-        run: git diff --exit-code -- public/catalogue/catalogue.json
+        run: git diff --exit-code -- public/catalogue/catalogue.json public/catalogue.html
       # The probe snippet is generated from the engine and the fixtures carry
       # fixed dates, so a fresh build is byte-identical to what is committed
       # unless somebody changed the builder and forgot to run it.

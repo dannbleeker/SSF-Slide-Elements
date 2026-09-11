@@ -38,10 +38,18 @@ those two, which is what turns the last of the design's "assumed" column into
 
 ### Release and AppSource
 
-The 300×300 store icon, a 1366×768 screenshot, the descriptions, the validators'
-testing notes and test deck, the catalogue page on the site, the privacy page
-naming the browser storage, then the Partner Center submission of
-`manifest-prod.xml`, and v0.1.0 on the releases page.
+Written and built: the 300×300 store logo (`npm run icons`), the descriptions
+and the validators' testing notes (`docs/LISTING.md`, held to the manifests by
+`test/listing.test.ts`), the catalogue page on the site
+(`public/catalogue.html`, generated at harvest), and the privacy page naming
+the browser storage.
+
+Left, and all of it needs either a screen or the owner: **a 1366×768
+screenshot** of the pane beside a real presentation; **a validators' test
+deck**, authored in PowerPoint rather than built by this repo's own code;
+**the listing name**, which waits on the same naming-policy answer SSF Merge
+waits on; then the Partner Center submission of `manifest-prod.xml`, and
+v0.1.0 on the releases page.
 
 ## Rejected — do not re-propose
 
