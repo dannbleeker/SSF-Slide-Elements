@@ -106,6 +106,28 @@ export function union(boxes: Box[]): Box {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
+/**
+ * A rotated shape's UNROTATED frame and its angle, in fractions of the slide.
+ * Undefined when the shape is not rotated, or has no frame at all.
+ *
+ * `boxOf` gives the rotated EXTENT, which is what the pane needs to know how
+ * much room an element takes. The preview cut needs the other thing: the frame
+ * the extent was computed from, so everything outside the rotated rectangle can
+ * be masked away rather than showing whatever the slide has in the corners
+ * (`docs/DESIGN.md` section 3). The owner's stamps are rotated 29° and 35°.
+ */
+export function rotationOf(shape: Element, width: number, height: number): { deg: number; frame: Box } | undefined {
+  const f = frameOf(shape);
+  if (!f || f.rot % 360 === 0) return undefined;
+  let { w, h } = f;
+  const table = tableSize(shape);
+  if (table) {
+    w = Math.max(w, table.w);
+    h = Math.max(h, table.h);
+  }
+  return { deg: f.rot, frame: { x: f.x / width, y: f.y / height, w: w / width, h: h / height } };
+}
+
 /** A box rounded to four decimals, so the committed catalogue does not churn on floating-point noise. */
 export function rounded(box: Box): Box {
   const r = (v: number) => Math.round(v * 10000) / 10000;

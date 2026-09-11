@@ -114,6 +114,15 @@ PowerPoint would settle.
   a re-print. A part is cut to its box with 3% of air, the boxes of neighbouring
   parts painted white, and a rotated part masked to its rotated frame. The parts
   are the same objects in both decks, so their cuts are shared.
+  The geometry of that is `src/core/catalogue/cut.ts`, pure and decided in
+  tests rather than by judging a rendered picture: 3% of the element's OWN size
+  on each side, clamped so a crop never reaches off the page; a neighbour
+  painted out only when it is a part, on the same slide, and actually intrudes
+  on the crop, clipped to it; and the mask as the four corners of the unrotated
+  frame turned about its centre. That frame is why an element now carries
+  `rotation` — `box` is the rotated EXTENT, and the extent cannot be un-rotated
+  back into the frame it came from. Two elements per deck have one: the stamps,
+  at −29.06° and 35.02°.
 - **Each print carries a sidecar naming the bytes it was taken from**, and that
   is the gate — `template/library-16x9.print.json` and its 4:3 twin, holding the
   deck's SHA-256, the print's own SHA-256, the slide and page counts, the date,

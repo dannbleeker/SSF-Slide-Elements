@@ -83,6 +83,16 @@ export interface Element {
   slide: number;
   kind: "slide" | "part";
   box: Box;
+  /**
+   * For a rotated part, the UNROTATED frame `box` was computed from, and the
+   * angle in degrees clockwise.
+   *
+   * Only the preview cut needs it: `box` is the rotated extent, so its corners
+   * hold whatever the slide has behind the element, and masking them away needs
+   * the frame back (`docs/DESIGN.md` section 3). Absent when the element is not
+   * rotated, which is all but the owner's stamps.
+   */
+  rotation?: { deg: number; frame: Box };
   landing: Landing;
   /** Top-level shapes the element consists of: 1 for a part. */
   shapes: number;

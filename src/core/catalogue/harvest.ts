@@ -19,7 +19,7 @@
 import { XMLSerializer } from "@xmldom/xmldom";
 import { Pkg } from "../pptx/pkg.js";
 import { A_NS, P_NS, PKG_REL_NS, R_NS, elements, element } from "../pptx/xml.js";
-import { boxOf, offSlide, rounded, topLevelShapes, union } from "./boxes.js";
+import { boxOf, offSlide, rotationOf, rounded, topLevelShapes, union } from "./boxes.js";
 import { sizeRuns } from "./runs.js";
 import { tagsFor } from "./tags.js";
 import { paragraphsOf, partName, placeholderType, slug, textOf, titleOf } from "./text.js";
@@ -238,6 +238,8 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
       for (const { shape, box } of content) {
         const key = partName(shape, title, used, nameless);
         const b = rounded(box ?? { x: 0, y: 0, w: 1, h: 1 });
+        // Only a part is ever masked, so only a part carries its rotation.
+        const rot = rotationOf(shape, width, height);
         elementsOut.push({
           id: slug(key),
           key,
@@ -246,6 +248,7 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
           slide: slideNo,
           kind: "part",
           box: b,
+          ...(rot ? { rotation: { deg: rot.deg, frame: rounded(rot.frame) } } : {}),
           landing: landingFor("part", title, b),
           shapes: 1,
           tags: tagsFor(key, title, true),
