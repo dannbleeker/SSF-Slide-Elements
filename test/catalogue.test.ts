@@ -408,7 +408,21 @@ describe("names, runs and tags", () => {
       "columns",
       "white",
     ]);
-    expect(tagsFor("Udkast", "Stempler og lignende", true)).toEqual(["stamps", "small"]);
+    expect(tagsFor("Draft", "Stempler og lignende", true)).toEqual(["stamps", "small"]);
+  });
+
+  it("reaches an English part key as well as its Danish spelling", () => {
+    // A part is keyed by its own text on the slide, and that text went English
+    // on 2026-09-11. A rule written only in Danish stops reaching these, which
+    // is how four elements silently lost their "meeting" tag.
+    for (const key of ["Document", "Documents", "Working document", "Document name > Current section from…"]) {
+      expect(tagsFor(key, "Stempler og lignende", true)).toContain("meeting");
+    }
+    // the Danish spellings still reach it, for any deck that has not moved
+    expect(tagsFor("Arbejdsdokument", "Stempler og lignende", true)).toContain("meeting");
+    // and the two that were already covered in both languages
+    expect(tagsFor("Decision", "Flowchart ikoner", true)).toContain("meeting");
+    expect(tagsFor("Process / Action", "Flowchart ikoner", true)).toContain("process");
   });
 });
 
@@ -426,12 +440,16 @@ describe("the committed library", () => {
       new Set(["Markers", "Stamps and labels", "Flowchart shapes"]),
     );
     expect(new Set(catalogue.elements.filter((e) => e.run).map((e) => e.run?.key)).size).toBe(12);
+    // A part is keyed by its own text on the slide, and that text is English
+    // since 2026-09-11. The last one keeps a Danish key because it has no text
+    // of its own and falls back to the slide title numbered, and titles stay
+    // Danish (docs/DESIGN.md section 2).
     expect(catalogue.elements.filter((e) => e.landing === "top-right").map((e) => e.key)).toEqual([
-      "Fortroligt",
-      "Udkast",
-      "Fortroligt (2)",
-      "Diskussionsoplæg",
-      "Arbejdsdokument",
+      "Confidential",
+      "Draft",
+      "Confidential (2)",
+      "Discussion paper",
+      "Working document",
       "Stempler og lignende 1",
     ]);
     // Every key has an English name, and no two keys share a slug.

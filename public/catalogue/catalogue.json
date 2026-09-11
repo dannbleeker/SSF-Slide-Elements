@@ -1,5 +1,5 @@
 {
-  "version": "1641fe687794",
+  "version": "02298862ccb1",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -2558,8 +2558,8 @@
           ]
         },
         {
-          "id": "dokumentnavn-aktuelt-afsnit-fra",
-          "key": "Dokumentnavn > Aktuelt afsnit fra…",
+          "id": "document-name-current-section-from",
+          "key": "Document name > Current section from…",
           "name": "Breadcrumb bar: document > section",
           "category": {
             "key": "Stempler og lignende",
@@ -2582,8 +2582,8 @@
           ]
         },
         {
-          "id": "fortroligt",
-          "key": "Fortroligt",
+          "id": "confidential",
+          "key": "Confidential",
           "name": "Confidential stamp",
           "category": {
             "key": "Stempler og lignende",
@@ -2605,8 +2605,8 @@
           ]
         },
         {
-          "id": "udkast",
-          "key": "Udkast",
+          "id": "draft",
+          "key": "Draft",
           "name": "Draft stamp",
           "category": {
             "key": "Stempler og lignende",
@@ -2628,8 +2628,8 @@
           ]
         },
         {
-          "id": "fortroligt-2",
-          "key": "Fortroligt (2)",
+          "id": "confidential-2",
+          "key": "Confidential (2)",
           "name": "Confidential label",
           "category": {
             "key": "Stempler og lignende",
@@ -2651,8 +2651,8 @@
           ]
         },
         {
-          "id": "diskussionsoplaeg",
-          "key": "Diskussionsoplæg",
+          "id": "discussion-paper",
+          "key": "Discussion paper",
           "name": "Discussion paper label",
           "category": {
             "key": "Stempler og lignende",
@@ -2674,8 +2674,8 @@
           ]
         },
         {
-          "id": "arbejdsdokument",
-          "key": "Arbejdsdokument",
+          "id": "working-document",
+          "key": "Working document",
           "name": "Working document label",
           "category": {
             "key": "Stempler og lignende",
@@ -2744,8 +2744,8 @@
           ]
         },
         {
-          "id": "dokument",
-          "key": "Dokument",
+          "id": "document",
+          "key": "Document",
           "name": "Document",
           "category": {
             "key": "Flowchart ikoner",
@@ -2769,8 +2769,8 @@
           ]
         },
         {
-          "id": "dokumenter",
-          "key": "dokumenter",
+          "id": "documents",
+          "key": "Documents",
           "name": "Documents (stack)",
           "category": {
             "key": "Flowchart ikoner",
@@ -2818,8 +2818,8 @@
           ]
         },
         {
-          "id": "proces-handling",
-          "key": "Proces / Handling",
+          "id": "process-action",
+          "key": "Process / Action",
           "name": "Process / action",
           "category": {
             "key": "Flowchart ikoner",
@@ -2867,8 +2867,8 @@
           ]
         },
         {
-          "id": "beslutning",
-          "key": "Beslutning",
+          "id": "decision",
+          "key": "Decision",
           "name": "Decision",
           "category": {
             "key": "Flowchart ikoner",
@@ -5754,8 +5754,8 @@
           ]
         },
         {
-          "id": "fortroligt",
-          "key": "Fortroligt",
+          "id": "confidential",
+          "key": "Confidential",
           "name": "Confidential stamp",
           "category": {
             "key": "Stempler og lignende",
@@ -5777,8 +5777,8 @@
           ]
         },
         {
-          "id": "udkast",
-          "key": "Udkast",
+          "id": "draft",
+          "key": "Draft",
           "name": "Draft stamp",
           "category": {
             "key": "Stempler og lignende",
@@ -5800,8 +5800,8 @@
           ]
         },
         {
-          "id": "fortroligt-2",
-          "key": "Fortroligt (2)",
+          "id": "confidential-2",
+          "key": "Confidential (2)",
           "name": "Confidential label",
           "category": {
             "key": "Stempler og lignende",
@@ -5823,8 +5823,8 @@
           ]
         },
         {
-          "id": "diskussionsoplaeg",
-          "key": "Diskussionsoplæg",
+          "id": "discussion-paper",
+          "key": "Discussion paper",
           "name": "Discussion paper label",
           "category": {
             "key": "Stempler og lignende",
@@ -5846,8 +5846,8 @@
           ]
         },
         {
-          "id": "arbejdsdokument",
-          "key": "Arbejdsdokument",
+          "id": "working-document",
+          "key": "Working document",
           "name": "Working document label",
           "category": {
             "key": "Stempler og lignende",
@@ -5916,8 +5916,8 @@
           ]
         },
         {
-          "id": "dokumentnavn-aktuelt-afsnit-fra",
-          "key": "Dokumentnavn > Aktuelt afsnit fra…",
+          "id": "document-name-current-section-from",
+          "key": "Document name > Current section from…",
           "name": "Breadcrumb bar: document > section",
           "category": {
             "key": "Stempler og lignende",
@@ -5940,8 +5940,8 @@
           ]
         },
         {
-          "id": "dokument",
-          "key": "Dokument",
+          "id": "document",
+          "key": "Document",
           "name": "Document",
           "category": {
             "key": "Flowchart ikoner",
@@ -5965,8 +5965,8 @@
           ]
         },
         {
-          "id": "dokumenter",
-          "key": "dokumenter",
+          "id": "documents",
+          "key": "Documents",
           "name": "Documents (stack)",
           "category": {
             "key": "Flowchart ikoner",
@@ -6014,8 +6014,8 @@
           ]
         },
         {
-          "id": "proces-handling",
-          "key": "Proces / Handling",
+          "id": "process-action",
+          "key": "Process / Action",
           "name": "Process / action",
           "category": {
             "key": "Flowchart ikoner",
@@ -6063,8 +6063,8 @@
           ]
         },
         {
-          "id": "beslutning",
-          "key": "Beslutning",
+          "id": "decision",
+          "key": "Decision",
           "name": "Decision",
           "category": {
             "key": "Flowchart ikoner",
