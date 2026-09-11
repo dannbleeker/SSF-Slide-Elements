@@ -57,6 +57,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   able to see any of them. The mark now goes on the shapes inside as well, which
   is what the loose setting has always written. It adds about a quarter of a
   kilobyte per shape and nothing you can see.
+- That fix covered elements the add-in groups for you, and **23 elements in the
+  two libraries are drawn as a group already** — the stamps among them. Those
+  behaved the old way until a sweep over every element in both libraries found
+  them: ungrouping one left its shapes on the slide with nothing to find them
+  by, and **Remove** then said the slide carried no such element. Every element
+  is now covered, and the sweep runs on every commit.
 
 ### Fixed — the privacy page can now count
 

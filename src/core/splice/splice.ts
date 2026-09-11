@@ -354,7 +354,7 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
     await writeShapeTags(pkg, rebuilt, shape, stamp);
   }
 
-  // The shapes INSIDE a group the insert made are stamped too.
+  // The shapes INSIDE any group that lands are stamped too.
   //
   // Ungrouping is one gesture, and it destroys the group and the tag on it
   // together: a five-shape element ungrouped went from "used once in this deck"
@@ -363,6 +363,16 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   // and exactly what the loose setting writes anyway. Measured at about 250
   // bytes a shape.
   //
+  // **Any group, not only one this code made.** The first version asked
+  // `wanted`, which is true only when the splice WRAPPED the shapes — and 23
+  // elements in the shipped libraries are already a single `<p:grpSp>` the
+  // owner drew, so there is nothing to wrap and `wanted` is false. Those were
+  // exactly the elements the fix was meant to cover: ungrouping `confidential`
+  // left two untagged shapes on the slide and the removal then refused by name,
+  // "slide 1 carries no confidential this add-in inserted". Found by sweeping
+  // every element in both libraries rather than the one the fix was written
+  // against.
+  //
   // The reader stops AT a tagged shape, so while the group is still a group
   // this changes nothing it answers: one element, one use.
   //
@@ -370,12 +380,11 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   // `nateContent`, which is how a modern chart sits on a slide, has none — and
   // failing an insert that works today would be a worse trade than losing a tag
   // on an ungroup that may never happen.
-  if (wanted) {
-    for (const group of added) {
-      for (const inner of slideShapes(group)) {
-        if (!taggable(inner)) continue;
-        await writeShapeTags(pkg, rebuilt, inner, stamp);
-      }
+  for (const shape of added) {
+    if (shape.namespaceURI !== P_NS || shape.localName !== "grpSp") continue;
+    for (const inner of slideShapes(shape)) {
+      if (!taggable(inner)) continue;
+      await writeShapeTags(pkg, rebuilt, inner, stamp);
     }
   }
 
