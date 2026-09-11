@@ -382,6 +382,14 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host.
+- **The deck's slide count lags an insert by up to about three seconds.**
+  Measured on the web on 2026-09-11, polling `slides.getCount()` every 300 ms
+  through a real insert: 2.8 seconds at the old value, then the new one. One
+  round in three lost an undo to it — the restoring insert landed, the count
+  read straight afterwards said it had not, and the undo stopped between putting
+  the user's slide back and removing the rebuilt one, leaving six slides where
+  five belonged and saying so. Every size that decides something is now read
+  again on a backoff until the deck agrees.
 - **The whole product was run on this host on 2026-09-11**, from the pane rather
   than from a snippet: a tile clicked in the picker, the element onto the slide
   the user was on, and Undo afterwards. The insert reported `5 → 6 → 5 slides,

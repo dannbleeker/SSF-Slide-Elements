@@ -22,6 +22,7 @@ import {
   readDeck,
   removeSlideAt,
   selectedShape,
+  countReaching,
   slideCount,
   slideIdAt,
 } from "../office/powerpoint.js";
@@ -305,14 +306,16 @@ async function insert(id: string): Promise<void> {
     }
 
     const error = await insertPackage(report.base64, targetId);
-    const inserted = await slideCount();
+    // Asked again until it agrees, because the count lags the insert: see
+    // `countReaching`. One read here would report a landed insert as a no-op.
+    const inserted = await countReaching(before + 1);
     let removed: number | undefined;
     if (state.settings.target === "onto" && mayRemove({ before, inserted })) {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
       const failure = await removeSlideAt(at);
-      removed = failure === undefined ? await slideCount() : inserted;
+      removed = failure === undefined ? await countReaching(before) : inserted;
     }
 
     const outcome = outcomeOf({
@@ -372,7 +375,7 @@ async function undo(): Promise<void> {
       }
       const original = await onlySlide(entry.before, entry.index);
       const refused = await insertPackage(original.base64, targetId);
-      const grown = await slideCount();
+      const grown = await countReaching(plan.grownTo(before));
       if (grown !== plan.grownTo(before)) {
         throw new Error(
           refused ?? `the deck went ${before} → ${grown}, which is not what putting one slide back looks like`,
@@ -381,7 +384,7 @@ async function undo(): Promise<void> {
     }
 
     const refused = await removeSlideAt(plan.remove);
-    const after = await slideCount();
+    const after = await countReaching(before - (plan.after === undefined ? 1 : 0));
     if (refused !== undefined || after !== before - (plan.after === undefined ? 1 : 0)) {
       throw new Error(refused ?? `the deck has ${after} slides, which is not what was expected`);
     }

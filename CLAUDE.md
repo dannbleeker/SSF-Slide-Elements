@@ -100,6 +100,13 @@ counter dated.
 - **A queued call that raises nothing has not necessarily happened.** Confirm
   every destructive step with a second read; the deck DELTA is the evidence,
   never the absence of an error.
+- **The deck's own size can lag a call that has already happened.** Measured
+  HERE, on the web, 2026-09-11: polling `slides.getCount()` every 300 ms
+  through a real insert, the count stayed at its old value for 2.8 seconds and
+  then went up. So the delta is the evidence and ONE read of it is not: a size
+  that decides anything is asked again, backed off, until the deck agrees or the
+  backoff runs out (`countReaching`). Re-reading the measurement, never
+  re-trying the call.
 - **A call can raise and still have done the work.** SSF-Merge's insert timed
   out with both slides landed. Read the delta.
 - **An empty collection read is not an empty slide.** Never claim data loss
