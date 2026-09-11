@@ -16,9 +16,10 @@ Built, and run end to end against a real PowerPoint. Sideload
 `manifest-prod.xml`, press **Slide elements** on the Home tab, pick an element,
 and it lands on the slide you are on. The first whole round on PowerPoint for
 the web was **2026-09-11**: a tile clicked, the element on the selected slide,
-and Undo putting that slide back to the shapes it held before. Windows, Mac and
-iPad have had no round yet, and [the backlog](docs/BACKLOG.md) is what is still
-open.
+and Undo putting that slide back to the shapes it held before. **Windows was
+measured the same day** — a probe pair and a product round, both read in
+`docs/DESIGN.md` section 15. Mac and iPad have had no round yet, and
+[the backlog](docs/BACKLOG.md) is what is still open.
 
 | Piece | State |
 | --- | --- |

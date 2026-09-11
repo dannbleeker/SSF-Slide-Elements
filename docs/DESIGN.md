@@ -708,7 +708,8 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   behaviour section 6 asks for — but the first thing to try when a read is slow
   is a reload, not a larger budget.
 - **The tags an insert writes SURVIVE `insertSlidesFromBase64`, and they are
-  what "Used in this deck" and "Remove from N slides" will be read from.**
+  what "Used in this deck" and "Remove from N slides" ARE read from** — both
+  shipped on 2026-09-11, on the strength of this measurement.
   Measured on the web on 2026-09-11 by reading the throwaway deck back out of
   PowerPoint with `getFileAsync` after a session of inserts: seven
   `SSF_SLIDE_ELEMENT` tag parts, each paired with its
