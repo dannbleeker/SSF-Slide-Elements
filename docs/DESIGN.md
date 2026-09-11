@@ -110,11 +110,27 @@ PowerPoint would settle.
   line under the pane's header says so.
 - **Previews are PowerPoint's own rendering.** There is no PowerPoint in CI, so
   the owner prints each deck to PDF and commits the print beside the deck; the
-  harvest cuts every element's preview from it and fails when the print's slide
-  count does not match the deck's. Every deck change therefore needs a re-print.
-  A part is cut to its box with 3% of air, the boxes of neighbouring parts
-  painted white, and a rotated part masked to its rotated frame. The parts are
-  the same objects in both decks, so their cuts are shared.
+  harvest cuts every element's preview from it. Every deck change therefore needs
+  a re-print. A part is cut to its box with 3% of air, the boxes of neighbouring
+  parts painted white, and a rotated part masked to its rotated frame. The parts
+  are the same objects in both decks, so their cuts are shared.
+- **Each print carries a sidecar naming the bytes it was taken from**, and that
+  is the gate — `template/library-16x9.print.json` and its 4:3 twin, holding the
+  deck's SHA-256, the print's own SHA-256, the slide and page counts, the date,
+  the PowerPoint build and the export settings used.
+  Page count against slide count was the original check and it is not enough on
+  its own: **110 pages match 110 slides whatever the pages are OF.** A print of
+  yesterday's deck, of a corrected copy, or of a different deck the same length
+  all pass it, and the previews then come out cut from the wrong file with
+  nothing to say so. That is not hypothetical here — the first pair of prints
+  was taken from slash-corrected COPIES while the committed decks would not
+  open, and was thrown away rather than committed for exactly this reason.
+  The rules are in `scripts/print-provenance.mjs`, the stamping in
+  `npm run print-stamp`, and `test/print.test.ts` holds both. It was proven to
+  fail the way a gate must: a byte appended to the committed print gives
+  "the print has changed since it was stamped … re-stamp it", and a byte
+  appended to the committed deck gives "the deck has changed since the print was
+  taken … re-print it".
   **Both prints are committed**, `template/library-16x9.pdf` (110 pages,
   2,218,863 bytes) and `template/library-4x3.pdf` (108 pages, 2,307,900 bytes),
   re-taken on 2026-09-11 after the placeholder text went English, from the decks

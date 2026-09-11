@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — a print cannot go stale unnoticed
+
+- **Each committed PDF print now records which deck it came from**, and the
+  build refuses when the two drift apart. Edit a deck and forget to re-print it,
+  or replace a print without recording it, and you are told which of the two
+  moved and what to do — rather than finding out later from element pictures cut
+  from a file that no longer exists.
+
 ### Changed — the library speaks English
 
 - **Every placeholder an element puts on your slide is now English.** `[ Tekst ]`
