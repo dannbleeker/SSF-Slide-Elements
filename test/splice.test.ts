@@ -8,6 +8,7 @@ import { Pkg, harvest } from "../src/core/index.js";
 import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/index.js";
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
 import { A_NS, P_NS, R_NS, child, children, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
+import { removeElement, slidesHolding } from "../src/core/splice/remove.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -57,6 +58,28 @@ beforeAll(async () => {
   const pkg = await Pkg.open(new Uint8Array(readFileSync("template/library-16x9.pptx")));
   library = await harvest(pkg, { size: "16:9", names: NAMES });
 }, 120_000);
+
+/**
+ * Either shipped library, harvested once.
+ *
+ * The 4:3 deck is a second 1.5 MB harvest, and two sweeps want it — memoised so
+ * the second one costs nothing rather than a minute.
+ */
+const SIZES = ["16:9", "4:3"] as const;
+
+let library43: { catalogue: Catalogue; parts: Map<string, Uint8Array | string> } | undefined;
+
+async function libraryOf(size: "16:9" | "4:3"): Promise<{
+  catalogue: Catalogue;
+  parts: Map<string, Uint8Array | string>;
+}> {
+  if (size === "16:9") return library;
+  library43 ??= await harvest(await Pkg.open(new Uint8Array(readFileSync("template/library-4x3.pptx"))), {
+    size,
+    names: NAMES,
+  });
+  return library43;
+}
 
 /** An element from the real library, by the id the catalogue gives it. */
 function element(id: string): CatalogueElement {
@@ -122,6 +145,34 @@ function topLevelOf(spTree: Element): Element[] {
     out.push(el);
   }
   return out;
+}
+
+/**
+ * Ungroup every top-level group on a slide, the way PowerPoint does it: the
+ * group's shape children take its place in the tree and the group itself goes,
+ * tag and all. Answers how many shapes were freed.
+ *
+ * A gesture rather than an API call, which is the point — nothing in the
+ * add-in does this, and a user does it with one keystroke to get at a box
+ * inside an element.
+ */
+async function ungroupTopLevel(pkg: Pkg, slidePath: string): Promise<number> {
+  const spTree = await treeOf(pkg, slidePath);
+  let freed = 0;
+  for (const node of Array.from(spTree.childNodes)) {
+    if (node.nodeType !== 1) continue;
+    const shape = node as Element;
+    if (shape.namespaceURI !== P_NS || shape.localName !== "grpSp") continue;
+    for (const kid of Array.from(shape.childNodes)) {
+      if (kid.nodeType !== 1) continue;
+      const kidEl = kid as Element;
+      if (kidEl.namespaceURI === P_NS && (kidEl.localName === "nvGrpSpPr" || kidEl.localName === "grpSpPr")) continue;
+      spTree.insertBefore(kidEl, shape);
+      freed += 1;
+    }
+    spTree.removeChild(shape);
+  }
+  return freed;
 }
 
 function everyShapeId(spTree: Element): string[] {
@@ -219,24 +270,8 @@ describe("one element into a deck", () => {
     const out = await Pkg.open(report.base64);
     expect((await readShapeTags(out, report.slidePath)).map((t) => t.element)).toEqual([el.id]);
 
-    // Ungroup it the way PowerPoint does: the group's shape children take its
-    // place in the tree, and the group goes.
     const pkg = await Pkg.open(report.base64);
-    const spTree = await treeOf(pkg, report.slidePath);
-    let freed = 0;
-    for (const node of Array.from(spTree.childNodes)) {
-      if (node.nodeType !== 1) continue;
-      const shape = node as Element;
-      if (shape.namespaceURI !== P_NS || shape.localName !== "grpSp") continue;
-      for (const kid of Array.from(shape.childNodes)) {
-        if (kid.nodeType !== 1) continue;
-        const kidEl = kid as Element;
-        if (kidEl.namespaceURI === P_NS && (kidEl.localName === "nvGrpSpPr" || kidEl.localName === "grpSpPr")) continue;
-        spTree.insertBefore(kidEl, shape);
-        freed += 1;
-      }
-      spTree.removeChild(shape);
-    }
+    const freed = await ungroupTopLevel(pkg, report.slidePath);
     expect(freed, "the element did not land as a group with shapes in it").toBe(el.shapes);
 
     const after = await Pkg.open(await pkg.toBytes());
@@ -898,15 +933,8 @@ describe("the sweep the one above leaves out", () => {
       { paragraphs: [["Third"]] },
     ]);
     const findings: string[] = [];
-    const sizes: ["16:9" | "4:3", string][] = [
-      ["16:9", "library-16x9.pptx"],
-      ["4:3", "library-4x3.pptx"],
-    ];
-    for (const [size, file] of sizes) {
-      const lib =
-        size === "16:9"
-          ? library
-          : await harvest(await Pkg.open(new Uint8Array(readFileSync(`template/${file}`))), { size, names: NAMES });
+    for (const size of SIZES) {
+      const lib = await libraryOf(size);
       for (const [i, el] of lib.catalogue.elements.entries()) {
         const options = COMBINATIONS[i % COMBINATIONS.length] as (typeof COMBINATIONS)[number];
         const what = `[${size} ${el.id} ${options.target} ${options.group ? "grouped" : "loose"} ${options.colours}]`;
@@ -948,5 +976,99 @@ describe("the sweep the one above leaves out", () => {
       }
     }
     expect(findings.slice(0, 10)).toEqual([]);
+  }, 600_000);
+});
+
+describe("what the user does to the element afterwards", () => {
+  /**
+   * Insert, ungroup, read back, remove — every element in both libraries.
+   *
+   * Two defects were found by asking what a user does to a slide after an
+   * insert rather than what this repo's own writer produces: grouping an
+   * element with a shape of your own made it invisible to the pane, and
+   * ungrouping one lost it entirely. Both were fixed against ONE element.
+   *
+   * The fix for the second changed what every grouped insert writes — a tag on
+   * each shape inside the group — so the thing that could still be wrong is
+   * element-specific: a shape kind with no `<p:nvPr>` inside a group, an id the
+   * stamping collides with, a carried part the removal orphans badly. That is
+   * what a sweep is for.
+   *
+   * The removal is the other reason. It is the one feature no host round has
+   * exercised (`docs/BACKLOG.md`), so the engine's own evidence is all there
+   * is, and evidence from one element is evidence about one element.
+   */
+  it("survives an ungroup and comes off again, for every element in both libraries", async () => {
+    const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]);
+    // What the user's slide held before any of this. The removal has to put it
+    // back to exactly that: a count that is short means a shape of theirs went,
+    // and a count that is over means one of ours stayed — which is the shape
+    // the ungroup used to produce, silently.
+    const before = await Pkg.open(deck);
+    const baseline = topLevelOf(await treeOf(before, (await before.slidePaths())[1] as string)).length;
+    expect(baseline, "the fixture slide is empty, so the count below proves nothing").toBeGreaterThan(0);
+
+    const findings: string[] = [];
+    let withGroups = 0;
+    let withNone = 0;
+
+    for (const size of SIZES) {
+      const lib = await libraryOf(size);
+      for (const el of lib.catalogue.elements) {
+        const what = `[${size} ${el.id}]`;
+        try {
+          const report = await splice({
+            deck,
+            slide: 1,
+            element: asSplice(el),
+            options: { target: "onto", group: true, colours: "deck" },
+            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            store: (path) => Promise.resolve(lib.parts.get(path)),
+          });
+
+          // On the slide, and found there.
+          const fresh = await Pkg.open(report.base64);
+          if ((await slidesHolding(fresh, el.id)).length !== 1) findings.push(`${what} not found after the insert`);
+
+          // Ungrouped, the way one keystroke does it. Whether there is a group
+          // to take apart is the ELEMENT's business, not the setting's: 23 of
+          // the shipped elements are a single group the owner drew, so the
+          // splice wraps nothing and there is still a group on the slide.
+          const pkg = await Pkg.open(report.base64);
+          const freed = await ungroupTopLevel(pkg, report.slidePath);
+          const after = await Pkg.open(await pkg.toBytes());
+          if (freed > 0) {
+            withGroups += 1;
+            const tagged = (await readShapeTags(after, report.slidePath)).filter((t) => t.element === el.id);
+            if (tagged.length === 0) findings.push(`${what} the ungroup lost the mark entirely`);
+          } else {
+            withNone += 1;
+          }
+
+          // And it still comes off, from the ungrouped slide.
+          const removal = await removeElement({ deck: await after.toBytes(), slide: 0, element: el.id });
+          if (removal.left !== 0) findings.push(`${what} ${removal.left} shape(s) left after the removal`);
+          if (removal.removed === 0) findings.push(`${what} the removal took nothing off`);
+          const out = await Pkg.open(removal.base64);
+          const found = problems(await partsOf(await out.toBytes()));
+          if (found.length) findings.push(`${what} ${found.slice(0, 2).join("; ")}`);
+          if ((await slidesHolding(out, el.id)).length !== 0) findings.push(`${what} still listed after the removal`);
+          // The slide is back to what the user had. `left` counts what still
+          // carries our tag, so it answers zero for a shape that lost its mark
+          // and stayed — which is precisely the defect this sweep found.
+          const standing = topLevelOf(await treeOf(out, removal.slidePath)).length;
+          if (standing !== baseline) findings.push(`${what} ${standing} shapes left where the user had ${baseline}`);
+        } catch (e) {
+          findings.push(`${what} threw ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`);
+        }
+      }
+    }
+
+    expect(findings.slice(0, 10)).toEqual([]);
+    // The vacuity guards. A sweep where nothing had a group to take apart would
+    // prove nothing about the ungroup, and one where everything did would not
+    // have met an element that lands as loose shapes.
+    expect(withGroups, "nothing in either library landed with a group on the slide").toBeGreaterThan(100);
+    expect(withNone, "every element landed with a group, so the other path went unswept").toBeGreaterThan(0);
   }, 600_000);
 });
