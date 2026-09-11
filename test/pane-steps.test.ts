@@ -8,6 +8,7 @@ import {
   STEP_TITLE,
   blockedReason,
   borrowedLine,
+  categoryHits,
   didYouMean,
   elementOf,
   footerOf,
@@ -21,6 +22,7 @@ import {
   settingsLine,
   slideLine,
   stepFor,
+  stepMatches,
   tagsOf,
   tileCount,
   toggle,
@@ -379,5 +381,55 @@ describe("what the user might have meant", () => {
       elements: Array.from({ length: 10 }, (_, i) => element({ id: String(i), name: "Box " + i })),
     };
     expect(didYouMean(many, "box").length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("the category chips a search shows", () => {
+  it("counts tiles, so they agree with the number beside the search", () => {
+    const hits = categoryHits(LIBRARY, { ...EMPTY, query: "" });
+    const total = hits.reduce((n, h) => n + h.count, 0);
+    expect(total).toBe(tileCount(groups(LIBRARY, { ...EMPTY, query: "" })));
+  });
+
+  it("keeps showing the other categories once one is picked", () => {
+    // The counts are taken WITHOUT the picked category applied. Otherwise
+    // picking one would leave a single chip and no way across or back.
+    const all = categoryHits(LIBRARY, { ...EMPTY, query: "" });
+    const narrowed = categoryHits(LIBRARY, { ...EMPTY, query: "", category: all[0]?.key });
+    expect(narrowed).toEqual(all);
+    expect(narrowed.length).toBeGreaterThan(1);
+  });
+
+  it("narrows the list to the category that was picked", () => {
+    const all = groups(LIBRARY, { ...EMPTY, query: "" });
+    expect(all.length).toBeGreaterThan(1);
+    const one = groups(LIBRARY, { ...EMPTY, query: "", category: all[0]!.key });
+    expect(one.map((g) => g.key)).toEqual([all[0]!.key]);
+  });
+
+  it("still narrows by the query and the tags", () => {
+    const hits = categoryHits(LIBRARY, { ...EMPTY, query: "box" });
+    for (const hit of hits) expect(hit.count).toBeGreaterThan(0);
+    expect(hits.length).toBeLessThanOrEqual(categoryHits(LIBRARY, { ...EMPTY, query: "" }).length);
+  });
+});
+
+describe("greying the sizes a search did not ask for", () => {
+  it("says yes for a member the query matches and no for one it does not", () => {
+    const one = element({ id: "flow-1", name: "Process flow, 1 box" });
+    const two = element({ id: "flow-2", name: "Process flow, 2 boxes" });
+    expect(stepMatches(one, { ...EMPTY, query: "1 box" })).toBe(true);
+    expect(stepMatches(two, { ...EMPTY, query: "1 box" })).toBe(false);
+  });
+
+  it("says yes for everything when nothing is being searched for", () => {
+    const one = element({ id: "flow-1", name: "Process flow, 1 box" });
+    expect(stepMatches(one, EMPTY)).toBe(true);
+  });
+
+  it("respects a picked tag as well as the query", () => {
+    const tagged = element({ id: "a", name: "A", tags: ["boxes"] });
+    expect(stepMatches(tagged, { ...EMPTY, tags: ["boxes"] })).toBe(true);
+    expect(stepMatches(tagged, { ...EMPTY, tags: ["stamps"] })).toBe(false);
   });
 });

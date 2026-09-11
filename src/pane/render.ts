@@ -21,6 +21,7 @@ import {
   STEP_TITLE,
   blockedReason,
   borrowedLine,
+  categoryHits,
   didYouMean,
   elementOf,
   footerOf,
@@ -31,6 +32,7 @@ import {
   runOf,
   settingsLine,
   slideLine,
+  stepMatches,
   tagsOf,
   tileCount,
   type Library,
@@ -201,9 +203,14 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
     const stepper = el("div", "stepper");
     stepper.appendChild(el("span", "stepper-noun", element.run.noun));
     for (const member of run) {
-      const step = button("step", state.chosen === member.id ? "step on" : "step", String(member.run?.count ?? ""));
+      // Section 8: a sized tile greys out the counts that do not match. Still
+      // pickable — the size exists and somebody may want it — but the search
+      // says which one it was looking for.
+      const hit = stepMatches(member, state);
+      const classes = [state.chosen === member.id ? "step on" : "step", hit ? "" : "off"].filter(Boolean).join(" ");
+      const step = button("step", classes, String(member.run?.count ?? ""));
       step.dataset["id"] = member.id;
-      step.setAttribute("aria-label", `${member.name}`);
+      step.setAttribute("aria-label", hit ? member.name : `${member.name}, not a match`);
       if (state.busy === true) step.disabled = true;
       stepper.appendChild(step);
     }
@@ -301,6 +308,26 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
       line.appendChild(chip);
     }
     main.appendChild(line);
+  }
+
+  // Section 8: while searching, the categories that have hits appear as chips
+  // with counts. Only while SEARCHING — with no query the categories are
+  // already the list's own headings, and a row of chips repeating them would
+  // be the same information twice.
+  if (state.query.trim() !== "") {
+    const hits = categoryHits(library, state);
+    if (hits.length > 1 || state.category !== undefined) {
+      const line = el("div", "cats");
+      for (const hit of hits) {
+        const on = state.category === hit.key;
+        const chip = button("category-chip", on ? "chip on" : "chip", `${hit.name} ${hit.count}`);
+        chip.dataset["key"] = hit.key;
+        chip.setAttribute("aria-pressed", on ? "true" : "false");
+        chip.setAttribute("aria-label", `${hit.name}, ${hit.count} ${hit.count === 1 ? "match" : "matches"}`);
+        line.appendChild(chip);
+      }
+      main.appendChild(line);
+    }
   }
 
   const previewed = elementOf(library, state.previewing);

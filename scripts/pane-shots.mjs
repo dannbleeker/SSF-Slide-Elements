@@ -158,6 +158,16 @@ const STATES = [
   },
   { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
   {
+    // The stepper greying the sizes the query did not ask for (section 8).
+    // Here for the CONTRAST: a greyed control still has to read as a control,
+    // and this fixture cannot produce a query that spans two categories, so
+    // the chips beside it are covered by test/pane-render.test.ts instead.
+    name: "browse-narrowed",
+    step: "browse",
+    state: { ...BROWSING, query: "1 box" },
+    shows: ["search", "tile"],
+  },
+  {
     // A search that found nothing, WITH a way out of it. The existing
     // nothing-found state has a query that is near nothing, so it shows only
     // the clear button; this one is a typo of a real name.
