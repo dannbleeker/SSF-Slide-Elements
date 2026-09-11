@@ -70,6 +70,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 - Seven development dependencies moved forward, including vitest to 5. Nothing
   a user installs changed: none of them reach the add-in itself.
+- **Three things the add-in does had never actually been run by the suite**, and
+  now are: taking the "Click to add text" ghosts off a slide a whole-slide
+  element lands on, emptying a placeholder when an element goes in as a new
+  slide, and the fast route the pane itself takes when it converts a
+  presentation. The first two were covered by a test that passed for the wrong
+  reason. Nothing about them changed — they are simply checked now.
 - **The suite now refuses code written for its own test.** A sweep lists every
   export the shipped add-in never calls, and the build fails on one that is not
   recorded as deliberate. It found an unused copy of a function the splice was

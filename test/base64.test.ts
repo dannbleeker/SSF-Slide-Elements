@@ -12,6 +12,11 @@ import { base64From, bytesFrom, routeFor } from "../src/core/pptx/base64.js";
  * handing the module a `globalThis` with the faster ones taken away.
  */
 
+/** Whether this platform ships the standard pair itself, read once before anything borrows it. */
+const ORIGINAL_STANDARD =
+  typeof (Uint8Array as unknown as { fromBase64?: unknown }).fromBase64 === "function" &&
+  typeof (Uint8Array.prototype as unknown as { toBase64?: unknown }).toBase64 === "function";
+
 /** A global object offering only the routes named. */
 function only(...routes: ("standard" | "buffer" | "browser")[]): typeof globalThis {
   const fake = Object.create(globalThis) as Record<string, unknown> & typeof globalThis;
@@ -25,8 +30,14 @@ function only(...routes: ("standard" | "buffer" | "browser")[]): typeof globalTh
     // assigned: a fresh object inheriting from the real one, with the standard
     // pair deleted off the copy and the original left alone.
     Object.defineProperty(stripped, "prototype", { value: Object.create(Uint8Array.prototype) });
-    delete (stripped as unknown as { fromBase64?: unknown }).fromBase64;
-    delete (stripped.prototype as unknown as { toBase64?: unknown }).toBase64;
+    // Shadowed with `undefined`, not DELETED. Both the copy and its prototype
+    // INHERIT from the real ones, and deleting a property a thing does not own
+    // does nothing at all — so on any platform that really has the standard
+    // pair, a fake built to have it taken away still had it, and every case
+    // below that asks for a slower route would have been handed the fastest.
+    // It reads as correct here only because this Node has neither.
+    Object.defineProperty(stripped, "fromBase64", { value: undefined });
+    Object.defineProperty(stripped.prototype, "toBase64", { value: undefined });
     fake.Uint8Array = stripped;
   }
   // Injected rather than inherited: under the test runner `Buffer` is not an
@@ -38,6 +49,44 @@ function only(...routes: ("standard" | "buffer" | "browser")[]): typeof globalTh
     fake.btoa = undefined as never;
   }
   return fake;
+}
+
+/**
+ * Run something with the standard pair in place, whether or not this platform
+ * has it.
+ *
+ * Chromium has `Uint8Array.fromBase64` from 133 and Node from 22.13. The Node
+ * running this suite has neither — so the route the PANE takes is the one route
+ * this file never executed, while the module's own comment says all three are
+ * held against each other. Coverage said the same thing out loud: the two lines
+ * that call the standard pair were never reached.
+ *
+ * The stand-in is `Buffer`, and that is deliberate: what is being checked is
+ * that the module CALLS the pair correctly — the static one on the constructor,
+ * the instance one on the bytes — not that the platform's implementation is
+ * right. On a platform that has the real pair this changes nothing and the same
+ * case runs against it.
+ */
+function withStandardPair<T>(run: () => T): T {
+  const ctor = Uint8Array as unknown as { fromBase64?: unknown };
+  const proto = Uint8Array.prototype as unknown as { toBase64?: unknown };
+  if (typeof ctor.fromBase64 === "function" && typeof proto.toBase64 === "function") return run();
+  Object.defineProperty(Uint8Array, "fromBase64", {
+    configurable: true,
+    value: (text: string) => new Uint8Array(NodeBuffer.from(text, "base64")),
+  });
+  Object.defineProperty(Uint8Array.prototype, "toBase64", {
+    configurable: true,
+    value(this: Uint8Array) {
+      return NodeBuffer.from(this).toString("base64");
+    },
+  });
+  try {
+    return run();
+  } finally {
+    delete ctor.fromBase64;
+    delete proto.toBase64;
+  }
 }
 
 const SAMPLES: [string, Uint8Array][] = [
@@ -81,6 +130,28 @@ describe("the base64 routes", () => {
       }
     });
   }
+
+  it("takes the standard pair where there is one, and reaches it the way the platform names it", () => {
+    // The route the pane takes on any current Chromium, and the one this file
+    // could not run: the suite's Node has neither half of the pair. The lines
+    // that call them were reached by nothing until this case existed.
+    withStandardPair(() => {
+      expect(routeFor(only("standard", "buffer", "browser"))).toBe("standard");
+      for (const [name, bytes] of SAMPLES) {
+        const viaStandard = base64From(bytes, only("standard", "buffer", "browser"));
+        const viaBuffer = base64From(bytes, only("buffer"));
+        expect(viaStandard, `${name}: the standard route answered nothing`).toBeTypeOf("string");
+        expect(viaStandard, name).toBe(viaBuffer);
+        const back = bytesFrom(viaStandard as string, only("standard", "buffer", "browser"));
+        expect([...(back ?? [])], name).toEqual([...bytes]);
+      }
+    });
+    // And it is gone again afterwards, or every case above this one would be
+    // measuring a different platform from every case below it.
+    expect(typeof (Uint8Array as unknown as { fromBase64?: unknown }).fromBase64).toBe(
+      ORIGINAL_STANDARD ? "function" : "undefined",
+    );
+  });
 
   it("answers undefined when the platform offers nothing, rather than guessing", () => {
     const barren = only();

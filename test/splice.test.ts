@@ -7,7 +7,7 @@ import { packageProblems } from "../scripts/package-integrity.mjs";
 import { Pkg, harvest } from "../src/core/index.js";
 import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/index.js";
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
-import { A_NS, P_NS, R_NS, child, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
+import { A_NS, P_NS, R_NS, child, children, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -469,6 +469,106 @@ describe("the package Undo hands back", () => {
   });
 });
 
+/**
+ * A content placeholder with three paragraphs, as a slide the user has typed
+ * into carries one.
+ *
+ * The fixture's ordinary body shape states no `<p:ph>`, so it is NOT a
+ * placeholder and `blank()` removes it whole. That is what made the first
+ * version of the case below vacuous: it asserted that "Line two" was gone from
+ * a slide the emptying code had never looked at, and passed because the entire
+ * shape had been deleted. The thirteen lines that empty a placeholder had never
+ * run.
+ *
+ * The first paragraph carries `<a:pPr>` and `<a:endParaRPr>` because the rule
+ * is that they STAY — they are the paragraph's own formatting, and an emptied
+ * placeholder that lost them no longer looks like itself.
+ *
+ * It is a TITLE rather than a body, and that is the only shape of placeholder
+ * this case can be written with. A whole-slide element sweeps the empty content
+ * placeholders it lands over (section 6), so a body one is emptied by `blank`
+ * and then removed by the sweep a moment later — both correct, and between them
+ * they leave nothing to look at. Section 6 says the title stays.
+ */
+const PLACEHOLDER_TITLE =
+  `<p:sp><p:nvSpPr><p:cNvPr id="40" name="Titelplaceholder 40"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+  `<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+  `<p:txBody><a:bodyPr/><a:lstStyle/>` +
+  `<a:p><a:pPr lvl="0"/><a:r><a:rPr lang="da-DK"/><a:t>Linje et</a:t></a:r><a:endParaRPr lang="da-DK"/></a:p>` +
+  `<a:p><a:r><a:rPr lang="da-DK"/><a:t>Linje to</a:t></a:r></a:p>` +
+  `<a:p><a:r><a:rPr lang="da-DK"/><a:t>Linje tre</a:t></a:r></a:p>` +
+  `</p:txBody></p:sp>`;
+
+/** An empty content placeholder: the "Click to add text" ghost a whole-slide element lands over. */
+const PLACEHOLDER_GHOST =
+  `<p:sp><p:nvSpPr><p:cNvPr id="41" name="Tom pladsholder 41"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+  `<p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+  `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="da-DK"/></a:p></p:txBody></p:sp>`;
+
+/** The same placeholder with the user's own text in it, which is content rather than a ghost. */
+const PLACEHOLDER_TYPED =
+  `<p:sp><p:nvSpPr><p:cNvPr id="42" name="Udfyldt pladsholder 42"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+  `<p:nvPr><p:ph type="body" idx="2"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+  `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="da-DK"/><a:t>Noget jeg har skrevet</a:t></a:r></a:p>` +
+  `</p:txBody></p:sp>`;
+
+/** A top-level shape by the name in its `<p:cNvPr>`. */
+function namedIn(spTree: Element, name: string): Element | undefined {
+  return topLevelOf(spTree).find((shape) =>
+    Array.from(shape.childNodes).some(
+      (node) => node.nodeType === 1 && child(node as Element, P_NS, "cNvPr")?.getAttribute("name") === name,
+    ),
+  );
+}
+
+describe("the ghosts a whole-slide element lands over", () => {
+  it("takes the empty content placeholders off and leaves the ones with text in them", async () => {
+    /**
+     * `docs/DESIGN.md` section 6, and it had never actually run: the two lines
+     * that remove a ghost were reached by nothing, because no fixture slide
+     * carried an empty content placeholder. `emptyBodyPlaceholders` was tested
+     * as a pure function over hand-written markup, which is not the same as the
+     * splice removing one from a deck.
+     *
+     * Three placeholders, three answers: the empty one goes, the one the user
+     * typed into is CONTENT and stays, and the title stays whatever is in it.
+     */
+    const deck = await makeDeck([
+      { paragraphs: [["First"]] },
+      { paragraphs: [["Second"]], shapes: [PLACEHOLDER_TITLE, PLACEHOLDER_GHOST, PLACEHOLDER_TYPED] },
+    ]);
+    const el = element("hvid-kasse-2x1-vertikale");
+    expect(el.kind, "this case needs a whole-slide element").toBe("slide");
+    const report = await splice({
+      deck,
+      slide: 1,
+      element: asSplice(el),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(report.placeholders, "no ghost was reported removed").toBe(1);
+
+    const spTree = await rebuiltTree(report.base64, report.slidePath);
+    expect(namedIn(spTree, "Tom pladsholder 41"), "the ghost was left on the slide").toBeUndefined();
+    expect(
+      namedIn(spTree, "Udfyldt pladsholder 42"),
+      "a placeholder the user had typed into was removed",
+    ).toBeDefined();
+    expect(namedIn(spTree, "Titelplaceholder 40"), "the title was removed").toBeDefined();
+    const xml = new XMLSerializer().serializeToString(spTree as never);
+    expect(xml).toContain("Noget jeg har skrevet");
+    expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
+  });
+
+  it("reports none when the slide it lands on has no ghost", async () => {
+    // The counter is evidence the pane shows, so it has to be a count and not a
+    // flag: a slide with nothing to remove must report zero rather than one.
+    const report = await spliceOne(element("hvid-kasse-2x1-vertikale"));
+    expect(report.placeholders).toBe(0);
+  });
+});
+
 describe("as a new slide, in detail", () => {
   it("keeps a placeholder but empties every paragraph in it", async () => {
     // A `<p:txBody>` with no `<a:p>` at all is schema-invalid and PowerPoint
@@ -476,7 +576,7 @@ describe("as a new slide, in detail", () => {
     // paragraph is emptied rather than removed.
     const deck = await makeDeck([
       { paragraphs: [["First"]] },
-      { paragraphs: [["Line one"], ["Line two"], ["Line three"]] },
+      { paragraphs: [["Second"]], shapes: [PLACEHOLDER_TITLE] },
     ]);
     const report = await splice({
       deck,
@@ -487,12 +587,28 @@ describe("as a new slide, in detail", () => {
       store,
     });
     const spTree = await rebuiltTree(report.base64, report.slidePath);
+
+    // The placeholder is STILL THERE. Without this the rest of the case passes
+    // on a slide the emptying code never touched, which is how it read before.
+    const placeholder = namedIn(spTree, "Titelplaceholder 40");
+    expect(placeholder, "the placeholder was removed rather than emptied").toBeDefined();
+    const txBody = child(placeholder as Element, P_NS, "txBody");
+    expect(txBody, "the placeholder lost its text body").toBeDefined();
+
+    // Exactly one paragraph, and it is the first one: a `<p:txBody>` with none
+    // is the file PowerPoint calls damaged without naming the part.
+    const paragraphs = children(txBody as Element, A_NS, "p");
+    expect(paragraphs).toHaveLength(1);
+    const first = paragraphs[0] as Element;
+    expect(children(first, A_NS, "r"), "a run survived the emptying").toHaveLength(0);
+    expect(child(first, A_NS, "pPr"), "the paragraph's own formatting went with the runs").toBeDefined();
+    expect(child(first, A_NS, "endParaRPr"), "the end-paragraph properties went with the runs").toBeDefined();
+
     const xml = new XMLSerializer().serializeToString(spTree as never);
-    expect(xml).not.toContain("Line two");
-    expect(xml).not.toContain("Line three");
-    // Still a legal text body: at least one paragraph survives in the
-    // placeholder that is left.
-    expect(elements(parseXml(`<w>${xml}</w>`), A_NS, "p").length).toBeGreaterThan(0);
+    for (const typed of ["Linje et", "Linje to", "Linje tre"]) expect(xml).not.toContain(typed);
+    // The shape that is NOT a placeholder goes whole, which is the other half
+    // of the same loop.
+    expect(namedIn(spTree, "Body"), "a shape claiming no placeholder was kept").toBeUndefined();
     expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
   });
 

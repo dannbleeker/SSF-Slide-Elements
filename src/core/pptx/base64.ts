@@ -34,7 +34,12 @@
  *
  * All three are exercised by `test/base64.test.ts` against each other, because
  * a fallback nobody runs is a fallback nobody has checked — and the one that
- * runs in the PANE is the one this suite would otherwise never take.
+ * runs in the PANE is the one this suite would otherwise never take. That
+ * sentence was not true when it was first written: the suite's Node has neither
+ * half of the standard pair, so the two lines that call it were reached by
+ * nothing. The pair is now stood in for with `Buffer` for the length of one
+ * case, which checks that this module CALLS it correctly — the static one on
+ * the constructor, the instance one on the bytes.
  */
 
 /** Characters per chunk for the `atob`/`btoa` route: a multiple of 3 keeps encoding on byte boundaries. */
