@@ -7,6 +7,7 @@ import {
   mergeTagPart,
   nextTagNumber,
   readShapeTags,
+  taggable,
   usedInDeck,
   tagPartXml,
   writeShapeTags,
@@ -638,6 +639,27 @@ describe("which shape the writer stamps", () => {
     await expect(writeShapeTags(pkg, SLIDE, alternate as Element, OURS)).rejects.toThrow(
       /a top-level shape in ppt\/slides\/slide1\.xml has no <p:nvPr> to tag/,
     );
+  });
+
+  it("says in advance which shapes that refusal will hit", async () => {
+    /**
+     * `taggable` is how the splice stamps the insides of a group it made
+     * without risking that refusal: a shape with no `<p:nvPr>` is skipped and
+     * the group's own tag still carries the identity.
+     *
+     * No element in either shipped library has such a shape — a loose insert
+     * tags every top-level shape and would already fail on one — so nothing in
+     * the sweeps exercises the false answer. This is where it is exercised, in
+     * both directions, against the one shape kind that has no `<p:nvPr>` at all.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]], modernChart: { series: "Sales", categories: ["A"] } }]);
+    const shapes = await topLevel(pkg);
+    const alternate = shapes.find((s) => s.localName === "AlternateContent");
+    const ordinary = shapes.find((s) => s.localName === "sp");
+    expect(alternate, "the fixture stopped writing <mc:AlternateContent>").toBeDefined();
+    expect(ordinary, "the fixture slide has no ordinary shape on it").toBeDefined();
+    expect(taggable(alternate as Element)).toBe(false);
+    expect(taggable(ordinary as Element)).toBe(true);
   });
 
   it("refuses a shape that belongs to no document", async () => {
