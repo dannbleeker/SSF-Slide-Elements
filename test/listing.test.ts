@@ -87,15 +87,33 @@ describe("the listing's own files", () => {
     expect(existsSync(logo as string), logo as string).toBe(true);
   });
 
-  it("still says the screenshot, the test deck and the name are the owner's", () => {
-    // The point of this one is the DIRECTION it fails in. These three cannot be
+  it("still says the screenshot and the name are the owner's", () => {
+    // The point of this one is the DIRECTION it fails in. Neither can be
     // produced without a real PowerPoint, and the failure mode worth guarding
-    // is somebody — including a future me — quietly deciding a generated deck
-    // or a composited screenshot will do. If they are genuinely done, this test
-    // is what makes removing the caveat a deliberate act.
+    // is somebody — including a future me — quietly deciding a composited
+    // screenshot will do. If one is genuinely done, this test is what makes
+    // removing the caveat a deliberate act: it went red the day the test deck
+    // was written, and was edited rather than deleted.
     const owners = LISTING.slice(LISTING.indexOf("## Still the owner's"));
     expect(owners).toContain("1366×768");
-    expect(owners).toContain("test deck");
     expect(owners).toContain("naming policy");
+    expect(owners, "the test deck is written; it no longer belongs in this list").not.toContain("test deck");
+  });
+
+  it("names a test deck that exists, is a presentation, and is not one this repo assembled", () => {
+    // The claim in the table is that PowerPoint wrote it. A .pptx this project
+    // built would satisfy "a file is there" and defeat the whole reason the
+    // deck is attached to the submission.
+    const deck = /`(template\/[\w-]+\.pptx)`, three slides, written by PowerPoint/.exec(LISTING)?.[1];
+    expect(deck, "the listing does not name a test deck").toBeTruthy();
+    expect(existsSync(deck as string), deck as string).toBe(true);
+    const bytes = readFileSync(deck as string);
+    expect(bytes.subarray(0, 2).toString("latin1"), "not a zip").toBe("PK");
+    // That it is a presentation PowerPoint itself wrote is checked where the
+    // zip is already open: `test/validators-deck.test.ts` reads its
+    // `docProps/app.xml`. The bytes here are DEFLATED, so looking for the
+    // application's name in them finds nothing whatever the file is — which is
+    // how this assertion read before it was tried.
+    expect(bytes.subarray(30, 60).toString("latin1")).toContain("[Content_Types].xml");
   });
 });
