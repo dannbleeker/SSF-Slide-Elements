@@ -122,6 +122,13 @@ jobs:
       # proved the committed index matches the decks.
       - run: npm run build:lib
       - run: npm run harvest
+      # Every element's picture, cut out of the committed PDF prints by pdf.js
+      # inside the Chromium pane-audit already uses. Built here for the same
+      # reason the markup is: 4.7 MB of PNG per deck change is no diff anyone
+      # reads, and the print sidecars have already proved in CI that the prints
+      # belong to the decks they were cut from.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run previews
       - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

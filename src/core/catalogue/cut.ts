@@ -18,6 +18,20 @@ import type { Box, Element } from "./types.js";
 /** How much room to leave around an element, as a fraction of its own size. */
 export const AIR = 0.03;
 
+/**
+ * How far outside its frame a rotated element's mask reaches.
+ *
+ * Bigger than `AIR`, and not for looks. A shape's OUTLINE is drawn centred on
+ * its path, so it overshoots the frame by half its width — an ABSOLUTE number
+ * of points that the frame does not state and this cannot read. A proportional
+ * allowance therefore has to be set by the worst case, which is the short axis
+ * of a long thin shape: the owner's stamps overshoot about 5% of their frame's
+ * height while overshooting under 2% of its width, and at 3% both ellipses came
+ * back with their ends shaved off. The mask exists to clear the CORNERS of a
+ * rotated element's box, and it still does that at 10%.
+ */
+export const MASK_AIR = 0.1;
+
 export interface Point {
   x: number;
   y: number;
@@ -115,7 +129,13 @@ export function cutFor(element: Element, all: readonly Element[], air = AIR): Cu
 
   const cut: Cut = { id: element.id, page: element.slide, crop, whiteOut };
   if (element.rotation) {
-    cut.mask = rotatedCorners(element.rotation.frame, element.rotation.deg);
+    // The frame is grown by the same air the crop gets, and the reason is
+    // visible in the first prints taken with this: a shape's OUTLINE is drawn
+    // centred on its path, so a thick one reaches past the frame, and masking
+    // to the bare frame shaved the ends off both stamps' ellipses. The mask is
+    // here to remove what the slide has in the CORNERS of a rotated element's
+    // box, not to trim the element.
+    cut.mask = rotatedCorners(withAir(element.rotation.frame, MASK_AIR), element.rotation.deg);
   }
   return cut;
 }
