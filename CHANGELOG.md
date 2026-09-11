@@ -120,6 +120,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **And it could freeze on the right one.** The read that keeps that line fresh
+  had the same twenty-second budget as a read somebody is waiting on, and a
+  selection read fired straight after an insert can sit unanswered for most of
+  it while PowerPoint finishes writing the deck. The pane answers one selection
+  change at a time, so that one read froze the line: three clicks on three
+  different slides went by with the pane still naming the first, for as long as
+  anyone cared to watch. A glance gives up after four seconds now, and a glance
+  that gave up leaves the line alone — the last thing the host actually said is
+  a better answer to "I could not find out" than "PowerPoint did not say".
+
 - **The pane could settle on the wrong slide number and stay there.** The line
   under the header follows your selection now, but the first version of that
   dropped any change that arrived while it was still reading the last one — and

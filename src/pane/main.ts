@@ -15,6 +15,7 @@ import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
+import { BUDGET } from "../host/timeout.js";
 import {
   currentSlide,
   insertPackage,
@@ -217,7 +218,7 @@ async function load(): Promise<void> {
     set({ library });
   }
   const current = await currentSlide();
-  set({ slide: current === undefined ? undefined : current.index + 1 });
+  set({ slide: current == null ? undefined : current.index + 1 });
   void follow();
 }
 
@@ -244,7 +245,12 @@ async function load(): Promise<void> {
  */
 const followSelection = coalescing(async () => {
   if (state.busy === true) return;
-  const current = await currentSlide();
+  // A glance, not a read: `src/host/timeout.ts` says why the budget is its own.
+  const current = await currentSlide(BUDGET.glance);
+  // Only a host that ANSWERED may change this line. `null` is a read that ran
+  // out of time, and the last number the host gave is a better answer to that
+  // than "PowerPoint did not say".
+  if (current === null) return;
   const slide = current === undefined ? undefined : current.index + 1;
   // Only when the number changed. `set` redraws the pane, and a redraw the
   // user did not ask for is a redraw that can take the focus off whatever they

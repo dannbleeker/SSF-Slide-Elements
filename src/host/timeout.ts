@@ -36,6 +36,24 @@ export const BUDGET = {
   insert: 180_000,
   /** A positional delete: one batch, one slide. */
   remove: 60_000,
+  /**
+   * A read whose answer only keeps a LINE fresh, never a read an insert
+   * depends on.
+   *
+   * Twenty seconds is right for a read the user is waiting on and wrong for one
+   * they are not. Measured on the web on 2026-09-11: a selection read fired
+   * straight after an insert can sit unanswered for most of `read`'s budget
+   * while the host finishes writing the deck — and because the pane answers one
+   * selection event at a time, that one read froze the line naming the current
+   * slide for the whole window. Three clicks on three different slides went by
+   * with the pane still naming the first.
+   *
+   * So a glance gives up early. The line then keeps the number it has, which is
+   * the right answer to "I could not find out": it is still the last thing the
+   * host actually said, and the insert reads the selection again for itself
+   * regardless.
+   */
+  glance: 4_000,
 } as const;
 
 /**
