@@ -250,10 +250,14 @@ a refactor, and a check that guessed would be noise.
   curated tables every Monday and files one issue for any finding without a row
   in `TRIAGED` (`scripts/sibling-watch.mjs`). A finding without a row comes
   back; "no exposure" is a real answer, and every row that is NOT one has a
-  line in `docs/SIBLING.md` (`test/sibling.test.ts` holds that). Every
-  RELEVANT or ADOPTED row today says "re-triage when the insert lands", because
-  there is no host code to hold it against; the host-handshake PR re-verdicts
-  them.
+  line in `docs/SIBLING.md` (`test/sibling.test.ts` holds that). Every RELEVANT
+  or ADOPTED row was re-verdicted on 2026-09-11 **against the shipped insert**,
+  and says so with that date — the sentence they used to carry, "re-triage when
+  the insert lands", was written when there was no host code to hold them
+  against. What they have NOT been held against is the work that followed the
+  insert: the removal, which calls the same positional delete once per slide,
+  and the deck reads behind "Used in this deck" and the preview card. Re-verdict
+  a row when the code it is about changes, not when a calendar says so.
 
 - **Values never leave the pane. All sample data is invented. The repo is
   public.**

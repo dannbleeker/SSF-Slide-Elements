@@ -157,7 +157,7 @@ export function idOf(source, key) {
  */
 export const TRIAGED = {
   "charts:issue:1650":
-    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a slide add whose sync never resolves though the slide lands. The insert will be one `insertSlidesFromBase64`, and the deck DELTA is the evidence, never the absence of an error; re-triaged 2026-09-11 against the shipped insert.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a slide add whose sync never resolves though the slide lands. The insert is one `insertSlidesFromBase64`, and the deck DELTA is the evidence, never the absence of an error; re-triaged 2026-09-11 against the shipped insert, and against the removal, which is the same evidence rule applied once per slide: insert, count, delete, count, and stop at the first count that does not agree.",
   "charts:issue:2328":
     "NO EXPOSURE — slideMaster.shapes throws GeneralException on the web. Nothing here reads a master; a spliced slide carries its layout relationship inside the package, and the API is never asked.",
   "charts:issue:2699":
@@ -173,7 +173,7 @@ export const TRIAGED = {
   "charts:issue:2903":
     "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a stale shape proxy answers `InvalidParam passed to GetItem(id)`. It is why anything this add-in needs to remember goes into the PACKAGE before the insert and never through a proxy afterwards; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:3014":
-    "NO EXPOSURE — powerPoint's API has no grouping story. NO EXPOSURE — no shape-level work at all.",
+    "NO EXPOSURE — powerPoint's API has no grouping story. Re-triaged 2026-09-11 against the shipped pane, and the wording it replaced (\"no shape-level work at all\") had stopped being true: the splice DOES group an element's shapes, and the preview card reads what a slide holds. Both happen in the PACKAGE, in `<p:grpSp>` markup and in `<a:xfrm>` on a parsed slide; the API's grouping story is still never asked for, which is what makes this no exposure.",
   "charts:issue:3083":
     "NO EXPOSURE — setSelectedShapes([]) does not clear the selection on the web. NO EXPOSURE — this add-in never calls `setSelectedShapes`, which is what puts `getSelectedSlides` on the safe part of that surface.",
   "charts:issue:3269":
@@ -206,10 +206,11 @@ export const TRIAGED = {
   "charts:issue:5022":
     "NO EXPOSURE — context.sync runs indefinitely when shapes are re-read after an image insert. NO EXPOSURE — no image inserts and no shape re-reads.",
   "charts:issue:5101":
-    "NO EXPOSURE — a placeholder keeps `type: Placeholder` when reused. NO EXPOSURE — nothing here reads a shape's type.",
+    "NO EXPOSURE — a placeholder keeps `type: Placeholder` when reused. Re-triaged 2026-09-11: this add-in DOES read placeholder types now — the splice drops the empty ghosts it lands over, and the preview card leaves them out of what a slide holds — but it reads them out of `<p:ph type>` in the file, never from a shape proxy. The defect is in what the API answers, and the API is not asked.",
   "charts:issue:5264":
     "NO EXPOSURE — a part of the object model Office.js cannot reach. NO EXPOSURE — recorded as a limitation on both sides.",
-  "charts:issue:5849": "NO EXPOSURE — shape.group throws GeneralException. NO EXPOSURE — no grouping.",
+  "charts:issue:5849":
+    "NO EXPOSURE — shape.group throws GeneralException. No grouping THROUGH THE API: an element's shapes are grouped in the package, in markup, before the host ever sees them (re-triaged 2026-09-11).",
   "charts:issue:5896": "NO EXPOSURE — reported alongside another SVG defect. NO EXPOSURE.",
   "charts:issue:6363":
     'RELEVANT — `PowerPoint.run`\'s batching fails to load properties reliably after `context.sync()`, web only. Re-triaged 2026-09-11: the deck read does NOT do that. One `PowerPoint.run`, one `load("items/id")` and one `getCount()` queued before a single `context.sync()`, both read after it, and no property loaded across a proxy that outlived a sync; re-triaged 2026-09-11 against the shipped insert.',
@@ -223,11 +224,11 @@ export const TRIAGED = {
   "charts:question:how-many-collection-reads-a-context-survives":
     "RELEVANT — Re-triaged 2026-09-11: there is no paging, so the question is smaller than it was. One `PowerPoint.run` per read and one collection load inside it, so no context accumulates reads either way; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:delete-then-lookup":
-    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — the replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed; whether a deleted slide still resolves is exactly what made by-id clean-up unsafe; re-triaged 2026-09-11 against the shipped insert.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — the replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed; whether a deleted slide still resolves is exactly what made by-id clean-up unsafe; re-triaged 2026-09-11 against the shipped insert, and again the same day against 'Remove from N slides', which is a SECOND caller of the same positional delete and runs it once per slide. Each cycle is counted back before the next starts, and the first count that does not agree stops the run.",
   "charts:question:scratch-slides-returned":
-    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a sibling's by-id clean-up left 45 blank slides; any removal here is positional and clamped; re-triaged 2026-09-11 against the shipped insert.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a sibling's by-id clean-up left 45 blank slides; any removal here is positional and clamped; re-triaged 2026-09-11 against the shipped insert and against 'Remove from N slides'. That one can leave a deck half-changed by design rather than by accident: it stops at the first cycle the deck's own size does not confirm and reports how far it got, which is the opposite failure to 45 slides nobody asked for.",
   "charts:question:shapes-by-index-vs-items":
-    "NO EXPOSURE — a question about a SHAPE collection. Nothing here reads shapes.",
+    "NO EXPOSURE — a question about a SHAPE collection. Re-triaged 2026-09-11: shapes ARE read here, out of the package — by the harvest, by the removal, and by the preview card's grey boxes — and none of that goes near `slide.shapes`. A collection this add-in never loads cannot answer short.",
   "charts:question:creationid-on-fresh-shape":
     "NO EXPOSURE — a shape's creation id read back through the API. A spliced slide keeps the creation ids its markup carries, and nothing asks the host for one.",
   "charts:question:creationid-survives-a-sync": "NO EXPOSURE — see `creationid-on-fresh-shape`.",
