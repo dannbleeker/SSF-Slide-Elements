@@ -39,7 +39,8 @@ small file that says where that page is.
 | Taking it back | Remove what an insert added, and nothing else | built |
 | A picture of each element | A photograph of the element itself, cut from a PDF print of the library deck | built |
 | Colours | An element takes the theme of the deck you put it in, or keeps the library's own — one setting behind the gear | built |
-| What your slide already has | Grey boxes on the preview card, **Used in this deck**, and **Remove from N slides** — all three need the pane to read the shapes on your slides, which no round has verified | planned |
+| Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
+| What your slide already has | Grey boxes on the preview card, and **Remove from N slides** — both need the pane to read the shapes on your slides, which no round has verified | planned |
 
 ## The pane
 
@@ -87,6 +88,13 @@ fetched only when you insert it.
   library deck, in that element and in any chart it brings with it, and it stays
   that colour wherever the slide ends up. Colours the library states outright
   are the same either way;
+- **Used in this deck**, which starts as one line: *See what this deck already
+  uses*. Click it and the pane reads the open presentation and lists the library
+  elements it finds, with the slides each one is on. It reads on request rather
+  than every time it opens, because reading means reading your whole deck.
+  Elements the add-in inserted are recognised by a mark it leaves on the shapes;
+  anything you drew yourself, or pasted in from elsewhere, is not from the
+  library and does not appear;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag

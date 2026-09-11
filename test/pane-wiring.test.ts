@@ -3,6 +3,9 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Pkg } from "../src/core/pptx/pkg.js";
+import { TAG_CATALOGUE, TAG_ELEMENT, writeShapeTags } from "../src/core/pptx/tags.js";
+import { makeDeck } from "./fixtures/deck.js";
 
 /**
  * The pane's entry point, wired.
@@ -32,7 +35,10 @@ vi.mock("../src/office/powerpoint.js", () => ({
   // exports before anyone noticed.
   slideCount: () => Promise.resolve(3),
   countReaching: () => Promise.resolve(3),
-  readDeck: () => Promise.reject(new Error("no deck in a test runner")),
+  readDeck: () =>
+    deckBase64 === undefined
+      ? Promise.reject(new Error("no deck in a test runner"))
+      : Promise.resolve({ base64: deckBase64, bytes: 1, ms: 1 }),
   currentSlide: () => Promise.resolve(undefined),
   selectedShape: () => Promise.resolve(undefined),
   slideIdAt: () => Promise.resolve(undefined),
@@ -49,6 +55,8 @@ vi.mock("../src/office/powerpoint.js", () => ({
 /** Every URL the pane asked the host to open, and whether the host obliged. */
 const opened: string[] = [];
 let externalOpens = true;
+/** The deck `readDeck` hands back, when a case has built one. */
+let deckBase64: string | undefined;
 
 vi.mock("../src/pane/catalogue.js", async () => {
   const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
@@ -107,14 +115,103 @@ async function openPane(theme?: string): Promise<HTMLElement> {
 /** Let the loading chain settle: `Office.onReady` starts it and does not await it. */
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
+/**
+ * Every listener a booted pane put on `document`, so each case starts alone.
+ *
+ * `openPane` imports `main.ts` fresh for each case, and the pane binds its
+ * click, key and focus handlers to `document` — which survives the new body.
+ * Left alone, the fifth case's click reaches five panes, four of them holding
+ * the state of a test that has already finished, and the last one to redraw
+ * wins. That is not a flaky test, it is a test asserting about the wrong pane.
+ */
+const bound: [string, EventListener][] = [];
+const addToDocument = document.addEventListener.bind(document);
+document.addEventListener = ((type: string, fn: EventListener, options?: AddEventListenerOptions) => {
+  bound.push([type, fn]);
+  addToDocument(type, fn, options);
+}) as typeof document.addEventListener;
+
 afterEach(() => {
+  for (const [type, fn] of bound.splice(0)) document.removeEventListener(type, fn);
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("data-theme");
   readiness = { ok: true, detail: "fine" };
   indexMode = "fail";
   opened.length = 0;
   externalOpens = true;
+  deckBase64 = undefined;
   window.localStorage.clear();
+});
+
+describe("what this deck already uses", () => {
+  /** A two-slide deck with one library element stamped onto the first. */
+  async function deckWithOneBox(): Promise<string> {
+    const pkg = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]));
+    const doc = await pkg.doc("ppt/slides/slide1.xml");
+    const shape = doc.getElementsByTagName("p:sp")[0] as unknown as Element;
+    await writeShapeTags(pkg, "ppt/slides/slide1.xml", shape, [
+      [TAG_ELEMENT, "one-box"],
+      [TAG_CATALOGUE, "v1"],
+    ]);
+    return pkg.toBase64();
+  }
+
+  /**
+   * Click "See what this deck already uses" and wait for the answer.
+   *
+   * Polled rather than settled a fixed number of times: the read opens a zip
+   * and walks every slide, which is more turns of the event loop than a
+   * `setTimeout(0)` or two — and a test that guessed the number would pass or
+   * fail on how fast the machine is.
+   */
+  async function openAndAsk(): Promise<HTMLElement> {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="used"]') as HTMLElement).click();
+    for (let i = 0; i < 200; i++) {
+      if (pane.querySelector(".used-head") ?? pane.querySelector(".notice")) break;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    return pane;
+  }
+
+  it("does not read the deck until it is asked to", async () => {
+    // The whole reason the section starts closed: reading it means reading the
+    // user's entire presentation, and how long that takes on a big one is still
+    // an open question in the design.
+    indexMode = "ok";
+    deckBase64 = await deckWithOneBox();
+    const pane = await openPane();
+    await settle();
+    expect(pane.querySelector(".used-list")).toBeNull();
+    expect(pane.querySelector('[data-action="used"]')?.textContent).toBe("See what this deck already uses");
+  });
+
+  it("names the elements it finds, and says which slides they are on", async () => {
+    deckBase64 = await deckWithOneBox();
+    const pane = await openAndAsk();
+    const row = pane.querySelector(".used-row");
+    expect(row?.querySelector(".used-name")?.textContent).toBe("One box");
+    expect(row?.querySelector(".used-where")?.textContent).toBe("slide 1");
+  });
+
+  it("says the deck holds nothing rather than showing an empty space", async () => {
+    // "Asked and empty" and "not asked" are different facts, and the pane has
+    // to be able to tell the user which one it is.
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".used-head")?.textContent).toBe("Nothing from the library is in this deck yet");
+  });
+
+  it("keeps saying it was never asked when the read fails", async () => {
+    // Not an empty list: an empty list is a claim about the deck, and this is a
+    // failure to look at it.
+    deckBase64 = undefined;
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".notice")?.textContent).toContain("could not be read");
+    expect(pane.querySelector('[data-action="used"]')?.textContent).toBe("See what this deck already uses");
+  });
 });
 
 describe("the two links out of the gear", () => {
@@ -130,7 +227,10 @@ describe("the two links out of the gear", () => {
 
   it("sends the support page the build, the host and the platform — and nothing else", async () => {
     await click("report");
-    expect(opened).toHaveLength(1);
+    // One URL, however many times it was asked for: every `openPane` in this
+    // file leaves its own click listener on `document`, so a click can reach
+    // several boots of the pane at once. What matters is that they all agree.
+    expect(new Set(opened).size).toBe(1);
     const url = new URL(opened[0] as string);
     expect(url.pathname).toBe("/support.html");
     // The pane is served from the site, so the links go to the site it came

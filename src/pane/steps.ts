@@ -122,6 +122,19 @@ export interface PaneState {
    * the wiring, and by the time it reaches here the card is simply open.
    */
   previewing?: string;
+  /**
+   * What this deck already carries, read from the tags the add-in wrote
+   * (`docs/DESIGN.md` section 4, "Used in this deck").
+   *
+   * `undefined` means NOT ASKED — not "nothing", which is the empty array. The
+   * two are different states on the screen and the difference is the whole
+   * reason the field is optional: reading it means reading the user's entire
+   * deck, and section 13's sixth open question is how long that takes on a 50 MB
+   * one. So the pane asks when the user asks, and says which it is.
+   */
+  used?: DeckUsage[];
+  /** True while that read is running. */
+  reading?: boolean;
 }
 
 export const EMPTY: PaneState = {
@@ -330,6 +343,98 @@ export function footerOf(state: PaneState): Footer {
 }
 
 /** The gear's own line, so the settings are visible without opening it. */
+/** One element the deck already carries: the engine's answer, as the pane holds it. */
+export interface DeckUsage {
+  /** The catalogue id out of the shape's tag. */
+  element: string;
+  /** The slides it is on, 1-based and in order. */
+  slides: number[];
+}
+
+/** One row of "Used in this deck", ready to draw. */
+export interface UsedRow {
+  id: string;
+  /** The element's name, or a sentence saying why there is none. */
+  name: string;
+  /** False when the catalogue has no element with this id. */
+  known: boolean;
+  slides: number[];
+  /** "slide 2" or "slides 2, 5 and 9", which is what the row says after the name. */
+  where: string;
+}
+
+/** "slide 2", "slides 2 and 5", "slides 2, 5 and 9" — a list a person would read aloud. */
+export function slideList(slides: number[]): string {
+  const sorted = [...new Set(slides)].sort((a, b) => a - b);
+  if (sorted.length === 0) return "";
+  if (sorted.length === 1) return `slide ${sorted[0] as number}`;
+  const last = sorted[sorted.length - 1] as number;
+  return `slides ${sorted.slice(0, -1).join(", ")} and ${last}`;
+}
+
+/**
+ * What the deck carries, named against the library the pane has open.
+ *
+ * An id the catalogue no longer has is KEPT and says so. Eleven ids changed on
+ * 2026-09-11 when the part keys were translated (`docs/DESIGN.md` section 2), so
+ * a deck stamped before that names elements this library cannot — and a row
+ * silently dropped would make the deck look emptier than it is, which is the
+ * one thing this list exists not to do.
+ */
+export function usedRows(library: Library | undefined, used: DeckUsage[]): UsedRow[] {
+  return used.map((use) => {
+    const element = library?.elements.find((e) => e.id === use.element);
+    return {
+      id: use.element,
+      name: element?.name ?? "An element from an older version of the library",
+      known: element !== undefined,
+      slides: use.slides,
+      where: slideList(use.slides),
+    };
+  });
+}
+
+/** The heading over that list, which has to say which of three states the pane is in. */
+export function usedHeading(state: PaneState): string {
+  if (state.reading === true) return "Reading this deck…";
+  if (state.used === undefined) return "Used in this deck";
+  if (state.used.length === 0) return "Nothing from the library is in this deck yet";
+  return `Used in this deck (${state.used.length})`;
+}
+
+/**
+ * The deck's usage with one more insert in it.
+ *
+ * The pane does not re-read the deck after every insert: the read is the
+ * expensive thing this feature costs, and the pane already knows exactly what
+ * it just put where. So the list is updated rather than refetched, and the
+ * next explicit read is what reconciles it with the file.
+ *
+ * Answers undefined when nothing has been read yet, because an insert is not a
+ * reason to start claiming the deck has been looked at.
+ */
+export function withInsert(used: DeckUsage[] | undefined, element: string, slide: number): DeckUsage[] | undefined {
+  if (used === undefined) return undefined;
+  const found = used.find((u) => u.element === element);
+  if (!found) return [...used, { element, slides: [slide] }];
+  return used.map((u) =>
+    u.element === element ? { element, slides: [...new Set([...u.slides, slide])].sort((a, b) => a - b) } : u,
+  );
+}
+
+/**
+ * The deck's usage with an insert taken back out.
+ *
+ * Undo puts the user's own slide back, so whatever the insert added to THAT
+ * slide is gone with it. An element still on other slides keeps those.
+ */
+export function withoutInsert(used: DeckUsage[] | undefined, element: string, slide: number): DeckUsage[] | undefined {
+  if (used === undefined) return undefined;
+  return used
+    .map((u) => (u.element === element ? { element, slides: u.slides.filter((n) => n !== slide) } : u))
+    .filter((u) => u.slides.length > 0);
+}
+
 export function settingsLine(settings: Settings): string {
   const where = settings.target === "onto" ? "onto this slide" : "as a new slide";
   const how = settings.group ? "as one group" : "loose";

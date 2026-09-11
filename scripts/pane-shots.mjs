@@ -216,6 +216,21 @@ const STATES = [
     shows: ["target", "group", "colours", "report", "catalogue"],
   },
   {
+    // "Used in this deck", read: the state nothing else in this list covers,
+    // and the one where a long element name meets a long list of slide numbers.
+    name: "browse-used",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      used: [
+        { element: "one-box", slides: [2] },
+        { element: "two-boxes", slides: [3, 5, 11] },
+        { element: "gone-from-the-library", slides: [7] },
+      ],
+    },
+    shows: ["used"],
+  },
+  {
     name: "browse-searched",
     step: "browse",
     state: { ...BROWSING, query: "flow" },

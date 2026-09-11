@@ -305,3 +305,67 @@ export async function readShapeTags(pkg: Pkg, slidePath: string): Promise<Tagged
   }
   return out;
 }
+
+/** One library element the deck already carries, and where. */
+export interface DeckUse {
+  /** The catalogue id out of the shape's `SSF_SLIDE_ELEMENT` tag. */
+  element: string;
+  /** The slides it is on, 1-based, in order and without repeats. */
+  slides: number[];
+  /** How many tagged top-level shapes carry it, which can be more than one per slide. */
+  shapes: number;
+  /** Every catalogue version stamped on those shapes, oldest spelling first; empty when none was. */
+  catalogues: string[];
+}
+
+/**
+ * Every library element already in a deck, read from the tags the add-in wrote.
+ *
+ * `docs/DESIGN.md` section 4's "Used in this deck", and section 15 is why it
+ * can be built at all: the tags an insert writes were measured surviving
+ * `insertSlidesFromBase64` on the web on 2026-09-11 — seven of them across four
+ * slides, with their relationships intact — so this rests on a measured host
+ * fact rather than a hope.
+ *
+ * Read from the FILE, never through the shape collection. A deck that has been
+ * through another add-in carries ITS tags in the same folder, numbered around
+ * ours — think-cell's were sitting there in the measured deck — and a sweep
+ * that assumed `ppt/tags/tagN.xml` was ours would report somebody else's
+ * bookkeeping as our elements. `readShapeTags` keys on the tag NAME instead,
+ * per slide, and this only groups what it answers.
+ *
+ * An id the current catalogue no longer has still appears: ids are slugs of the
+ * element keys and eleven of them changed on 2026-09-11 (section 2), so a deck
+ * built before that names elements this library cannot. Naming them is the
+ * caller's problem; hiding them here would make the count wrong.
+ */
+export async function usedInDeck(pkg: Pkg): Promise<DeckUse[]> {
+  const found = new Map<string, { slides: Set<number>; shapes: number; catalogues: Set<string> }>();
+  const paths = await pkg.slidePaths();
+  for (let i = 0; i < paths.length; i++) {
+    const path = paths[i] as string;
+    for (const tagged of await readShapeTags(pkg, path)) {
+      const entry = found.get(tagged.element) ?? {
+        slides: new Set<number>(),
+        shapes: 0,
+        catalogues: new Set<string>(),
+      };
+      entry.slides.add(i + 1);
+      entry.shapes += 1;
+      if (tagged.catalogue !== undefined) entry.catalogues.add(tagged.catalogue);
+      found.set(tagged.element, entry);
+    }
+  }
+  return (
+    [...found.entries()]
+      .map(([element, entry]) => ({
+        element,
+        slides: [...entry.slides].sort((a, b) => a - b),
+        shapes: entry.shapes,
+        catalogues: [...entry.catalogues].sort(),
+      }))
+      // By where they first appear, which is the order somebody scrolling the
+      // deck would meet them in.
+      .sort((a, b) => (a.slides[0] ?? 0) - (b.slides[0] ?? 0) || a.element.localeCompare(b.element))
+  );
+}
