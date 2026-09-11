@@ -462,6 +462,23 @@ input:focus-visible,
   color: var(--head);
 }
 
+/*
+ * "Did you mean" under a search that found nothing (section 8). Chips, like
+ * the tags, because they do the same thing: one tap narrows the list to
+ * something that exists.
+ */
+.meant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.meant-lead {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
 .card-landing {
   margin-top: 2px;
   font-size: 12.5px;

@@ -21,6 +21,7 @@ import {
   STEP_TITLE,
   blockedReason,
   borrowedLine,
+  didYouMean,
   elementOf,
   footerOf,
   groups,
@@ -316,6 +317,20 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
   main.appendChild(summary);
 
   if (count === 0) {
+    // A search that found nothing is a dead end; section 8 turns it into a
+    // route. Every suggestion is a name the library really has, so each one is
+    // a search that will find something.
+    const meant = didYouMean(library, state.query);
+    if (meant.length > 0) {
+      const did = el("div", "meant");
+      did.appendChild(el("span", "meant-lead", "Did you mean"));
+      for (const name of meant) {
+        const guess = button("guess", "chip", name);
+        guess.dataset["value"] = name;
+        did.appendChild(guess);
+      }
+      main.appendChild(did);
+    }
     const clear = button("clear", "secondary", "Clear the search");
     main.appendChild(clear);
     return;

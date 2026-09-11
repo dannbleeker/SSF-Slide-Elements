@@ -21,8 +21,8 @@ boxes for what the destination slide already has — the card itself is built, a
 those boxes need a host read of the slide's shapes that no round has verified;
 **Used in this deck**, read from the tags the insert writes (measured on 2026-09-11: they survive the insert, see `docs/DESIGN.md` section 15); **Remove from N
 slides** for a stamp; the three first-run coach marks; right-click for the other
-insert target on one insert; category chips with counts while searching, and
-"Did you mean …" for a query with no hits.
+insert target on one insert; and category chips with counts while searching.
+Built since: the preview card, and "Did you mean …" for a query with no hits.
 
 ### The colour switch
 

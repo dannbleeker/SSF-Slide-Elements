@@ -56,7 +56,8 @@ fetched only when you insert it.
 - **Search**, which matches an element's English name, its Danish name in the
   owner's deck, its category and its tags. Every word has to match, so
   "white box" finds "White boxes, 2x1 vertical". Press `/` to jump to the box
-  and `Esc` to clear it;
+  and `Esc` to clear it. If a search finds nothing, the pane offers what you
+  might have meant — tap one and it searches for that instead;
 - a line of **tags**, most used first. Picking one narrows the list, and a
   picked tag moves to the front so it stays visible;
 - the **gear**, beside the search, holding the two settings: whether an element

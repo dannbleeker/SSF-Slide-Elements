@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — a search that finds nothing offers a way out
+
+- **Mistype a name and the pane suggests what you probably meant**, as chips you
+  can tap. Every suggestion is a name the library really has, so picking one
+  always finds something. It matches against each WORD of a name, not just the
+  whole of it, so "triangel" reaches "Triangle, simple, with text at the
+  corners".
+
 ### Added — a closer look before you pick
 
 - **Rest on a tile for a moment and a card opens with the element at full size**,
