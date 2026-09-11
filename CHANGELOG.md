@@ -7,6 +7,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — the library decks open in PowerPoint again
+
+- **The two library decks under `template/` would not open in PowerPoint on
+  Windows.** It offered to repair them instead, and repairing one threw away ten
+  of the embedded objects it carried. Four characters were missing from a list
+  inside each file that tells PowerPoint what its parts are; they are back. No
+  slide, note, picture or embedded object changed, and the catalogue the pane
+  reads is byte-for-byte the one it was already reading — so nothing you see in
+  the pane moves. This only ever affected opening the decks by hand; the add-in
+  itself was never reading them at run time.
+
 ### Measured — PowerPoint on Windows
 
 - **The add-in has now been run on PowerPoint for Windows, not only in the

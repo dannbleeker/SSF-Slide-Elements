@@ -99,21 +99,27 @@ PowerPoint would settle.
   A part is cut to its box with 3% of air, the boxes of neighbouring parts
   painted white, and a rotated part masked to its rotated frame. The parts are
   the same objects in both decks, so their cuts are shared.
-- **Neither deck opens in desktop PowerPoint as committed, so neither print can
-  be taken yet.** Measured on Windows on 2026-09-11 (PowerPoint 16.0.20326.20132,
-  Microsoft 365 Current Channel, x64): both decks are refused with "PowerPoint
-  found a problem with content", offering **Repair**. The cause is two
-  `<Override>` entries per deck in `[Content_Types].xml` whose `PartName` is
-  missing its leading `/` — `ppt/notesSlides/notesSlide2.xml` and
+- **Both decks open in desktop PowerPoint. They did not until 2026-09-11, and
+  why is worth keeping.** Measured on Windows that day (PowerPoint
+  16.0.20326.20132, Microsoft 365 Current Channel, x64): both decks were refused
+  with "PowerPoint found a problem with content", offering **Repair**. The cause
+  was two `<Override>` entries per deck in `[Content_Types].xml` whose `PartName`
+  was missing its leading `/` — `ppt/notesSlides/notesSlide2.xml` and
   `notesSlide3.xml` in the 16:9 deck, `notesSlide13.xml` and `notesSlide14.xml`
-  in the 4:3 deck. OPC requires an absolute part name, and `Package.Open` refuses
-  both decks with "Part URI must start with a forward slash." Adding those four
-  slashes — two per deck — is enough on its own: copies with that one change
-  open, 110 and 108 slides, with no repair prompt. Nothing else about the package is wrong — the
-  zip is intact, no relationship dangles, and every part carries a content type.
-  **Accepting the Repair is not the way out**: on a copy it opened the deck but
-  dropped ten of the fifteen `ppt/embeddings/oleObject*.bin` parts and
-  `ppt/changesInfos/changesInfo1.xml` with them.
+  in the 4:3 deck. OPC requires an absolute part name, and `Package.Open` refused
+  both decks with "Part URI must start with a forward slash." Nothing else about
+  either package was wrong: the zip was intact, no relationship dangled, and
+  every part carried a content type.
+  **Accepting the Repair was not the way out**: on a copy it opened the deck and
+  dropped ten of the fifteen `ppt/embeddings/oleObject*.bin` parts, and
+  `ppt/changesInfos/changesInfo1.xml` with them. The four slashes were added
+  instead, and nothing else: all 375 and 568 parts kept the bytes they had,
+  `[Content_Types].xml` is identical once the leading slashes are normalised
+  away, and the harvested index did not move — version `1641fe687794` before and
+  after. Both decks then opened at 110 and 108 slides with no prompt.
+  **If a deck stops opening again, ask `System.IO.Packaging.Package.Open`
+  first**: it names the violating part, where PowerPoint's dialog names nothing
+  and Repair reports only what it removed.
 - **Boxes.** The box of a rotated shape is its rotated extent, not the
   unrotated frame the XML gives (the owner's stamps are rotated 29° and 35°). A
   table's box is the sum of its columns and rows, not its frame's `ext`, which
@@ -515,16 +521,17 @@ stay because the web still needs them:
 
 The rest of this section is about the DECKS and the print rather than Office.js.
 
-- **Neither committed deck opens.** Both are refused with "PowerPoint found a
-  problem with content", offering Repair, in the UI and through COM alike
-  (`Presentations.Open` raises `0x808D1001`). Section 3 carries the cause and
-  the fix. The decks were not edited to find it: every experiment ran on copies,
-  and both files are byte-identical to `HEAD` afterwards.
-- **The fix costs the catalogue nothing.** Harvesting the two slash-corrected
-  decks produces a catalogue index byte-identical to the committed one, version
-  `1641fe687794` either way. So correcting the decks does not invalidate
-  `public/catalogue/catalogue.json` and does not need a re-harvest — which is
-  what makes it a safe change to make before the first print.
+- **Neither committed deck opened, until the slashes went in.** Both were
+  refused with "PowerPoint found a problem with content", offering Repair, in
+  the UI and through COM alike (`Presentations.Open` raised `0x808D1001`).
+  Section 3 carries the cause and what was done. The decks were not edited to
+  FIND it: every experiment ran on copies, and both files were byte-identical to
+  `HEAD` until the fix was made deliberately, on its own, afterwards.
+- **The fix cost the catalogue nothing.** Harvesting the corrected decks
+  produces a catalogue index byte-identical to the one harvested from the
+  originals, version `1641fe687794` either way — predicted before the change was
+  made and confirmed against the decks now committed. So it did not invalidate
+  `public/catalogue/catalogue.json` and needed no re-harvest.
 - **`ExportAsFixedFormat` cannot be called through automation on this build.**
   Every arity, from PowerShell and from VBScript alike, raises
   `DISP_E_TYPEMISMATCH`; the method is present on the type and refuses to bind.
@@ -533,15 +540,16 @@ The rest of this section is about the DECKS and the print rather than Office.js.
   through the File → Export dialog by hand. A print taken this way is checked by
   its output — page count against slide count, and the PDF's `/MediaBox` against
   the slide size — rather than by the switches that were set.
-- **Both decks render correctly once they open.** Printed from slash-corrected
-  copies: the 16:9 deck gives 110 pages for 110 slides at 960×540 pt
-  (2,220,241 bytes), the 4:3 deck 108 pages for 108 slides at 720×540 pt
-  (2,431,939 bytes), neither deck carrying a hidden slide. Sampled pages are
-  rendered slides, and each one's slide-number footer matches its page number.
-  Those prints are NOT committed: they are prints of corrected copies, not of
-  the bytes on `main`, and a print whose provenance does not match the deck the
-  harvest checks it against would pass the slide-count check while being cut
-  from the wrong file.
+- **Both decks render correctly.** Printed while the fix was still on copies:
+  the 16:9 deck gives 110 pages for 110 slides at 960×540 pt (2,220,241 bytes),
+  the 4:3 deck 108 pages for 108 slides at 720×540 pt (2,431,939 bytes), neither
+  deck carrying a hidden slide. Sampled pages are rendered slides, and each one's
+  slide-number footer matches its page number. Those prints were NOT committed,
+  because they were prints of copies rather than of the bytes on `main`, and a
+  print whose provenance does not match the deck the harvest checks it against
+  would pass the slide-count check while being cut from the wrong file. The
+  print to commit is taken from the decks as they now stand, and arrives on its
+  own.
 
 Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
 them parts of four collection slides, twelve runs of sizes, 42 whole-slide
