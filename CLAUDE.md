@@ -98,6 +98,12 @@ counter dated.
   by id.
 - **Tag writes through a shape proxy are refused.** Writing `ppt/tags/tagN.xml`
   cannot be refused, because nothing is asked. Find the next free `tagN`.
+- **Tags written into the package SURVIVE the insert.** Measured here on the
+  web, 2026-09-11: the deck read back after a session of inserts carries seven
+  `SSF_SLIDE_ELEMENT` parts, referenced from the shapes through
+  `<p:custDataLst>` on four slides. The same deck carries think-cell's tags in
+  the same folder, which is exactly why the next free `tagN` is found rather
+  than assumed.
 - **Without `targetSlideId`, `insertSlidesFromBase64` inserts at the FRONT.** A
   real run put 37 generated slides ahead of a title slide.
 - **A queued call that raises nothing has not necessarily happened.** Confirm
