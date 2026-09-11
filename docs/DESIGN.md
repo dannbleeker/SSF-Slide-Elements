@@ -805,6 +805,33 @@ stay because the web still needs them:
   Undo the deck was identical to before, slide id by slide id and shape id by
   shape id.
 
+**What PowerPoint keeps when it SAVES, measured the same way on 2026-09-11.**
+Three decks built by this engine, opened through COM with no window, saved as
+`.pptx`, and read back part by part. This answers a question `remove.ts` had
+written down as open — the removal deliberately leaves orphans behind, and
+whether they cost the user anything turns entirely on this.
+
+- **Every orphan is dropped.** A deck after three insert-then-remove cycles
+  carried 73 parts, 9 slide parts and **18 orphaned tag parts**; saved, it
+  carried 39 parts, **1** slide part and **0** tag parts, and went from 55,072
+  bytes back to 37,556 — the deck it started as. So the 3.5–5.5 KB an
+  insert-then-remove cycle leaves in this engine's own package is reclaimed the
+  moment the user saves, and the decision to leave orphans rather than walk them
+  costs a user nothing.
+- **Identical pictures are merged.** A deck carrying four byte-identical copies
+  of one 29 KB `.emf`, one per insert, saved with **one** — 85,080 bytes to
+  49,149. PowerPoint deduplicates media itself, so the sharing in `carry.ts` is
+  about the package this add-in builds and ships on every insert, not about the
+  size of the file the user ends up with.
+- **A part name of ours is accepted, and renamed.**
+  `ppt/media/ssf-93397c1904353bcf-29552.emf` opened without a repair prompt and
+  came back as `ppt/media/image1.emf`. The content-addressed name lives only
+  until PowerPoint rewrites the file.
+- **Tag parts that are still REFERENCED survive a save** — four inserts, four
+  tag parts in, four out, with the shapes still carrying their `<p:tags>`. The
+  web measurement above says the tags survive `insertSlidesFromBase64`; this
+  says they also survive an ordinary save on the desktop.
+
 The rest of this section is about the DECKS and the print rather than Office.js.
 
 - **Neither committed deck opened, until the slashes went in.** Both were
@@ -904,6 +931,6 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | A removal re-reads which slides carry the element from the deck it is about to change, rather than trusting the list the question was asked about | fixed in the build, 2026-09-11 |
 | Anything anchored to a tile — the right-click menu, the question before a removal — is keyed by TILE rather than by element, because one element is drawn in up to three lists at once | fixed in the build, 2026-09-11 |
 | Base64 is converted by the platform rather than by JSZip, on both sides of the package layer — measured as the single largest cost in the insert path, 4.1 s to 0.23 s on a 45 MB deck | fixed in the build, 2026-09-11 |
-| A carried MEDIA part is named after its own content — a fingerprint of its bytes and their length — so the second insert of the same element finds its picture already in the package and points at it instead of copying it again. Measured: four inserts of `markeringer-1` left four byte-identical copies of one 29 KB `.emf` and cost 11.6 KB each; they now cost 1.9 KB and leave one. Derived from the content rather than found by searching, because a search means decompressing every picture in the user's deck on every insert. Media only: a chart or an embedded workbook is a document, and two charts sharing one workbook would mean editing one edits both | fixed in the build, 2026-09-11 |
+| A carried MEDIA part is named after its own content — a fingerprint of its bytes and their length — so the second insert of the same element finds its picture already in the package and points at it instead of copying it again. Measured: four inserts of `markeringer-1` left four byte-identical copies of one 29 KB `.emf` and cost 11.6 KB each; they now cost 1.9 KB and leave one. It is the PACKAGE this add-in ships on every insert that shrinks, not the user's saved file — section 15 measured PowerPoint merging identical pictures itself on save. Derived from the content rather than found by searching, because a search means decompressing every picture in the user's deck on every insert. Media only: a chart or an embedded workbook is a document, and two charts sharing one workbook would mean editing one edits both | fixed in the build, 2026-09-11 |
 | An insert stamps the shapes INSIDE any group that lands, as well as the group, because ungrouping is one gesture and it destroys the group and its tag together — measured: a five-shape element ungrouped went from one use to not in the deck at all. The reader stops at a tagged shape, so while it is a group the answer is unchanged; a shape with no `<p:nvPr>` is skipped rather than refused, since failing an insert that works today is the worse trade. About 250 bytes a shape The first version of it asked whether THIS code had made the group, which left the 23 elements that are drawn as a group already — the stamps among them — behaving the old way; a sweep over every element in both libraries is what found that. | decided in the build, 2026-09-11 |
 | The tag sweep goes into the user's own groups rather than reading the top level of the slide only: grouping an element with a shape of your own is one gesture, and it made "Used in this deck" answer that the element was not in the deck while it sat on the slide. A removal takes the tagged shape out of that group, leaves the user's own shape beside it, and takes the group too only when the removal is what emptied it | fixed in the build, 2026-09-11 |
