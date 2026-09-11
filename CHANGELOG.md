@@ -77,6 +77,21 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Clicking a tile did nothing.** Most of a tile is the ghost drawing, an
+  `<svg>`, and an SVG element is not an `HTMLElement` — which is all the click
+  handler would walk up from. Found by opening the add-in in PowerPoint and
+  pressing a tile. Every gate passed over it: jsdom was clicking the button,
+  which is the part of a tile a user is least likely to hit, and the shot audit
+  photographs states without pressing anything.
+- **Undo reported success and changed nothing.** Taking back an insert that
+  landed onto slide N means putting the user's original slide N back and
+  removing the REBUILT one at index N. The code removed N+1, which is the copy
+  it had just restored, so the deck came back to its old size, the count check
+  passed, and the pane said "Undone" over a slide that had not moved. The
+  arithmetic is a pure function now, with the off-by-one as a test, and the
+  restoring insert aims at the rebuilt slide rather than at whatever the user
+  happens to have selected by the time they press it.
+
 - **A new slide carried the previous slide's comments.** Found by running the
   real engine against PowerPoint for the web on 2026-09-10 and then reading the
   deck back: one comment came out on two slides. A modern comment is anchored
