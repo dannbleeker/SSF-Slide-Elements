@@ -51,7 +51,21 @@ vi.mock("../src/pane/catalogue.js", async () => {
                   width: 12192000,
                   height: 6858000,
                   categories: [{ key: "boxes", name: "White boxes" }],
-                  elements: [],
+                  elements: [
+                    {
+                      id: "one-box",
+                      key: "En kasse",
+                      name: "One box",
+                      category: { key: "boxes", name: "White boxes" },
+                      slide: 1,
+                      kind: "slide",
+                      box: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 },
+                      landing: "layout",
+                      shapes: 1,
+                      tags: ["boxes"],
+                      markup: { xml: "", rels: [], parts: [] },
+                    },
+                  ],
                   carried: {},
                 },
               },
@@ -161,5 +175,50 @@ describe("when it does arrive", () => {
     // `currentSlide` answers undefined here, and the pane says so rather than
     // quietly aiming at the first slide.
     expect(pane.querySelector(".slide")?.textContent).toMatch(/did not say/i);
+  });
+});
+
+describe("pressing a tile", () => {
+  /**
+   * The defect this exists for was invisible to every other test here and to
+   * the shot audit, and it made the product do nothing at all.
+   *
+   * Most of a tile is the ghost DRAWING, which is an `<svg>`, and an SVG
+   * element is not an `HTMLElement`. The click handler walked up from
+   * `event.target` only when that target was an `HTMLElement`, so a click on
+   * the picture — which is where a user clicks — resolved to no action and the
+   * pane sat there. Every test passed because jsdom's `.click()` was being
+   * called on the BUTTON, which is the one part of a tile a user is least
+   * likely to hit.
+   *
+   * So this dispatches from the svg, the way a real pointer does. The host is
+   * mocked, so the insert cannot finish — and that is the point. "The insert
+   * was refused" is written in one place, inside the insert's own catch, so
+   * seeing it is proof the click got that far.
+   */
+  it("reaches the insert when the click lands on the ghost drawing, not the button", async () => {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+
+    pane.querySelector<HTMLElement>('[data-action="category"]')?.click();
+    const ghost = pane.querySelector("svg.ghost");
+    expect(ghost, "no tile drawing to click").not.toBeNull();
+    expect(ghost).not.toBeInstanceOf(HTMLElement);
+
+    ghost?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    for (let i = 0; i < 20 && !pane.querySelector(".outcome"); i++) await settle();
+
+    expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
+  });
+
+  it("still reaches it from the button itself", async () => {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    pane.querySelector<HTMLElement>('[data-action="category"]')?.click();
+    pane.querySelector<HTMLElement>('[data-action="tile"]')?.click();
+    for (let i = 0; i < 20 && !pane.querySelector(".outcome"); i++) await settle();
+    expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
   });
 });

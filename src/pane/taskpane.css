@@ -448,6 +448,12 @@ input:focus-visible,
   display: block;
   width: 100%;
   height: auto;
+  /*
+   * The drawing is decorative and fills most of the tile, so it must not be
+   * what a click lands on. The handler copes either way now, but a picture
+   * that swallows pointer events is a trap for the next thing added here.
+   */
+  pointer-events: none;
 }
 
 .ghost-slide {
