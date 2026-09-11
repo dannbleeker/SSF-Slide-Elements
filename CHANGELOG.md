@@ -51,6 +51,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - **Removing one takes the element out of your group and leaves your own shape
   where it was.** If the element was the only thing left in that group, the
   group goes too — an empty group is not something PowerPoint makes.
+- **Ungrouping one no longer loses it either.** An element that arrives as a
+  group carried its mark on the group alone, so ungrouping it to change one box
+  took the mark with it: five shapes still on the slide, and the pane no longer
+  able to see any of them. The mark now goes on the shapes inside as well, which
+  is what the loose setting has always written. It adds about a quarter of a
+  kilobyte per shape and nothing you can see.
 
 ### Fixed — the privacy page can now count
 

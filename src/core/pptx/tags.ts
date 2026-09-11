@@ -154,6 +154,19 @@ function nvPrOf(shape: Element): Element | undefined {
   return undefined;
 }
 
+/**
+ * Whether a shape has the `<p:nvPr>` a tag is written into.
+ *
+ * `writeShapeTags` refuses a shape without one, by name, because an untagged
+ * element is one the pane can never see again. A caller tagging shapes it did
+ * not choose one by one — the splice, stamping the insides of a group it made —
+ * asks this first: skipping the one shape kind that has no `<p:nvPr>` is better
+ * than failing an insert that works today.
+ */
+export function taggable(shape: Element): boolean {
+  return nvPrOf(shape) !== undefined;
+}
+
 /** A top-level shape's `<p:cNvPr id>`, found the same way and for the same reason. */
 function idOf(shape: Element): string | undefined {
   for (const container of Array.from(shape.childNodes)) {

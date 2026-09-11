@@ -29,7 +29,7 @@ import { cloneSlide } from "../pptx/clone.js";
 import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
-import { TAG_CATALOGUE, TAG_ELEMENT, writeShapeTags } from "../pptx/tags.js";
+import { TAG_CATALOGUE, TAG_ELEMENT, taggable, writeShapeTags } from "../pptx/tags.js";
 import { A_NS, PKG_REL_NS, P_NS, child, children, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
 import { keepOnly } from "./listing.js";
@@ -346,11 +346,37 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
     }
   }
 
+  const stamp: [string, string][] = [
+    [TAG_ELEMENT, request.element.id],
+    [TAG_CATALOGUE, request.catalogue.version],
+  ];
   for (const shape of added) {
-    await writeShapeTags(pkg, rebuilt, shape, [
-      [TAG_ELEMENT, request.element.id],
-      [TAG_CATALOGUE, request.catalogue.version],
-    ]);
+    await writeShapeTags(pkg, rebuilt, shape, stamp);
+  }
+
+  // The shapes INSIDE a group the insert made are stamped too.
+  //
+  // Ungrouping is one gesture, and it destroys the group and the tag on it
+  // together: a five-shape element ungrouped went from "used once in this deck"
+  // to not in the deck at all, with the shapes still on the slide. Stamping the
+  // insides means one ungroup leaves five tagged shapes — which is the truth,
+  // and exactly what the loose setting writes anyway. Measured at about 250
+  // bytes a shape.
+  //
+  // The reader stops AT a tagged shape, so while the group is still a group
+  // this changes nothing it answers: one element, one use.
+  //
+  // A shape with no `<p:nvPr>` is skipped rather than refused. `<mc:Alter`
+  // `nateContent`, which is how a modern chart sits on a slide, has none — and
+  // failing an insert that works today would be a worse trade than losing a tag
+  // on an ungroup that may never happen.
+  if (wanted) {
+    for (const group of added) {
+      for (const inner of slideShapes(group)) {
+        if (!taggable(inner)) continue;
+        await writeShapeTags(pkg, rebuilt, inner, stamp);
+      }
+    }
   }
 
   await keepOnly(pkg, rebuilt);
