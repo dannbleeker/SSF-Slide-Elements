@@ -363,11 +363,27 @@ async function undo(): Promise<void> {
 // Wiring.
 // ---------------------------------------------------------------------------
 
+/**
+ * Which control a click landed on, given whatever it actually hit.
+ *
+ * `Element`, not `HTMLElement`, and that is the whole of this function's
+ * history. **An SVG element is not an HTMLElement**, and most of a tile IS an
+ * SVG: the ghost drawing fills it. So a click anywhere on the picture — which
+ * is where a user clicks — started the walk at `undefined` and resolved to no
+ * action at all, and the pane sat there doing nothing. Every test passed: jsdom
+ * dispatched its clicks on the button, and the audit never clicks anything.
+ * Found by opening the add-in in PowerPoint and pressing a tile.
+ *
+ * `closest` rather than a hand-rolled walk, because it is defined on `Element`
+ * and therefore crosses from the SVG into its HTML ancestors without caring
+ * which is which.
+ */
 function actionOf(target: EventTarget | null): { action: string; el: HTMLElement } | undefined {
-  let node = target instanceof HTMLElement ? target : undefined;
-  while (node && !node.dataset["action"]) node = node.parentElement ?? undefined;
-  const action = node?.dataset["action"];
-  return node && action ? { action, el: node } : undefined;
+  const start = target instanceof Element ? target : undefined;
+  const node = start?.closest("[data-action]");
+  if (!(node instanceof HTMLElement)) return undefined;
+  const action = node.dataset["action"];
+  return action ? { action, el: node } : undefined;
 }
 
 function onClick(event: MouseEvent): void {
