@@ -123,6 +123,30 @@ PowerPoint would settle.
   `rotation` — `box` is the rotated EXTENT, and the extent cannot be un-rotated
   back into the frame it came from. Two elements per deck have one: the stamps,
   at −29.06° and 35.02°.
+- **Both decks are on one colour palette, since 2026-09-11.** They were not, and
+  nothing had noticed: the 16:9 deck (made 2021 from the owner's own template)
+  was on the stock Office scheme, while the 4:3 deck still carried **"07 Blå"**,
+  the palette of the company it was made at in 2013 — its `docProps` still names
+  that company. So **79 of the 117 element pairs rendered in different colours
+  in the two sizes**: the same box was Office orange at 16:9 and light blue at
+  4:3, the same rule Office blue and grey. The 4:3 deck's `<a:clrScheme>` was
+  replaced with the 16:9 deck's, and nothing else in the package was touched —
+  one part changed of 568, verified part by part by SHA-256, and the result
+  opened by PowerPoint itself with its 108 slides and the new accent. After it,
+  96 of the 117 pairs resolve to identical colours and the remaining 21 differ
+  only in how many whites and blacks two hand-drawn twins hold.
+  The decks' notes and handout themes still carry the old palette. Deliberate:
+  neither is harvested and neither reaches a user's deck, and an edit to a deck
+  that cannot be opened here is not made for tidiness.
+  **The 4:3 print was retaken the same day**, without a screen, through
+  PowerPoint COM (`SaveAs(pdf, 32)`; `ExportAsFixedFormat` cannot be bound on
+  this build at any arity). A print taken by a different route is a print to
+  check rather than trust, so it was compared with the dialog print of the same
+  deck page by page: 108 pages either way at the same page size, the outer ring
+  of every page inked exactly as before — which is what rules out a stray
+  "frame slides" — 78 pages rendering pixel-identical, and the 29 that moved
+  being the ones the palette touched. The sidecar records which route took it
+  and `test/print.test.ts` holds that field to the two spellings.
 - **Each print carries a sidecar naming the bytes it was taken from**, and that
   is the gate — `template/library-16x9.print.json` and its 4:3 twin, holding the
   deck's SHA-256, the print's own SHA-256, the slide and page counts, the date,
@@ -338,11 +362,11 @@ exception for width.
     spread over two themes is REFUSED rather than resolved: one map cannot be
     right for both halves, and a wrong map would pin every element to colours
     no slide in the library ever had, invisibly.
-  - **The two library decks are not on the same theme.** Measured 2026-09-11:
-    the 16:9 deck is on the stock Office palette, the 4:3 deck on the owner's
-    "07 Blå". So the same element pinned in the two sizes comes out in
-    different colours. That is a fact about the decks, not about the switch,
-    and the only place it could be fixed is the decks.
+  - **Both library decks are on one palette**, since 2026-09-11. They were not:
+    the switch is what found it, and section 3 records what was done. An element
+    pinned in one size is now pinned to what it is in the other, and
+    `test/colours.test.ts` holds the two decks' maps EQUAL rather than holding
+    either to a list of hexes.
   - **A carried chart is pinned too.** The library's one chart states 17 scheme
     colours of its own, and a switch that rewrote an element's shapes but not
     the chart inside it would leave the two disagreeing about which deck they
@@ -712,3 +736,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The probe tells a second run from a first by a marker in the document settings, written before the slide it leaves so the user's Ctrl+Z still lands on the insert; the slide alone could not, because Ctrl+Z is what removes it (web round, 2026-09-10) | decided in the build, 2026-09-10 |
 | The colour switch resolves the library theme at HARVEST time, one map per size, and refuses a deck with two themes — rather than carrying the theme part into the user's package, which would make every insert add a theme the user did not ask for | decided in the build, 2026-09-11 |
 | The store listing is written into the repo (`docs/LISTING.md`) and held to the manifests by a test, rather than typed into Partner Center at submission time — and the screenshot, the validators' test deck and the listing name are left as the owner's, because a composited screenshot or a deck built by this repo's own code would be a picture of something that does not exist | decided in the build, 2026-09-11 |
+| The 4:3 deck was re-themed to the 16:9 deck's colour scheme rather than the other way round: the 16:9 deck is the owner's own 2021 template and the 4:3 deck's palette came from the company it was authored at in 2013. The change is the deck's, so the committed print no longer belongs to it and the print gate says so until it is re-printed | decided in the build, 2026-09-11 |

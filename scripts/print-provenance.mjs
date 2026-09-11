@@ -19,6 +19,42 @@
 
 import { createHash } from "node:crypto";
 
+/**
+ * How a print was taken, in the sidecar's own words. One of these, verbatim.
+ *
+ * Two routes, because there are two, and a sidecar's job is to say which one
+ * produced the bytes beside it rather than to describe the one somebody usually
+ * uses. `dialog` is the owner at the keyboard; `com` is this repo driving
+ * PowerPoint with no window, which is the only route there is when the machine
+ * has no screen.
+ *
+ * They are not interchangeable by assumption. `ExportAsFixedFormat`, the call
+ * that would take the dialog's settings as arguments, cannot be bound on this
+ * build at any arity — `$null`, `[Type]::Missing` and VBScript were all tried,
+ * and it answers `DISP_E_TYPEMISMATCH` — so the COM route uses `SaveAs` and
+ * gets whatever PowerPoint defaults to. What makes that usable is that the
+ * OUTPUT was compared against a dialog print of the same deck, page by page,
+ * and the `com` text is that comparison.
+ *
+ * Here rather than in `stamp-print.mjs` so the suite can hold the committed
+ * sidecars to it without importing a script that parses `process.argv` and
+ * exits.
+ */
+export const HOW = {
+  dialog:
+    "File > Export > Create PDF/XPS > Options: range all, publish what Slides, " +
+    "frame slides off, include hidden slides on, include comments off, include ink off, " +
+    "optimise for Standard. Each read back off the dialog before publishing, because it " +
+    "resets to its defaults between presentations.",
+  com:
+    "PowerPoint COM with no window: Presentations.Open(deck, ReadOnly, WithWindow false) " +
+    "then Presentation.SaveAs(pdf, 32 = ppSaveAsPDF). ExportAsFixedFormat, which would take " +
+    "the dialog's settings as arguments, cannot be bound on this build at any arity. " +
+    "Checked against the dialog print of the same deck page by page: same page count, same " +
+    "page size, the outer ring of every page inked exactly as before (so no frame was added), " +
+    "and every page that the deck edit did not touch rendering pixel-identical.",
+};
+
 /** SHA-256 of a buffer, as lowercase hex. */
 export function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");

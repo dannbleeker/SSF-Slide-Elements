@@ -48,6 +48,25 @@ describe("the committed prints", () => {
     });
   }
 
+  it("says which of the two routes took it, in the words the stamping script writes", async () => {
+    // `how` is the sidecar's provenance, and a sentence nobody checks is a
+    // sentence that drifts: the 4:3 print was taken through COM with no window
+    // while the 16:9 one came off the Export dialog, and a sidecar carrying the
+    // dialog's settings for a print that never saw the dialog would be the one
+    // field here that lies. Held to the constants rather than to a keyword, so
+    // the two spellings cannot diverge.
+    // @ts-expect-error — plain .mjs with no types.
+    const { HOW } = (await import("../scripts/print-provenance.mjs")) as { HOW: Record<string, string> };
+    const routes = Object.values(HOW);
+    expect(routes.length).toBeGreaterThan(1);
+    for (const name of DECKS) {
+      expect(routes, `${name}: how`).toContain(read(name).stamp.how);
+    }
+    // And the two decks were in fact printed differently, which is the case
+    // that made the field worth checking.
+    expect(read("library-16x9").stamp.how).not.toBe(read("library-4x3").stamp.how);
+  });
+
   it("reads a page count two independent ways, or refuses to answer", () => {
     const { printBytes } = read("library-16x9");
     expect(pdfPageCount(printBytes)).toBe(110);

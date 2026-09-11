@@ -120,10 +120,10 @@ export interface Catalogue {
    * One map per SIZE, not per element, and the harvest refuses a deck whose
    * slides do not agree on a theme rather than picking one. Measured on the
    * committed library, 2026-09-11: one master and one theme in each deck, and
-   * they are not the same theme as each other — the 16:9 deck is on the stock
-   * Office palette, the 4:3 deck on the owner's "07 Blå". So the same element
-   * pinned in the two sizes is pinned to different colours, which is a fact
-   * about the decks rather than about this code.
+   * since the 4:3 deck was re-themed the same day, the same colours in both —
+   * so an element pinned in one size is pinned to what it is in the other.
+   * `test/colours.test.ts` asserts that equality rather than the hexes, and
+   * `docs/DESIGN.md` section 3 says what the two decks disagreed about.
    */
   theme: Record<string, string>;
   /**

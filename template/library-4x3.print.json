@@ -1,11 +1,11 @@
 {
   "deck": "library-4x3.pptx",
-  "deckSha256": "0e5f65eec94985dd9e268a1de73e8a609be7af179b361fbf5cb08b3cc90d78ee",
+  "deckSha256": "cb87213aa8821e237e5882fc3b20ef62124da6914f7e1560456d53212bf2994a",
   "slides": 108,
   "print": "library-4x3.pdf",
-  "printSha256": "14e3b284035a137118c9f247ab3b235efdde3827850908ef1fbf2f9bcd2c3f17",
+  "printSha256": "1df36be1b85740097f04e38b727f3cfb44202a6880a7f4df23384ad659403331",
   "pages": 108,
   "takenAt": "2026-09-11",
   "powerPoint": "16.0.20326.20132",
-  "how": "File > Export > Create PDF/XPS > Options: range all, publish what Slides, frame slides off, include hidden slides on, include comments off, include ink off, optimise for Standard. Each read back off the dialog before publishing, because it resets to its defaults between presentations."
+  "how": "PowerPoint COM with no window: Presentations.Open(deck, ReadOnly, WithWindow false) then Presentation.SaveAs(pdf, 32 = ppSaveAsPDF). ExportAsFixedFormat, which would take the dialog's settings as arguments, cannot be bound on this build at any arity. Checked against the dialog print of the same deck page by page: same page count, same page size, the outer ring of every page inked exactly as before (so no frame was added), and every page that the deck edit did not touch rendering pixel-identical."
 }

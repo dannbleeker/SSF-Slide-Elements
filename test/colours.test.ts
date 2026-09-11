@@ -81,22 +81,30 @@ describe("reading a deck's theme colours", () => {
     expect(await themeColoursFor(pkg, "ppt/slides/slide1.xml")).toEqual({});
   });
 
-  it("reads the colours the committed library decks actually carry", async () => {
-    // Measured, 2026-09-11, and the two are NOT the same theme: the 16:9 deck
-    // is on the stock Office palette and the 4:3 deck on the owner's "07 Blå".
-    // So an element pinned in the two sizes is pinned to different colours,
-    // which is a fact about the decks rather than about this code.
+  it("reads the colours the committed library decks actually carry, and they are the SAME colours", async () => {
+    // The two decks disagreed until 2026-09-11: the 16:9 deck was on the stock
+    // Office palette and the 4:3 deck on "07 Blå", a palette it had carried
+    // since it was made at another company in 2013 — so the same element came
+    // out Office orange in one size and light blue in the other, in the library
+    // itself, and "as in the library" pinned it to two different colours. The
+    // 4:3 deck was re-themed to the 16:9 deck's scheme.
+    //
+    // Asserted as an EQUALITY between the decks rather than as two lists of
+    // hexes, because the thing that must stay true is that they agree. A future
+    // palette change to both keeps this green; a palette change to one does not.
     const wide = await Pkg.open(new Uint8Array(readFileSync("template/library-16x9.pptx")));
     const narrow = await Pkg.open(new Uint8Array(readFileSync("template/library-4x3.pptx")));
-    expect(await themeColoursFor(wide, (await wide.slidePaths())[1] as string)).toMatchObject({
+    const wideColours = await themeColoursFor(wide, (await wide.slidePaths())[1] as string);
+    const narrowColours = await themeColoursFor(narrow, (await narrow.slidePaths())[1] as string);
+    expect(narrowColours).toEqual(wideColours);
+    // And the values themselves, so a deck re-themed to something unreadable
+    // cannot pass merely by being re-themed consistently.
+    expect(wideColours).toMatchObject({
       accent1: "5B9BD5",
+      accent2: "ED7D31",
       tx1: "000000",
       bg1: "FFFFFF",
-    });
-    expect(await themeColoursFor(narrow, (await narrow.slidePaths())[1] as string)).toMatchObject({
-      accent1: "90979B",
-      accent3: "C83A3A",
-      tx2: "266BAF",
+      tx2: "44546A",
     });
   });
 });

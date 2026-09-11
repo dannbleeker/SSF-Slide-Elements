@@ -198,7 +198,16 @@ element with its picture — <https://ssf-slide-elements.struktureretsundfornuft
 print of each deck, committed beside it as `library-16x9.pdf` and
 `library-4x3.pdf`: print the deck one slide per page with **Frame slides** off
 and hidden slides included, commit the print, and `npm run previews` cuts the
-elements out of it on deploy.
+elements out of it on deploy. Then stamp it, so the print and the deck are tied
+together and CI can tell a stale print from a current one:
+
+```
+node scripts/stamp-print.mjs --powerpoint <build> --deck library-4x3
+```
+
+On a machine with no screen the print can also be taken by driving PowerPoint
+itself — `Presentations.Open(deck, ReadOnly)` then `SaveAs(pdf, 32)` — in which
+case stamp it with `--route com`, which records that it was taken that way.
 
 ## Installing it
 
