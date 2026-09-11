@@ -7,6 +7,7 @@ import {
   mergeTagPart,
   nextTagNumber,
   readShapeTags,
+  usedInDeck,
   tagPartXml,
   writeShapeTags,
 } from "../src/core/pptx/tags.js";
@@ -788,5 +789,80 @@ describe("reading a deck back", () => {
     expect(await readShapeTags(again, SLIDE)).toEqual([
       { element: "hvid-kasse-2x1-vertikale", catalogue: "2026-09-10", shapeId: "2" },
     ]);
+  });
+});
+
+describe("what the whole deck already uses", () => {
+  const SLIDE2 = "ppt/slides/slide2.xml";
+  const SLIDE3 = "ppt/slides/slide3.xml";
+
+  /** Three slides, so "which slides" has more than one answer to get wrong. */
+  const three = (): Promise<Pkg> =>
+    deck([
+      { paragraphs: [["a"]], shapes: [PICTURE] },
+      { paragraphs: [["b"]] },
+      { paragraphs: [["c"]], shapeTags: true },
+    ]);
+
+  it("groups every stamped shape by element, with the slides it is on", async () => {
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Body"), OURS);
+    await writeShapeTags(pkg, SLIDE2, await shapeNamed(pkg, "Body", SLIDE2), OURS);
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Billede 60"), [
+      [TAG_ELEMENT, "bred-bjaelke"],
+      [TAG_CATALOGUE, "2026-09-10"],
+    ]);
+    // Both first appear on slide 1, so the tiebreak decides: by id, so two
+    // runs over the same deck cannot answer in two orders.
+    expect(await usedInDeck(pkg)).toEqual([
+      { element: "bred-bjaelke", slides: [1], shapes: 1, catalogues: ["2026-09-10"] },
+      { element: "hvid-kasse-2x1-vertikale", slides: [1, 2], shapes: 2, catalogues: ["2026-09-10"] },
+    ]);
+  });
+
+  it("counts two of the same element on one slide as two shapes on one slide", async () => {
+    // Which is what the pane says: "on slide 1" once, not twice — while
+    // "Remove from N slides" needs the shape count to be the truth.
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Body"), OURS);
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Billede 60"), OURS);
+    expect(await usedInDeck(pkg)).toEqual([
+      { element: "hvid-kasse-2x1-vertikale", slides: [1], shapes: 2, catalogues: ["2026-09-10"] },
+    ]);
+  });
+
+  it("orders elements by where they first appear", async () => {
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE3, await shapeNamed(pkg, "Body", SLIDE3), OURS);
+    await writeShapeTags(pkg, SLIDE2, await shapeNamed(pkg, "Body", SLIDE2), [[TAG_ELEMENT, "later-in-the-alphabet"]]);
+    expect((await usedInDeck(pkg)).map((u) => u.element)).toEqual([
+      "later-in-the-alphabet",
+      "hvid-kasse-2x1-vertikale",
+    ]);
+  });
+
+  it("ignores another add-in's tags, on a deck that carries them on every slide", async () => {
+    // The fixture's third slide carries a vendor tag part, which is what a deck
+    // that has been through think-cell looks like. A sweep that read
+    // `ppt/tags/tagN.xml` directly would report it as an element of ours.
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Body"), OURS);
+    const used = await usedInDeck(pkg);
+    expect(used).toHaveLength(1);
+    expect(used[0]?.element).toBe("hvid-kasse-2x1-vertikale");
+  });
+
+  it("says nothing about a deck this add-in has never touched", async () => {
+    expect(await usedInDeck(await three())).toEqual([]);
+  });
+
+  it("keeps an element whose id this catalogue no longer has", async () => {
+    // Eleven ids changed on 2026-09-11 when the part keys were translated
+    // (`docs/DESIGN.md` section 2). A deck stamped before that names elements
+    // the library cannot; dropping them here would make the deck look emptier
+    // than it is, and it is the PANE's job to say it cannot name one.
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Body"), [[TAG_ELEMENT, "fortroligt"]]);
+    expect(await usedInDeck(pkg)).toEqual([{ element: "fortroligt", slides: [1], shapes: 1, catalogues: [] }]);
   });
 });

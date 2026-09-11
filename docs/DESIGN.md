@@ -236,6 +236,27 @@ PowerPoint would settle.
 - **Used in this deck**: the library elements already in the deck, each with
   the slide numbers it is on; a number jumps to that slide. Read from the tags
   the add-in writes at insert.
+
+  Built 2026-09-11, with two deviations the record now carries:
+
+  - **It reads on request, not on open.** The section starts as one line — "See
+    what this deck already uses" — and reads when clicked. Reading it means
+    reading the user's WHOLE presentation, and how long that takes on a fifty
+    megabyte deck is section 13's sixth open question, still unanswered. Asking
+    costs one click; reading on open would spend an unmeasured cost on everybody
+    who never looks at this list. Once read, an insert updates the list rather
+    than re-reading the deck, and an undo takes its entry out again — the pane
+    knows exactly what it just put where.
+  - **The slide numbers are text, not links.** The jump is a host call no round
+    has made, and a control that might do nothing is worse than a sentence that
+    says where the element is. It comes back with the round that can verify it.
+
+  Three states, and the pane says which: never asked, asked and empty ("Nothing
+  from the library is in this deck yet"), asked and answered. An id the current
+  catalogue cannot name is kept and shown as "an element from an older version
+  of the library" — eleven ids changed when the part keys were translated
+  (section 2), and a row silently dropped would make the deck look emptier than
+  it is.
 - **Favourites** (a star in the tile's corner, remembered per machine) and
   **Recent** (the last six inserts) sit above the categories.
 - **Categories** start collapsed, with "Open all" beside the count; a search or
@@ -765,3 +786,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The store listing is written into the repo (`docs/LISTING.md`) and held to the manifests by a test, rather than typed into Partner Center at submission time — and the screenshot, the validators' test deck and the listing name are left as the owner's, because a composited screenshot or a deck built by this repo's own code would be a picture of something that does not exist | decided in the build, 2026-09-11 |
 | The 4:3 deck was re-themed to the 16:9 deck's colour scheme rather than the other way round: the 16:9 deck is the owner's own 2021 template and the 4:3 deck's palette came from the company it was authored at in 2013. The change is the deck's, so the committed print no longer belongs to it and the print gate says so until it is re-printed | decided in the build, 2026-09-11 |
 | The gear's two external links carry an allowlist of three values and open the site the PANE was served from, as buttons rather than anchors — and the support page reads the same allowlist back, so a crafted link can put a build code on that page and nothing else | decided in the build, 2026-09-11 |
+| "Used in this deck" reads the deck when the user asks rather than when the pane opens, and its slide numbers are text rather than links — the read is the sixth open question's unmeasured cost, and the jump is a host call no round has made | decided in the build, 2026-09-11 |

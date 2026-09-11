@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — what this deck already uses
+
+- **The pane can tell you which library elements are already in the open deck**,
+  and which slides they are on. It is one line until you click it, because
+  finding out means reading your whole presentation — so it reads when you ask
+  rather than every time the pane opens.
+- Inserting adds to the list and Undo takes it back out, without re-reading.
+- An element from an older version of the library is still listed, and says that
+  is what it is, rather than quietly going missing.
+
 ### Added — two ways out of the gear
 
 - **Report a problem** opens the support page in your browser with the build

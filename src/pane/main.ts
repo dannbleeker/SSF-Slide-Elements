@@ -11,6 +11,7 @@
  */
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
+import { usedInDeck } from "../core/pptx/tags.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
@@ -41,6 +42,8 @@ import {
   remember,
   stepFor,
   toggle,
+  withInsert,
+  withoutInsert,
   type Library,
   type PaneState,
 } from "./steps.js";
@@ -67,6 +70,10 @@ interface Undoable {
   /** The deck as it was before the insert. */
   before: string;
   name: string;
+  /** The catalogue id, so "Used in this deck" can drop it again when this is undone. */
+  id: string;
+  /** Which slide it landed on, counting from ONE, for the same reason. */
+  landedOn: number;
 }
 let undoable: Undoable | undefined;
 
@@ -347,8 +354,13 @@ async function insert(id: string): Promise<void> {
       ...(removed === undefined ? {} : { removed }),
       ...(error === undefined ? {} : { error }),
     });
+    // Where the element ended up, counting from one. "Onto this slide" rebuilt
+    // the slide the user was on and took the original away, so it is that
+    // slide; "as a new slide" put one after it. The same arithmetic `undoPlan`
+    // does, from the other end.
+    const landedOn = state.settings.target === "new" ? at + 2 : at + 1;
     undoable = outcome.ok
-      ? { target: state.settings.target, index: at, before: deck.base64, name: element.name }
+      ? { target: state.settings.target, index: at, before: deck.base64, name: element.name, id: element.id, landedOn }
       : undefined;
     state = {
       ...state,
@@ -356,6 +368,11 @@ async function insert(id: string): Promise<void> {
       recent: outcome.ok ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
       undo: outcome.ok ? 1 : 0,
       outcome: { ...outcome, name: element.name },
+      // "Used in this deck" is updated rather than re-read: the pane knows
+      // exactly what it just put where, and the read is the expensive half of
+      // this feature. Untouched when nothing has been read — an insert is not a
+      // reason to start claiming the deck has been looked at.
+      used: outcome.ok ? withInsert(state.used, element.id, landedOn) : state.used,
     };
     delete state.notice;
     keep();
@@ -419,6 +436,9 @@ async function undo(): Promise<void> {
       busy: false,
       undo: 0,
       outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
+      // The slide it was on is the user's own again, so whatever the insert put
+      // there went with it.
+      used: withoutInsert(state.used, entry.id, entry.landedOn),
     };
     delete state.notice;
     draw();
@@ -489,6 +509,34 @@ function leave(urlFor: (site: { origin: string }) => string, what: string): void
   });
 }
 
+/**
+ * Read the deck and say which library elements are already in it.
+ *
+ * `docs/DESIGN.md` section 4's "Used in this deck", off the tags an insert
+ * writes — measured surviving `insertSlidesFromBase64` on 2026-09-11 (section
+ * 15), which is what makes the feature buildable at all.
+ *
+ * On request rather than on open. It reads the WHOLE deck, and how long that
+ * takes on a fifty-megabyte one is section 13's sixth open question: unanswered.
+ * A pane that answered it on everybody's behalf, every time it opened, would be
+ * spending an unmeasured cost on the people who never look at this list.
+ */
+async function readUsed(): Promise<void> {
+  if (state.reading === true || state.busy === true) return;
+  set({ reading: true, notice: undefined });
+  try {
+    const deck = await readDeck();
+    const pkg = await Pkg.open(deck.base64);
+    const used = await usedInDeck(pkg);
+    set({ reading: false, used: used.map((u) => ({ element: u.element, slides: u.slides })) });
+  } catch (e) {
+    // The list stays as it was — including "never asked" — rather than becoming
+    // an empty one, because an empty list is a claim about the deck and this is
+    // a failure to look at it.
+    set({ reading: false, notice: `This deck could not be read: ${readable(e)}` });
+  }
+}
+
 function onClick(event: MouseEvent): void {
   const found = actionOf(event.target);
   if (!found) return;
@@ -546,6 +594,9 @@ function onClick(event: MouseEvent): void {
       break;
     case "catalogue":
       leave(catalogueUrl, "the catalogue page");
+      break;
+    case "used":
+      void readUsed();
       break;
     case "tag":
       if (value) set({ tags: toggle(state.tags, value) });

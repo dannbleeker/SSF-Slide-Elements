@@ -36,6 +36,8 @@ import {
   slideLine,
   stepMatches,
   tagsOf,
+  usedHeading,
+  usedRows,
   tileCount,
   type Library,
   type PaneState,
@@ -284,6 +286,57 @@ function gearPanel(state: PaneState): HTMLElement {
   return panel;
 }
 
+/**
+ * "Used in this deck": what the deck already carries, and where.
+ *
+ * `docs/DESIGN.md` section 4, with one deviation the record now carries: it is
+ * drawn CLOSED, as a button, until the user asks. Section 4 describes the list
+ * as simply being there, and that would mean reading the user's whole deck
+ * every time the pane opens — which is section 13's sixth open question, still
+ * unanswered, on a deck that can be fifty megabytes. Asking costs one click and
+ * the pane is usable in the meantime; reading on open costs everybody the
+ * unknown, including the people who never look at this list.
+ *
+ * Three states, and the difference between two of them is the point: not asked
+ * yet, asked and empty, asked and answered. "Nothing from the library is in
+ * this deck yet" is a fact; a blank section is not.
+ */
+function usedSection(state: PaneState, library: Library): HTMLElement {
+  const section = el("section", "used");
+  section.setAttribute("aria-label", "Used in this deck");
+
+  if (state.used === undefined) {
+    const ask = button("used", "link", "See what this deck already uses");
+    if (state.reading === true || state.busy === true) ask.disabled = true;
+    ask.textContent = state.reading === true ? "Reading this deck…" : "See what this deck already uses";
+    section.appendChild(ask);
+    return section;
+  }
+
+  section.appendChild(el("h2", "used-head", usedHeading(state)));
+  const rows = usedRows(library, state.used);
+  if (rows.length > 0) {
+    const list = el("ul", "used-list");
+    for (const row of rows) {
+      const item = el("li", row.known ? "used-row" : "used-row unknown");
+      item.appendChild(el("span", "used-name", row.name));
+      // The slide numbers are TEXT, not links. Section 4 says a number jumps to
+      // that slide, and jumping is a host call no round has made: it would ship
+      // as a control that might do nothing. Saying where the element is works
+      // without one.
+      item.appendChild(el("span", "used-where", row.where));
+      list.appendChild(item);
+    }
+    section.appendChild(list);
+  }
+  // Asked again, because the answer is a snapshot: anything done to the deck
+  // outside this pane since the read is not in it.
+  const again = button("used", "link", "Read this deck again");
+  if (state.reading === true || state.busy === true) again.disabled = true;
+  section.appendChild(again);
+  return section;
+}
+
 /** The footer: what happened last, and what can still be done about it. */
 function footer(state: PaneState): HTMLElement {
   const bar = el("footer", "footer");
@@ -372,6 +425,8 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
       main.appendChild(line);
     }
   }
+
+  main.appendChild(usedSection(state, library));
 
   const previewed = elementOf(library, state.previewing);
   if (previewed) {
