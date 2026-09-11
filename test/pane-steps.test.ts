@@ -653,6 +653,26 @@ describe("taking a part off the slides it is on", () => {
     expect(short.detail).toContain("Removed from 2 of 3 slides");
     expect(short.detail).toContain("as they were");
   });
+
+  it("says nothing changed when there was nothing left to remove", () => {
+    /**
+     * Reachable, and reachable BECAUSE of a fix. The removal re-reads which
+     * slides carry the element from the deck it is about to change rather than
+     * trusting the list the question was asked about — so a user who takes the
+     * shapes off by hand between the question and the answer leaves it with an
+     * empty list.
+     *
+     * It used to report `Removed from 0 slides.` and call that a success: a
+     * sentence that reads as a glitch, on a run where nothing was wrong.
+     */
+    const none = removalOutcome("Approved stamp", 0, 0);
+    expect(none.detail).not.toContain("0 slides");
+    expect(none.detail).toBe("It is not on any slide any more, so nothing changed.");
+    // Not a failure, and nothing for the user to finish by hand: there is
+    // nothing left to do.
+    expect(none.ok).toBe(true);
+    expect(none.byHand).toBe(false);
+  });
 });
 
 describe("a landed rectangle, in fractions of the right slide", () => {
