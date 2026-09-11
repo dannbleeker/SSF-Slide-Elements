@@ -88,6 +88,15 @@ export interface PaneState {
   recent: string[];
   /** True when the gear is open. */
   gear?: boolean;
+  /**
+   * The element whose preview card is open, if any.
+   *
+   * In the state rather than managed beside it, so the card cannot survive a
+   * re-render that removed the tile it belongs to. `docs/DESIGN.md` section 4
+   * opens it after a third of a second of hover or focus; the delay lives in
+   * the wiring, and by the time it reaches here the card is simply open.
+   */
+  previewing?: string;
 }
 
 export const EMPTY: PaneState = {
@@ -268,6 +277,33 @@ export function slideLine(state: PaneState): string {
   return state.slide === undefined
     ? "PowerPoint did not say which slide you are on, so an element will land on the first."
     : `Slide ${state.slide}.`;
+}
+
+/**
+ * Where this element would land, in one sentence, for the preview card.
+ *
+ * `docs/DESIGN.md` section 5 decides the landing per collection slide, so the
+ * deck decides it and this only says what the catalogue already recorded.
+ *
+ * The insert target is the user's, from the gear — except that **a part ignores
+ * it and always lands on the slide the user is on** (section 5, last bullet).
+ * Saying "as a new slide" over a stamp would be the pane promising something
+ * the engine does not do.
+ */
+export function landingLine(element: Element, settings: Settings): string {
+  if (element.kind === "part") {
+    switch (element.landing) {
+      case "top-right":
+        return "Lands top-right of this slide, clear of the edge.";
+      case "cursor":
+        return "Lands on the shape you have selected, or in the middle of this slide.";
+      default:
+        return "Lands on this slide, where it sits in the library.";
+    }
+  }
+  return settings.target === "new"
+    ? "Lands as a new slide after this one."
+    : "Lands below your slide's own title, scaled to fit the room under it.";
 }
 
 /** How many recent elements the pane remembers. Section 4: the last six inserts. */

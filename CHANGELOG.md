@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — a closer look before you pick
+
+- **Rest on a tile for a moment and a card opens with the element at full size**,
+  its name, and a line saying where it will land — which follows your insert
+  setting, except for stamps and markers, which always land on the slide you are
+  on whatever the setting says. Keyboard focus opens it too. Escape shuts it.
+  In a wide pane it sits beside the list without covering anything.
+
 ### Added — every tile shows the element itself
 
 - **A tile is a picture of the element now, not a diagram of where it lands.**

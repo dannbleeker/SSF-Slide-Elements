@@ -158,6 +158,15 @@ const STATES = [
   },
   { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
   {
+    // The preview card, which at 512 docks beside the list and at 320 pins over
+    // the top of it. Both widths are shot, so the audit measures the card in the
+    // narrow case where it overlaps and the wide one where it must not.
+    name: "browse-previewing",
+    step: "browse",
+    state: { ...BROWSING, previewing: "one-box" },
+    shows: ["search", "tile"],
+  },
+  {
     name: "browse-closed",
     step: "browse",
     state: { ...BROWSING, open: [] },

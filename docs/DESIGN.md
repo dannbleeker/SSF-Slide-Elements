@@ -219,11 +219,25 @@ PowerPoint would settle.
   two across, three from 400 px. A tile is the element's picture and name; a
   sized element carries its stepper; a part already in the deck carries
   "Remove from N slides".
-- **The preview card** opens after a third of a second of hover or focus,
-  pinned over the top of the list: the element at full width, its name, one
-  line saying where it lands, and a small slide with a ghost frame for the
-  landing and grey boxes for what the slide already has. At 512 px and wider
-  the card docks beside the list and hides no tiles.
+- **The preview card** opens after a third of a second of hover or focus: the
+  element at full width, its name, one line saying where it lands. At 512 px and
+  wider it docks beside the list and hides no tiles, the list giving up a gutter
+  for it and only while one is open.
+  Two things this says differently from how it was approved, both on 2026-09-11
+  and both from building it:
+  **It pins to the BOTTOM under 512 px, not over the top of the list.** It must
+  not DISPLACE the list, and that is the load-bearing part: a card in the flow
+  pushes the tiles down by its own height, which slides the tile out from under
+  the cursor that opened it, so the pointer lands on a different tile and a third
+  of a second later the card is showing the wrong element. It was built in the
+  flow first and the shots showed exactly that. Overlaying the TOP would cover
+  the search box and the tags, which are the two controls a user is most likely
+  to be reaching for while browsing, so it overlays the bottom.
+  **The grey boxes for what the destination slide already has are NOT built.**
+  They need the pane to read the slide's shapes, which is host work that cannot
+  be verified without a round against a real PowerPoint. The ghost frame for the
+  landing is drawn from the catalogue and needs no host at all, so that half is
+  there.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
   already had content, **Again**, **Undo (n)**), then a line with the current

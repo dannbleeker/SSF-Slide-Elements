@@ -419,6 +419,81 @@ input:focus-visible,
   }
 }
 
+/*
+ * The preview card (`docs/DESIGN.md` section 4).
+ *
+ * IT MUST NOT DISPLACE THE LIST, and that is the rule the layout is built
+ * around rather than a preference. A card in the flow pushes the tiles down by
+ * its own height, which slides the tile out from under the cursor that opened
+ * it; the pointer then sits over a DIFFERENT tile, and a third of a second
+ * later the card is showing the wrong element. It was built in the flow first
+ * and the shots showed exactly that.
+ *
+ * So it is `fixed` at both widths. Section 4 says "pinned over the top of the
+ * list" and this pins to the BOTTOM under 512: over the top would cover the
+ * search box and the tags, which are the two controls a user is most likely to
+ * be reaching for while they browse.
+ *
+ * Inert to the pointer, which is not decoration either. It opens under the
+ * cursor, and a card that swallowed the click would make the tile it describes
+ * unpickable.
+ */
+.card {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  z-index: 2;
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 6px 18px -10px rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+.card .tile-shot {
+  margin-bottom: 6px;
+}
+
+.card-name {
+  display: block;
+  font-size: 13px;
+  color: var(--head);
+}
+
+.card-landing {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/*
+ * At 512 and wider the card DOCKS BESIDE the list and hides no tiles, which is
+ * section 4's requirement and the reason this is a grid rather than a wider
+ * card: the list keeps its full width minus the dock, so no tile is covered.
+ */
+@media (min-width: 512px) {
+  .card {
+    left: auto;
+    right: 12px;
+    width: 200px;
+  }
+
+  /*
+   * The gutter the dock sits in, and ONLY while a card is open — `render` puts
+   * `has-card` on `main`. A permanent gutter would narrow the list by a tile's
+   * width at every moment nothing is being previewed.
+   *
+   * A class rather than `main:has(.card)`: `:has()` is fine in today's WebView2
+   * and would silently do nothing in an older one, and the failure there is the
+   * card sitting on top of the tiles that section 4 says it must not hide.
+   */
+  main.has-card {
+    padding-right: 224px;
+  }
+}
+
 .tile {
   position: relative;
   min-width: 0;
