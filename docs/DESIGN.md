@@ -99,6 +99,21 @@ PowerPoint would settle.
   A part is cut to its box with 3% of air, the boxes of neighbouring parts
   painted white, and a rotated part masked to its rotated frame. The parts are
   the same objects in both decks, so their cuts are shared.
+- **Neither deck opens in desktop PowerPoint as committed, so neither print can
+  be taken yet.** Measured on Windows on 2026-09-11 (PowerPoint 16.0.20326.20132,
+  Microsoft 365 Current Channel, x64): both decks are refused with "PowerPoint
+  found a problem with content", offering **Repair**. The cause is two
+  `<Override>` entries per deck in `[Content_Types].xml` whose `PartName` is
+  missing its leading `/` — `ppt/notesSlides/notesSlide2.xml` and
+  `notesSlide3.xml` in the 16:9 deck, `notesSlide13.xml` and `notesSlide14.xml`
+  in the 4:3 deck. OPC requires an absolute part name, and `Package.Open` refuses
+  both decks with "Part URI must start with a forward slash." Adding the two
+  slashes is enough on its own: copies with that one change open, 110 and 108
+  slides, with no repair prompt. Nothing else about the package is wrong — the
+  zip is intact, no relationship dangles, and every part carries a content type.
+  **Accepting the Repair is not the way out**: on a copy it opened the deck but
+  dropped ten of the fifteen `ppt/embeddings/oleObject*.bin` parts and
+  `ppt/changesInfos/changesInfo1.xml` with them.
 - **Boxes.** The box of a rotated shape is its rotated extent, not the
   unrotated frame the XML gives (the owner's stamps are rotated 29° and 35°). A
   table's box is the sum of its columns and rows, not its frame's `ext`, which
@@ -401,14 +416,48 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   the other four slides untouched. The shape inventory was read through the
   pane's own Office.js, which is the only place on the web it exists.
 
+**Measured, on PowerPoint on Windows, 2026-09-11.** PowerPoint 16.0.20326.20132,
+Microsoft 365 Current Channel, x64. This is about the DECKS and the print, not
+about Office.js: the host probe and the product round have still had no Windows
+round, so every API fact above remains a web measurement.
+
+- **Neither committed deck opens.** Both are refused with "PowerPoint found a
+  problem with content", offering Repair, in the UI and through COM alike
+  (`Presentations.Open` raises `0x808D1001`). Section 3 carries the cause and
+  the fix. The decks were not edited to find it: every experiment ran on copies,
+  and both files are byte-identical to `HEAD` afterwards.
+- **The fix costs the catalogue nothing.** Harvesting the two slash-corrected
+  decks produces a catalogue index byte-identical to the committed one, version
+  `1641fe687794` either way. So correcting the decks does not invalidate
+  `public/catalogue/catalogue.json` and does not need a re-harvest — which is
+  what makes it a safe change to make before the first print.
+- **`ExportAsFixedFormat` cannot be called through automation on this build.**
+  Every arity, from PowerShell and from VBScript alike, raises
+  `DISP_E_TYPEMISMATCH`; the method is present on the type and refuses to bind.
+  A print driven from code therefore goes through `SaveAs(path, ppSaveAsPDF)`,
+  which takes PowerPoint's default publish options rather than named ones, or
+  through the File → Export dialog by hand. A print taken this way is checked by
+  its output — page count against slide count, and the PDF's `/MediaBox` against
+  the slide size — rather than by the switches that were set.
+- **Both decks render correctly once they open.** Printed from slash-corrected
+  copies: the 16:9 deck gives 110 pages for 110 slides at 960×540 pt
+  (2,220,241 bytes), the 4:3 deck 108 pages for 108 slides at 720×540 pt
+  (2,431,939 bytes), neither deck carrying a hidden slide. Sampled pages are
+  rendered slides, and each one's slide-number footer matches its page number.
+  Those prints are NOT committed: they are prints of corrected copies, not of
+  the bytes on `main`, and a print whose provenance does not match the deck the
+  harvest checks it against would pass the slide-count check while being cut
+  from the wrong file.
+
 Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
 them parts of four collection slides, twelve runs of sizes, 42 whole-slide
 elements without a group; the stamps are rotated 29° and 35°; a table's frame is
 narrower than the table PowerPoint draws.
 
-**Assumed**: every host fact above on **Windows, Mac and iPad**, where no round
-has been run; the two-second budget in section 11; and the certification reading
-in section 12.
+**Assumed**: every host fact above on **Windows, Mac and iPad**. Windows has had
+the deck-and-print round recorded above and no Office.js round at all; Mac and
+iPad have had neither. Also assumed: the two-second budget in section 11, and
+the certification reading in section 12.
 
 ## 16. Decisions log
 
