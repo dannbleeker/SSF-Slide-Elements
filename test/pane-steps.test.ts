@@ -18,6 +18,9 @@ import {
   isOpen,
   landingLine,
   matches,
+  offersOtherTarget,
+  otherTarget,
+  otherTargetLabel,
   primary,
   remember,
   runOf,
@@ -536,5 +539,26 @@ describe("what this deck already uses", () => {
       { element: "two-boxes", slides: [3, 11] },
     ]);
     expect(withoutInsert(used, "one-box", 2)).toEqual([{ element: "two-boxes", slides: [3, 5, 11] }]);
+  });
+});
+
+describe("the other insert target, for one insert", () => {
+  it("is whichever one the gear is not set to", () => {
+    expect(otherTarget(DEFAULT_SETTINGS)).toBe("new");
+    expect(otherTarget({ ...DEFAULT_SETTINGS, target: "new" })).toBe("onto");
+  });
+
+  it("says what it would do, as an action rather than a setting", () => {
+    expect(otherTargetLabel(DEFAULT_SETTINGS)).toBe("Insert as a new slide");
+    expect(otherTargetLabel({ ...DEFAULT_SETTINGS, target: "new" })).toBe("Insert onto this slide");
+  });
+
+  it("offers nothing on a part, because a part ignores the target", () => {
+    // `docs/DESIGN.md` section 5: a stamp or a marker always lands on the slide
+    // the user is on. A menu offering "as a new slide" over one would be the
+    // pane promising something the engine does not do — the same reason
+    // `landingLine` refuses to say it.
+    expect(offersOtherTarget(element({ id: "box", kind: "slide" }))).toBe(true);
+    expect(offersOtherTarget(element({ id: "stamp", kind: "part", landing: "top-right" }))).toBe(false);
   });
 });

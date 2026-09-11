@@ -24,8 +24,7 @@ not ask for, the first-run coach marks, the gear's two external links, and
 has — the card itself is built, and those boxes need a host read of the slide's
 shapes that no round has verified; **Remove from N slides** for a stamp, which
 needs the same read to know what it would be removing; **the jump** from a slide
-number in "Used in this deck", which needs a host call no round has made; and
-right-click for the other insert target on one insert.
+number in "Used in this deck", which needs a host call no round has made.
 
 ### The rest of the host round
 

@@ -354,6 +354,22 @@ exception for width.
   user moves them as one and ungroups when editing.
 - **Right-click** (long-press on touch) on a tile offers the other insert
   target for that one insert, without touching the setting.
+
+  Built 2026-09-11. Three things decided in the building:
+
+  - **It opens on `contextmenu`**, which is the right mouse button and also the
+    keyboard's own menu key and Shift+F10 — so it is not a mouse-only feature by
+    accident. The event is cancelled only where a menu of ours opens: right-click
+    in the search box still gets the browser's menu, with paste in it.
+  - **A part offers nothing.** A stamp or a marker ignores the insert target and
+    always lands on the slide the user is on (section 5), so a menu offering it
+    "as a new slide" would promise something the engine does not do — the same
+    reason the preview card's landing line refuses to say it.
+  - **The menu is anchored to the TOP of its own tile**, not to the pointer. The
+    pane is 320 px at its narrowest, where a menu at the cursor hangs off the
+    edge as often as not; and the tile's name is at its bottom, so a menu there
+    hides which element it belongs to. Nothing about where the pointer was
+    reaches the pane's state, which is also what lets the shot audit draw it.
 - **Deck-wide stamps.** A stamp already in the deck can be removed from every
   slide it is on with one click, found by the tag written at insert. The manual
   says that shape tags do not survive cut and paste on the web.
@@ -787,3 +803,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The 4:3 deck was re-themed to the 16:9 deck's colour scheme rather than the other way round: the 16:9 deck is the owner's own 2021 template and the 4:3 deck's palette came from the company it was authored at in 2013. The change is the deck's, so the committed print no longer belongs to it and the print gate says so until it is re-printed | decided in the build, 2026-09-11 |
 | The gear's two external links carry an allowlist of three values and open the site the PANE was served from, as buttons rather than anchors — and the support page reads the same allowlist back, so a crafted link can put a build code on that page and nothing else | decided in the build, 2026-09-11 |
 | "Used in this deck" reads the deck when the user asks rather than when the pane opens, and its slide numbers are text rather than links — the read is the sixth open question's unmeasured cost, and the jump is a host call no round has made | decided in the build, 2026-09-11 |
+| Right-click opens on `contextmenu` rather than a mouse-only handler, offers nothing on a part, and anchors to the top of its own tile rather than to the pointer — so the keyboard reaches it, the pane never promises a landing the engine does not do, and no coordinate reaches the state | decided in the build, 2026-09-11 |

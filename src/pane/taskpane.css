@@ -337,6 +337,49 @@ input:focus-visible,
 }
 
 /*
+ * The tile's right-click menu (`docs/DESIGN.md` section 6): the other insert
+ * target, for one insert.
+ *
+ * Anchored to the tile, over the TOP of its own picture, rather than to the
+ * pointer — the pane is 320px at its narrowest and a menu placed at the cursor
+ * would hang off the edge as often as not. Over its own tile rather than below
+ * it because below is the next row of tiles, and a menu covering the thing
+ * under it is a menu whose dismissing click inserts something else. At the top
+ * rather than the bottom because the tile's NAME is at the bottom, and a menu
+ * that hides which element it belongs to is a menu you have to close to read.
+ */
+.tile-menu {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  z-index: 3;
+  border: 1px solid var(--hair);
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+}
+
+.tile-menu-item {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  text-align: left;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tile-menu-item:hover {
+  background: var(--sunk);
+}
+
+/*
  * "Used in this deck" (`docs/DESIGN.md` section 4).
  *
  * Quiet by design: it sits between the tags and the categories, and what the

@@ -30,6 +30,8 @@ import {
   groups,
   isOpen,
   landingLine,
+  offersOtherTarget,
+  otherTargetLabel,
   primary,
   runOf,
   settingsLine,
@@ -219,6 +221,22 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
       stepper.appendChild(step);
     }
     item.appendChild(stepper);
+  }
+
+  // Section 6: right-click (or the keyboard's own menu key, which fires the
+  // same event) offers the OTHER insert target for this one insert, without
+  // touching the gear. Anchored to the tile rather than to the pointer, so the
+  // menu cannot outlive the thing it belongs to and the audit can draw it.
+  if (state.menuFor === element.id && offersOtherTarget(element)) {
+    const menu = el("div", "tile-menu");
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("aria-label", element.name);
+    const other = button("other-target", "tile-menu-item", otherTargetLabel(state.settings));
+    other.dataset["id"] = element.id;
+    other.setAttribute("role", "menuitem");
+    if (state.busy === true) other.disabled = true;
+    menu.appendChild(other);
+    item.appendChild(menu);
   }
   return item;
 }

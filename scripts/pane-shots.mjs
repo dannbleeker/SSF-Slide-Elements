@@ -216,6 +216,15 @@ const STATES = [
     shows: ["target", "group", "colours", "report", "catalogue"],
   },
   {
+    // The tile's right-click menu: the other insert target, over the tile it
+    // belongs to. Drawn on an OPEN category, because a menu on a collapsed one
+    // would be a menu over nothing.
+    name: "browse-tile-menu",
+    step: "browse",
+    state: { ...BROWSING, open: ["boxes"], menuFor: "one-box" },
+    shows: ["other-target", "tile"],
+  },
+  {
     // "Used in this deck", read: the state nothing else in this list covers,
     // and the one where a long element name meets a long list of slide numbers.
     name: "browse-used",
