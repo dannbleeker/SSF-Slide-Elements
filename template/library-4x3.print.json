@@ -1,0 +1,11 @@
+{
+  "deck": "library-4x3.pptx",
+  "deckSha256": "0e5f65eec94985dd9e268a1de73e8a609be7af179b361fbf5cb08b3cc90d78ee",
+  "slides": 108,
+  "print": "library-4x3.pdf",
+  "printSha256": "14e3b284035a137118c9f247ab3b235efdde3827850908ef1fbf2f9bcd2c3f17",
+  "pages": 108,
+  "takenAt": "2026-09-11",
+  "powerPoint": "16.0.20326.20132",
+  "how": "File > Export > Create PDF/XPS > Options: range all, publish what Slides, frame slides off, include hidden slides on, include comments off, include ink off, optimise for Standard. Each read back off the dialog before publishing, because it resets to its defaults between presentations."
+}
