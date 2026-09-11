@@ -402,3 +402,66 @@ export async function removeSlideAt(index: number): Promise<string | undefined> 
     return readable(e);
   }
 }
+
+/**
+ * What the host says it is, for a problem report.
+ *
+ * `Office.context.diagnostics` is the modern answer and carries the host, the
+ * platform and the Office version; the two older properties are the fallback,
+ * because `diagnostics` needs requirement set CommonApi 1.1 and this add-in's
+ * floor is a PowerPointApi one, not a Common one. Everything is optional and
+ * nothing raises: a report missing the platform is still a report, and a pane
+ * that threw while building a support link would be a pane that cannot ask for
+ * help.
+ *
+ * The VALUES are not judged here. `src/host/links.ts` decides which of them may
+ * reach a URL, because that is the rule worth testing.
+ */
+export function hostStamp(): { host?: string; platform?: string } {
+  try {
+    const diagnostics = Office.context?.diagnostics;
+    const host = diagnostics?.host ?? Office.context?.host;
+    const platform = diagnostics?.platform ?? Office.context?.platform;
+    return {
+      ...(typeof host === "string" ? { host } : {}),
+      ...(typeof platform === "string" ? { platform } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Open one of the site's own pages in the user's browser.
+ *
+ * `Office.context.ui.openBrowserWindow` is the supported route and the one
+ * `docs/DESIGN.md` section 7 names — a plain `window.open` or a target="_blank"
+ * link is unreliable in a desktop task pane, where the pane is a WebView rather
+ * than a tab and there is no browser around it to open a tab in. It needs
+ * requirement set OpenBrowserWindowApi 1.1, which is not in this add-in's
+ * floor, so it is PROBED rather than assumed, and `window.open` is the fallback
+ * for the host that lacks it — on the web that is a real tab, so the fallback
+ * is not a worse experience there.
+ *
+ * Answers whether anything opened, so the pane can say so rather than leaving a
+ * click that silently did nothing.
+ */
+export function openExternal(url: string): boolean {
+  try {
+    if (Office.context?.requirements?.isSetSupported("OpenBrowserWindowApi", "1.1")) {
+      Office.context.ui.openBrowserWindow(url);
+      return true;
+    }
+  } catch {
+    // Fall through: a host that raises from the supported route still has the
+    // fallback, and a report link is not worth a broken pane.
+  }
+  try {
+    // `noopener` because the opened page must not get a handle on the pane:
+    // it is our own page today, and a window handle into a task pane holding
+    // somebody's presentation is not a thing to hand out on trust.
+    return window.open(url, "_blank", "noopener,noreferrer") !== null;
+  } catch {
+    return false;
+  }
+}

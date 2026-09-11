@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — two ways out of the gear
+
+- **Report a problem** opens the support page in your browser with the build
+  code, the app and the platform already filled in. Only those three: nothing
+  about your presentation goes with it, and the page shows nothing it does not
+  recognise.
+- **Browse the catalogue on the site** opens the element library as a web page.
+- If PowerPoint will not open a browser window, the pane says so and gives you
+  the address rather than doing nothing.
+
 ### Fixed — the same element, the same colours in both slide sizes
 
 - **The two library decks were on different colour palettes**, and 79 of the 117

@@ -39,7 +39,16 @@ vi.mock("../src/office/powerpoint.js", () => ({
   onSlideChange: () => Promise.resolve(false),
   insertPackage: () => Promise.resolve(undefined),
   removeSlideAt: () => Promise.resolve(undefined),
+  hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
+  openExternal: (url: string) => {
+    opened.push(url);
+    return externalOpens;
+  },
 }));
+
+/** Every URL the pane asked the host to open, and whether the host obliged. */
+const opened: string[] = [];
+let externalOpens = true;
 
 vi.mock("../src/pane/catalogue.js", async () => {
   const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
@@ -103,7 +112,52 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
   readiness = { ok: true, detail: "fine" };
   indexMode = "fail";
+  opened.length = 0;
+  externalOpens = true;
   window.localStorage.clear();
+});
+
+describe("the two links out of the gear", () => {
+  /** Open the pane with a library, open the gear, and click one of the links. */
+  async function click(action: string): Promise<HTMLElement> {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector(`[data-action="${action}"]`) as HTMLElement).click();
+    return pane;
+  }
+
+  it("sends the support page the build, the host and the platform — and nothing else", async () => {
+    await click("report");
+    expect(opened).toHaveLength(1);
+    const url = new URL(opened[0] as string);
+    expect(url.pathname).toBe("/support.html");
+    // The pane is served from the site, so the links go to the site it came
+    // from rather than to an address written into the code.
+    expect(url.origin).toBe(window.location.origin);
+    expect([...url.searchParams.keys()].sort()).toEqual(["host", "platform"]);
+    expect(url.searchParams.get("host")).toBe("PowerPoint");
+    expect(url.searchParams.get("platform")).toBe("PC");
+    // No build in a test runner: `__BUILD_STAMP__` is a define the bundler
+    // replaces, and an absent one is left out rather than sent as "unknown".
+  });
+
+  it("opens the catalogue page, and closes the gear behind it", async () => {
+    const pane = await click("catalogue");
+    expect(opened[0]).toBe(`${window.location.origin}/catalogue.html`);
+    expect(pane.querySelector(".gear-panel")).toBeNull();
+  });
+
+  it("says where to go when the host will not open a window, instead of doing nothing", async () => {
+    // The failure that matters: a click that silently does nothing leaves the
+    // user with no way to reach the page at all.
+    externalOpens = false;
+    const pane = await click("catalogue");
+    const notice = pane.querySelector(".notice")?.textContent ?? "";
+    expect(notice).toContain("would not open a browser window");
+    expect(notice).toContain("/catalogue.html");
+  });
 });
 
 describe("booting the pane", () => {

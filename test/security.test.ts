@@ -354,3 +354,70 @@ describe("the privacy page says what the pane actually stores", () => {
     );
   });
 });
+
+describe("the one script on the site", () => {
+  /**
+   * `public/support.html` reads three values out of its own address and shows
+   * them, so a problem report carries the build, the host and the platform
+   * without anybody typing them (`docs/DESIGN.md` section 7).
+   *
+   * That is a script on a public page, taking input from a URL a stranger can
+   * write, on the page somebody in trouble lands on. Everything below is about
+   * the two properties that makes acceptable: it can only show values it
+   * recognises, and it puts them on the page as TEXT.
+   */
+  const support = readFileSync("public/support.html", "utf8");
+
+  it("is the only page on the site that carries one", () => {
+    // A second script is not forbidden — it is a decision, and this is what
+    // makes it one rather than something that crept in.
+    const pages = readdirSync("public").filter((n) => n.endsWith(".html"));
+    expect(pages.length).toBeGreaterThan(3);
+    for (const page of pages) {
+      const html = readFileSync(`public/${page}`, "utf8");
+      const scripts = (html.match(/<script/gi) ?? []).length;
+      expect(scripts, `public/${page} carries ${scripts} script(s)`).toBe(page === "support.html" ? 1 : 0);
+    }
+  });
+
+  it("writes what it reads as text, never as markup", () => {
+    // The whole defence against a crafted link: `textContent` cannot make an
+    // element, an attribute or a handler out of anything it is given.
+    expect(support).toContain("textContent");
+    for (const sink of ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval("]) {
+      expect(support, `the support page uses ${sink}`).not.toContain(sink);
+    }
+  });
+
+  it("sends nothing anywhere, which is what the privacy page promises for the whole site", () => {
+    const script = support.slice(support.indexOf("<script"));
+    for (const away of ["fetch(", "XMLHttpRequest", "navigator.sendBeacon", "WebSocket", "import("]) {
+      expect(script, `the support page's script uses ${away}`).not.toContain(away);
+    }
+  });
+
+  it("recognises exactly the parameters the add-in is able to send", () => {
+    // Two spellings of one allowlist — `src/host/links.ts` decides what may go
+    // INTO the address and this page decides what may come out of it — so they
+    // are held together here. A platform the add-in can send and the page does
+    // not know would simply not be shown; one the page knows and the add-in
+    // cannot send is dead code that reads like a feature.
+    const links = readFileSync("src/host/links.ts", "utf8");
+    const listed = (source: string, name: string): string[] => {
+      const at = source.indexOf(name);
+      expect(at, `${name} not found`).toBeGreaterThan(-1);
+      const line = source.slice(at, source.indexOf(";", at) > -1 ? source.indexOf(";", at) : undefined);
+      return [...line.matchAll(/["']([A-Za-z]+)["']|^\s*([A-Z][A-Za-z]+):/gm)].map((m) => m[1] ?? m[2] ?? "");
+    };
+    const fromCode = listed(links, "const PLATFORMS");
+    expect(fromCode).toContain("OfficeOnline");
+    for (const platform of fromCode) {
+      expect(support, `the support page does not know the platform "${platform}"`).toContain(`${platform}:`);
+    }
+    // And the three parameters themselves.
+    for (const key of ["build", "host", "platform"]) {
+      expect(links, `links.ts does not set "${key}"`).toContain(`parameters.set("${key}"`);
+      expect(support, `the support page does not read "${key}"`).toContain(`${key}: { label:`);
+    }
+  });
+});

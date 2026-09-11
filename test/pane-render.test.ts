@@ -237,6 +237,20 @@ describe("browsing", () => {
     expect(groups[0]?.getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("offers the two ways out of the pane, as buttons rather than links", () => {
+    // `docs/DESIGN.md` section 7. Buttons on purpose: an <a href> in a task
+    // pane either does nothing or navigates the pane away from itself, and a
+    // user whose pane has become a web page has to close and reopen it.
+    render(root, { ...browsing, gear: true }, "browse");
+    const panel = root.querySelector(".gear-panel") as HTMLElement;
+    for (const action of ["report", "catalogue"]) {
+      const link = panel.querySelector(`[data-action="${action}"]`);
+      expect(link, action).not.toBeNull();
+      expect(link?.tagName).toBe("BUTTON");
+    }
+    expect(panel.querySelector("a")).toBeNull();
+  });
+
   it("offers the colour switch, with the setting the user is on pressed", () => {
     // `docs/DESIGN.md` section 7's third option. The pressed one is the
     // EVIDENCE half: a panel that drew both choices and pressed neither would

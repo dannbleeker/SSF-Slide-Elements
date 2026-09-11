@@ -320,6 +320,37 @@ input:focus-visible,
   margin-bottom: 0;
 }
 
+/*
+ * The two links out of the gear (`docs/DESIGN.md` section 7).
+ *
+ * Stacked rather than laid out in the row the settings use: they are not
+ * choices, and a pressable choice beside a link that leaves PowerPoint would
+ * read as a fourth setting. Underlined and in the link colour so they look like
+ * what they are, while remaining buttons — an <a href> in a task pane either
+ * does nothing or navigates the pane away from itself.
+ */
+.links {
+  display: block;
+  border-top: 1px solid var(--hair);
+  padding-top: 6px;
+  margin-top: 8px;
+}
+
+.link {
+  display: block;
+  width: 100%;
+  min-height: 24px;
+  padding: 3px 0;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .option-name {
   color: var(--muted);
   font-size: 12px;

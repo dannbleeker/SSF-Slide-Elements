@@ -75,6 +75,18 @@
     margin: 4px 0 12px;
   }
   .contact a { font-weight: 600; font-size: 1.05rem }
+  /* What the add-in itself put in the address, when it sent you here. Shown
+     only then: the block is hidden until the script below finds something. */
+  .from-pane {
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 4px 0 12px;
+  }
+  .from-pane dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 }
+  .from-pane dt { color: var(--grey) }
+  .from-pane dd { color: var(--ink); margin: 0; font-family: Consolas, "Cascadia Mono", monospace }
   .rule { border: 0; border-top: 1px solid var(--hair); margin: 28px 0 16px }
   .from { font-size: .95rem }
 </style>
@@ -97,6 +109,17 @@
     rather than a ticket number, usually within a few working days.</p>
 
   <h2>Please include this</h2>
+
+  <!-- Filled in by the script at the foot of the page when the add-in's own
+       "Report a problem" sent you here: the pane puts its build, its host and
+       its platform in the address so they do not have to be typed out. Nothing
+       else can arrive that way — `src/host/links.ts` in the add-in puts exactly
+       these three in, and the script below accepts exactly these three out. -->
+  <div class="from-pane" id="from-pane" hidden>
+    <p><strong>From the add-in</strong> — copy this into your message:</p>
+    <dl id="from-pane-list"></dl>
+  </div>
+
   <p>It turns a report into something reproducible, and usually saves a round trip:</p>
   <ul>
     <li><strong>The build code.</strong> The task pane prints it in its own header, on the right:
@@ -123,9 +146,9 @@
   </ul>
 
   <h2>Your data</h2>
-  <p>SSF Slide Elements has no server and sends nothing anywhere. Today the pane reads nothing; when
-    the library lands, your slides will be read inside the task pane, on your own device, and never
-    uploaded. The <a href="/privacy.html">privacy policy</a> says so in full.</p>
+  <p>SSF Slide Elements has no server and sends nothing anywhere. Your presentation is read and
+    written inside the task pane, on your own device, and is never uploaded. The
+    <a href="/privacy.html">privacy policy</a> says so in full.</p>
 
   <hr class="rule">
   <p class="from"><a href="/">SSF Slide Elements</a> &middot;
@@ -134,4 +157,50 @@
     <a href="https://github.com/dannbleeker/SSF-Slide-Elements">Source and progress</a> &middot;
     From <a href="https://struktureretsundfornuft.dk">StruktureretSundFornuft.dk</a>.</p>
 </main>
+
+<!--
+  The only script on this site, and it is eighteen lines because of what it is
+  allowed to do: read three named values out of this page's OWN address and show
+  them. It fetches nothing, stores nothing and sends nothing — there is nowhere
+  for it to send anything to, which is the promise the privacy page makes.
+
+  Every value is checked against a pattern before it is shown, and reaches the
+  page through `textContent`, never as markup. A support page is a place people
+  arrive at from a link somebody else gave them, so "the address said so" is not
+  a reason to trust anything in it: a crafted link must be able to put a build
+  code on the page and nothing else at all.
+-->
+<script>
+  (function () {
+    // A build code is the only free-form value, and it is free-form the way a
+    // commit hash is. The other two are LISTS: an unknown platform is dropped
+    // rather than shown, so a crafted link cannot put a word of its choosing on
+    // this page even in a place where a word is expected. The same two lists
+    // are in the add-in, in src/host/links.ts, which is what decides what may
+    // go into the address in the first place.
+    var PLATFORMS = { PC: "Windows", OfficeOnline: "the web", Mac: "Mac", iOS: "iPad", Android: "Android", Universal: "Universal" };
+    var HOSTS = { PowerPoint: "PowerPoint" };
+    var ALLOWED = {
+      build: { label: "Build", allow: function (v) { return /^[0-9a-f]{7,40}$/.test(v) ? v : undefined; } },
+      host: { label: "App", allow: function (v) { return HOSTS[v]; } },
+      platform: { label: "Running in", allow: function (v) { return PLATFORMS[v]; } },
+    };
+    var found = new URLSearchParams(window.location.search);
+    var list = document.getElementById("from-pane-list");
+    var shown = 0;
+    Object.keys(ALLOWED).forEach(function (key) {
+      var raw = found.get(key);
+      var value = raw ? ALLOWED[key].allow(raw) : undefined;
+      if (!value) return;
+      var dt = document.createElement("dt");
+      dt.textContent = ALLOWED[key].label;
+      var dd = document.createElement("dd");
+      dd.textContent = value;
+      list.appendChild(dt);
+      list.appendChild(dd);
+      shown += 1;
+    });
+    if (shown > 0) document.getElementById("from-pane").hidden = false;
+  })();
+</script>
 </html>
