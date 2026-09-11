@@ -488,8 +488,27 @@ export function removeQuestion(element: Element, slides: number[]): string {
   return `Take ${element.name} off ${slideList(slides)}? The pane cannot undo this.`;
 }
 
-/** How far a removal got, for the footer. */
+/**
+ * How far a removal got, for the footer.
+ *
+ * Three answers, not two. "All of them" and "some of them" are the obvious
+ * pair; the third is **none to remove**, and it exists because the removal
+ * re-reads which slides carry the element from the deck it is about to change
+ * rather than trusting the list the question was asked about. That re-read is
+ * what makes a removal honest about a deck that has moved on — and it can come
+ * back empty, when the user has taken the shapes off by hand since the pane
+ * last looked.
+ *
+ * That case used to answer `Removed from 0 slides.` and call it a success,
+ * which is a sentence that reads as a glitch: nothing was removed, and the pane
+ * said it had removed things. It is still not a FAILURE — there was nothing to
+ * do and nothing went wrong — so it says so, and offers no by-hand advice for
+ * work that is already done.
+ */
 export function removalOutcome(element: string, done: number, wanted: number): Outcome {
+  if (wanted === 0) {
+    return { ok: true, byHand: false, name: element, detail: "It is not on any slide any more, so nothing changed." };
+  }
   const ok = done === wanted;
   return {
     ok,

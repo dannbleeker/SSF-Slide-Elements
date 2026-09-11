@@ -77,6 +77,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   by, and **Remove** then said the slide carried no such element. Every element
   is now covered, and the sweep runs on every commit.
 
+### Fixed — a removal with nothing left to remove says so
+
+- **If you take an element's shapes off by hand and then press Remove, the pane
+  used to answer "Removed from 0 slides." and call it a success.** It now says
+  the element is not on any slide any more and that nothing changed. Nothing
+  went wrong in that case and nothing is left for you to finish, so it says
+  neither.
+
 ### Fixed — the privacy page can now count
 
 - **The page that tells you what the add-in keeps on your machine said "four
