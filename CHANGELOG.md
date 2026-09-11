@@ -40,6 +40,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   reordered between asking what the deck uses and pressing Remove, the pane
   worked from the older list. It now asks the deck it is about to change.
 
+### Fixed — the privacy page can now count
+
+- **The page that tells you what the add-in keeps on your machine said "four
+  things" and "two settings". It keeps five and the gear holds three.** The page
+  had been right when it was written; two of the things it now keeps were added
+  after it. The wording is corrected, and the suite refuses a page whose numbers
+  disagree with what the code actually stores, so it cannot drift again.
+
 ### Changed — the toolchain
 
 - Seven development dependencies moved forward, including vitest to 5. Nothing

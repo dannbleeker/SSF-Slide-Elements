@@ -421,3 +421,44 @@ describe("the one script on the site", () => {
     }
   });
 });
+
+describe("the privacy page's own arithmetic", () => {
+  /**
+   * The page counts what it stores, and a count is exactly what rots.
+   *
+   * It said "Four things" while the pane stored five, and "two settings" while
+   * the gear held three. Both were introduced by adding a field and a setting
+   * and updating the PROSE around the number — the sentence listed all five
+   * things while the word in front of it said four. The field check above could
+   * not catch it: every field was described, correctly, under a wrong total.
+   */
+  const privacy = readFileSync("public/privacy.html", "utf8");
+  const pane = readFileSync("src/pane/main.ts", "utf8");
+  const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+  it("says how many things it stores, and means it", () => {
+    const body = pane.slice(pane.indexOf("function keep()"));
+    const block = body.slice(body.indexOf("JSON.stringify({"), body.indexOf("}),"));
+    const fields = [...block.matchAll(/^\s*(\w+):/gm)].map((m) => m[1] ?? "");
+    expect(fields.length, "no stored fields found — the pattern has stopped matching").toBeGreaterThan(2);
+    const word = NUMBERS[fields.length] ?? String(fields.length);
+    expect(privacy, `the pane stores ${fields.length} things; the page should open with "${word}"`).toContain(
+      `${word.charAt(0).toUpperCase()}${word.slice(1)} things`,
+    );
+  });
+
+  it("says how many settings the gear holds, and means that too", () => {
+    const steps = readFileSync("src/pane/steps.ts", "utf8");
+    const block = steps.slice(steps.indexOf("export interface Settings {"));
+    const settings = [...block.slice(0, block.indexOf("\n}")).matchAll(/^ {2}(\w+)[?]?:/gm)].map((m) => m[1] ?? "");
+    expect(settings.length, "no settings found — the pattern has stopped matching").toBeGreaterThan(1);
+    const word = NUMBERS[settings.length] ?? String(settings.length);
+    // The SUMMARY sentence, not just the phrase: the paragraph above it names
+    // the settings one by one and contains the same words, so a looser check
+    // passes on a page whose total is wrong — which is how the first version of
+    // this case behaved when the old numbers were put back to try it.
+    expect(privacy, `the gear holds ${settings.length} settings; the page's summary says otherwise`).toContain(
+      `element names and ${word} settings`,
+    );
+  });
+});
