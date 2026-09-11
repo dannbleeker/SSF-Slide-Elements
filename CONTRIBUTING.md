@@ -71,6 +71,13 @@ has nothing open — a guard reads both.
 changelog, and bump `VERSION` in `scripts/manifest-source.mjs` — never the npm
 version.
 
+**Nothing in `src/` is written for its test alone.** `test/dead-exports.test.ts`
+sweeps for exports that no other file in `src/` or `scripts/` reaches, because
+an export the product never calls is a comment that compiles — it type-checks,
+its own test is green, and the thing it was written to do is still not done. If
+one is deliberate, record it in `ALLOWED` in `scripts/dead-exports.mjs` with the
+reason; `npm run dead-exports` prints the list.
+
 **Every npm script stays flat** — no script that starts with `npm run`.
 
 **Test files are named by topic, never by increment.** No `batch-3.test.ts`.

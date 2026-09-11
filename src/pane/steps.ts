@@ -17,14 +17,25 @@ import type { Box, Element, SlideSize } from "../core/catalogue/types.js";
 
 export type StepId = "loading" | "browse" | "problem";
 
-export const STEPS: readonly StepId[] = ["loading", "browse", "problem"];
-
 /** The heading each step draws. The manual must quote every one of these. */
 export const STEP_TITLE: Record<StepId, string> = {
   loading: "Loading the library",
   browse: "Slide elements",
   problem: "The library did not load",
 };
+
+/**
+ * Every step there is, DERIVED rather than listed.
+ *
+ * `test/docs.test.ts` sweeps this to hold the manual to the pane, so what it
+ * contains decides how wide that gate is. It used to be a hand-written copy of
+ * the `StepId` union, and a copy is a thing that goes stale: adding a fourth
+ * step and a fourth heading left the manual gate green, because the sweep was
+ * still walking the three someone had typed here. `STEP_TITLE` is a
+ * `Record<StepId, …>`, so the compiler will not let it miss a step — reading
+ * the list off it makes the sweep as wide as the type.
+ */
+export const STEPS: readonly StepId[] = Object.keys(STEP_TITLE) as StepId[];
 
 /** What the gear holds. `docs/DESIGN.md` section 7. */
 export interface Settings {

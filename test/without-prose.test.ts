@@ -4,7 +4,7 @@ import { join } from "node:path";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
 import * as prose from "../scripts/without-prose.mjs";
 
-const { withoutHashComments, withoutTsComments, withoutTsProse, withoutXmlComments } = prose;
+const { withoutHashComments, withoutTsComments, withoutTsProse, withoutTsText, withoutXmlComments } = prose;
 
 /**
  * The cases that caught the guards.
@@ -143,6 +143,37 @@ describe("withoutTsComments", () => {
     expect(out).toContain("sheet.deckRead}`");
     expect(out).not.toContain("explained here");
     expect(out).not.toContain("and here");
+  });
+});
+
+describe("withoutTsText", () => {
+  it("keeps a call written inside a template literal, which is the case that caught it", () => {
+    // `src/pane/catalogue.ts` reaches `nameOfRatio` from exactly one place, and
+    // that place is an interpolation. The dead-export sweep read
+    // `withoutTsProse` first, which blanks a template literal whole, and
+    // reported a function the pane runs on every borrowed deck as reached by
+    // nothing but its test.
+    const src = "const line = `${size} library, scaled to ${nameOfRatio(ratio)} slides.`;";
+    const out = withoutTsText(src);
+    expect(out).toContain("nameOfRatio(ratio)");
+    expect(out).not.toContain("library, scaled to");
+  });
+
+  it("keeps an interpolation that contains braces of its own", () => {
+    // Counting depth rather than stopping at the first `}`: an object literal,
+    // a ternary answering one, an arrow with a body — all ordinary inside an
+    // interpolation, and a pattern that stopped early would cut the expression
+    // in half and lose the call after it.
+    const out = withoutTsText("const s = `a${exact ? {} : tail(deck)}b`;");
+    expect(out).toContain("tail(deck)");
+    expect(out).not.toMatch(/\ba\b/);
+  });
+
+  it("still drops prose, so a name that is only explained is not a use", () => {
+    const src = ["/** topLevel is what the splice calls. */", "const note = 'topLevel';", "const n = 1;"].join("\n");
+    const out = withoutTsText(src);
+    expect(out).not.toContain("topLevel");
+    expect(out).toContain("const n = 1");
   });
 });
 

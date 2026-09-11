@@ -52,6 +52,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 - Seven development dependencies moved forward, including vitest to 5. Nothing
   a user installs changed: none of them reach the add-in itself.
+- **The suite now refuses code written for its own test.** A sweep lists every
+  export the shipped add-in never calls, and the build fails on one that is not
+  recorded as deliberate. It found an unused copy of a function the splice was
+  documented to use, and a list of the pane's screens that had stopped being
+  the list the documentation check reads — so a fourth screen could have been
+  added with nothing noticing its heading was undocumented. Nothing a user sees
+  changed.
 
 ### Added — taking a stamp off every slide it is on
 
