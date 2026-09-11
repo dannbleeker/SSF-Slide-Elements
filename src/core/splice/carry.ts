@@ -132,12 +132,65 @@ export function freeName(pkg: Pkg, part: string): string {
 }
 
 /**
+ * A fingerprint of some bytes: 64 bits, as hex, computed here rather than asked
+ * of a platform.
+ *
+ * Two independent 32-bit hashes rather than one 64-bit one, because doing 64
+ * bits in JavaScript means `BigInt` and this runs over every picture an element
+ * carries. Not a cryptographic hash and not used as one: it names a part, and
+ * the name carries the byte LENGTH beside it, so two different pictures would
+ * have to collide in both to be mistaken for each other.
+ */
+function fingerprint(bytes: Uint8Array): string {
+  let fnv = 0x811c9dc5;
+  let djb = 5381;
+  for (let i = 0; i < bytes.length; i += 1) {
+    const b = bytes[i] as number;
+    fnv = Math.imul(fnv ^ b, 0x01000193);
+    djb = Math.imul(djb, 33) ^ b;
+  }
+  const hex = (n: number): string => (n >>> 0).toString(16).padStart(8, "0");
+  return hex(fnv) + hex(djb);
+}
+
+/** Whether a library part is media, which is the one family that may be shared. */
+const isMedia = (part: string): boolean => part.startsWith("ppt/media/");
+
+/**
+ * The name a carried MEDIA part gets: one derived from its own bytes.
+ *
+ * This is what makes the second insert of a picture free. A name from
+ * `freeName` extends the destination's `image` sequence, so inserting the same
+ * marker twice wrote `image3.emf` and `image4.emf` — byte for byte the same 29
+ * KB picture, twice. Measured on the validators' deck: four inserts of
+ * `markeringer-1` left four identical copies and cost 11.6 KB each. A user who
+ * stamps thirty slides carries thirty.
+ *
+ * Derived from the CONTENT rather than found by searching the package, and that
+ * is the whole point: a search means decompressing every picture in the user's
+ * deck on every insert, which on a deck full of photographs is the cost this
+ * engine spent a day removing from the base64 path. `pkg.has(name)` is one
+ * lookup in an index the package already holds.
+ *
+ * Only `ppt/media/`. An embedded workbook or a chart part is a document, not a
+ * picture: two charts sharing one workbook would mean editing one edits both,
+ * which is not what anybody asked for. PowerPoint shares identical images
+ * itself and does not share those, and this follows it.
+ */
+function mediaName(part: string, bytes: Uint8Array): string {
+  const dot = part.lastIndexOf(".");
+  const extension = dot > part.lastIndexOf("/") ? part.slice(dot) : "";
+  return `ppt/media/ssf-${fingerprint(bytes)}-${bytes.length}${extension}`;
+}
+
+/**
  * Copy one carried part and everything it reaches, and answer its new name.
  *
  * Depth-first through the part's own relationships, so a chart's workbook is in
  * the package before the chart's rels part is written to name it. Already-copied
  * parts answer their existing name, so an element using one picture twice
- * copies it once.
+ * copies it once — and a picture the package already holds from an EARLIER
+ * insert is not copied at all, because its name is its content.
  */
 async function copyPart(request: CarryRequest, carried: Carried, part: string): Promise<string> {
   const already = carried.parts.get(part);
@@ -153,17 +206,28 @@ async function copyPart(request: CarryRequest, carried: Carried, part: string): 
     throw new Error(`ssf-slide-elements: the catalogue has no part "${part}", which this element needs`);
   }
 
-  const name = freeName(request.pkg, part);
+  const shareable = typeof bytes !== "string" && isMedia(part);
+  const name = shareable ? mediaName(part, bytes) : freeName(request.pkg, part);
   // Reserved before the recursion below, so a part that reaches itself through
   // its own relationships cannot loop.
   carried.parts.set(part, name);
-  if (typeof bytes === "string") {
-    const text = request.transform && part.endsWith(".xml") ? request.transform(part, bytes) : bytes;
-    request.pkg.setText(name, text);
-  } else request.pkg.setBytes(name, bytes);
+
+  // A picture this package already holds under its own content's name is the
+  // same picture, and writing it again would be writing it twice. The content
+  // type is still declared: `addContentTypeOverride` answers at once when the
+  // declaration is already there, and skipping it would leave a package whose
+  // part is undeclared if the earlier copy ever arrived another way.
+  const shared = shareable && request.pkg.has(name);
+  if (!shared) {
+    if (typeof bytes === "string") {
+      const text = request.transform && part.endsWith(".xml") ? request.transform(part, bytes) : bytes;
+      request.pkg.setText(name, text);
+    } else request.pkg.setBytes(name, bytes);
+  }
 
   const type = request.types[part];
   if (type !== undefined) await request.pkg.addContentTypeOverride(`/${name}`, type);
+  if (shared) return name;
 
   // The part's own relationships, if the library kept any for it.
   const sourceRels = Pkg.relsPathFor(part);
