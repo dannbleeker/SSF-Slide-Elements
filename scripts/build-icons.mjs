@@ -133,6 +133,21 @@ export function markPixel(size) {
 export const SIZES = [16, 32, 64, 80, 192];
 
 /**
+ * The Partner Center STORE LOGO, which is not an Office icon at all.
+ *
+ * 300×300, asked for by the submission form rather than by any manifest, and
+ * shown on the listing card next to the add-in's name. Nothing in the repo
+ * points at it — it is uploaded — so it is kept out of `SIZES`, where every
+ * entry is a file a manifest names and `test/manifest.test.ts` checks the
+ * naming of.
+ *
+ * The same mark at a different size, because it is the same product: the mark
+ * is drawn in sixteenths rather than pixels, so 300 is the 16 with more room
+ * rather than a second drawing to keep in step.
+ */
+export const STORE_LOGO = 300;
+
+/**
  * The unified manifest's monochrome OUTLINE icon.
  *
  * A different picture rather than the same one recoloured: it is drawn on a
@@ -158,7 +173,8 @@ export function main() {
     writeFileSync(join(out, `icon-${size}.png`), png(size, markPixel(size)));
   }
   writeFileSync(join(out, "icon-outline-32.png"), png(32, outlinePixel(32)));
-  console.log(`icons: ${SIZES.map((s) => `icon-${s}.png`).join(", ")}, icon-outline-32.png`);
+  writeFileSync(join(out, `store-${STORE_LOGO}.png`), png(STORE_LOGO, markPixel(STORE_LOGO)));
+  console.log(`icons: ${SIZES.map((s) => `icon-${s}.png`).join(", ")}, icon-outline-32.png, store-${STORE_LOGO}.png`);
 }
 
 if (isMain(import.meta.url)) main();

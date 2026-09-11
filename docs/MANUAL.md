@@ -38,6 +38,8 @@ small file that says where that page is.
 | The insert | Drop the chosen element onto the slide you are on, formatting intact | built |
 | Taking it back | Remove what an insert added, and nothing else | built |
 | A picture of each element | A photograph of the element itself, cut from a PDF print of the library deck | built |
+| Colours | An element takes the theme of the deck you put it in, or keeps the library's own — one setting behind the gear | built |
+| What your slide already has | Grey boxes on the preview card, **Used in this deck**, and **Remove from N slides** — all three need the pane to read the shapes on your slides, which no round has verified | planned |
 
 ## The pane
 
@@ -188,9 +190,15 @@ again and fails when the committed index no longer matches the decks. The
 markup and media are not committed: the site builds them from the decks on
 every deploy.
 
-- *Planned.* Previews. The pane's pictures of the elements will be cut from a
-  PDF print of each deck, committed beside it, so every deck change is followed
-  by a re-print.
+The harvest also writes **`public/catalogue.html`**, the page that shows every
+element with its picture — <https://ssf-slide-elements.struktureretsundfornuft.dk/catalogue.html>
+— so commit that with the index. CI diffs it too.
+
+**Every deck change needs a re-print.** The pane's pictures are cut from a PDF
+print of each deck, committed beside it as `library-16x9.pdf` and
+`library-4x3.pdf`: print the deck one slide per page with **Frame slides** off
+and hidden slides included, commit the print, and `npm run previews` cuts the
+elements out of it on deploy.
 
 ## Installing it
 
@@ -259,8 +267,9 @@ there.
 
 ## Limits
 
-- A tile draws a diagram of where the element lands, not a picture of the
-  element. See [What it does](#what-it-does).
+- A tile falls back to a diagram of where the element lands when its picture is
+  missing — a new element whose deck has been merged but not yet re-printed.
+  See [Adding an element to the library](#adding-an-element-to-the-library).
 - The pane follows PowerPoint's theme when it opens; switching PowerPoint's
   theme mid-session needs the pane reopened, because PowerPoint offers no
   theme-change event to a task pane.

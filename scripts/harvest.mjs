@@ -11,6 +11,8 @@
  *   <size>/elements/<id>.json      one element's markup, relationships and parts
  *   <size>/parts/<package path>    the media, charts, embeddings and tags the elements carry
  *
+ * and `public/catalogue.html`, the catalogue page the site serves.
+ *
  * CI runs this and fails when the result differs from what is committed, so
  * the decks, the names file and the catalogue cannot disagree. The two decks
  * must carry the same keys: an element that exists in one size only is refused
@@ -23,6 +25,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Pkg, harvest, HarvestError } from "../dist-lib/core/index.js";
+import { catalogueHtml } from "./catalogue-page.mjs";
 
 const DECKS = [
   ["16:9", "library-16x9.pptx", "16x9"],
@@ -81,7 +84,14 @@ if (missing.length) {
 const body = JSON.stringify(sizes);
 const version = createHash("sha256").update(body).digest("hex").slice(0, 12);
 write(join(OUT, "catalogue.json"), JSON.stringify({ version, sizes }, null, 2) + "\n");
-console.log(`harvest: catalogue ${version}, ${written.length} files under ${OUT}`);
+
+// The catalogue page on the site (`docs/DESIGN.md` section 3): every element
+// with its picture and its name, for browsing outside PowerPoint. Written from
+// the same catalogue the pane reads and diffed by CI, so it cannot fall behind
+// the decks.
+writeFileSync("public/catalogue.html", catalogueHtml(sizes, version));
+
+console.log(`harvest: catalogue ${version}, ${written.length} files under ${OUT}, and public/catalogue.html`);
 
 function write(path, content) {
   mkdirSync(dirname(path), { recursive: true });

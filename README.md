@@ -38,6 +38,8 @@ open.
 | The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |
 | Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad still unmeasured |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |
+| The catalogue page on the site — every element in both sizes, generated at harvest and diffed by CI | done |
+| The store listing — logo, descriptions and validators' notes, held to the manifests by a test | done — the screenshot, the test deck and the listing NAME are the owner's, and `docs/LISTING.md` says why |
 
 ## How it works
 
@@ -69,6 +71,7 @@ its own; `test/architecture.test.ts` holds both directions.
 | [docs/DESIGN.md](docs/DESIGN.md) | The design record: what an element is, the pane top to bottom, where things land, the host questions still open, and every decision with its date |
 | [docs/PROBE.md](docs/PROBE.md) | The host probe: how to run it in Script Lab on the web, Windows and Mac, what each question decides, and where the answer sheets are filed |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | What is open, in order, and what has been rejected |
+| [docs/LISTING.md](docs/LISTING.md) | The AppSource listing: the fields, the descriptions, the validators' notes, and what is still the owner's |
 | [CHANGELOG.md](CHANGELOG.md) | What changed, newest first |
 | [docs/DEPENDENCY-ALERTS.md](docs/DEPENDENCY-ALERTS.md) | Every Dependabot alert, and what was decided about it |
 | [docs/SIBLING.md](docs/SIBLING.md) | What SSF-Charts and SSF-Merge learned about the host, what was done about each finding here, and the rule that keeps a borrowed number dated |
