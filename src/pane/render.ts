@@ -15,7 +15,7 @@
  * Every control carries a `data-action`, because that is what the shot audit
  * reads to check that a state shows what it claims to.
  */
-import type { Element } from "../core/catalogue/types.js";
+import type { Box, Element } from "../core/catalogue/types.js";
 import { previewUrl } from "./catalogue.js";
 import {
   COACH,
@@ -30,6 +30,7 @@ import {
   groups,
   isOpen,
   landingLine,
+  occupiedFor,
   offersOtherTarget,
   otherTargetLabel,
   primary,
@@ -86,7 +87,7 @@ function button(action: string, className: string, text: string): HTMLButtonElem
  * Built with `createElementNS`, not markup, for the same reason as everything
  * else here.
  */
-function ghost(element: Element, aspect: number): SVGSVGElement {
+function ghost(element: Element, aspect: number, occupied: Box[] = []): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${Math.round(100 * aspect)} 100`);
   svg.setAttribute("class", "ghost");
@@ -102,6 +103,21 @@ function ghost(element: Element, aspect: number): SVGSVGElement {
   slide.setAttribute("height", "99");
   slide.setAttribute("class", "ghost-slide");
   svg.appendChild(slide);
+
+  // What the destination slide already holds, drawn UNDER the element's own
+  // frame (`docs/DESIGN.md` sections 1 and 4): grey, in z-order, so the user can
+  // see whether the element is about to land on top of something. Empty on a
+  // tile, and on a card whose snapshot is of another slide — `occupiedFor`
+  // decides that, not this.
+  for (const held of occupied) {
+    const grey = document.createElementNS(SVG_NS, "rect");
+    grey.setAttribute("x", String((held.x * 100 * aspect).toFixed(1)));
+    grey.setAttribute("y", String((held.y * 100).toFixed(1)));
+    grey.setAttribute("width", String(Math.max(1, held.w * 100 * aspect).toFixed(1)));
+    grey.setAttribute("height", String(Math.max(1, held.h * 100).toFixed(1)));
+    grey.setAttribute("class", "ghost-held");
+    svg.appendChild(grey);
+  }
 
   const box = document.createElementNS(SVG_NS, "rect");
   box.setAttribute("x", String((element.box.x * 100 * aspect).toFixed(1)));
@@ -127,9 +143,9 @@ function ghost(element: Element, aspect: number): SVGSVGElement {
  * a tree where the previews have not been built, a deploy that has not caught
  * up with a new element — the ghost is simply what stays visible.
  */
-function picture(element: Element, library: Library): HTMLElement {
+function picture(element: Element, library: Library, occupied: Box[] = []): HTMLElement {
   const frame = el("span", "tile-shot");
-  frame.appendChild(ghost(element, library.width / library.height));
+  frame.appendChild(ghost(element, library.width / library.height, occupied));
 
   const img = document.createElement("img");
   img.className = "tile-img";
@@ -155,11 +171,11 @@ function picture(element: Element, library: Library): HTMLElement {
  * the list and hides no tiles. Both of those are the stylesheet's job — this
  * decides only what is IN it.
  *
- * NOT here yet, and named so it is not mistaken for done: the grey boxes for
- * what the destination slide already has. The pane does not read the slide's
- * shapes, and adding that read is host work this could not verify without a
- * round against a real PowerPoint. The ghost frame for the landing is drawn
- * from the catalogue, which needs no host at all.
+ * The little slide in it shows where the element lands AND, in grey, what the
+ * slide the user is on already holds — read out of the deck rather than through
+ * the API, so it needs no host capability the insert does not already use. The
+ * boxes are drawn only while the snapshot is of the slide the user is actually
+ * on; `occupiedFor` in `steps.ts` is what decides that.
  *
  * Inert to the pointer. A card that opens under the cursor and then swallows
  * the click would make the tile it describes unpickable.
@@ -170,7 +186,7 @@ function card(element: Element, library: Library, state: PaneState): HTMLElement
   // Announced by the tile it belongs to, not by itself: the tile already
   // carries "Insert <name>", and a live card would interrupt a reader mid-word.
   box.setAttribute("aria-hidden", "true");
-  box.appendChild(picture(element, library));
+  box.appendChild(picture(element, library, occupiedFor(state)));
   box.appendChild(el("strong", "card-name", element.name));
   box.appendChild(el("p", "card-landing", landingLine(element, state.settings)));
   return box;

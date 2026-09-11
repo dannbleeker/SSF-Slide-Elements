@@ -8,6 +8,7 @@
  * and rows when that is larger than the frame.
  */
 import { A_NS, P_NS, element, elements, children } from "../pptx/xml.js";
+import { placeholderType, textOf } from "./text.js";
 import type { Box } from "./types.js";
 
 interface Frame {
@@ -151,4 +152,49 @@ export function topLevelShapes(slide: Document): Element[] {
     if (["sp", "grpSp", "pic", "cxnSp", "graphicFrame", "AlternateContent"].includes(el.localName)) out.push(el);
   }
   return out;
+}
+
+/**
+ * What a slide already holds, as boxes the preview card can draw in grey.
+ *
+ * `docs/DESIGN.md` sections 1 and 4: the card shows a small slide with where
+ * the element will land, **next to what the slide already has**. This answers
+ * the second half, read out of the FILE — the same route "Used in this deck"
+ * takes, and for the same reason: it needs no host capability beyond the deck
+ * read the pane already does, so nothing here rests on an unmeasured API.
+ *
+ * What is left out, and why each one:
+ *
+ * - **A shape with no frame of its own.** A placeholder inheriting its geometry
+ *   from the layout says nothing about where it is, and `boxOf` answers
+ *   undefined rather than guessing. Drawing it at the origin would be a lie in
+ *   the exact place the user is looking for one.
+ * - **A shape entirely off the slide.** The library decks carry hundreds of
+ *   those as authoring notes; a destination deck can carry them too, and they
+ *   are not on the slide the user can see.
+ * - **An EMPTY placeholder.** The insert removes the "Click to add text" ghosts
+ *   it lands over (section 6), so drawing them as occupied would show the user
+ *   an obstacle the insert is about to take away. A placeholder with text or a
+ *   picture in it is content and stays.
+ *
+ * In z-order, which is the order they are drawn in, so a caller painting them
+ * in sequence gets the same stacking PowerPoint would.
+ */
+export function occupiedBoxes(slide: Document, width: number, height: number): Box[] {
+  const out: Box[] = [];
+  for (const shape of topLevelShapes(slide)) {
+    const box = boxOf(shape, width, height);
+    if (!box || offSlide(box)) continue;
+    if (isEmptyPlaceholder(shape)) continue;
+    out.push(rounded(box));
+  }
+  return out;
+}
+
+/** A placeholder with nothing in it: the ghost an insert removes rather than lands on. */
+function isEmptyPlaceholder(shape: Element): boolean {
+  if (placeholderType(shape) === undefined) return false;
+  const hasText = textOf(shape).length > 0;
+  const hasGraphic = elements(shape, A_NS, "graphic").length > 0 || elements(shape, A_NS, "blip").length > 0;
+  return !(hasText || hasGraphic);
 }

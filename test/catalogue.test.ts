@@ -7,6 +7,7 @@ import {
   countKeys,
   countedNoun,
   harvest,
+  occupiedBoxes,
   parseXml,
   partName,
   sizeRuns,
@@ -463,4 +464,60 @@ describe("the committed library", () => {
     expect(keys(std)).toEqual(keys(wide));
     expect(std.catalogue.width).toBe(9144000);
   }, 30000);
+});
+
+describe("what a destination slide already holds", () => {
+  const slide = (body: string): Document =>
+    parseXml(
+      `<p:sld xmlns:p="${P_NS}" xmlns:a="${A_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+        `<p:cSld><p:spTree>` +
+        `<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>` +
+        `${body}</p:spTree></p:cSld></p:sld>`,
+    );
+
+  /** A placeholder of a given type, with or without text in it. */
+  const placeholder = (type: string, text?: string): string =>
+    `<p:sp><p:nvSpPr><p:cNvPr id="9" name="${type}"/><p:cNvSpPr/><p:nvPr><p:ph type="${type}"/></p:nvPr></p:nvSpPr>` +
+    `<p:spPr><a:xfrm><a:off x="1219200" y="685800"/><a:ext cx="2438400" cy="1371600"/></a:xfrm></p:spPr>` +
+    (text === undefined
+      ? `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>`
+      : `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>${text}</a:t></a:r></a:p></p:txBody>`) +
+    `</p:sp>`;
+
+  it("answers a box per shape, in z-order, in fractions of the slide", () => {
+    const boxes = occupiedBoxes(slide(rect(0, 0, W / 2, H / 2) + rect(W / 2, H / 2, W / 4, H / 4)), W, H);
+    expect(boxes).toEqual([
+      { x: 0, y: 0, w: 0.5, h: 0.5 },
+      { x: 0.5, y: 0.5, w: 0.25, h: 0.25 },
+    ]);
+  });
+
+  it("leaves out the ghosts the insert is about to remove, and keeps a placeholder with something in it", () => {
+    // `docs/DESIGN.md` section 6: a whole-slide element removes the empty
+    // "Click to add text" placeholders it lands over. Drawing one as occupied
+    // would show the user an obstacle that is about to be taken away.
+    expect(occupiedBoxes(slide(placeholder("body")), W, H)).toEqual([]);
+    expect(occupiedBoxes(slide(placeholder("body", "real text")), W, H)).toHaveLength(1);
+    // A title is a placeholder too, and a title with a title in it is content
+    // the element has to land below.
+    expect(occupiedBoxes(slide(placeholder("title", "Q4 results")), W, H)).toHaveLength(1);
+  });
+
+  it("leaves out a shape with no frame of its own, rather than drawing it at the origin", () => {
+    // A placeholder that inherits its geometry from the layout says nothing
+    // about where it is, and a box at 0,0 would be a lie exactly where the user
+    // is looking for the truth.
+    const bare =
+      `<p:sp><p:nvSpPr><p:cNvPr id="4" name="x"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>hi</a:t></a:r></a:p></p:txBody></p:sp>`;
+    expect(occupiedBoxes(slide(bare), W, H)).toEqual([]);
+  });
+
+  it("leaves out a shape parked off the slide", () => {
+    expect(occupiedBoxes(slide(rect(W + 100000, 0, 500000, 500000)), W, H)).toEqual([]);
+  });
+
+  it("answers nothing for an empty slide", () => {
+    expect(occupiedBoxes(slide(""), W, H)).toEqual([]);
+  });
 });

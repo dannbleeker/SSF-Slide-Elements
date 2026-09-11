@@ -216,6 +216,27 @@ const STATES = [
     shows: ["target", "group", "colours", "report", "catalogue"],
   },
   {
+    // The preview card over a slide the pane has read: the element's landing in
+    // blue, and in grey what the slide already holds.
+    name: "browse-card-on-slide",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      open: ["boxes"],
+      previewing: "one-box",
+      slide: 2,
+      onSlide: {
+        slide: 2,
+        boxes: [
+          { x: 0.06, y: 0.08, w: 0.55, h: 0.14 },
+          { x: 0.06, y: 0.3, w: 0.42, h: 0.5 },
+          { x: 0.54, y: 0.3, w: 0.4, h: 0.24 },
+        ],
+      },
+    },
+    shows: ["tile"],
+  },
+  {
     // The tile's right-click menu: the other insert target, over the tile it
     // belongs to. Drawn on an OPEN category, because a menu on a collapsed one
     // would be a menu over nothing.

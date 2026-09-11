@@ -268,6 +268,18 @@ PowerPoint would settle.
   element at full width, its name, one line saying where it lands. At 512 px and
   wider it docks beside the list and hides no tiles, the list giving up a gutter
   for it and only while one is open.
+  **The grey boxes for what the slide already holds are built** (2026-09-11),
+  and they are a SNAPSHOT rather than a live read. They come out of the deck
+  read the pane already does when it opens — the same one that measures the
+  slide size, so they cost nothing extra — and they are stamped with the slide
+  they were read from. On another slide the card draws none: the boxes answer
+  "will this land on top of something", and an answer about a different slide is
+  a wrong answer rather than a missing one. They keep up with an insert and an
+  undo without re-reading, because the splice says where the element landed, and
+  "See what this deck already uses" refreshes them. Re-reading the whole
+  presentation on every slide change is the cost section 13's sixth question has
+  not measured.
+
   Two things this says differently from how it was approved, both on 2026-09-11
   and both from building it:
   **It pins to the BOTTOM under 512 px, not over the top of the list.** It must
@@ -804,3 +816,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The gear's two external links carry an allowlist of three values and open the site the PANE was served from, as buttons rather than anchors — and the support page reads the same allowlist back, so a crafted link can put a build code on that page and nothing else | decided in the build, 2026-09-11 |
 | "Used in this deck" reads the deck when the user asks rather than when the pane opens, and its slide numbers are text rather than links — the read is the sixth open question's unmeasured cost, and the jump is a host call no round has made | decided in the build, 2026-09-11 |
 | Right-click opens on `contextmenu` rather than a mouse-only handler, offers nothing on a part, and anchors to the top of its own tile rather than to the pointer — so the keyboard reaches it, the pane never promises a landing the engine does not do, and no coordinate reaches the state | decided in the build, 2026-09-11 |
+| The preview card's grey boxes are a snapshot stamped with the slide it was read from, drawn only while the user is still on that slide, rather than a read per slide change — and they are read out of the FILE, so they need no host capability the insert does not already use | decided in the build, 2026-09-11 |

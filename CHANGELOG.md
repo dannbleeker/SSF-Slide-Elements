@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — see what is already on your slide
+
+- **The preview card now shows your own slide's shapes in grey**, behind where
+  the element would land, so you can see whether it would cover something.
+- They are what the pane saw the last time it read your deck: they show for that
+  slide, and **See what this deck already uses** brings them up to date.
+
 ### Added — the other insert target, without changing the setting
 
 - **Right-click a tile** — or long-press it on a touch screen — and it offers to
