@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -26,11 +27,16 @@ let indexMode: IndexMode = "fail";
 vi.mock("../src/office/powerpoint.js", () => ({
   ready: () => readiness,
   // Every call the pane can make, so a missing export cannot be mistaken for a
-  // pane that decided not to make it.
+  // pane that decided not to make it. The last case in this file holds this
+  // list against the real module, because the claim above was untrue for three
+  // exports before anyone noticed.
   slideCount: () => Promise.resolve(3),
+  countReaching: () => Promise.resolve(3),
   readDeck: () => Promise.reject(new Error("no deck in a test runner")),
   currentSlide: () => Promise.resolve(undefined),
   selectedShape: () => Promise.resolve(undefined),
+  slideIdAt: () => Promise.resolve(undefined),
+  onSlideChange: () => Promise.resolve(false),
   insertPackage: () => Promise.resolve(undefined),
   removeSlideAt: () => Promise.resolve(undefined),
 }));
@@ -221,5 +227,29 @@ describe("pressing a tile", () => {
     pane.querySelector<HTMLElement>('[data-action="tile"]')?.click();
     for (let i = 0; i < 20 && !pane.querySelector(".outcome"); i++) await settle();
     expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
+  });
+});
+
+describe("the stub keeps up with the module it stands in for", () => {
+  /**
+   * A double that is missing an export does not fail loudly.
+   *
+   * It fails as `undefined is not a function`, deep inside whichever path
+   * happens to call it — and only if a test reaches that path at all. Three
+   * exports were added to `src/office/powerpoint.js` and not to the stub
+   * above, and every test here stayed green, because the one path that would
+   * have called them returns early in a test runner.
+   *
+   * So the stub is held against the real module's own list of exports, read
+   * off the source rather than imported: importing it would load Office.js.
+   */
+  it("stands in for every function the real module exports", async () => {
+    const source = readFileSync("src/office/powerpoint.ts", "utf8");
+    const exported = [...source.matchAll(/^export (?:async )?function (\w+)/gm)].map((m) => m[1] ?? "");
+    expect(exported.length, "no exports found — the pattern has stopped matching").toBeGreaterThan(5);
+    const stub = await import("../src/office/powerpoint.js");
+    for (const name of exported) {
+      expect(Object.keys(stub), `the stub has no ${name}`).toContain(name);
+    }
   });
 });
