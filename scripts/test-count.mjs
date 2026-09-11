@@ -99,6 +99,57 @@ export function verdict({ defined, skipped, record, update = false }) {
 }
 
 /**
+ * A scratch test file: `test/zz…`, gitignored, for probing something before it
+ * becomes a case.
+ *
+ * Vitest runs one like any other file, so a scratch file open on the machine
+ * that RECORDS the floor raises it by however many cases it holds — and the
+ * next CI run fails on a number no commit contains. That is not a story: 989
+ * was recorded here against a 988 CI, and the difference was one scratch file
+ * I had left in the directory.
+ *
+ * The floor is a number about the repository, so it counts the repository's
+ * files and nothing else.
+ */
+const SCRATCH = /(^|\/)zz[^/]*\.test\.[cm]?ts$/;
+
+/** Whether a result file is scratch rather than committed. */
+const isScratch = (name) => SCRATCH.test(String(name ?? "").replace(/\\/g, "/"));
+
+/**
+ * Every test result the repository owns, scratch left out.
+ *
+ * @param {unknown} report
+ * @returns {{ status?: string, fullName?: string, title?: string }[]}
+ */
+function results(report) {
+  const files = /** @type {{ name?: string, assertionResults?: { status?: string }[] }[]} */ (
+    /** @type {{ testResults?: unknown }} */ (report ?? {}).testResults ?? []
+  );
+  return files.filter((file) => !isScratch(file.name)).flatMap((file) => file.assertionResults ?? []);
+}
+
+/**
+ * How many tests the committed suite defines, and how many of those are
+ * skipped.
+ *
+ * Counted from the per-file results rather than from the run's own totals,
+ * because the totals include scratch and the floor must not. A number that
+ * depends on what happens to be lying in the directory is the kind of gate that
+ * fails on somebody else's machine for no reason anybody can act on.
+ *
+ * @param {unknown} report
+ * @returns {{ defined: number, skipped: number }}
+ */
+export function counts(report) {
+  const all = results(report);
+  return {
+    defined: all.length,
+    skipped: all.filter((test) => test.status === "pending" || test.status === "skipped").length,
+  };
+}
+
+/**
  * The names of the skipped tests, so a reviewer sees WHICH ones in the log.
  *
  * A cap says how many; a reviewer needs to know which, because "1 skipped" is
@@ -109,17 +160,9 @@ export function verdict({ defined, skipped, record, update = false }) {
  * @returns {string[]}
  */
 export function skippedNames(report) {
-  /** @type {string[]} */
-  const out = [];
-  const files = /** @type {{ assertionResults?: { status?: string, fullName?: string, title?: string }[] }[]} */ (
-    /** @type {{ testResults?: unknown }} */ (report ?? {}).testResults ?? []
-  );
-  for (const file of files) {
-    for (const test of file.assertionResults ?? []) {
-      if (test.status === "pending" || test.status === "skipped") out.push(test.fullName ?? test.title ?? "?");
-    }
-  }
-  return out;
+  return results(report)
+    .filter((test) => test.status === "pending" || test.status === "skipped")
+    .map((test) => test.fullName ?? test.title ?? "?");
 }
 
 function main() {
@@ -139,8 +182,11 @@ function main() {
 
   const report = JSON.parse(readFileSync(out, "utf8"));
   const record = JSON.parse(readFileSync(RECORD, "utf8"));
-  const skipped = Number.isInteger(report.numPendingTests) ? report.numPendingTests : 0;
-  const answer = verdict({ defined: report.numTotalTests, skipped, record, update });
+  // From the per-file results, never `numTotalTests`: the run's own totals
+  // count a scratch `test/zz…` file, and the floor is a number about the
+  // repository.
+  const { defined, skipped } = counts(report);
+  const answer = verdict({ defined, skipped, record, update });
 
   const names = skippedNames(report);
   if (names.length) console.log(`test-count: skipped — ${names.join("; ")}`);

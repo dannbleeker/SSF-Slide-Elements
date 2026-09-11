@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — a plain .mjs tool with no types, shared with the scripts.
-import { skippedNames as untypedNames, verdict as untypedVerdict } from "../scripts/test-count.mjs";
+import * as tool from "../scripts/test-count.mjs";
 
 interface Record_ {
   min: number;
@@ -11,13 +11,9 @@ interface Answer {
   message: string;
   write?: { min: number; maxSkipped: number } | null;
 }
-const verdict = untypedVerdict as (o: {
-  defined: number;
-  skipped: number;
-  record: Record_;
-  update?: boolean;
-}) => Answer;
-const skippedNames = untypedNames as (report: unknown) => string[];
+const verdict = tool.verdict as (o: { defined: number; skipped: number; record: Record_; update?: boolean }) => Answer;
+const skippedNames = tool.skippedNames as (report: unknown) => string[];
+const counts = tool.counts as (report: unknown) => { defined: number; skipped: number };
 
 /**
  * The gate that holds a floor under the suite, which had no test of its own.
@@ -124,5 +120,62 @@ describe("naming what was skipped", () => {
   it("answers nothing for a report with no results", () => {
     expect(skippedNames({})).toEqual([]);
     expect(skippedNames(undefined)).toEqual([]);
+  });
+});
+
+describe("a scratch file in the directory", () => {
+  /**
+   * `test/zz…` is gitignored, and vitest runs it like any other file. So the
+   * machine that RECORDS the floor counts it, and the next CI run — which has
+   * no such file — fails on a number no commit contains.
+   *
+   * It is not hypothetical. 989 was recorded against a CI that defined 988, and
+   * the difference was one scratch file left in the directory after a probe.
+   */
+  const report = {
+    testResults: [
+      {
+        // A Windows path, backslashes and all: vitest reports the file the way
+        // the platform spells it, and a rule written for one separator only is
+        // a rule that works on CI and not on the machine recording the floor.
+        name: "C:\\repo\\test\\splice.test.ts",
+        assertionResults: [
+          { status: "passed", fullName: "a committed one" },
+          { status: "pending", fullName: "the symlink one" },
+        ],
+      },
+      {
+        name: "/repo/test/zz-dbg.test.ts",
+        assertionResults: [
+          { status: "passed", fullName: "a scratch one" },
+          { status: "skipped", fullName: "another scratch one" },
+        ],
+      },
+    ],
+  };
+
+  it("is left out of the count the floor is compared against", () => {
+    // The committed file's two, and neither of the scratch file's two. Counting
+    // the lot answers `{ defined: 4, skipped: 2 }`, which is the number that
+    // gets recorded and the number CI then cannot reach.
+    expect(counts(report)).toEqual({ defined: 2, skipped: 1 });
+  });
+
+  it("is left out of the skipped names too, so the log names what CI will see", () => {
+    expect(skippedNames(report)).toEqual(["the symlink one"]);
+  });
+
+  it("counts a committed file whose name merely CONTAINS zz", () => {
+    // The convention is a file whose NAME starts with `zz`, matching
+    // `.gitignore`'s `test/zz*`. A committed `test/fuzz.test.ts` is not scratch,
+    // and a rule that matched it anywhere in the path would quietly stop
+    // counting a real file — which is the same defect in the other direction.
+    const committed = {
+      testResults: [
+        { name: "/repo/test/fuzz.test.ts", assertionResults: [{ status: "passed", fullName: "fuzzing" }] },
+        { name: "/repo/zz-elsewhere/test/real.test.ts", assertionResults: [{ status: "passed", fullName: "real" }] },
+      ],
+    };
+    expect(counts(committed)).toEqual({ defined: 2, skipped: 0 });
   });
 });

@@ -59,6 +59,14 @@ describe("error text that reaches a user is bounded", () => {
     expect(readable(cyclic)).toBe("the host raised something this pane could not read.");
   });
 
+  it("names an object that stringifies to nothing, rather than the word undefined", () => {
+    // `JSON.stringify` answers `undefined` — not the string "undefined" — for a
+    // handful of shapes, and an object with a `toJSON` returning nothing is one
+    // of them. Without the fallback the pane's sentence ends in the JavaScript
+    // value name, which is the exact defect the rest of this file refuses.
+    expect(readable({ toJSON: () => undefined, code: 5010 })).toBe("the host raised something with no message in it.");
+  });
+
   it("names a thrown function instead of printing its source at the user", () => {
     // `String(fn)` prints the whole body into the sentence. This is a caller's
     // slip rather than a host failure, and it says so — the sibling's trace
