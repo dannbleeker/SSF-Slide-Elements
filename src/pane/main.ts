@@ -155,6 +155,7 @@ function remembered(): Partial<PaneState> {
     return {
       settings: { ...DEFAULT_SETTINGS, ...(held.settings ?? {}) },
       favourites: held.favourites ?? [],
+      coached: held.coached === true,
       recent: held.recent ?? [],
       open: held.open ?? [],
     };
@@ -170,6 +171,7 @@ function keep(): void {
       JSON.stringify({
         settings: state.settings,
         favourites: state.favourites,
+        coached: state.coached === true,
         recent: state.recent,
         open: state.open,
       }),
@@ -503,6 +505,12 @@ function onClick(event: MouseEvent): void {
         set({ open: toggle(state.open, el.dataset["key"]) });
         keep();
       }
+      break;
+    // Section 4: dismissed once, and remembered per machine like the
+    // favourites are.
+    case "coached":
+      set({ coached: true });
+      keep();
       break;
     case "clear":
       set({ query: "", tags: [], category: undefined });

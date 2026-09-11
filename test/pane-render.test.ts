@@ -491,3 +491,29 @@ describe("the stepper while searching", () => {
     expect(steps.filter((s) => s.className.includes("off"))).toHaveLength(0);
   });
 });
+
+describe("the first-run coach marks", () => {
+  const first: PaneState = { ...browsing, coached: undefined };
+
+  it("say three things and offer one way out", () => {
+    render(root, first, "browse");
+    expect(root.querySelectorAll(".coach-line")).toHaveLength(3);
+    expect(root.querySelectorAll('[data-action="coached"]')).toHaveLength(1);
+  });
+
+  it("are gone once dismissed", () => {
+    render(root, { ...first, coached: true }, "browse");
+    expect(root.querySelector(".coach")).toBeNull();
+  });
+
+  it("are read before the search, because they explain what the search is for", () => {
+    render(root, first, "browse");
+    const order = [...root.querySelectorAll(".coach, [data-action='search']")];
+    expect(order[0]?.className).toContain("coach");
+  });
+
+  it("carry a name, so a reader knows what the panel is", () => {
+    render(root, first, "browse");
+    expect(root.querySelector(".coach")?.getAttribute("aria-label")).toBe("Getting started");
+  });
+});

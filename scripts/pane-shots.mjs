@@ -128,6 +128,9 @@ const LIBRARY = {
 
 /** The shape every browse state starts from. */
 const BROWSING = {
+  // Every other shot is of a pane somebody has used before; the first-run
+  // note has its own state below.
+  coached: true,
   query: "",
   tags: [],
   open: ["boxes"],
@@ -157,6 +160,13 @@ const STATES = [
     hides: ["search", "tile"],
   },
   { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
+  {
+    // The first open ever (section 4): three lines and one way out.
+    name: "browse-first-run",
+    step: "browse",
+    state: { ...BROWSING, coached: false },
+    shows: ["coached", "search", "tile"],
+  },
   {
     // The stepper greying the sizes the query did not ask for (section 8).
     // Here for the CONTRAST: a greyed control still has to read as a control,

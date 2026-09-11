@@ -97,6 +97,13 @@ export interface PaneState {
    */
   category?: string;
   /**
+   * True once the first-run coach marks have been dismissed.
+   *
+   * Remembered per machine, like the favourites and the settings. Section 4:
+   * "dismissed once" — not once per session, and not once per deck.
+   */
+  coached?: boolean;
+  /**
    * The element whose preview card is open, if any.
    *
    * In the state rather than managed beside it, so the card cannot survive a
@@ -416,6 +423,28 @@ export function didYouMean(library: Library, query: string, limit = 3): string[]
     if (out.length === limit) break;
   }
   return out;
+}
+
+/**
+ * The three things a first-time user is told, in the order they will need them.
+ *
+ * `docs/DESIGN.md` section 4: hover to preview, click to insert, Undo and the
+ * gear, dismissed once.
+ *
+ * They are three LINES of one panel rather than three callouts pointing at the
+ * controls, and that is a deliberate departure recorded in section 4: this pane
+ * is 320 px at its narrowest, where three floating callouts would cover the
+ * tiles, the footer and the gear they were pointing at.
+ */
+export const COACH: readonly string[] = [
+  "Rest on a tile to see the element up close.",
+  "Click it to put it on your slide.",
+  "Undo takes it back, and the gear changes where things land.",
+];
+
+/** Whether the first-run coach marks should be drawn. */
+export function coaching(state: PaneState): boolean {
+  return state.library !== undefined && state.coached !== true;
 }
 
 /** How many recent elements the pane remembers. Section 4: the last six inserts. */

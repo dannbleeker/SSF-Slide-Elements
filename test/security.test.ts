@@ -333,6 +333,7 @@ describe("the privacy page says what the pane actually stores", () => {
       favourites: ["starred"],
       recent: ["the last six you inserted"],
       open: ["categories you left open"],
+      coached: ["dismissed the getting-started note"],
     };
     for (const field of fields) {
       const words = WORDS[field];
