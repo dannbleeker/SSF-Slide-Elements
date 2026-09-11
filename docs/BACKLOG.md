@@ -45,12 +45,14 @@ and the validators' testing notes (`docs/LISTING.md`, held to the manifests by
 (`public/catalogue.html`, generated at harvest), and the privacy page naming
 the browser storage.
 
-Left, and all of it needs either a screen or the owner: **a 1366×768
-screenshot** of the pane beside a real presentation; **a validators' test
-deck**, authored in PowerPoint rather than built by this repo's own code;
-**the listing name**, which waits on the same naming-policy answer SSF Merge
-waits on; then the Partner Center submission of `manifest-prod.xml`, and
-v0.1.0 on the releases page.
+The validators' test deck is written too: `template/validators.pptx`, authored
+by PowerPoint over COM with no window rather than assembled by this repo, and
+held to its description by `test/validators-deck.test.ts`.
+
+Left, and both need either a screen or the owner: **a 1366×768 screenshot** of
+the pane beside a real presentation, and **the listing name**, which waits on
+the same naming-policy answer SSF Merge waits on. Then the Partner Center
+submission of `manifest-prod.xml`, and v0.1.0 on the releases page.
 
 ## Rejected — do not re-propose
 

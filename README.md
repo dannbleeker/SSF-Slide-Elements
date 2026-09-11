@@ -43,7 +43,7 @@ open.
 | Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad still unmeasured |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |
 | The catalogue page on the site — every element in both sizes, generated at harvest and diffed by CI | done |
-| The store listing — logo, descriptions and validators' notes, held to the manifests by a test | done — the screenshot, the test deck and the listing NAME are the owner's, and `docs/LISTING.md` says why |
+| The store listing — logo, descriptions, validators' notes and a PowerPoint-authored test deck, each held by a test | done — the screenshot and the listing NAME are the owner's, and `docs/LISTING.md` says why |
 
 ## How it works
 

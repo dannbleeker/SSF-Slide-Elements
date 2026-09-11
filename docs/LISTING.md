@@ -23,6 +23,7 @@ so is the decision under "Still the owner's" at the bottom.
 | Privacy URL | <https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html> |
 | Terms | Microsoft's standard EULA |
 | Store logo | `public/assets/store-300.png`, 300×300, drawn by `npm run icons` |
+| Test deck | `template/validators.pptx`, three slides, written by PowerPoint itself |
 | Products | PowerPoint — web, Windows, Mac, iPad |
 | Price | Free |
 
@@ -73,8 +74,9 @@ so is the decision under "Still the owner's" at the bottom.
 > add-in works offline apart from fetching its own library files from its own
 > origin.
 >
-> 1. Open any PowerPoint presentation with at least two slides, or the test
->    deck attached to this submission.
+> 1. Open the test deck attached to this submission — three slides, nothing
+>    confidential on any of them — or any presentation of your own with at least
+>    two slides.
 > 2. On the **Home** tab, click **Slide elements**. The task pane opens on the
 >    library that matches the deck's slide size, with the sections collapsed.
 > 3. Open a section — **White boxes** is the first — and click a tile. The
@@ -93,20 +95,26 @@ so is the decision under "Still the owner's" at the bottom.
 > Privacy: <https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html>
 > Support: <https://ssf-slide-elements.struktureretsundfornuft.dk/support.html>
 
+## Done since, and how
+
+**The test deck is written**: `template/validators.pptx`, a title slide, an
+empty slide to insert onto, and a slide that already has a shape on it. It is
+**PowerPoint's own file** — the application was driven over COM with no window
+on 2026-09-11 and asked to save it — rather than a .pptx this repo assembled,
+because a deck built by this project's own code is the wrong thing to hand the
+people checking whether this project's code produces sound files.
+`test/validators-deck.test.ts` holds the committed bytes to every claim made
+about them here, including that an element actually goes into it.
+
 ## Still the owner's
 
-Three things cannot be produced without a screen and a real PowerPoint, and
-none of them should be faked:
+Two things cannot be produced without a screen and a real PowerPoint, and
+neither should be faked:
 
 - **The screenshot** (at least one, 1366×768). It has to be an actual capture of
   the pane open beside a real presentation. A composite of the pane over a drawn
   window would be a picture of something that does not exist, and drawing
   Microsoft's own interface into it would be worse.
-- **The validators' test deck.** A small PowerPoint-authored deck — a title
-  slide, an empty slide and a slide with something already on it — saved from
-  PowerPoint itself. The repo can build a .pptx, and a deck built by this
-  project's own code is exactly the wrong thing to hand the people checking
-  whether this project's code produces sound files.
 - **The listing NAME.** `docs/DESIGN.md` section 12: nothing here has been read
   against the naming policy, and the sibling SSF Merge is held on the same
   question. That answer decides this one.

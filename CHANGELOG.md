@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — a deck to try it on
+
+- **A small test presentation ships with the project**, for anyone reviewing the
+  add-in: a title slide, an empty slide to insert onto, and a slide that already
+  has a shape on it. Nothing on it is confidential.
+
 ### Fixed — one right-click, one menu
 
 - **An element can sit in Favourites, in Recent and in its own section at the
