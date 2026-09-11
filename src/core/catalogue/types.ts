@@ -109,6 +109,24 @@ export interface Catalogue {
   categories: { key: string; name: string }[];
   elements: Element[];
   /**
+   * What this deck's `<a:schemeClr>` names resolve to: the library theme's
+   * twelve colours, plus the four the master's colour map redirects.
+   *
+   * The switch behind the gear (`docs/DESIGN.md` section 7) pins an element's
+   * colours to these when the user asks for "As in the library". Without the
+   * map there is nothing to pin them TO — the theme part is in the library
+   * deck, which the pane never sees — so the harvest carries it.
+   *
+   * One map per SIZE, not per element, and the harvest refuses a deck whose
+   * slides do not agree on a theme rather than picking one. Measured on the
+   * committed library, 2026-09-11: one master and one theme in each deck, and
+   * they are not the same theme as each other — the 16:9 deck is on the stock
+   * Office palette, the 4:3 deck on the owner's "07 Blå". So the same element
+   * pinned in the two sizes is pinned to different colours, which is a fact
+   * about the decks rather than about this code.
+   */
+  theme: Record<string, string>;
+  /**
    * Every carried part in this size's store, with the content type the library
    * deck declared for it.
    *

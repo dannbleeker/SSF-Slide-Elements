@@ -237,6 +237,23 @@ describe("browsing", () => {
     expect(groups[0]?.getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("offers the colour switch, with the setting the user is on pressed", () => {
+    // `docs/DESIGN.md` section 7's third option. The pressed one is the
+    // EVIDENCE half: a panel that drew both choices and pressed neither would
+    // pass a test that only counted them, and would leave the user unable to
+    // see which way the switch is set.
+    render(root, { ...browsing, gear: true }, "browse");
+    const choices = [...root.querySelectorAll<HTMLElement>('[data-action="colours"]')];
+    expect(choices.map((c) => c.dataset["value"])).toEqual(["deck", "library"]);
+    expect(choices.map((c) => c.getAttribute("aria-pressed"))).toEqual(["true", "false"]);
+
+    const pinned = { ...browsing, gear: true, settings: { ...browsing.settings, colours: "library" as const } };
+    render(root, pinned, "browse");
+    expect(
+      [...root.querySelectorAll<HTMLElement>('[data-action="colours"]')].map((c) => c.getAttribute("aria-pressed")),
+    ).toEqual(["false", "true"]);
+  });
+
   it("draws the footer with the outcome, Again and Undo", () => {
     const after = {
       ...browsing,
@@ -366,7 +383,7 @@ describe("the preview card", () => {
   });
 
   it("follows the gear, so the line matches what the insert would do", () => {
-    render(root, { ...previewing, settings: { target: "new", group: true } }, "browse");
+    render(root, { ...previewing, settings: { target: "new", group: true, colours: "deck" } }, "browse");
     expect(root.querySelector(".card-landing")?.textContent).toBe("Lands as a new slide after this one.");
   });
 

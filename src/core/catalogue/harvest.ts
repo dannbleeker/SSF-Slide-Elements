@@ -18,6 +18,7 @@
  */
 import { XMLSerializer } from "@xmldom/xmldom";
 import { Pkg } from "../pptx/pkg.js";
+import { coloursOf, themeChain } from "../pptx/theme.js";
 import { A_NS, P_NS, PKG_REL_NS, R_NS, elements, element } from "../pptx/xml.js";
 import { boxOf, offSlide, rotationOf, rounded, topLevelShapes, union } from "./boxes.js";
 import { sizeRuns } from "./runs.js";
@@ -206,6 +207,12 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
   };
 
   let heading: { key: string; perShape: boolean } | undefined;
+  // The theme every element-bearing slide resolves its scheme colours against,
+  // by theme part. One entry is what the two committed decks produce; more than
+  // one is refused below rather than resolved arbitrarily, because the
+  // catalogue carries ONE colour map per size and a deck with two themes has no
+  // single right answer to pin to.
+  const themes = new Map<string, string | undefined>();
   const slidePaths = await pkg.slidePaths();
   for (let i = 0; i < slidePaths.length; i++) {
     const slidePath = slidePaths[i] as string;
@@ -230,6 +237,13 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
       problems.push(`slide ${slideNo} has content but no title, so it has no key`);
       continue;
     }
+    // Asked of every slide that carries an element, not of the first one: a
+    // deck that changes theme halfway through would otherwise be harvested
+    // against whichever theme slide one happened to use, and every element
+    // after the change pinned to colours it never had.
+    const chain = await themeChain(pkg, slidePath);
+    if (chain.theme) themes.set(chain.theme, chain.master);
+
     const perShape = PER_SLIDE.test(notes) ? false : PER_SHAPE.test(notes) ? true : heading.perShape;
     if (perShape) {
       const cat = category(title);
@@ -306,9 +320,31 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     if (type !== undefined) carried[path] = type;
     else problems.push(`the carried part "${path}" has no content type in the ${options.size} deck`);
   }
+
+  // The colour map the "As in the library" switch pins to. Refused rather than
+  // guessed when the deck does not answer with exactly one theme: a catalogue
+  // that carried the wrong map would pin every element to colours no slide in
+  // the library ever had, and nothing downstream could tell.
+  if (themes.size === 0)
+    problems.push("no slide with an element on it points at a theme, so no colour map can be read");
+  if (themes.size > 1)
+    problems.push(
+      `the elements are spread over ${themes.size} themes (${[...themes.keys()].sort().join(", ")}), ` +
+        `and the catalogue carries one colour map per size`,
+    );
+  const [themePath, masterPath] = themes.size === 1 ? ([...themes.entries()][0] as [string, string | undefined]) : [];
+  const theme = themePath ? await coloursOf(pkg, themePath, masterPath) : {};
   if (problems.length)
     throw new HarvestError(`the ${options.size} deck cannot be harvested: ${problems.length} problem(s)`, problems);
 
-  const catalogue: Catalogue = { size: options.size, width, height, categories, elements: elementsOut, carried };
+  const catalogue: Catalogue = {
+    size: options.size,
+    width,
+    height,
+    categories,
+    elements: elementsOut,
+    theme,
+    carried,
+  };
   return { catalogue, parts };
 }

@@ -81,19 +81,19 @@ const store = (path: string): Promise<Uint8Array | string | undefined> => Promis
 
 const CATALOGUE = { version: "test-version", carried: {} as Record<string, string> };
 
-function catalogueFor(): { version: string; carried: Record<string, string> } {
-  return { version: CATALOGUE.version, carried: library.catalogue.carried };
+function catalogueFor(): { version: string; carried: Record<string, string>; theme: Record<string, string> } {
+  return { version: CATALOGUE.version, carried: library.catalogue.carried, theme: library.catalogue.theme };
 }
 
 async function spliceOne(
   el: CatalogueElement,
-  options: { target?: "onto" | "new"; group?: boolean; slide?: number } = {},
+  options: { target?: "onto" | "new"; group?: boolean; slide?: number; colours?: "deck" | "library" } = {},
 ): ReturnType<typeof splice> {
   return splice({
     deck: await destination(),
     slide: options.slide ?? 1,
     element: asSplice(el),
-    options: { target: options.target ?? "onto", group: options.group ?? true },
+    options: { target: options.target ?? "onto", group: options.group ?? true, colours: options.colours ?? "deck" },
     catalogue: catalogueFor(),
     store,
   });
@@ -223,7 +223,7 @@ describe("one element into a deck", () => {
         deck: await destination(),
         slide: 1,
         element: asSplice(el),
-        options: { target: "onto", group: true },
+        options: { target: "onto", group: true, colours: "deck" },
         catalogue: catalogueFor(),
         store: () => Promise.resolve(undefined),
       }),
@@ -302,7 +302,7 @@ describe("as a new slide", () => {
       deck,
       slide: 1,
       element: asSplice(element("hvid-kasse-2x1-vertikale")),
-      options: { target: "new", group: true },
+      options: { target: "new", group: true, colours: "deck" },
       catalogue: catalogueFor(),
       store,
     });
@@ -329,7 +329,7 @@ describe("the sweep: every element in the 16:9 library", () => {
           deck,
           slide: 1,
           element: asSplice(el),
-          options: { target: "onto", group: true },
+          options: { target: "onto", group: true, colours: "deck" },
           catalogue: catalogueFor(),
           store,
         });
@@ -359,7 +359,7 @@ describe("the sweep: every element in the 16:9 library", () => {
         deck,
         slide: 1,
         element: asSplice(el),
-        options: { target: "onto", group: true },
+        options: { target: "onto", group: true, colours: "deck" },
         catalogue: catalogueFor(),
         store,
       });
@@ -380,7 +380,7 @@ describe("the sweep: every element in the 16:9 library", () => {
         deck,
         slide: 1,
         element: asSplice(el),
-        options: { target: "onto", group: false },
+        options: { target: "onto", group: false, colours: "deck" },
         catalogue: catalogueFor(),
         store,
       });
@@ -436,7 +436,7 @@ describe("as a new slide, in detail", () => {
       deck,
       slide: 1,
       element: asSplice(element("hvid-kasse-2x1-vertikale")),
-      options: { target: "new", group: true },
+      options: { target: "new", group: true, colours: "deck" },
       catalogue: catalogueFor(),
       store,
     });
@@ -471,7 +471,7 @@ describe("as a new slide, in detail", () => {
         deck,
         slide: 1,
         element: asSplice(element("hvid-kasse-2x1-vertikale")),
-        options: { target, group: true },
+        options: { target, group: true, colours: "deck" },
         catalogue: catalogueFor(),
         store,
       });
@@ -493,7 +493,7 @@ describe("what the splice refuses", () => {
         deck: await makeDeck([]),
         slide: 0,
         element: asSplice(element("hvid-kasse-2x1-vertikale")),
-        options: { target: "onto", group: true },
+        options: { target: "onto", group: true, colours: "deck" },
         catalogue: catalogueFor(),
         store,
       }),
@@ -511,7 +511,7 @@ describe("what the splice refuses", () => {
         deck: await destination(),
         slide: 1,
         element: empty,
-        options: { target: "onto", group: true },
+        options: { target: "onto", group: true, colours: "deck" },
         catalogue: catalogueFor(),
         store,
       }),
@@ -538,7 +538,7 @@ describe("where an element lands, through the whole splice", () => {
       deck: await destination(),
       slide: 1,
       element: asSplice(cursor as CatalogueElement),
-      options: { target: "onto", group: false },
+      options: { target: "onto", group: false, colours: "deck" },
       catalogue: catalogueFor(),
       store,
       selection,
@@ -619,7 +619,7 @@ describe("a slide that carries a comment", () => {
       deck: await deckWithComment(),
       slide: 1,
       element: asSplice(element("hvid-kasse-2x1-vertikale")),
-      options: { target: "onto", group: true },
+      options: { target: "onto", group: true, colours: "deck" },
       catalogue: catalogueFor(),
       store,
     });
@@ -631,7 +631,7 @@ describe("a slide that carries a comment", () => {
       deck: await deckWithComment(),
       slide: 1,
       element: asSplice(element("hvid-kasse-2x1-vertikale")),
-      options: { target: "new", group: true },
+      options: { target: "new", group: true, colours: "deck" },
       catalogue: catalogueFor(),
       store,
     });
@@ -647,11 +647,61 @@ describe("a slide that carries a comment", () => {
       deck,
       slide: 1,
       element: asSplice(element("hvid-kasse-2x1-vertikale")),
-      options: { target: "new", group: true },
+      options: { target: "new", group: true, colours: "deck" },
       catalogue: catalogueFor(),
       store,
     });
     const out = await Pkg.open(report.base64);
     expect((await out.relatedParts(report.slidePath)).filter((p) => p.startsWith("ppt/notesSlides/"))).toEqual([]);
+  });
+});
+
+describe("the colour switch", () => {
+  /** The rebuilt slide, serialised: what PowerPoint would draw. */
+  async function slideXml(base64: string, slidePath: string): Promise<string> {
+    const out = await Pkg.open(base64);
+    return serializeXml(await out.doc(slidePath));
+  }
+
+  const WITH_ACCENT = "sort-streg-3-vertikale-kausalitet";
+
+  it("leaves every scheme colour alone under This deck's theme, which is what makes the element take the deck", async () => {
+    const report = await spliceOne(element(WITH_ACCENT));
+    const xml = await slideXml(report.base64, report.slidePath);
+    expect(xml).toContain(`<a:schemeClr val="accent1"`);
+    expect(report.pinned).toBe(0);
+  });
+
+  it("pins them to the library's own values under As in the library", async () => {
+    const report = await spliceOne(element(WITH_ACCENT), { colours: "library" });
+    const xml = await slideXml(report.base64, report.slidePath);
+    // The 16:9 library is on the stock Office palette, measured 2026-09-11:
+    // accent1 is 5B9BD5 and tx1 is black, through a sysClr the theme states as
+    // `windowText`.
+    expect(xml).toContain(`<a:srgbClr val="5B9BD5"`);
+    expect(xml).not.toContain("schemeClr");
+    expect(report.pinned).toBeGreaterThan(0);
+  });
+
+  it("pins the colours inside a CARRIED part too, so a chart does not disagree with the shapes around it", async () => {
+    // The library's one chart states 17 scheme colours of its own. A switch
+    // that rewrote the markup and not the part it carries would leave the
+    // series following the destination's theme and the frame around it not.
+    const deck = element("bridging-numbers");
+    const chartOf = async (base64: string): Promise<string> => {
+      const out = await Pkg.open(base64);
+      const path = out.partNames().find((p) => /^ppt\/charts\/chart\d+\.xml$/.test(p));
+      if (!path) throw new Error("the package carries no chart");
+      return out.text(path);
+    };
+    const following = await spliceOne(deck);
+    expect(await chartOf(following.base64)).toContain("schemeClr");
+
+    const pinnedReport = await spliceOne(deck, { colours: "library" });
+    const chart = await chartOf(pinnedReport.base64);
+    expect(chart).not.toContain("schemeClr");
+    expect(chart).toContain(`<a:srgbClr val="5B9BD5"`);
+    // And the package is still one PowerPoint would open.
+    expect(problems(await partsOf(await (await Pkg.open(pinnedReport.base64)).toBytes()))).toEqual([]);
   });
 });

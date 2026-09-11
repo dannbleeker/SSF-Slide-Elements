@@ -134,7 +134,7 @@ const BROWSING = {
   query: "",
   tags: [],
   open: ["boxes"],
-  settings: { target: "onto", group: true },
+  settings: { target: "onto", group: true, colours: "deck" },
   undo: 0,
   favourites: [],
   recent: [],
@@ -213,7 +213,7 @@ const STATES = [
     name: "browse-gear",
     step: "browse",
     state: { ...BROWSING, gear: true },
-    shows: ["target", "group"],
+    shows: ["target", "group", "colours"],
   },
   {
     name: "browse-searched",

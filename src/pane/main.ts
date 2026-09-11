@@ -28,7 +28,7 @@ import {
   slideCount,
   slideIdAt,
 } from "../office/powerpoint.js";
-import { Store, carriedTypes, libraryFor, loadIndex, type Index } from "./catalogue.js";
+import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
 import { render } from "./render.js";
 import {
   DEFAULT_SETTINGS,
@@ -298,7 +298,11 @@ async function insert(id: string): Promise<void> {
         markup: { xml: markup.xml, rels: markup.rels },
       },
       options: state.settings,
-      catalogue: { version: library.version, carried: carriedTypes(index, library.size) },
+      catalogue: {
+        version: library.version,
+        carried: carriedTypes(index, library.size),
+        theme: themeColours(index, library.size),
+      },
       store: (path) => (store as Store).part(path),
       ...(selection ? { selection } : {}),
     });
@@ -496,6 +500,12 @@ function onClick(event: MouseEvent): void {
     case "group":
       set({ settings: { ...state.settings, group: value === "group" } });
       keep();
+      break;
+    case "colours":
+      if (value === "deck" || value === "library") {
+        set({ settings: { ...state.settings, colours: value } });
+        keep();
+      }
       break;
     case "tag":
       if (value) set({ tags: toggle(state.tags, value) });

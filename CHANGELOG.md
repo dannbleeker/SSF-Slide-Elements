@@ -7,6 +7,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — an element in the library's own colours
+
+- **The gear now holds a colour setting.** Left where it starts, an element takes
+  the theme of the deck you put it in, which is what makes it look like your
+  deck. Switch it to **as in the library** and the element keeps the colours it
+  has in the library instead, wherever the slide goes afterwards.
+- The setting covers a chart an element brings with it, not only its shapes, so
+  the two cannot come out in different colours.
+- Colours the library states outright were never theme colours and are unchanged
+  by either setting.
+
 ### Added — a note the first time you open the pane
 
 - **The first time you open it, three lines say what to do**: rest on a tile to

@@ -253,6 +253,20 @@ function gearPanel(state: PaneState): HTMLElement {
     group.appendChild(choice);
   }
   panel.appendChild(group);
+
+  const colours = el("div", "option");
+  colours.appendChild(el("span", "option-name", "Colours"));
+  for (const [value, label] of [
+    ["deck", "this deck's theme"],
+    ["library", "as in the library"],
+  ] as const) {
+    const on = state.settings.colours === value;
+    const choice = button("colours", on ? "choice on" : "choice", label);
+    choice.dataset["value"] = value;
+    choice.setAttribute("aria-pressed", on ? "true" : "false");
+    colours.appendChild(choice);
+  }
+  panel.appendChild(colours);
   return panel;
 }
 

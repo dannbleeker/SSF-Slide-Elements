@@ -35,6 +35,7 @@ open.
 | Host probe — a Script Lab snippet that asks a real PowerPoint the six questions the design rests on (a pruned package on the way in, insert-then-delete order, the selected slide, which read of the deck, Ctrl+Z, timing and the floor), and a reader that says what each answer means and files the sheet | done — four sheets from PowerPoint for the web under `docs/host-answers/`, 2026-09-10 |
 | Splice — an element into the slide you are on, and the package self-check | done — proven over all 117 elements against the package integrity check |
 | The picker — browse by section, search, insert, Recent, favourites, Undo one deep | done |
+| The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |
 | Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad still unmeasured |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |
 

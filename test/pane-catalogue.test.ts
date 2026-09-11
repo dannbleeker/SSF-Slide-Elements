@@ -23,6 +23,7 @@ const INDEX: Index = {
       height: 6858000,
       categories: [{ key: "boxes", name: "White boxes" }],
       elements: [],
+      theme: { accent1: "5B9BD5", tx1: "000000" },
       carried: { "ppt/media/image1.png": "image/png" },
     },
     "4:3": {
@@ -31,6 +32,7 @@ const INDEX: Index = {
       height: 6858000,
       categories: [],
       elements: [],
+      theme: {},
       carried: {},
     },
   },

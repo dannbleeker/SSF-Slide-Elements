@@ -1,5 +1,5 @@
 {
-  "version": "fc2409ab3ba4",
+  "version": "f98c5061c2a7",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -3095,6 +3095,24 @@
           ]
         }
       ],
+      "theme": {
+        "dk1": "000000",
+        "lt1": "FFFFFF",
+        "dk2": "44546A",
+        "lt2": "E7E6E6",
+        "accent1": "5B9BD5",
+        "accent2": "ED7D31",
+        "accent3": "A5A5A5",
+        "accent4": "FFC000",
+        "accent5": "4472C4",
+        "accent6": "70AD47",
+        "hlink": "0563C1",
+        "folHlink": "954F72",
+        "bg1": "FFFFFF",
+        "tx1": "000000",
+        "bg2": "E7E6E6",
+        "tx2": "44546A"
+      },
       "carried": {
         "ppt/charts/_rels/chart1.xml.rels": "application/vnd.openxmlformats-package.relationships+xml",
         "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
@@ -6286,6 +6304,24 @@
           ]
         }
       ],
+      "theme": {
+        "dk1": "000000",
+        "lt1": "FFFFFF",
+        "dk2": "266BAF",
+        "lt2": "A8C4DF",
+        "accent1": "90979B",
+        "accent2": "66ADD3",
+        "accent3": "C83A3A",
+        "accent4": "FBCF3E",
+        "accent5": "7FA745",
+        "accent6": "A25790",
+        "hlink": "266BAF",
+        "folHlink": "6F6093",
+        "bg1": "FFFFFF",
+        "tx1": "000000",
+        "bg2": "A8C4DF",
+        "tx2": "266BAF"
+      },
       "carried": {
         "ppt/charts/_rels/chart1.xml.rels": "application/vnd.openxmlformats-package.relationships+xml",
         "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
