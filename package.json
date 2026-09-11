@@ -24,7 +24,8 @@
     "manifests": "node scripts/build-manifests.mjs",
     "release:check": "node scripts/check-release.mjs",
     "pane-shots": "node scripts/pane-shots.mjs",
-    "sibling-watch": "node scripts/sibling-watch.mjs"
+    "sibling-watch": "node scripts/sibling-watch.mjs",
+    "bench": "node scripts/bench-engine.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.8",

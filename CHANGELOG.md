@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — inserting into a big presentation is much faster
+
+- **An insert into a 45 MB deck used to cost about four seconds of the add-in's
+  own work. It now costs about a quarter of a second.** Nearly all of that time
+  was converting the presentation to and from the text form PowerPoint hands it
+  over in; the add-in now lets the browser do that conversion instead of doing
+  it itself.
+- Nothing about what lands on your slide changed.
+
 ### Added — a deck to try it on
 
 - **A small test presentation ships with the project**, for anyone reviewing the
