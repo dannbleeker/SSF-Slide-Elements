@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { INSERTING, announcement, mayRemove, outcomeOf, type Attempt } from "../src/host/insert.js";
+import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan, type Attempt } from "../src/host/insert.js";
 import { BUDGET, withTimeout } from "../src/host/timeout.js";
 
 /**
@@ -160,5 +160,41 @@ describe("every call to the host is bounded", () => {
     // and `getFileAsync` took 40 seconds for 40 KB on a degraded session.
     expect(BUDGET.read).toBeLessThan(BUDGET.deck);
     expect(BUDGET.remove).toBeLessThan(BUDGET.insert);
+  });
+});
+
+describe("what taking an insert back means, as indices", () => {
+  /**
+   * This is the arithmetic an undo performs, and it was wrong in the way that
+   * is worst: it reported success and changed nothing.
+   *
+   * Undoing an insert that landed ONTO slide N means putting the user's own
+   * slide N back and taking the rebuilt one away. The rebuilt one is at index N,
+   * so the restored copy lands at N+1 — and it is N that must go. The code
+   * removed N+1, which is the copy it had just restored, so the deck came back
+   * to its old size, the count check passed, and the pane said "Undone" over a
+   * slide that had not moved. Found by pressing Undo in PowerPoint and looking.
+   */
+  it("puts the original back beside the rebuilt slide and removes the REBUILT one", () => {
+    const plan = undoPlan({ target: "onto", slide: 0 });
+    expect(plan.after, "the insert must aim at the rebuilt slide").toBe(0);
+    // NOT plan.after + 1. That is the restored copy, and removing it is the
+    // defect this case exists for.
+    expect(plan.remove).toBe(0);
+    expect(plan.grownTo(5)).toBe(6);
+  });
+
+  it("keeps the two indices apart on a slide further down the deck", () => {
+    const plan = undoPlan({ target: "onto", slide: 7 });
+    expect(plan).toMatchObject({ after: 7, remove: 7 });
+    expect(plan.grownTo(12)).toBe(13);
+  });
+
+  it("takes a new slide back with one removal, from the position after its target", () => {
+    const plan = undoPlan({ target: "new", slide: 3 });
+    expect(plan.after, "nothing is inserted to undo a new slide").toBeUndefined();
+    expect(plan.remove).toBe(4);
+    // The deck does not grow on the way: there is no insert half.
+    expect(plan.grownTo(9)).toBe(9);
   });
 });

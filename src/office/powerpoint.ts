@@ -216,6 +216,36 @@ export async function selectedShape(): Promise<Rect | undefined> {
 }
 
 /**
+ * The id of the slide at a POSITION, for an insert that has to aim at one.
+ *
+ * Read positionally and used immediately. Undo has to put a slide back next to
+ * the rebuilt one rather than next to whatever the user has selected by then,
+ * and `insertSlidesFromBase64` takes an id — so the index this code computed is
+ * turned into an id here, at the last possible moment.
+ *
+ * A slide the run added IS accepted as a `targetSlideId`: the probe asked that
+ * question directly on the web on 2026-09-10 and the answer is in
+ * `docs/host-answers/`. What is never done is the other direction —
+ * `slides.getItem(id)` on such a slide — and nothing here does it.
+ */
+export async function slideIdAt(index: number): Promise<string | undefined> {
+  try {
+    return await withTimeout(
+      PowerPoint.run(async (context) => {
+        const slides = context.presentation.slides;
+        slides.load("items/id");
+        await context.sync();
+        return slides.items[index]?.id;
+      }),
+      BUDGET.read,
+      "reading the id of the slide to insert against",
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Hand the package to PowerPoint, after the slide the user is on.
  *
  * Returns the reason it raised, if it did, rather than throwing: a raise is not

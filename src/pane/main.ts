@@ -12,7 +12,7 @@
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
-import { INSERTING, mayRemove, outcomeOf, announcement } from "../host/insert.js";
+import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import {
   currentSlide,
@@ -22,6 +22,7 @@ import {
   removeSlideAt,
   selectedShape,
   slideCount,
+  slideIdAt,
 } from "../office/powerpoint.js";
 import { Store, carriedTypes, libraryFor, loadIndex, type Index } from "./catalogue.js";
 import { render } from "./render.js";
@@ -323,21 +324,33 @@ async function undo(): Promise<void> {
   const entry = undoable;
   if (!entry || state.busy === true) return;
   set({ busy: true, notice: "Undoing…" });
+  const plan = undoPlan(entry);
   try {
     const before = await slideCount();
-    if (entry.target === "new") {
-      // The added slide sits immediately after the one it was inserted against.
-      await removeSlideAt(entry.slide + 1);
-    } else {
+
+    if (plan.after !== undefined) {
+      // Put the user's own slide back first, aimed at the rebuilt one so it
+      // lands immediately after it whatever the selection is now.
+      const targetId = await slideIdAt(plan.after);
+      if (targetId === undefined) {
+        throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
+      }
       const original = await onlySlide(entry.before, entry.slide);
-      const current = await currentSlide();
-      const targetId = current?.id;
-      if (targetId === undefined) throw new Error("PowerPoint would not say which slide is selected");
-      await insertPackage(original.base64, targetId);
+      const refused = await insertPackage(original.base64, targetId);
       const grown = await slideCount();
-      if (grown === before + 1) await removeSlideAt(entry.slide + 1);
+      if (grown !== plan.grownTo(before)) {
+        throw new Error(
+          refused ?? `the deck went ${before} → ${grown}, which is not what putting one slide back looks like`,
+        );
+      }
     }
+
+    const refused = await removeSlideAt(plan.remove);
     const after = await slideCount();
+    if (refused !== undefined || after !== before - (plan.after === undefined ? 1 : 0)) {
+      throw new Error(refused ?? `the deck has ${after} slides, which is not what was expected`);
+    }
+
     undoable = undefined;
     state = {
       ...state,
