@@ -105,7 +105,9 @@ PowerPoint would settle.
   PowerPoint ignores when it draws the table. Landing and cropping both depend
   on this.
 - **Colours.** The library is authored in theme colours (accent 2 alone is used
-  139 times). A theme-mapped colour follows the destination deck's theme by
+  166 times across the 16:9 deck's slides and 174 across the 4:3 deck's, on 45
+  and 44 slides; counted from the committed decks on 2026-09-11, where the
+  figure this line carried before — 139 — matched neither). A theme-mapped colour follows the destination deck's theme by
   itself when the markup keeps it as a theme reference; the colour switch
   (section 7) pins them to the library's values instead.
 - **The catalogue is static.** `npm run harvest` reads the decks into the

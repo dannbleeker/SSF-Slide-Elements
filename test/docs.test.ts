@@ -101,6 +101,11 @@ describe("the manual keeps up with the pane", () => {
         ["the manual", manual],
         ["the README", readme],
         ["the security page", readFileSync("SECURITY.md", "utf8")],
+        // The pages the public actually reads. The site's front page said "it
+        // inserts nothing yet" for three days after the insert shipped, and
+        // nothing in this guard was looking at it.
+        ["the site's front page", readFileSync("public/index.html", "utf8")],
+        ["the privacy page", readFileSync("public/privacy.html", "utf8")],
       ] as const) {
         expect(text.toLowerCase(), `${name} still says "${denial}"`).not.toContain(denial);
       }
