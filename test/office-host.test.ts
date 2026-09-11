@@ -304,3 +304,59 @@ describe("confirming that the deck changed size", () => {
     expect(total, "the whole backoff has to fit inside one read's budget").toBeLessThan(BUDGET.read);
   });
 });
+
+/**
+ * "There is no selection" and "the host did not answer" are different answers.
+ *
+ * They were one value, `undefined`, and the pane's slide line cannot live with
+ * that: a read that runs out of time would replace a perfectly good slide
+ * number with "PowerPoint did not say which slide you are on", which the host
+ * never said. Measured on the web on 2026-09-11, where a selection read fired
+ * just after an insert sat unanswered for most of a twenty-second budget.
+ */
+describe("a selection read that does not come back", () => {
+  afterEach(() => {
+    delete (globalThis as unknown as { PowerPoint?: unknown }).PowerPoint;
+  });
+
+  it("answers null when the host does not reply inside the budget", async () => {
+    vi.resetModules();
+    (globalThis as unknown as { Office: unknown }).Office = {
+      context: { requirements: { isSetSupported: () => true } },
+    };
+    (globalThis as unknown as { PowerPoint: unknown }).PowerPoint = {
+      run: () => new Promise(() => undefined),
+    };
+    const mod = await import("../src/office/powerpoint.js");
+    // A budget of its own, so the case costs milliseconds rather than seconds.
+    expect(await mod.currentSlide(40)).toBeNull();
+  });
+
+  it("answers undefined when the host replies that nothing is selected", async () => {
+    // The other half, and the reason the two may not be the same value: this
+    // one IS the host speaking, and the pane should say so.
+    vi.resetModules();
+    install({ deck: ["a", "b"], selected: [] });
+    const mod = await import("../src/office/powerpoint.js");
+    expect(await mod.currentSlide()).toBeUndefined();
+  });
+
+  it("answers null when the host raises rather than answering", async () => {
+    vi.resetModules();
+    (globalThis as unknown as { Office: unknown }).Office = {
+      context: { requirements: { isSetSupported: () => true } },
+    };
+    (globalThis as unknown as { PowerPoint: unknown }).PowerPoint = {
+      run: () => Promise.reject(new Error("the host is busy")),
+    };
+    const mod = await import("../src/office/powerpoint.js");
+    expect(await mod.currentSlide()).toBeNull();
+  });
+
+  it("keeps a glance well under the budget of a read somebody is waiting on", () => {
+    // The point of the separate number: a line nobody is waiting on may not
+    // hold up the thing that keeps it fresh.
+    expect(BUDGET.glance).toBeLessThan(BUDGET.read);
+    expect(BUDGET.glance).toBeGreaterThan(1000);
+  });
+});

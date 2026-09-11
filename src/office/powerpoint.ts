@@ -212,7 +212,7 @@ function whole(read: number, counted: number): boolean {
  * which is honest, where defaulting to the first would silently insert
  * somewhere they were not looking.
  */
-export async function currentSlide(): Promise<Current | undefined> {
+export async function currentSlide(within: number = BUDGET.read): Promise<Current | undefined | null> {
   if (!hostSupports("1.5")) return undefined;
   try {
     return await withTimeout(
@@ -233,13 +233,18 @@ export async function currentSlide(): Promise<Current | undefined> {
         const index = all.items.findIndex((s) => s.id === first);
         return index < 0 ? undefined : { index, id: first };
       }),
-      BUDGET.read,
+      within,
       "asking which slide is selected",
     );
   } catch {
-    // A selection read that fails is not something the user can act on, and the
-    // pane has a fallback for not knowing. Swallowed here rather than raised.
-    return undefined;
+    // `null`, and the difference from `undefined` is the whole point:
+    // **undefined is the host SAYING there is no selection, null is the host
+    // not answering.** They were one value, and the caller that only wants to
+    // keep a line fresh has to tell them apart — replacing a good slide number
+    // with "PowerPoint did not say" because a read ran out of time is telling
+    // the user something the host never said. Swallowed rather than raised,
+    // because a selection read that fails is not something a user can act on.
+    return null;
   }
 }
 
