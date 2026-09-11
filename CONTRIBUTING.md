@@ -71,6 +71,11 @@ has nothing open — a guard reads both.
 changelog, and bump `VERSION` in `scripts/manifest-source.mjs` — never the npm
 version.
 
+**Where the prose points has to be there.** `test/references.test.ts` checks
+every relative markdown link, every `#anchor`, and every "`docs/DESIGN.md`
+section N" in the repository — 130 of those, most of them in code comments.
+Renumbering a heading is the change that breaks dozens of sentences at once.
+
 **Nothing in `src/` is written for its test alone.** `test/dead-exports.test.ts`
 sweeps for exports that no other file in `src/` or `scripts/` reaches, because
 an export the product never calls is a comment that compiles — it type-checks,
