@@ -537,7 +537,10 @@ function onKey(event: KeyboardEvent): void {
     return;
   }
   if (event.key === "Escape") {
-    if (state.gear === true) set({ gear: false });
+    // The card first: it is the most recently opened thing and the one the user
+    // is most likely to mean, and shutting it must not also clear their search.
+    if (state.previewing !== undefined) closePreview();
+    else if (state.gear === true) set({ gear: false });
     else if (state.query !== "" || state.tags.length > 0) set({ query: "", tags: [] });
     return;
   }
@@ -562,9 +565,55 @@ function onKey(event: KeyboardEvent): void {
   }
 }
 
+/**
+ * The preview card's delay: a third of a second of hover or focus
+ * (`docs/DESIGN.md` section 4).
+ *
+ * The delay is the whole point. Without it, dragging the pointer across a grid
+ * of tiles opens and closes a card per tile, which is a strobe rather than a
+ * preview.
+ */
+const PREVIEW_DELAY = 333;
+let previewTimer: ReturnType<typeof setTimeout> | undefined;
+
+function cancelPreview(): void {
+  if (previewTimer !== undefined) clearTimeout(previewTimer);
+  previewTimer = undefined;
+}
+
+/** Open the card for `id` after the delay; any earlier pending open is dropped. */
+function previewAfterDelay(id: string): void {
+  cancelPreview();
+  if (state.previewing === id) return;
+  previewTimer = setTimeout(() => {
+    previewTimer = undefined;
+    set({ previewing: id });
+  }, PREVIEW_DELAY);
+}
+
+/** Shut the card, and stop one that was about to open. */
+function closePreview(): void {
+  cancelPreview();
+  if (state.previewing !== undefined) set({ previewing: undefined });
+}
+
+function onOver(event: MouseEvent): void {
+  const found = actionOf(event.target);
+  const id = found?.action === "tile" ? found.el.dataset["id"] : undefined;
+  if (id) previewAfterDelay(id);
+  else closePreview();
+}
+
 function onFocus(event: FocusEvent): void {
   const found = actionOf(event.target);
-  if (found?.action === "tile" && found.el.dataset["id"]) set({ chosen: found.el.dataset["id"] });
+  if (found?.action === "tile" && found.el.dataset["id"]) {
+    const id = found.el.dataset["id"];
+    set({ chosen: id });
+    // Focus previews too, so the card is not a thing only a mouse can reach.
+    previewAfterDelay(id);
+    return;
+  }
+  closePreview();
 }
 
 /**
@@ -631,6 +680,9 @@ void Office.onReady(() => {
   document.addEventListener("input", onInput);
   document.addEventListener("keydown", onKey);
   document.addEventListener("focusin", onFocus);
+  document.addEventListener("mouseover", onOver);
+  // Leaving the pane entirely, which no mouseover over a tile will report.
+  document.addEventListener("mouseleave", closePreview);
   draw();
   void load();
 });

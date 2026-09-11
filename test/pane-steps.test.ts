@@ -12,6 +12,7 @@ import {
   footerOf,
   groups,
   isOpen,
+  landingLine,
   matches,
   primary,
   remember,
@@ -239,6 +240,38 @@ describe("what the pane says about the deck", () => {
   it("shows the settings without opening the gear", () => {
     expect(settingsLine(DEFAULT_SETTINGS)).toBe("Inserting onto this slide, as one group.");
     expect(settingsLine({ target: "new", group: false })).toBe("Inserting as a new slide, loose.");
+  });
+});
+
+describe("where the preview card says an element will land", () => {
+  it("follows the gear for a whole-slide element", () => {
+    const whole = element({ id: "box", kind: "slide", landing: "layout" });
+    expect(landingLine(whole, DEFAULT_SETTINGS)).toBe(
+      "Lands below your slide's own title, scaled to fit the room under it.",
+    );
+    expect(landingLine(whole, { target: "new", group: true })).toBe("Lands as a new slide after this one.");
+  });
+
+  it("IGNORES the gear for a part, because the engine does", () => {
+    // docs/DESIGN.md section 5: a part always lands on the slide the user is
+    // on. Saying "as a new slide" over a stamp would be the pane promising
+    // something the insert does not do.
+    const stamp = element({ id: "stamp", kind: "part", landing: "top-right" });
+    const asNew = landingLine(stamp, { target: "new", group: true });
+    expect(asNew).toBe(landingLine(stamp, DEFAULT_SETTINGS));
+    expect(asNew).not.toContain("new slide");
+  });
+
+  it("names the three ways a part lands", () => {
+    expect(landingLine(element({ id: "a", kind: "part", landing: "top-right" }), DEFAULT_SETTINGS)).toContain(
+      "top-right",
+    );
+    expect(landingLine(element({ id: "b", kind: "part", landing: "cursor" }), DEFAULT_SETTINGS)).toContain(
+      "shape you have selected",
+    );
+    expect(landingLine(element({ id: "c", kind: "part", landing: "as-authored" }), DEFAULT_SETTINGS)).toContain(
+      "where it sits in the library",
+    );
   });
 });
 

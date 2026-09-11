@@ -70,6 +70,10 @@ fetched only when you insert it.
   PowerPoint's own rendering of it, cut from a print of the library deck. Where
   there is no picture yet the tile keeps the small drawing of where on the slide
   the element lands and how much of it it covers;
+- **rest on a tile**, or reach it with the keyboard, and after a moment a card
+  opens with the element at full size, its name, and a line saying where it will
+  land. In a wide pane it sits beside the list; in a narrow one it lies over the
+  bottom of it.  shuts it;
 - an element that comes in several sizes is **one tile with a stepper** naming
   what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list;
 - the **footer**, carrying what the last insert did, measured: "12 → 13 slides"
@@ -92,7 +96,7 @@ Microsoft's `office.js` library — see
 
 ### The keyboard
 
-`/` focuses the search box. `Esc` closes the gear, then clears the search and
+`/` focuses the search box. `Esc` shuts the preview card, then the gear, then clears the search and
 the tags. `Tab` reaches the tiles; the arrow keys move between them and `Enter`
 or `Space` inserts the one you are on. Every outcome is announced to a screen
 reader as well as shown.

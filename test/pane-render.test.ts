@@ -346,3 +346,44 @@ describe("the element's photograph on a tile", () => {
     expect(root.querySelectorAll(".tile-img").length).toBe(1);
   });
 });
+
+describe("the preview card", () => {
+  const previewing = { ...browsing, previewing: "one-box" };
+
+  it("is not there until something is being previewed", () => {
+    render(root, browsing, "browse");
+    expect(root.querySelector(".card")).toBeNull();
+    expect(root.querySelector("main")?.classList.contains("has-card")).toBe(false);
+  });
+
+  it("shows the element at full width, its name, and where it lands", () => {
+    render(root, previewing, "browse");
+    const card = root.querySelector(".card") as HTMLElement;
+    expect(card.dataset["id"]).toBe("one-box");
+    expect(card.querySelector(".tile-img")).not.toBeNull();
+    expect(card.querySelector(".card-name")?.textContent).toBe("One box");
+    expect(card.querySelector(".card-landing")?.textContent).toContain("Lands");
+  });
+
+  it("follows the gear, so the line matches what the insert would do", () => {
+    render(root, { ...previewing, settings: { target: "new", group: true } }, "browse");
+    expect(root.querySelector(".card-landing")?.textContent).toBe("Lands as a new slide after this one.");
+  });
+
+  it("opens the gutter the dock sits in, and only while it is open", () => {
+    render(root, previewing, "browse");
+    expect(root.querySelector("main")?.classList.contains("has-card")).toBe(true);
+  });
+
+  it("is hidden from a reader, because the tile it describes already announces itself", () => {
+    render(root, previewing, "browse");
+    expect(root.querySelector(".card")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("does not appear for an id the library does not have", () => {
+    // A stale id — the category closed, or the search narrowed — must not draw
+    // an empty card.
+    render(root, { ...browsing, previewing: "no-such-element" }, "browse");
+    expect(root.querySelector(".card")).toBeNull();
+  });
+});

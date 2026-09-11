@@ -25,6 +25,7 @@ import {
   footerOf,
   groups,
   isOpen,
+  landingLine,
   primary,
   runOf,
   settingsLine,
@@ -135,6 +136,35 @@ function picture(element: Element, library: Library): HTMLElement {
   img.addEventListener("error", () => img.remove(), { once: true });
   frame.appendChild(img);
   return frame;
+}
+
+/**
+ * The preview card: the element at full width, its name, and where it lands.
+ *
+ * `docs/DESIGN.md` section 4 opens it after a third of a second of hover or
+ * focus, pinned over the top of the list; at 512px and wider it docks beside
+ * the list and hides no tiles. Both of those are the stylesheet's job — this
+ * decides only what is IN it.
+ *
+ * NOT here yet, and named so it is not mistaken for done: the grey boxes for
+ * what the destination slide already has. The pane does not read the slide's
+ * shapes, and adding that read is host work this could not verify without a
+ * round against a real PowerPoint. The ghost frame for the landing is drawn
+ * from the catalogue, which needs no host at all.
+ *
+ * Inert to the pointer. A card that opens under the cursor and then swallows
+ * the click would make the tile it describes unpickable.
+ */
+function card(element: Element, library: Library, state: PaneState): HTMLElement {
+  const box = el("aside", "card");
+  box.dataset["id"] = element.id;
+  // Announced by the tile it belongs to, not by itself: the tile already
+  // carries "Insert <name>", and a live card would interrupt a reader mid-word.
+  box.setAttribute("aria-hidden", "true");
+  box.appendChild(picture(element, library));
+  box.appendChild(el("strong", "card-name", element.name));
+  box.appendChild(el("p", "card-landing", landingLine(element, state.settings)));
+  return box;
 }
 
 /** One element's tile: where it lands, what it is called, and whether it is starred. */
@@ -270,6 +300,14 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
       line.appendChild(chip);
     }
     main.appendChild(line);
+  }
+
+  const previewed = elementOf(library, state.previewing);
+  if (previewed) {
+    // The stylesheet opens a gutter for the docked card at 512 and wider, and
+    // only while there is one to dock.
+    main.classList.add("has-card");
+    main.appendChild(card(previewed, library, state));
   }
 
   const found = groups(library, state);
