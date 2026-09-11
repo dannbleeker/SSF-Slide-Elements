@@ -225,7 +225,7 @@ const STATES = [
       ...BROWSING,
       open: ["stamps"],
       used: [{ element: "approved", slides: [2, 5, 9] }],
-      removing: { id: "approved", slides: [2, 5, 9], done: 0 },
+      removing: { id: "approved", slides: [2, 5, 9], done: 0, where: "stamps" },
     },
     shows: ["remove-go", "remove-cancel"],
   },
@@ -256,7 +256,7 @@ const STATES = [
     // would be a menu over nothing.
     name: "browse-tile-menu",
     step: "browse",
-    state: { ...BROWSING, open: ["boxes"], menuFor: "one-box" },
+    state: { ...BROWSING, open: ["boxes"], menuFor: "boxes:one-box" },
     shows: ["other-target", "tile"],
   },
   {

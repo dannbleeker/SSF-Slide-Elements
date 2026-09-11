@@ -136,12 +136,14 @@ export interface PaneState {
   /** True while that read is running. */
   reading?: boolean;
   /**
-   * The tile whose right-click menu is open, by element id.
+   * The tile whose right-click menu is open, as `tileKey` spells it.
    *
-   * An id rather than a position: the menu is drawn anchored to its own tile,
-   * so where the pointer was is the browser's business and never the pane's
-   * state. A state carrying coordinates could not be rendered by the shot
-   * audit, and a menu that outlived its tile would float over nothing.
+   * Not the element id alone: one element is drawn up to three times — in
+   * Favourites, in Recent, and in its own category — and an id matches all of
+   * them, so a single right-click opened a menu on every copy. The key names
+   * the TILE. Still no coordinates: the menu is anchored to its own tile, so
+   * where the pointer was stays the browser's business, and the shot audit can
+   * still draw the state.
    */
   menuFor?: string;
   /**
@@ -179,7 +181,7 @@ export interface PaneState {
    * `done` counts slides finished, so a run that stops halfway can say where it
    * stopped rather than leaving the user to count.
    */
-  removing?: { id: string; slides: number[]; done: number };
+  removing?: { id: string; slides: number[]; done: number; where: string };
 }
 
 export const EMPTY: PaneState = {
@@ -388,6 +390,18 @@ export function footerOf(state: PaneState): Footer {
 }
 
 /** The gear's own line, so the settings are visible without opening it. */
+/**
+ * Which TILE something is open on.
+ *
+ * An element appears in Favourites, in Recent and in its own category, so the
+ * pane draws up to three tiles for one id. Anything anchored to a tile — the
+ * right-click menu, the question before a removal — has to name the tile rather
+ * than the element, or one right-click opens three menus.
+ */
+export function tileKey(where: string, id: string): string {
+  return `${where}:${id}`;
+}
+
 /**
  * The insert target the gear is NOT set to.
  *

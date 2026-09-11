@@ -35,6 +35,7 @@ import {
   otherTargetLabel,
   removableFrom,
   removeLabel,
+  tileKey,
   removeQuestion,
   primary,
   runOf,
@@ -203,10 +204,15 @@ function card(element: Element, library: Library, state: PaneState): HTMLElement
 }
 
 /** One element's tile: where it lands, what it is called, and whether it is starred. */
-function tile(state: PaneState, library: Library, element: Element): HTMLElement {
+function tile(state: PaneState, library: Library, element: Element, where: string): HTMLElement {
+  const key = tileKey(where, element.id);
   const item = el("li", "tile");
   const pick = button("tile", "tile-pick", "");
   pick.dataset["id"] = element.id;
+  // Which of the up-to-three tiles for this element this one is. The menu and
+  // the removal question are anchored to a TILE, and the click handler reads
+  // this back to know which one was asked.
+  pick.dataset["where"] = where;
   pick.setAttribute("aria-label", `Insert ${element.name}`);
   if (state.chosen === element.id) pick.setAttribute("aria-current", "true");
   if (state.busy === true) pick.disabled = true;
@@ -256,6 +262,7 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
   if (removable.length > 0 && state.removing === undefined) {
     const take = button("remove", "tile-remove", removeLabel(removable));
     take.dataset["id"] = element.id;
+    take.dataset["where"] = where;
     if (state.busy === true) take.disabled = true;
     item.appendChild(take);
   }
@@ -263,7 +270,7 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
   // The confirm, in the same place the right-click menu goes: it is the only
   // thing here that takes something OUT of the user's deck, so it is asked
   // rather than done, and the question names the slides.
-  if (state.removing?.id === element.id) {
+  if (state.removing !== undefined && tileKey(state.removing.where, state.removing.id) === key) {
     const ask = el("div", "tile-menu");
     ask.setAttribute("role", "group");
     ask.setAttribute("aria-label", removeLabel(state.removing.slides));
@@ -284,7 +291,7 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
   // same event) offers the OTHER insert target for this one insert, without
   // touching the gear. Anchored to the tile rather than to the pointer, so the
   // menu cannot outlive the thing it belongs to and the audit can draw it.
-  if (state.menuFor === element.id && state.removing === undefined && offersOtherTarget(element)) {
+  if (state.menuFor === key && state.removing === undefined && offersOtherTarget(element)) {
     const menu = el("div", "tile-menu");
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", element.name);
@@ -545,7 +552,7 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
     const section = el("section", "category");
     section.appendChild(el("h2", "category-name", list.name));
     const tiles = el("ul", "tiles");
-    for (const element of elements) tiles.appendChild(tile(state, library, element));
+    for (const element of elements) tiles.appendChild(tile(state, library, element, list.key));
     section.appendChild(tiles);
     main.appendChild(section);
   }
@@ -559,7 +566,7 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
     section.appendChild(head);
     if (open) {
       const tiles = el("ul", "tiles");
-      for (const element of group.elements) tiles.appendChild(tile(state, library, element));
+      for (const element of group.elements) tiles.appendChild(tile(state, library, element, group.key));
       section.appendChild(tiles);
     }
     main.appendChild(section);

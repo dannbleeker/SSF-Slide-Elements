@@ -705,3 +705,86 @@ describe("the colour switch", () => {
     expect(problems(await partsOf(await (await Pkg.open(pinnedReport.base64)).toBytes()))).toEqual([]);
   });
 });
+
+describe("the sweep the one above leaves out", () => {
+  /**
+   * The shipped sweep runs every element ONE way: onto this slide, grouped,
+   * this deck's theme, 16:9. Three of those four are settings a user can
+   * change and the fourth is half the library, so the paths nobody swept were
+   * `blank()` (a new slide), the ungrouped adopt, the 4:3 elements, and the
+   * colour pin.
+   *
+   * Swept as a MATRIX once, in a scratch run: 234 elements × onto/new ×
+   * grouped/loose, 936 packages, no finding. Kept here SAMPLED — each element
+   * takes the combination its index names — because the matrix costs 51 seconds
+   * and the sample costs a quarter of that while still putting every element
+   * through the engine and every combination through the suite. The rotation is
+   * by index rather than random: a sweep that picks differently on each run
+   * reports a failure nobody can reproduce.
+   */
+  const COMBINATIONS = [
+    { target: "onto", group: true, colours: "library" },
+    { target: "new", group: true, colours: "deck" },
+    { target: "new", group: false, colours: "library" },
+    { target: "onto", group: false, colours: "deck" },
+  ] as const;
+
+  it("holds up as a new slide, ungrouped, with colours pinned, in both libraries", async () => {
+    const deck = await makeDeck([
+      { paragraphs: [["First"]] },
+      { paragraphs: [["Second"]], notes: "a note the new slide must not inherit" },
+      { paragraphs: [["Third"]] },
+    ]);
+    const findings: string[] = [];
+    const sizes: ["16:9" | "4:3", string][] = [
+      ["16:9", "library-16x9.pptx"],
+      ["4:3", "library-4x3.pptx"],
+    ];
+    for (const [size, file] of sizes) {
+      const lib =
+        size === "16:9"
+          ? library
+          : await harvest(await Pkg.open(new Uint8Array(readFileSync(`template/${file}`))), { size, names: NAMES });
+      for (const [i, el] of lib.catalogue.elements.entries()) {
+        const options = COMBINATIONS[i % COMBINATIONS.length] as (typeof COMBINATIONS)[number];
+        const what = `[${size} ${el.id} ${options.target} ${options.group ? "grouped" : "loose"} ${options.colours}]`;
+        try {
+          const report = await splice({
+            deck,
+            slide: 1,
+            element: asSplice(el),
+            options,
+            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            store: (path) => Promise.resolve(lib.parts.get(path)),
+          });
+          const out = await Pkg.open(report.base64);
+          const found = problems(await partsOf(await out.toBytes()));
+          if (found.length) findings.push(`${what} ${found.slice(0, 2).join("; ")}`);
+          const listed = await out.slidePaths();
+          if (listed.length !== 1) findings.push(`${what} lists ${listed.length} slides`);
+          const tagged = await readShapeTags(out, report.slidePath);
+          if (!tagged.some((t) => t.element === el.id)) findings.push(`${what} carries no tag of ours`);
+          // A new slide starts from the layout, so the notes of the slide it
+          // was cloned from must not have come with it.
+          if (options.target === "new") {
+            const related = await out.relatedParts(report.slidePath);
+            if (related.some((p) => p.startsWith("ppt/notesSlides/"))) findings.push(`${what} inherited the notes`);
+          }
+          // Pinned means pinned: nothing the library's theme can name may be
+          // left as a scheme colour.
+          if (options.colours === "library") {
+            const xml = await out.text(report.slidePath);
+            const left = [...xml.matchAll(/<a:schemeClr val="([^"]+)"/g)]
+              .map((m) => m[1] ?? "")
+              .filter((v) => v !== "phClr" && lib.catalogue.theme[v] !== undefined);
+            if (left.length)
+              findings.push(`${what} ${left.length} scheme colour(s) left: ${[...new Set(left)].join(",")}`);
+          }
+        } catch (e) {
+          findings.push(`${what} threw ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`);
+        }
+      }
+    }
+    expect(findings.slice(0, 10)).toEqual([]);
+  }, 600_000);
+});

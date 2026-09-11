@@ -551,7 +551,7 @@ describe("the first-run coach marks", () => {
 
 describe("the tile's right-click menu", () => {
   it("draws the other target, on the tile it belongs to", () => {
-    render(root, { ...browsing, menuFor: "one-box" }, "browse");
+    render(root, { ...browsing, menuFor: "boxes:one-box" }, "browse");
     const tile = root.querySelector('.tile [data-action="other-target"]') as HTMLElement;
     expect(tile).not.toBeNull();
     expect(tile.textContent).toBe("Insert as a new slide");
@@ -563,7 +563,7 @@ describe("the tile's right-click menu", () => {
   });
 
   it("follows the gear, so it always offers the one you are not on", () => {
-    const asNew = { ...browsing, menuFor: "one-box", settings: { ...browsing.settings, target: "new" as const } };
+    const asNew = { ...browsing, menuFor: "boxes:one-box", settings: { ...browsing.settings, target: "new" as const } };
     render(root, asNew, "browse");
     expect(root.querySelector('[data-action="other-target"]')?.textContent).toBe("Insert onto this slide");
   });
@@ -589,7 +589,7 @@ describe("the tile's right-click menu", () => {
   });
 
   it("is a menu to a screen reader, not a stray button", () => {
-    render(root, { ...browsing, menuFor: "one-box" }, "browse");
+    render(root, { ...browsing, menuFor: "boxes:one-box" }, "browse");
     const menu = root.querySelector(".tile-menu") as HTMLElement;
     expect(menu.getAttribute("role")).toBe("menu");
     expect(menu.getAttribute("aria-label")).toBe("One box");
@@ -661,7 +661,7 @@ describe("removing a part from the deck", () => {
   });
 
   it("asks before it removes, names the slides, and offers a way out", () => {
-    render(root, { ...read, removing: { id: "approved", slides: [2, 5, 9], done: 0 } }, "browse");
+    render(root, { ...read, removing: { id: "approved", slides: [2, 5, 9], done: 0, where: "stamps" } }, "browse");
     expect(root.querySelector(".tile-ask")?.textContent).toContain("slides 2, 5 and 9");
     expect(root.querySelector(".tile-ask")?.textContent).toContain("cannot undo");
     expect(root.querySelector('[data-action="remove-go"]')?.textContent).toBe("Remove");
@@ -672,9 +672,66 @@ describe("removing a part from the deck", () => {
   });
 
   it("draws one question at a time, and not the right-click menu beside it", () => {
-    const both = { ...read, menuFor: "one-box", removing: { id: "approved", slides: [2], done: 0 } };
+    const both = {
+      ...read,
+      menuFor: "boxes:one-box",
+      removing: { id: "approved", slides: [2], done: 0, where: "stamps" },
+    };
     render(root, both, "browse");
     expect(root.querySelectorAll(".tile-menu").length).toBe(1);
     expect(root.querySelector('[data-action="other-target"]')).toBeNull();
+  });
+});
+
+describe("an element drawn in more than one place at once", () => {
+  // Favourites, Recent and the element's own category are three lists, and one
+  // element can be in all three. Everything anchored to a TILE has to know
+  // which tile, or one right-click opens three menus.
+  const twice = {
+    ...browsing,
+    open: ["boxes"],
+    favourites: ["one-box"],
+    recent: ["one-box"],
+  };
+
+  it("draws the same element in every list it belongs to", () => {
+    // The vacuity guard: without this the cases below would pass by there
+    // being only one tile to find.
+    render(root, twice, "browse");
+    const tiles = [...root.querySelectorAll<HTMLElement>('[data-action="tile"][data-id="one-box"]')];
+    expect(tiles.length).toBe(3);
+    expect(tiles.map((t) => t.dataset["where"])).toEqual(["favourites", "recent", "boxes"]);
+  });
+
+  it("opens the right-click menu on the tile that was clicked, not on every copy", () => {
+    render(root, { ...twice, menuFor: "recent:one-box" }, "browse");
+    const menus = [...root.querySelectorAll(".tile-menu")];
+    expect(menus.length).toBe(1);
+    const tile = menus[0]?.closest(".tile");
+    expect(tile?.querySelector<HTMLElement>('[data-action="tile"]')?.dataset["where"]).toBe("recent");
+  });
+
+  it("asks the removal question once, on the tile that asked it", () => {
+    const stamps = { key: "stamps", name: "Stamps and labels" };
+    const withStamp: Library = {
+      ...LIBRARY,
+      categories: [...LIBRARY.categories, stamps],
+      elements: [
+        ...LIBRARY.elements,
+        element({ id: "approved", name: "Approved stamp", kind: "part", landing: "top-right", category: stamps }),
+      ],
+    };
+    const state = {
+      ...browsing,
+      library: withStamp,
+      open: ["boxes", "stamps"],
+      favourites: ["approved"],
+      used: [{ element: "approved", slides: [2, 5] }],
+      removing: { id: "approved", slides: [2, 5], done: 0, where: "stamps" },
+    };
+    render(root, state, "browse");
+    expect(root.querySelectorAll(".tile-ask").length).toBe(1);
+    const asked = root.querySelector(".tile-ask")?.closest(".tile");
+    expect(asked?.querySelector<HTMLElement>('[data-action="tile"]')?.dataset["where"]).toBe("stamps");
   });
 });
