@@ -280,8 +280,9 @@ describe("choosing a name for the new part", () => {
     /**
      * Blind use of `tag1.xml` is the trap: a deck that already carries one has
      * it overwritten and every shape pointing at it silently loses its tags.
-     * The library's own elements make that certain rather than theoretical —
-     * 78 of the 117 harvested 16:9 elements arrive carrying a tag relationship.
+     * The library's own elements make that certain rather than theoretical:
+     * six of the 117 harvested 16:9 elements arrive carrying tag
+     * relationships, 78 of them between the six, and one carries 41 alone.
      */
     const pkg = await deck([{ paragraphs: [["a"]], shapeTags: true }]);
     expect(pkg.has(VENDOR_PART), "the fixture stopped writing a vendor tag part").toBe(true);
@@ -402,8 +403,10 @@ describe("stamping a shape another add-in has already tagged", () => {
     /**
      * `CT_CustomerDataList` allows at most one `<p:tags>` child, so a shape
      * that already has a tag part must have its entries appended. A shape
-     * harvested out of the library routinely does: the owner's decks were built
-     * in PowerPoint and most of the elements carry one.
+     * harvested out of the library can: the owner's decks were built in
+     * PowerPoint, and six of the 117 elements arrive already tagged — a
+     * minority, but one of them carries 41 relationships, so this path is
+     * exercised rather than theoretical.
      */
     const pkg = await taggedByAnother(`<p:tag name="VENDOR" val="do not delete"/>`);
     const shape = await shapeNamed(pkg, "Body");

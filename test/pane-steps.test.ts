@@ -6,7 +6,6 @@ import {
   RECENT_DEPTH,
   STEPS,
   STEP_TITLE,
-  UNDO_DEPTH,
   blockedReason,
   borrowedLine,
   elementOf,
@@ -282,7 +281,6 @@ describe("the lists the pane remembers", () => {
 
   it("keeps only as many as the design says", () => {
     expect(RECENT_DEPTH).toBe(6);
-    expect(UNDO_DEPTH).toBe(10);
     const many = ["1", "2", "3", "4", "5", "6"];
     expect(remember(many, "7", RECENT_DEPTH)).toEqual(["7", "1", "2", "3", "4", "5"]);
   });

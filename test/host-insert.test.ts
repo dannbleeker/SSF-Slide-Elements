@@ -176,7 +176,7 @@ describe("what taking an insert back means, as indices", () => {
    * slide that had not moved. Found by pressing Undo in PowerPoint and looking.
    */
   it("puts the original back beside the rebuilt slide and removes the REBUILT one", () => {
-    const plan = undoPlan({ target: "onto", slide: 0 });
+    const plan = undoPlan({ target: "onto", index: 0 });
     expect(plan.after, "the insert must aim at the rebuilt slide").toBe(0);
     // NOT plan.after + 1. That is the restored copy, and removing it is the
     // defect this case exists for.
@@ -185,13 +185,31 @@ describe("what taking an insert back means, as indices", () => {
   });
 
   it("keeps the two indices apart on a slide further down the deck", () => {
-    const plan = undoPlan({ target: "onto", slide: 7 });
+    const plan = undoPlan({ target: "onto", index: 7 });
     expect(plan).toMatchObject({ after: 7, remove: 7 });
     expect(plan.grownTo(12)).toBe(13);
   });
 
+  /**
+   * The two numbers for the SAME slide, side by side, counted from different
+   * ends.
+   *
+   * `outcomeOf` is read aloud, so its slide counts from one; `undoPlan` is fed
+   * to the API, so its index counts from zero. The defect above was this
+   * confusion by another name, and the fields are called `slide` and `index`
+   * now so a call site cannot hand over the wrong one without the compiler
+   * saying so. This case is the reason that naming may not be tidied away.
+   */
+  it("counts from zero where the sentence counts from one", () => {
+    const at = 3; // the fourth slide, as PowerPoint's API numbers it
+    const sentence = outcomeOf({ target: "onto", slide: at + 1, before: 9, inserted: 10, removed: 9 });
+    expect(sentence.detail).toBe("9 → 10 → 9 slides, slide 4 replaced.");
+    const plan = undoPlan({ target: "onto", index: at });
+    expect(plan.remove, "the plan addresses the same slide, from zero").toBe(3);
+  });
+
   it("takes a new slide back with one removal, from the position after its target", () => {
-    const plan = undoPlan({ target: "new", slide: 3 });
+    const plan = undoPlan({ target: "new", index: 3 });
     expect(plan.after, "nothing is inserted to undo a new slide").toBeUndefined();
     expect(plan.remove).toBe(4);
     // The deck does not grow on the way: there is no insert half.

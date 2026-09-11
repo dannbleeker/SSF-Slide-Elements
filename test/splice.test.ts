@@ -14,9 +14,11 @@ import { makeDeck } from "./fixtures/deck.js";
 /**
  * The splice, against the library the product actually ships.
  *
- * `docs/BACKLOG.md` asks for exactly this: "a sweep over every element in the
- * library into fixture decks, every package validated by the integrity checker,
- * on every commit". The synthetic cases below prove each RULE in isolation; the
+ * `docs/BACKLOG.md` asked for exactly this — "a sweep over every element in
+ * the library into fixture decks, every package validated by the integrity
+ * checker, on every commit" — and the entry was removed when the sweep shipped,
+ * which is what that file does with work that lands. The synthetic cases below
+ * prove each RULE in isolation; the
  * sweep proves the rules add up over 117 real elements the owner drew, which
  * between them carry tables, pictures, embedded objects, a chart with a
  * workbook behind it, groups, and tag parts PowerPoint wrote.

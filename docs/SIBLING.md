@@ -5,9 +5,12 @@ learned by [SSF-Charts](https://github.com/dannbleeker/SSF-Charts) over its
 real-host rounds against PowerPoint on the web, and carried into
 [SSF-Merge](https://github.com/dannbleeker/SSF-Merge), which triaged every one
 of those findings against its own package route and added three answer sheets
-of its own. SSF Slide Elements has run zero rounds and, as of 2026-09-08, holds
-no host code at all. Every host rule in `CLAUDE.md` is a recording from one of
-those two projects.
+of its own. SSF Slide Elements held no host code at all when this file was
+written, on 2026-09-08. It has since run its own probe on PowerPoint for the
+web (four sheets under `docs/host-answers/`, 2026-09-10) and its own product
+round on the same host (2026-09-11), so some of what follows is now measured
+here rather than borrowed, and the rows say which. Everything about Windows,
+Mac and iPad is still a recording from one of those two projects.
 
 That is a debt, and it does not settle itself. This file is the single place
 sibling-derived knowledge lives: what each finding is, what was done about it
@@ -92,9 +95,13 @@ Every row here is a sibling finding this add-in **acted on**: a verdict of
 summarised after the table rather than listed, and `test/sibling.test.ts` fails
 when a finding with any other verdict is missing from this file.
 
-Every row carries the same caveat, and it is the honest one: **no host code
-exists in this repo as of 2026-09-08**. The verdicts say what the design will
-do about each finding; the host-handshake PR re-triages every row against code.
+The rows were written on 2026-09-08, when no host code existed here, and
+**re-triaged on 2026-09-11** against the insert that has since shipped. Four of
+them had promised a defence the code never built — the deck read was to page
+`getItemAt` at twenty and never do a collection load, and it does three
+collection loads and no paging — and those four now say what the code actually
+does instead. A row that reads as a description of this add-in and is not is
+worse than no row at all, because the next reader builds on it.
 
 | Finding | Where it was learned | What this add-in does about it |
 | --- | --- | --- |
@@ -102,18 +109,18 @@ do about each finding; the host-handshake PR re-triages every row against code.
 | A stale shape proxy answers `InvalidParam passed to GetItem(id)` (office-js#2903); waiting after `slides.add()` cost SSF-Charts 18 of 19 probe answers in one round | SSF-Charts, tried and reverted | **Adopted as doctrine.** Nothing here reads through a proxy after the insert, and waiting after an add is on the rejected list. |
 | `addTextBox` deletes the SELECTED shape on the web (office-js#2775) | SSF-Charts' `dropShapeSelection` | **Relevant as a class, not a call.** Nothing here adds a text box, but an insert lands while the user may have something selected. SSF-Merge's probe asks whether a SLIDE insert survives a standing selection rather than assuming it. |
 | A picture cannot be inserted while a shape is selected, and `setSelectedShapes([])` may never resolve (office-js#3698) | SSF-Charts' selection ladder | **Relevant as the same class.** The call itself is never made here; whether a slide insert is safe with a standing selection is what SSF-Merge's probe asks, unanswered as of 2026-09-08. |
-| A collection load over ~50 items answers short (office-js#4272) | `ID_PAGE` in SSF-Charts' renderer; `ID_PAGE = 20` in SSF-Merge | **Relevant.** The deck read will page `getItemAt` at 20, for the same reason. |
-| The web uppercases tag KEYS internally and needs the uppercased spelling to read them back (office-js#6079) | SSF-Charts' tag writer; SSF-Merge's keys are uppercase | **Relevant.** Nothing here writes a tag yet; any key it ever writes is uppercase from the first day. |
+| A collection load over ~50 items answers short (office-js#4272) | `ID_PAGE` in SSF-Charts' renderer; `ID_PAGE = 20` in SSF-Merge | **Relevant, and re-triaged 2026-09-11.** This row promised the sibling's paging, and the paging was never built. The deck read is a plain collection load, guarded instead by the deck's scalar count in the same batch: when the list is shorter than the count, no index is handed out. Both callers turn the list into an index and the removal after an insert is positional, so a wrong index is a wrong slide. |
+| The web uppercases tag KEYS internally and needs the uppercased spelling to read them back (office-js#6079) | SSF-Charts' tag writer; SSF-Merge's keys are uppercase | **Relevant, and honoured.** Every insert writes `SSF_SLIDE_ELEMENT` and `SSF_SLIDE_ELEMENTS_CATALOGUE`, uppercase from the first day as this row asked. |
 | A `SlideRange` id lacks the deck's `#suffix` (office-js#2474) | SSF-Charts' selection code | **Relevant.** Whatever names the slide the user is on matches by prefix and refuses two matches rather than guessing. |
-| `Slide.exportAsBase64` omits modern comments and `ppt/authors.xml` (office-js#6867) | SSF-Charts' round evidence; SSF-Merge's open probe question | **Relevant, and it decides an open question.** SSF-Charts calls that API for a picture and marked it no exposure. SSF-Merge clones from the presentation-level export and has a probe question open on whether that call drops the same parts (unanswered as of 2026-09-08). Which read of the deck this add-in uses is open, and this is one of the facts that will decide it. |
+| `Slide.exportAsBase64` omits modern comments and `ppt/authors.xml` (office-js#6867) | SSF-Charts' round evidence; SSF-Merge's open probe question | **Relevant, and it DECIDED the read.** SSF-Charts calls that API for a picture and marked it no exposure. This repo's own probe measured the presentation-level export dropping the comment part and `ppt/authors.xml` on the web on 2026-09-10, so `getFileAsync` is what the add-in reads with, and `exportAsBase64Presentation` is deliberately not called. |
 | Shape tags are lost when a shape is cut and pasted on the web (office-js#3784) | SSF-Charts' triage; SSF-Merge's manual caveat | **Relevant as a limit, documented rather than guarded.** Nothing this add-in writes onto a shape may be something a later step depends on finding. |
 | Inserted content may appear in the slide PREVIEW but not the main view without a refresh (office-js#6498) | SSF-Charts' visibility gate | **Relevant as a support answer.** A user reporting a missing element may be seeing this, and the deck delta will say it landed. |
-| `PowerPoint.run` batching fails to load properties reliably after `context.sync()`, web only (office-js#6363) | SSF-Charts' central failure; SSF-Merge's `deckRead` probe | **Relevant.** The deck read will batch `load("id")` across `getItemAt` handles, which is precisely this shape. |
+| `PowerPoint.run` batching fails to load properties reliably after `context.sync()`, web only (office-js#6363) | SSF-Charts' central failure; SSF-Merge's `deckRead` probe | **Relevant, and re-triaged 2026-09-11.** The deck read does not batch across proxies: one `PowerPoint.run`, one collection load and one `getCount` queued before a single sync, both read after it, and nothing loaded across a proxy that outlived a sync. |
 | The web forces a full presentation save on every `context.sync()`, read-only syncs included (office-js#6329) | SSF-Charts' `KNOWN_ISSUES`; no row in SSF-Merge | **Relevant.** Every host call this add-in makes is a sync, so they stay few and batched. |
-| `getcount-populates-same-sync` — the count is right while the list is empty | SSF-Charts' `FAKE_BASELINE` | **Relevant.** The deck read trusts the scalar count and pages by index, never a collection load. |
-| `getitemat-past-end` — what the host does past the end of a collection | SSF-Charts' `FAKE_BASELINE` | **Relevant.** Bounds both paging by index and removing the replaced slide by index if the deck moved. |
+| `getcount-populates-same-sync` — the count is right while the list is empty | SSF-Charts' `FAKE_BASELINE` | **Relevant, and re-triaged 2026-09-11.** The deck read does do a collection load, and this finding is why the scalar count rides in the same batch and wins the disagreement. |
+| `getitemat-past-end` — what the host does past the end of a collection | SSF-Charts' `FAKE_BASELINE` | **Relevant.** No paging was built, so what it bounds is removing the replaced slide by index if the deck moved. |
 | `which-end-a-short-read-drops` | SSF-Charts' `FAKE_BASELINE` | **Relevant.** A short read that is not a prefix makes a slide NUMBER wrong, not merely a list shorter, and this add-in addresses the slide the user is on by position. |
-| `how-many-collection-reads-a-context-survives` | SSF-Charts' `PENDING_QUESTIONS`; SSF-Merge's paging loop | **Relevant.** One `PowerPoint.run` per page, deliberately, so no context accumulates reads. Recorded so the reason survives a refactor. |
+| `how-many-collection-reads-a-context-survives` | SSF-Charts' `PENDING_QUESTIONS`; SSF-Merge's paging loop | **Smaller than it was, re-triaged 2026-09-11.** There is no paging, so there is no loop: one `PowerPoint.run` per read, one collection load inside it, and no context accumulates reads either way. |
 | `delete-then-lookup` — whether a deleted slide still resolves | SSF-Charts' `FAKE_BASELINE` | **Adopted as doctrine.** The replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed. |
 | `scratch-slides-returned` — whether a probe gets its slides back | SSF-Charts' positional sweep; SSF-Merge's triple-clamped undo | **Adopted as doctrine.** Any removal here is positional and clamped. |
 
@@ -130,10 +137,15 @@ a shape through the API, and that route is on the rejected list in
 
 ### What reading it found in OUR code
 
-Nothing, and there was nothing to find: the repo held no host code when this
-ledger was written (2026-09-08). SSF-Merge's own sweep found a product defect
-this way, which is the argument for repeating the read when the host handshake
-lands.
+Nothing on 2026-09-08, and there was nothing to find: the repo held no host
+code at all when this ledger was written. Repeated on **2026-09-11** against
+the host layer that has since shipped, it found one thing, and it was this
+file. Four rows described a paged deck read that was never built, over code
+that does the plain collection load those rows say is never done — which is
+the live hazard in office-js#4272 rather than a wording slip. The code now
+reads the deck's scalar count in the same batch and refuses an index when the
+list and the count disagree, and the rows say so. SSF-Merge's own sweep found a
+product defect this way, which is the argument for the read.
 
 ## What we learned that the siblings have not
 

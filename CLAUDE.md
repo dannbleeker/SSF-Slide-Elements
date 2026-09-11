@@ -57,12 +57,30 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-Nothing yet. Every host fact in this repo is borrowed from a sibling. The
-instrument exists (`docs/PROBE.md`: a Script Lab snippet and a reader whose
-every verdict is a tested pure function in `src/host/probe.ts`), and the first
-sheets are the owner's rounds on the web, Windows and Mac; `docs/host-answers/`
-is the count. Until a sheet is filed, nothing here should imply the host has
-been measured, and the splice and the picker wait for the answers.
+**PowerPoint for the web, and only the web.** Four answer sheets under
+`docs/host-answers/`, 2026-09-10; `docs/DESIGN.md` section 15 reads them and is
+the one place to change when a sheet is filed. The splice ran against the same
+host the same day, and the whole product — pane, insert and Undo — on
+2026-09-11. **Windows, Mac and iPad have had no round**, so every claim about
+those three is still borrowed and must say so.
+
+Two rules about the INSTRUMENT, both learned on 2026-09-11, when a round that
+should have settled the undo defect settled nothing:
+
+- **Office.js lives in the add-in's frame, not the host's.** A `PowerPoint.run`
+  evaluated inside PowerPoint for the web's own editor frame (`ppt.aspx`) does
+  not run, and a driver that catches the failure reports "could not read the
+  deck" — which reads as a fact about the host and is a fact about the driver.
+  Read the deck from the pane's frame, where Office.js actually is. Three
+  readings came back as `-1` this way and were nearly written up as a host
+  limitation.
+- **Insert something the slide does not already carry.** The undo was checked by
+  inserting the same element a previous broken round had left on the slide, so a
+  working undo and a broken one produced the same picture and the round proved
+  nothing either way. The round that settled it put a TRIANGLE onto a slide
+  holding a title and a white box, and compared the shape inventory before and
+  after, id by id and name by name. Choose the payload so the two hypotheses
+  cannot look alike.
 
 ## Host rules, learned the expensive way
 

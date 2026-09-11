@@ -144,23 +144,26 @@ export function idOf(source, key) {
  * most common one worth writing down, because an untriaged finding is
  * indistinguishable from an unnoticed one.
  *
- * Seeded on 2026-09-08 from the first sweep's report. Where SSF-Merge's verdict
- * holds here by construction — package route, one insert, no shape-level API —
- * its reason is kept; where Merge ADOPTED something in code this repo does not
- * have yet, the row is RELEVANT and says to re-triage when the insert lands.
+ * Seeded on 2026-09-08 from the first sweep's report, when this repo held no
+ * host code at all, and **re-triaged row by row on 2026-09-11** against the
+ * insert that has since shipped. Where SSF-Merge's verdict holds here by
+ * construction — package route, one insert, no shape-level API — its reason is
+ * kept. Four rows had promised a defence the code never built, and say so now
+ * rather than describing a design that does not exist; a row that reads like a
+ * description of this add-in and is not is worse than no row.
  * Keys are `charts:issue:N` and `charts:question:id`, the sibling's own
  * spelling under whose finding it is, so a rename there surfaces as a new
  * finding rather than silently matching nothing.
  */
 export const TRIAGED = {
   "charts:issue:1650":
-    "ADOPTED as doctrine (CLAUDE.md host rules), no code yet — a slide add whose sync never resolves though the slide lands. The insert will be one `insertSlidesFromBase64`, and the deck DELTA is the evidence, never the absence of an error; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a slide add whose sync never resolves though the slide lands. The insert will be one `insertSlidesFromBase64`, and the deck DELTA is the evidence, never the absence of an error; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:2328":
     "NO EXPOSURE — slideMaster.shapes throws GeneralException on the web. Nothing here reads a master; a spliced slide carries its layout relationship inside the package, and the API is never asked.",
   "charts:issue:2699":
     "NO EXPOSURE — a blank slide that is only blank to the eye. NO EXPOSURE — nothing here inspects whether a slide is blank.",
   "charts:issue:2775":
-    "RELEVANT — addTextBox deletes the SELECTED shape, web only. No exposure to the call: nothing here adds a text box. The CLASS matters: an insert lands while the user may have something selected, and SSF-Merge has a probe question (`insertWhileSelectedProbe`) asking whether a SLIDE insert survives a standing selection, unanswered as of 2026-09-08; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — addTextBox deletes the SELECTED shape, web only. No exposure to the call: nothing here adds a text box. The CLASS matters: an insert lands while the user may have something selected, and SSF-Merge has a probe question (`insertWhileSelectedProbe`) asking whether a SLIDE insert survives a standing selection; measured here on 2026-09-11 for a standing SLIDE selection, which is what the pane always inserts against, and still unmeasured for a standing SHAPE selection; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:2172":
     "NO EXPOSURE — addGeometricShape refused on a completely blank slide. NO EXPOSURE — no shape is ever added through the API.",
   "charts:issue:2780":
@@ -168,7 +171,7 @@ export const TRIAGED = {
   "charts:issue:2881":
     "NO EXPOSURE — complex SVG renders wrong through the picture path. NO EXPOSURE — nothing here inserts a picture.",
   "charts:issue:2903":
-    "ADOPTED as doctrine (CLAUDE.md host rules), no code yet — a stale shape proxy answers `InvalidParam passed to GetItem(id)`. It is why anything this add-in needs to remember goes into the PACKAGE before the insert and never through a proxy afterwards; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a stale shape proxy answers `InvalidParam passed to GetItem(id)`. It is why anything this add-in needs to remember goes into the PACKAGE before the insert and never through a proxy afterwards; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:3014":
     "NO EXPOSURE — powerPoint's API has no grouping story. NO EXPOSURE — no shape-level work at all.",
   "charts:issue:3083":
@@ -177,29 +180,29 @@ export const TRIAGED = {
     "NO EXPOSURE — office.js cannot read speaker notes at all. An element is spliced onto a slide whose notes page is untouched, inside the package; the API gap is real and never reached for.",
   "charts:issue:3309": "NO EXPOSURE — sVG cannot be read back out of a shape. NO EXPOSURE.",
   "charts:issue:3698":
-    "RELEVANT — a picture cannot be inserted while a shape is selected, and setSelectedShapes([]) may never resolve. No exposure to the picture half; the selection half is the same class as #2775: this add-in inserts SLIDES, which is neither case, and nobody has established that it is safe (SSF-Merge asks it, unanswered as of 2026-09-08); re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — a picture cannot be inserted while a shape is selected, and setSelectedShapes([]) may never resolve. No exposure to the picture half; the selection half is the same class as #2775: this add-in inserts SLIDES, which is neither case; inserts against a standing SLIDE selection were measured safe here on 2026-09-11, and a standing SHAPE selection is still unmeasured; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:3826":
     "NO EXPOSURE — a freshly-added slide's layout shapes throw GeneralException. NO EXPOSURE — nothing here reads a slide's layout through the API.",
   "charts:issue:4272":
-    "RELEVANT — a collection load of more than ~50 items answers short. The deck read will page `getItemAt` at 20 for the same reason a sibling does; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — a collection load of more than ~50 items answers short. Re-triaged 2026-09-11: the paging this row promised was NEVER BUILT, and the code shipped with three plain collection loads. What guards it instead is a completeness check — `slides.getCount()` goes in the same batch as the collection load, and an index is refused outright when the list and the count disagree, because both callers turn the list into an index and the removal that follows an insert is positional; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:4906":
     "NO EXPOSURE — slideLayout.shapes throws on decks built from a custom template. NO EXPOSURE — see #3826.",
   "charts:issue:5455":
     "NO EXPOSURE — generalException reading ParagraphFormat.horizontalAlignment. NO EXPOSURE — text is replaced in the package, never through a text range.",
   "charts:issue:6079":
-    "RELEVANT — PowerPoint on the WEB uppercases tag keys internally and then requires the uppercased spelling to read them back. Nothing here writes a tag yet; any key this add-in writes must be uppercase from the first day; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — PowerPoint on the WEB uppercases tag keys internally and then requires the uppercased spelling to read them back. Re-triaged 2026-09-11: it writes two now, `SSF_SLIDE_ELEMENT` and `SSF_SLIDE_ELEMENTS_CATALOGUE`, both uppercase from the first day as this row asked; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:2474":
-    "RELEVANT — `SlideRange.id` lacks the `#XYZ` suffix the deck's own list carries. Whatever names the slide the user is on must match by prefix and refuse two matches rather than guess; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — `SlideRange.id` lacks the `#XYZ` suffix the deck's own list carries. Whatever names the slide the user is on must match by prefix and refuse two matches rather than guess; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:3565":
     "NO EXPOSURE — context.sync taking progressively longer every run. NO EXPOSURE, and the sibling's own note says why: it is WORD FOR MAC, not PowerPoint web, so it is not evidence about this host either.",
   "charts:issue:6867":
-    "RELEVANT — `Slide.exportAsBase64` omits modern comments and `ppt/authors.xml`, and SSF-Merge, which clones from the presentation-level export, has a probe question open on whether that call drops the same parts (unanswered as of 2026-09-08). Which read of the deck this add-in uses is an open question in CLAUDE.md, and this is one of the facts that will decide it; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — `Slide.exportAsBase64` omits modern comments and `ppt/authors.xml`, and SSF-Merge, which clones from the presentation-level export, has a probe question open on whether that call drops the same parts (unanswered as of 2026-09-08). This DECIDED the read: the probe measured the same loss on the web on 2026-09-10, so `getFileAsync` is what this add-in uses and `exportAsBase64Presentation` is deliberately not called; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:3784":
-    "RELEVANT — shape TAGS are lost when a shape is cut and pasted on PowerPoint web. Documented rather than guarded, as both siblings decided: nothing this add-in writes onto a shape may be something a later step depends on finding; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — shape TAGS are lost when a shape is cut and pasted on PowerPoint web. Documented rather than guarded, as both siblings decided: nothing this add-in writes onto a shape may be something a later step depends on finding; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:6266":
     "NO EXPOSURE — getImageAsBase64 differs between Mac and Windows for content add-ins. NO EXPOSURE — nothing here rasterises anything.",
   "charts:issue:6498":
-    "RELEVANT — shapes inserted on the web may appear in the slide PREVIEW but not the main view without a refresh. A support answer rather than a defect to fix: a user reporting that an element is missing may be seeing this, and the deck delta will say it landed; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — shapes inserted on the web may appear in the slide PREVIEW but not the main view without a refresh. A support answer rather than a defect to fix: a user reporting that an element is missing may be seeing this, and the deck delta will say it landed; re-triaged 2026-09-11 against the shipped insert.",
   "charts:issue:5022":
     "NO EXPOSURE — context.sync runs indefinitely when shapes are re-read after an image insert. NO EXPOSURE — no image inserts and no shape re-reads.",
   "charts:issue:5101":
@@ -209,20 +212,20 @@ export const TRIAGED = {
   "charts:issue:5849": "NO EXPOSURE — shape.group throws GeneralException. NO EXPOSURE — no grouping.",
   "charts:issue:5896": "NO EXPOSURE — reported alongside another SVG defect. NO EXPOSURE.",
   "charts:issue:6363":
-    'RELEVANT — `PowerPoint.run`\'s batching fails to load properties reliably after `context.sync()`, web only. The deck read will batch `load("id")` across `getItemAt` handles, which is precisely this shape; re-triage when the insert lands; no host code in this repo as of 2026-09-08.',
+    'RELEVANT — `PowerPoint.run`\'s batching fails to load properties reliably after `context.sync()`, web only. Re-triaged 2026-09-11: the deck read does NOT do that. One `PowerPoint.run`, one `load("items/id")` and one `getCount()` queued before a single `context.sync()`, both read after it, and no property loaded across a proxy that outlived a sync; re-triaged 2026-09-11 against the shipped insert.',
   "charts:issue:2714": "NO EXPOSURE — setSelectedDataAsync converts points to pixels. NO EXPOSURE — never called.",
   "charts:question:getcount-populates-same-sync":
-    "RELEVANT — a host whose count is right while the list is empty. The deck read will trust the scalar count and page by index, never a collection load; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — a host whose count is right while the list is empty. Re-triaged 2026-09-11: the deck read DOES do a collection load, and this finding is the reason the scalar count goes in the same batch and wins. A list shorter than the count is refused rather than indexed; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:getitemat-past-end":
-    "RELEVANT — paging by index and removing the replaced slide by index both step past the end if the deck moved; what the host does there bounds both; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — Re-triaged 2026-09-11: no paging was built, so what is left is the removal, which is positional and steps past the end if the deck moved; what the host does there bounds it; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:which-end-a-short-read-drops":
-    "RELEVANT — office-js#4272 again: a short read that is not a prefix makes a slide NUMBER wrong rather than merely a list shorter, and this add-in addresses the slide the user is on by position; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — office-js#4272 again: a short read that is not a prefix makes a slide NUMBER wrong rather than merely a list shorter, and this add-in addresses the slide the user is on by position; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:how-many-collection-reads-a-context-survives":
-    "RELEVANT — the deck read will make one `PowerPoint.run` per page, deliberately, so no context accumulates reads; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — Re-triaged 2026-09-11: there is no paging, so the question is smaller than it was. One `PowerPoint.run` per read and one collection load inside it, so no context accumulates reads either way; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:delete-then-lookup":
-    "ADOPTED as doctrine (CLAUDE.md host rules), no code yet — the replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed; whether a deleted slide still resolves is exactly what made by-id clean-up unsafe; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — the replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed; whether a deleted slide still resolves is exactly what made by-id clean-up unsafe; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:scratch-slides-returned":
-    "ADOPTED as doctrine (CLAUDE.md host rules), no code yet — a sibling's by-id clean-up left 45 blank slides; any removal here is positional and clamped; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "ADOPTED as doctrine (CLAUDE.md host rules), and in code since 2026-09-10 — a sibling's by-id clean-up left 45 blank slides; any removal here is positional and clamped; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:shapes-by-index-vs-items":
     "NO EXPOSURE — a question about a SHAPE collection. Nothing here reads shapes.",
   "charts:question:creationid-on-fresh-shape":
@@ -247,7 +250,7 @@ export const TRIAGED = {
     "NO EXPOSURE to the SHAPE collection. The equivalent question about the SLIDE collection is the one that matters here, and it is `issue:4272`'s.",
   "charts:question:shapes-items-via-positional-slide": "NO EXPOSURE — see `shapes-items-count-honest`.",
   "charts:question:tags-add-same-key-twice":
-    "NO EXPOSURE to the API question. The package equivalent is real: if this add-in ever writes a tag part it takes the next free `tagN` rather than overwriting `tag1.xml`, which would destroy another tool's tags. Nothing writes one today.",
+    "NO EXPOSURE to the API question. The package equivalent is real: it writes one now, and takes the next free `tagN` rather than overwriting `tag1.xml`, which would destroy another tool's tags (`src/core/pptx/tags.ts`).",
   "charts:question:tags-on-fresh-shape":
     "NO EXPOSURE — tags are written into the package, never onto a shape through the API.",
   "charts:question:tag-through-refetched-shape": "NO EXPOSURE — see `tags-on-fresh-shape`.",
@@ -269,7 +272,7 @@ export const TRIAGED = {
     "NO EXPOSURE — an insert holds a handful of proxies for one batch, so there is nothing to untrack. A sibling measured it unavailable on this host anyway.",
   "charts:question:untrack-available-on-shape": "NO EXPOSURE — see `untrack-available`.",
   "charts:issue:6329":
-    "RELEVANT — PowerPoint on the web forces a full presentation save on every `context.sync()`, read-only syncs included. Every host call this add-in will make is a sync, so they stay few and batched; re-triage when the insert lands; no host code in this repo as of 2026-09-08.",
+    "RELEVANT — PowerPoint on the web forces a full presentation save on every `context.sync()`, read-only syncs included. Every host call this add-in makes is a sync, so they stay few and batched; re-triaged 2026-09-11 against the shipped insert.",
   "charts:question:rotation-keeps-the-unrotated-box":
     "NO EXPOSURE — what the API reports as a rotated shape's box. Nothing here reads a shape through the API; an element arrives as slide markup in the package.",
   "charts:question:named-preset-resolves":

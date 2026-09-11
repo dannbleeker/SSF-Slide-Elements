@@ -67,6 +67,49 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   part with no content type declared is a package PowerPoint refuses without
   saying which part.
 
+- **The security page said the add-in reads nothing and writes nothing.** It
+  reads your whole presentation and writes it back, which is what an insert is
+  here, and that page is the one people read when deciding whether to trust the
+  tool. It now says so, along with what is kept afterwards and for how long.
+  The sentence had survived the commit that shipped the insert — the bullet
+  above it, about network calls, was updated in that same commit and this one
+  was not.
+
+- **The sibling ledger described a deck read that does not exist.** Four rows
+  of `docs/SIBLING.md` and its source table said the deck read pages
+  `getItemAt` at twenty and never does a collection load. It does three
+  collection loads and no paging. Every row has been re-triaged against the
+  code that shipped, and the four now say what is actually there and what
+  guards it. A row that reads as a description of this add-in and is not is
+  worse than no row, because the next reader builds on it.
+
+- **Numbers in the prose that no longer matched the repo**: the pane draws 84
+  tiles, not 85 (the runs cover 45 of the 117 elements); six of the 117 16:9
+  elements arrive already tagged, carrying 78 tag relationships between them,
+  where the text read as though 78 elements did; the catalogue is about 190 KB,
+  not 110; the built library is about 16 MB, which three files said and the
+  design record put at 14; the 4:3 library has eleven categories to 16:9's
+  twelve. Each was measured against the committed catalogue or the built
+  bundle, and two of them against the pane's own rendering.
+
+- **The dependency triage said an alert on `jszip` or `@xmldom/xmldom` was
+  not reachable from shipped code.** Both are imported from `src/` now, both
+  are in the bundle, and both are what parses a .pptx a user can be sent. The
+  page carries a new row saying so, and the old reading is marked superseded
+  rather than edited away.
+
+- **Undo's two slide numbers are told apart by name.** One counts from one
+  because it is read aloud, the other from zero because it is fed to the API,
+  and they were both called `slide` in the same file — which is the confusion
+  the undo defect was. A dead `UNDO_DEPTH` of ten went with them: nothing read
+  it, and the design has said one deep since the build.
+
+- **The README no longer calls the add-in a scaffold that inserts nothing.**
+  The splice, the picker and the host handshake all shipped, and the feature
+  table said "planned" for all three; the status line said the pane inserts
+  nothing yet. Only the manual is held to the code by CI, so the README drifted
+  exactly where the lockstep rule says it would.
+
 - **`SECURITY.md`'s "it makes no network calls" is now "it sends nothing
   anywhere"**, which is both true and stronger. The pane fetches its own
   catalogue from its own origin, as `docs/DESIGN.md` sections 3 and 11 always
@@ -76,6 +119,28 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   to send anything to anyone.
 
 ### Fixed
+
+- **A deck read that came back short would have named the wrong slide.**
+  PowerPoint on the web answers a collection load of more than about fifty
+  items with fewer than it has, and this add-in turns that list into a POSITION
+  — which slide you are on, which slide an undo aims at — and then removes a
+  slide by position. A list missing a slide in the middle makes every position
+  after it name a different slide. `docs/SIBLING.md` had triaged this in
+  September and promised the defence a sibling uses; the defence was never
+  built, and the code shipped doing exactly the read the ledger said it never
+  would. It now asks the deck for its slide COUNT in the same breath as the
+  list, and hands out no position at all when the two disagree — the pane then
+  says it does not know which slide you are on, which is a sentence a user can
+  act on. No deck of ours is big enough to have shown this, which is the point.
+
+- **The pane named the slide you were on when it opened, rather than the one
+  you are on now.** It read the selection once, at startup, and never again, so
+  clicking through the deck left the line under the header naming the first
+  slide for the rest of the session. Found in PowerPoint for the web on
+  2026-09-11: the API reported slide 2 selected and the pane still read
+  "Slide 1.". The insert has always read the selection again for itself, so
+  nothing ever landed in the wrong place — but the pane was telling you
+  something untrue about where it was about to land.
 
 - **Clicking a tile did nothing.** Most of a tile is the ghost drawing, an
   `<svg>`, and an SVG element is not an `HTMLElement` — which is all the click
@@ -90,7 +155,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   passed, and the pane said "Undone" over a slide that had not moved. The
   arithmetic is a pure function now, with the off-by-one as a test, and the
   restoring insert aims at the rebuilt slide rather than at whatever the user
-  happens to have selected by the time they press it.
+  happens to have selected by the time they press it. Confirmed in PowerPoint
+  for the web on 2026-09-11 by reading the slide's shapes before and after: a
+  triangle inserted onto a slide holding a title and a white box, then taken
+  back, left the slide with the same id and the same two shapes it started
+  with.
 
 - **A new slide carried the previous slide's comments.** Found by running the
   real engine against PowerPoint for the web on 2026-09-10 and then reading the
@@ -141,7 +210,9 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 ### Added — the library harvest
 
 - The library exists as data: the two decks the owner authored (one per slide
-  size, 117 elements each in twelve categories, twenty-one of them stamps,
+  size, 117 elements each, in twelve categories for 16:9 and eleven for 4:3
+  (the 4:3 deck has no white boxes with black headings), twenty-one of them
+  stamps,
   markers, flowchart shapes and icons) are read into a catalogue with every
   element's English name, where it sits, where it lands and which pictures,
   charts and tags it carries. Nothing in the pane shows it yet; the picker is

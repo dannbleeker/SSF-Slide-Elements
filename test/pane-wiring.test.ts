@@ -7,7 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  * The pane's entry point, wired.
  *
  * `pane-render.test.ts` calls `render` directly, so `main.ts` — the only file
- * that touches Office.js — would otherwise run nowhere in the suite. It runs
+ * in `src/pane` that touches Office.js, the other being `src/office/powerpoint.ts`,
+ * which `office-host.test.ts` covers — would otherwise run nowhere in the suite. It runs
  * here with `Office` stubbed to the two things it reads, and with the host
  * calls and the catalogue fetch mocked, because neither a PowerPoint nor a site
  * to fetch from exists in a test runner.

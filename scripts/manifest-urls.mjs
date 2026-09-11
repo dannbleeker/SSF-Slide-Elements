@@ -9,8 +9,8 @@
  * domain that 404s.
  *
  * That matters here more than it would elsewhere, because the release note tells
- * people to sideload this file and the pane is not IN it — the manifest is four
- * URLs into GitHub Pages. A renamed asset, a Pages deployment that never ran, a
+ * people to sideload this file and the pane is not IN it — the manifest is six
+ * URLs into GitHub Pages: four icons, the task pane and the support page. A renamed asset, a Pages deployment that never ran, a
  * DNS record that expired, and the add-in installs perfectly and shows a blank
  * ribbon button and an empty pane, with nothing anywhere saying why.
  *
@@ -29,11 +29,12 @@ import { isMain } from "./is-main.mjs";
 /**
  * The URLs worth fetching, out of the ones a manifest names.
  *
- * Only the ones this project SERVES. A manifest carries a support link and a
- * source-code link too, and a release must not be blocked because github.com
- * rate-limited a runner or a documentation page moved — those are somebody
- * else's uptime. Same-origin as the taskpane is the test, because that origin
- * is the one this repo deploys.
+ * Only the ones this project SERVES. A manifest also names the JSON schema on
+ * `developer.microsoft.com`, the publisher's own website and Microsoft's EULA
+ * page, and a release must not be blocked because one of those rate-limited a
+ * runner or moved — that is somebody else's uptime. Same-origin as the taskpane
+ * is the test, because that origin is the one this repo deploys; the support
+ * page is on it and so is kept.
  *
  * @param {string[]} urls
  * @returns {string[]}

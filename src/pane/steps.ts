@@ -147,7 +147,9 @@ export interface Group {
  * A sized element is ONE tile with a stepper (`docs/DESIGN.md` section 2), so a
  * run of "process flow with 1 box" through "with 6 boxes" collapses to its
  * first surviving member and the rest are reachable through the stepper. The
- * 16:9 deck has twelve such runs, so 117 elements show as 85 tiles.
+ * 16:9 deck has twelve such runs over 45 elements, so 117 elements show as 84
+ * tiles: 117 − 45 + 12. Counted by running this function over the committed
+ * catalogue, and confirmed against the count the pane itself draws.
  */
 export function groups(library: Library, state: PaneState): Group[] {
   const wanted = library.elements.filter(
@@ -267,9 +269,6 @@ export function slideLine(state: PaneState): string {
     ? "PowerPoint did not say which slide you are on, so an element will land on the first."
     : `Slide ${state.slide}.`;
 }
-
-/** How many undo steps the pane keeps. `docs/DESIGN.md` section 6: ten deep. */
-export const UNDO_DEPTH = 10;
 
 /** How many recent elements the pane remembers. Section 4: the last six inserts. */
 export const RECENT_DEPTH = 6;

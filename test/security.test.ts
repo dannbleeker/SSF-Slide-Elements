@@ -13,8 +13,9 @@ const ROOT_RELS_PATH = "_rels/.rels";
  * Both are properties of the SOURCE, so both can be read off it — and a
  * security page whose claims nothing re-checks is the failure the page's own
  * preamble warns about. The package-level cases below are ported from
- * SSF-Merge's sweeps of 2026-08-29 and 2026-08-30; the value-as-text cases
- * arrive with the splice, which is the first thing here that writes text.
+ * SSF-Merge's sweeps of 2026-08-29 and 2026-08-30. The splice brought the
+ * first thing here that writes text, and its value-as-text cases went with it,
+ * into `pptx-tags.test.ts` beside the escaping they are about.
  */
 const sources = (): string[] => {
   const out: string[] = [];
@@ -48,7 +49,7 @@ describe("the claims on the front of SECURITY.md are executable", () => {
    * This used to forbid `fetch(` outright, and that was the right guard for a
    * pane with nothing to load. The picker has something to load: the catalogue
    * is static files on the add-in's own site, because the element markup and
-   * the parts it carries come to about 18 MB and `docs/DESIGN.md` sections 3
+   * the parts it carries come to about 16 MB and `docs/DESIGN.md` sections 3
    * and 11 put them behind lazy requests rather than in the bundle. A blanket
    * ban and the design record could not both be right, and the record is what
    * the build is held to.

@@ -12,11 +12,13 @@ editable charts).
 
 ## Status
 
-A scaffold, wired for hosting and installable: sideload `manifest-prod.xml`, press
-**Slide elements** on the Home tab, and the pane opens, shows which build it is
-and checks that your PowerPoint clears the floor. **It inserts nothing yet.**
-The library, the picker and the insert each arrive as their own change, in the
-order [the backlog](docs/BACKLOG.md) gives.
+Built, and run end to end against a real PowerPoint. Sideload
+`manifest-prod.xml`, press **Slide elements** on the Home tab, pick an element,
+and it lands on the slide you are on. The first whole round on PowerPoint for
+the web was **2026-09-11**: a tile clicked, the element on the selected slide,
+and Undo putting that slide back to the shapes it held before. Windows, Mac and
+iPad have had no round yet, and [the backlog](docs/BACKLOG.md) is what is still
+open.
 
 | Piece | State |
 | --- | --- |
@@ -30,14 +32,14 @@ order [the backlog](docs/BACKLOG.md) gives.
 | Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
 | Package layer — the .pptx as parts, relationships, content types and the slide list, ported from SSF-Merge with its tests | done |
 | Library harvest — two library decks under `template/` read into a catalogue: categories, 117 elements per size with their English names, boxes, landing and sizes, and the markup and media each one carries. The index is committed and CI-checked against the decks; the markup and media are built on deploy | done |
-| Host probe — a Script Lab snippet that asks a real PowerPoint the six questions the design rests on (a pruned package on the way in, insert-then-delete order, the selected slide, which read of the deck, Ctrl+Z, timing and the floor), and a reader that says what each answer means and files the sheet | done — the instrument; no round has been run yet |
-| Splice — an element into the slide you are on, and the package self-check | planned |
-| The picker — browse by section, search, insert | planned |
-| Host handshake, and the first round against a real PowerPoint | planned |
+| Host probe — a Script Lab snippet that asks a real PowerPoint the six questions the design rests on (a pruned package on the way in, insert-then-delete order, the selected slide, which read of the deck, Ctrl+Z, timing and the floor), and a reader that says what each answer means and files the sheet | done — four sheets from PowerPoint for the web under `docs/host-answers/`, 2026-09-10 |
+| Splice — an element into the slide you are on, and the package self-check | done — proven over all 117 elements against the package integrity check |
+| The picker — browse by section, search, insert, Recent, favourites, Undo one deep | done |
+| Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web, 2026-09-11; Windows, Mac and iPad still unmeasured |
 
-## How it will work
+## How it works
 
-A .pptx is a zip of XML parts, and the insert will happen **in the file**.
+A .pptx is a zip of XML parts, and the insert happens **in the file**.
 
 Office.js has no call that puts arbitrary markup onto a slide: the shape
 collection can only add geometry it has a method for, so an element with a

@@ -60,8 +60,11 @@ describe("the floor under the suite", () => {
      * The reason it counts tests that EXIST rather than tests that ran.
      *
      * `is-main.test.ts` needs a symlink and Windows refuses that without
-     * elevation. Counting only what ran gave 1475 there and 1476 in CI, and
-     * either number committed breaks the other machine.
+     * elevation, so counting only what RAN gives one fewer on Windows than in
+     * CI, and either number committed breaks the other machine. The figures
+     * below are a sibling's, where this was found; this repo's own floor is in
+     * `test/fixtures/test-count.json` and has never been near them. What the
+     * case is about is the mechanism, not the size.
      */
     const ci = verdict({ defined: 1476, skipped: 0, record: { min: 1476, maxSkipped: 1 } });
     const windows = verdict({ defined: 1476, skipped: 1, record: { min: 1476, maxSkipped: 1 } });

@@ -218,8 +218,8 @@ describe("the deploy waits for the same gate CI runs", () => {
    * push and the live add-in. CI ran too, but CONCURRENTLY — so a commit could
    * be serving from the production origin before its tests had finished, and
    * if they then failed, the broken pane was already what PowerPoint loaded.
-   * The ORDERING was what was missing there, not the tests; this repo has no
-   * deploy history yet and starts with the order right.
+   * The ORDERING was what was missing there, not the tests; this repo started
+   * with the order right and has deployed that way since 2026-09-08.
    *
    * The five checks are listed in both workflows rather than wrapped in one
    * `npm run gate`, because a script chaining `npm run a && npm run b` cannot

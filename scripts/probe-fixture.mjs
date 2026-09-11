@@ -135,8 +135,10 @@ const HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n';
  * @param {{ text: string; creationId: number; tags?: [string, string][] }[]} slides
  *   One entry per slide, in deck order. `tags` writes a `ppt/tags/tagN.xml`
  *   part related from the slide and referenced from its `<p:custDataLst>`,
- *   which is how the add-in will mark what it inserted: in the FILE, before the
- *   insert, because a tag write through the API is refused on the web.
+ *   which is how the add-in marks what it inserted: in the FILE, before the
+ *   insert, because a tag write through the API is refused on the web. The
+ *   shipped engine tags a SHAPE rather than a slide (`src/core/pptx/tags.ts`);
+ *   this fixture tags a slide, which is the shape the probe's questions need.
  * @returns {Promise<Uint8Array>}
  */
 export async function makeDeck(slides) {

@@ -64,8 +64,8 @@ export function withoutTsComments(text) {
  * The literals go too, and for the same reason the comments do: a verdict that
  * names `office-js#6105` in its text is a sentence about an issue, not a
  * dependency on one. An import specifier is a string literal as well, so a
- * guard that reads IMPORTS must read the raw source instead — `architecture.ts`
- * does exactly that, deliberately, and says so.
+ * guard that reads IMPORTS must read the raw source instead —
+ * `test/architecture.test.ts` does exactly that, deliberately, and says so.
  */
 export function withoutTsProse(text) {
   return (

@@ -5,9 +5,10 @@
  * the engine takes bytes and answers bytes, which is what lets it run in the
  * pane, in a script and in the suite with no PowerPoint anywhere.
  *
- * Today this is the package layer: a .pptx as parts, relationships, content
- * types and a slide list, with base64 in and out. The harvest and the splice
- * arrive in their own changes (`docs/BACKLOG.md`).
+ * Three layers sit behind it: the package (a .pptx as parts, relationships,
+ * content types and a slide list, with base64 in and out), the harvest that
+ * reads the library decks into a catalogue, and the splice that puts an element
+ * into a copy of a slide. All three are exported below.
  */
 export { Pkg, extensionOf, resolveTarget, resolveTargetSpellings } from "./pptx/pkg.js";
 export { COMMENT_REL_TYPES, OWNABLE_BY_GRAPHIC, OWNED_BY_SLIDE, REL_TYPE } from "./pptx/parts.js";

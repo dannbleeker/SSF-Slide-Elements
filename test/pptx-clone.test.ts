@@ -93,10 +93,12 @@ function draws(...values: number[]): { next: () => number; count: () => number }
 describe("a cloned slide is a slide the deck agrees is there", () => {
   it("adds the part, its relationships, the override, the presentation relationship and the id list entry", async () => {
     /**
-     * The six things `clone.ts` opens by naming. PowerPoint's answer to any one
-     * of them missing is the same — it declines to open the file and does not
-     * say which — so all six are asserted together, in one place, rather than
-     * left to whichever later test happens to notice.
+     * Five of the six things `clone.ts` opens by naming. PowerPoint's answer to
+     * any one of them missing is the same — it declines to open the file and
+     * does not say which — so they are asserted together, in one place, rather
+     * than left to whichever later test happens to notice. The sixth, the
+     * creation id, has a describe block of its own further down, because what
+     * it has to be is a question about two slides rather than about one.
      *
      * `slidePaths` is what proves the last two AGREE rather than merely both
      * exist: it walks the id list, resolves each `r:id` through the

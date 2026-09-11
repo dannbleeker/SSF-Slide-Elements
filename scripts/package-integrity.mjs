@@ -218,7 +218,7 @@ export function relPrefixesIn(xml) {
 /**
  * Every relationship id a part's markup names, with the element that named it.
  *
- * Read as raw text rather than through a DOM, for the reason `relationshipsIn`
+ * Read as raw text rather than through a DOM, for the reason `relationshipsOf`
  * gives — but the PREFIX is resolved from the part's own `xmlns` declarations
  * rather than assumed to be `r`.
  *

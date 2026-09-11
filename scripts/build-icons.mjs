@@ -3,7 +3,9 @@
  * The ribbon icons, drawn in code rather than checked in as binaries.
  *
  * Office wants 16, 32, 64 and 80 pixel PNGs and a manifest that names each one
- * by URL. Four hand-made files is four things to keep in step with a palette
+ * by URL, the unified manifest wants 192 as well, and the ribbon wants an
+ * outline at 32 — six files. Six hand-made files is six things to keep in step
+ * with a palette
  * that lives in `src/pane/taskpane.css`, and a binary in a diff is a change
  * nobody can review. This writes them from the same two colours the pane uses,
  * so "the icon is off-brand" is a one-line change rather than a round trip
