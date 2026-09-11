@@ -9,6 +9,8 @@
  * Excluded from coverage for the same reason — pooling it with the engine would
  * produce one number that hides both.
  */
+import { occupiedBoxes } from "../core/catalogue/boxes.js";
+import type { Box } from "../core/catalogue/types.js";
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { usedInDeck } from "../core/pptx/tags.js";
@@ -45,6 +47,7 @@ import {
   stepFor,
   toggle,
   withInsert,
+  withLanded,
   withoutInsert,
   type Library,
   type PaneState,
@@ -76,6 +79,8 @@ interface Undoable {
   id: string;
   /** Which slide it landed on, counting from ONE, for the same reason. */
   landedOn: number;
+  /** What the pane knew the destination slide held BEFORE the insert. */
+  onSlide: PaneState["onSlide"];
 }
 let undoable: Undoable | undefined;
 
@@ -197,13 +202,43 @@ function keep(): void {
 // Loading the library.
 // ---------------------------------------------------------------------------
 
-/** The deck's slide size, read from the file, because no API answers it. */
-async function deckShape(): Promise<{ width: number; height: number } | undefined> {
+/**
+ * The deck's slide size, read from the file, because no API answers it — and,
+ * from the same read, what the slide the user is on already holds.
+ *
+ * Both out of ONE deck read. The size is what the pane needs to pick a library;
+ * the boxes are what the preview card draws in grey (`docs/DESIGN.md` sections
+ * 1 and 4). Reading the deck twice for them would be paying the sixth open
+ * question's unmeasured cost twice on every open.
+ */
+async function deckShape(): Promise<{ width: number; height: number; slide?: number; boxes?: Box[] } | undefined> {
   try {
     const deck = await readDeck();
-    return await slideSize(await Pkg.open(deck.base64));
+    const pkg = await Pkg.open(deck.base64);
+    const size = await slideSize(pkg);
+    const held = await heldBy(pkg, size);
+    return { ...size, ...held };
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * What the slide the user is on holds, out of an already-open package.
+ *
+ * Answers nothing rather than throwing, and nothing rather than guessing when
+ * the host will not say which slide that is: grey boxes for the wrong slide
+ * would be a wrong answer to the only question they exist to answer.
+ */
+async function heldBy(pkg: Pkg, size: { width: number; height: number }): Promise<{ slide?: number; boxes?: Box[] }> {
+  try {
+    const current = await currentSlide();
+    if (current == null) return {};
+    const path = (await pkg.slidePaths())[current.index];
+    if (path === undefined) return {};
+    return { slide: current.index + 1, boxes: occupiedBoxes(await pkg.doc(path), size.width, size.height) };
+  } catch {
+    return {};
   }
 }
 
@@ -232,7 +267,10 @@ async function load(): Promise<void> {
     set({ library });
   }
   const current = await currentSlide();
-  set({ slide: current == null ? undefined : current.index + 1 });
+  set({
+    slide: current == null ? undefined : current.index + 1,
+    ...(shape.slide !== undefined && shape.boxes ? { onSlide: { slide: shape.slide, boxes: shape.boxes } } : {}),
+  });
   void follow();
 }
 
@@ -372,7 +410,15 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     // does, from the other end.
     const landedOn = target === "new" ? at + 2 : at + 1;
     undoable = outcome.ok
-      ? { target, index: at, before: deck.base64, name: element.name, id: element.id, landedOn }
+      ? {
+          target,
+          index: at,
+          before: deck.base64,
+          name: element.name,
+          id: element.id,
+          landedOn,
+          onSlide: state.onSlide,
+        }
       : undefined;
     state = {
       ...state,
@@ -385,6 +431,21 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // this feature. Untouched when nothing has been read — an insert is not a
       // reason to start claiming the deck has been looked at.
       used: outcome.ok ? withInsert(state.used, element.id, landedOn) : state.used,
+      // The card's grey boxes keep up the same way: the splice says where the
+      // element landed, in EMU, and the library says how big the slide is.
+      onSlide: outcome.ok
+        ? withLanded(
+            state.onSlide,
+            landedOn,
+            {
+              x: report.landed.x / library.width,
+              y: report.landed.y / library.height,
+              w: report.landed.cx / library.width,
+              h: report.landed.cy / library.height,
+            },
+            target === "new",
+          )
+        : state.onSlide,
     };
     delete state.notice;
     keep();
@@ -449,8 +510,9 @@ async function undo(): Promise<void> {
       undo: 0,
       outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
       // The slide it was on is the user's own again, so whatever the insert put
-      // there went with it.
+      // there went with it — both in the list and in the card's grey boxes.
       used: withoutInsert(state.used, entry.id, entry.landedOn),
+      onSlide: entry.onSlide,
     };
     delete state.notice;
     draw();
@@ -540,7 +602,15 @@ async function readUsed(): Promise<void> {
     const deck = await readDeck();
     const pkg = await Pkg.open(deck.base64);
     const used = await usedInDeck(pkg);
-    set({ reading: false, used: used.map((u) => ({ element: u.element, slides: u.slides })) });
+    // The same read answers what the current slide holds, so the card's grey
+    // boxes come back into step with the deck for free.
+    const size = await slideSize(pkg);
+    const held = await heldBy(pkg, size);
+    set({
+      reading: false,
+      used: used.map((u) => ({ element: u.element, slides: u.slides })),
+      ...(held.slide !== undefined && held.boxes ? { onSlide: { slide: held.slide, boxes: held.boxes } } : {}),
+    });
   } catch (e) {
     // The list stays as it was — including "never asked" — rather than becoming
     // an empty one, because an empty list is a claim about the deck and this is

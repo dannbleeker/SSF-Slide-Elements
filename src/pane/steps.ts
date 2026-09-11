@@ -13,7 +13,7 @@
  * section 10 is the rule they implement — the pane never shows an empty or
  * broken screen, and every message says what happened and what to do.
  */
-import type { Element, SlideSize } from "../core/catalogue/types.js";
+import type { Box, Element, SlideSize } from "../core/catalogue/types.js";
 
 export type StepId = "loading" | "browse" | "problem";
 
@@ -144,6 +144,18 @@ export interface PaneState {
    * audit, and a menu that outlived its tile would float over nothing.
    */
   menuFor?: string;
+  /**
+   * What the slide the user is on already holds, for the preview card's grey
+   * boxes (`docs/DESIGN.md` sections 1 and 4).
+   *
+   * Stamped with the slide it was read FROM, because it goes stale the moment
+   * the user clicks another slide and the pane does not re-read the deck on
+   * every slide change — that is a whole-presentation read, and section 13's
+   * sixth open question is how long one takes. The card draws the boxes when
+   * this names the slide the user is on and draws none when it does not, which
+   * is the honest half of a snapshot.
+   */
+  onSlide?: { slide: number; boxes: Box[] };
 }
 
 export const EMPTY: PaneState = {
@@ -379,6 +391,45 @@ export function offersOtherTarget(element: Element): boolean {
 /** What that one menu item says, which is an action rather than a setting. */
 export function otherTargetLabel(settings: Settings): string {
   return otherTarget(settings) === "new" ? "Insert as a new slide" : "Insert onto this slide";
+}
+
+/**
+ * The boxes the preview card should draw in grey behind the landing.
+ *
+ * Only when the snapshot is of the slide the user is ON. A card showing slide
+ * two's furniture while the user is on slide five is worse than a card showing
+ * none: the whole point of the boxes is to answer "will this land on top of
+ * something", and an answer about another slide is a wrong answer rather than a
+ * missing one.
+ */
+export function occupiedFor(state: PaneState): Box[] {
+  if (!state.onSlide || state.slide === undefined) return [];
+  return state.onSlide.slide === state.slide ? state.onSlide.boxes : [];
+}
+
+/**
+ * The snapshot of what a slide holds, with an insert that just landed in it.
+ *
+ * The pane does not re-read the deck after an insert — it already knows what it
+ * put where, and the read is the expensive thing (section 13's sixth open
+ * question). So the box the splice reports is added to the snapshot instead.
+ *
+ * `blank` is the "as a new slide" case: that slide is a clone with its
+ * placeholders emptied, and an empty placeholder is not in these boxes anyway,
+ * so the element IS what the slide holds. Onto an existing slide the snapshot
+ * only grows if it was already of THAT slide — extending a snapshot of some
+ * other slide would invent an answer, and answering nothing is what the card is
+ * built to survive.
+ */
+export function withLanded(
+  onSlide: PaneState["onSlide"],
+  slide: number,
+  box: Box,
+  blank: boolean,
+): PaneState["onSlide"] {
+  if (blank) return { slide, boxes: [box] };
+  if (onSlide?.slide !== slide) return undefined;
+  return { slide, boxes: [...onSlide.boxes, box] };
 }
 
 /** One element the deck already carries: the engine's answer, as the pane holds it. */

@@ -33,7 +33,7 @@ export {
 } from "./pptx/xml.js";
 export { harvest, HarvestError } from "./catalogue/harvest.js";
 export type { HarvestOptions } from "./catalogue/harvest.js";
-export { boxOf, offSlide, rounded, topLevelShapes, union } from "./catalogue/boxes.js";
+export { boxOf, occupiedBoxes, offSlide, rounded, topLevelShapes, union } from "./catalogue/boxes.js";
 export { countKeys, countedNoun, sizeRuns } from "./catalogue/runs.js";
 export { tagsFor } from "./catalogue/tags.js";
 export { paragraphsOf, partName, placeholderType, shapeName, slug, textOf, titleOf } from "./catalogue/text.js";

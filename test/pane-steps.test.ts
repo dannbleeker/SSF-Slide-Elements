@@ -18,6 +18,7 @@ import {
   isOpen,
   landingLine,
   matches,
+  occupiedFor,
   offersOtherTarget,
   otherTarget,
   otherTargetLabel,
@@ -35,6 +36,7 @@ import {
   usedHeading,
   usedRows,
   withInsert,
+  withLanded,
   withoutInsert,
   type Library,
   type PaneState,
@@ -560,5 +562,45 @@ describe("the other insert target, for one insert", () => {
     // `landingLine` refuses to say it.
     expect(offersOtherTarget(element({ id: "box", kind: "slide" }))).toBe(true);
     expect(offersOtherTarget(element({ id: "stamp", kind: "part", landing: "top-right" }))).toBe(false);
+  });
+});
+
+describe("what the card draws in grey", () => {
+  const boxes = [{ x: 0.1, y: 0.1, w: 0.3, h: 0.2 }];
+  const onSlide = { slide: 2, boxes };
+
+  it("draws the snapshot when it is of the slide the user is on", () => {
+    expect(occupiedFor({ ...browsing, slide: 2, onSlide })).toEqual(boxes);
+  });
+
+  it("draws nothing when the user has moved to another slide", () => {
+    // A card showing slide two's furniture while the user is on slide five is
+    // worse than a card showing none: the boxes exist to answer "will this land
+    // on top of something", and an answer about another slide is a WRONG one.
+    expect(occupiedFor({ ...browsing, slide: 5, onSlide })).toEqual([]);
+  });
+
+  it("draws nothing when nothing has been read, or the host will not say which slide", () => {
+    expect(occupiedFor({ ...browsing, slide: 2 })).toEqual([]);
+    expect(occupiedFor({ ...browsing, onSlide })).toEqual([]);
+  });
+
+  it("keeps up with an insert onto the slide it already knows", () => {
+    const landed = { x: 0.2, y: 0.5, w: 0.6, h: 0.3 };
+    expect(withLanded(onSlide, 2, landed, false)).toEqual({ slide: 2, boxes: [...boxes, landed] });
+  });
+
+  it("forgets rather than invents when the insert landed on a slide it had not read", () => {
+    const landed = { x: 0.2, y: 0.5, w: 0.6, h: 0.3 };
+    expect(withLanded(onSlide, 7, landed, false)).toBeUndefined();
+    expect(withLanded(undefined, 2, landed, false)).toBeUndefined();
+  });
+
+  it("knows a NEW slide holds exactly what was put on it", () => {
+    // A new slide is a clone with its placeholders emptied, and an empty
+    // placeholder is not one of these boxes anyway — so the element is all
+    // there is.
+    const landed = { x: 0.2, y: 0.5, w: 0.6, h: 0.3 };
+    expect(withLanded(onSlide, 3, landed, true)).toEqual({ slide: 3, boxes: [landed] });
   });
 });

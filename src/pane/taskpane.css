@@ -770,6 +770,21 @@ input:focus-visible,
   stroke-width: 1;
 }
 
+/*
+ * What the destination slide already holds (`docs/DESIGN.md` sections 1 and 4).
+ *
+ * Grey and under the element's own blue frame, so the two read as "what is
+ * there" and "what you are about to add" rather than as two of the same thing.
+ * Semi-transparent because they overlap each other as often as not — a slide's
+ * shapes are not a tiling — and a flat fill would turn six boxes into one.
+ */
+.ghost-held {
+  fill: var(--hair);
+  fill-opacity: 0.55;
+  stroke: var(--muted);
+  stroke-width: 0.5;
+}
+
 .tile-name {
   display: block;
   font-size: 11px;
@@ -932,9 +947,16 @@ input:focus-visible,
   }
 
   .ghost-slide,
-  .ghost-box {
+  .ghost-box,
+  .ghost-held {
     fill: Canvas;
     stroke: CanvasText;
+  }
+
+  /* In high contrast a fill cannot carry a difference, so the held boxes are
+     told apart by their outline instead. */
+  .ghost-held {
+    stroke-dasharray: 2 2;
   }
 
   .outcome.by-hand {

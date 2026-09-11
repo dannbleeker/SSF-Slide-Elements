@@ -40,7 +40,8 @@ small file that says where that page is.
 | A picture of each element | A photograph of the element itself, cut from a PDF print of the library deck | built |
 | Colours | An element takes the theme of the deck you put it in, or keeps the library's own — one setting behind the gear | built |
 | Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
-| What your slide already has | Grey boxes on the preview card, and **Remove from N slides** — both need the pane to read the shapes on your slides, which no round has verified | planned |
+| What your slide already has | The preview card shows the shapes already on your slide, in grey, behind where the element would land | built |
+| Remove from N slides | Taking a stamp off every slide it is on, in one click | planned |
 
 ## The pane
 
@@ -110,8 +111,13 @@ fetched only when you insert it.
   the element lands and how much of it it covers;
 - **rest on a tile**, or reach it with the keyboard, and after a moment a card
   opens with the element at full size, its name, and a line saying where it will
-  land. In a wide pane it sits beside the list; in a narrow one it lies over the
-  bottom of it.  shuts it;
+  land. The little slide on it also shows, in grey, what your own slide already
+  holds — so you can see whether the element would land on top of something.
+  Those grey boxes are from the last time the pane read your deck: they appear
+  for the slide it read, and not for another one you have since clicked onto,
+  and **See what this deck already uses** brings them up to date. In a wide pane
+  the card sits beside the list; in a narrow one it lies over the bottom of it.
+  `Esc` shuts it;
 - an element that comes in several sizes is **one tile with a stepper** naming
   what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list. While
   you are searching, the sizes your search did not ask for are greyed, though you

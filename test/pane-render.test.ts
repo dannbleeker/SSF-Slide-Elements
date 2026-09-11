@@ -596,3 +596,38 @@ describe("the tile's right-click menu", () => {
     expect(menu.querySelector('[role="menuitem"]')).not.toBeNull();
   });
 });
+
+describe("the preview card's grey boxes", () => {
+  // The card is open on a tile, which is what makes there be a card at all.
+  const previewing = { ...browsing, previewing: "one-box", open: ["boxes"] };
+  const onSlide = {
+    slide: 2,
+    boxes: [
+      { x: 0.1, y: 0.1, w: 0.3, h: 0.2 },
+      { x: 0.5, y: 0.6, w: 0.4, h: 0.3 },
+    ],
+  };
+
+  it("draws what the slide already holds, under the element's own frame", () => {
+    render(root, { ...previewing, slide: 2, onSlide }, "browse");
+    const card = root.querySelector(".card") as HTMLElement;
+    const held = card.querySelectorAll(".ghost-held");
+    expect(held.length).toBe(2);
+    // In z-order and under the blue frame: a held box drawn over the landing
+    // would say the element goes behind what is already there.
+    const shapes = [...card.querySelectorAll("rect")].map((r) => r.getAttribute("class"));
+    expect(shapes).toEqual(["ghost-slide", "ghost-held", "ghost-held", "ghost-box"]);
+    expect(held[0]?.getAttribute("x")).toBe("17.8");
+  });
+
+  it("draws none when the snapshot is of another slide", () => {
+    render(root, { ...previewing, slide: 5, onSlide }, "browse");
+    expect(root.querySelector(".card")?.querySelectorAll(".ghost-held").length).toBe(0);
+  });
+
+  it("never draws them on a TILE, which is too small to say anything with them", () => {
+    render(root, { ...previewing, slide: 2, onSlide }, "browse");
+    const tile = root.querySelector(".tile") as HTMLElement;
+    expect(tile.querySelectorAll(".ghost-held").length).toBe(0);
+  });
+});
