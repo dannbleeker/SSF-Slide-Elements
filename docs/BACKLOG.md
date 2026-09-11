@@ -21,6 +21,16 @@ and commits them beside the `.pptx`, the harvest has nothing to cut, and the
 pane is a list of names and landings rather than a picture book. The tile has
 the slot; nothing else is blocked by it.
 
+**The print is blocked on the decks themselves.** Measured on Windows on
+2026-09-11 (section 3): neither committed deck opens in desktop PowerPoint —
+two `[Content_Types].xml` overrides per deck are missing the leading `/` on
+their `PartName`, and PowerPoint offers Repair instead of opening. So this item
+now has a step in front of it: correct those four part names, which changes no
+slide, note, picture or embedded object and leaves the harvested catalogue index
+byte-identical (measured, same version `1641fe687794`), and only then print. The
+Repair is not the way out — on a copy it dropped ten of the deck's fifteen
+embedded OLE objects.
+
 ### The preview card, and the rest of section 4
 
 Built: search, tags, categories, tiles, the stepper, favourites, recent, the
