@@ -71,6 +71,7 @@ export default tseslint.config(
     // are gated by `test/manifest.test.ts`, which proves each one can still
     // fail — a stronger check than the type of an intermediate.
     files: [
+      "scripts/bench-engine.mjs",
       "scripts/build-previews.mjs",
       "scripts/build-probe.mjs",
       "scripts/catalogue-page.mjs",
