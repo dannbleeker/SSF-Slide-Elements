@@ -33,17 +33,21 @@ vi.mock("../src/office/powerpoint.js", () => ({
   // pane that decided not to make it. The last case in this file holds this
   // list against the real module, because the claim above was untrue for three
   // exports before anyone noticed.
-  slideCount: () => Promise.resolve(3),
-  countReaching: () => Promise.resolve(3),
+  slideCount: () => Promise.resolve(host.slides),
+  // The count the pane is waiting for, unless this run is refusing.
+  countReaching: (want: number) => Promise.resolve(host.cycles === host.refuseAt ? host.slides : want),
   readDeck: () =>
     deckBase64 === undefined
       ? Promise.reject(new Error("no deck in a test runner"))
       : Promise.resolve({ base64: deckBase64, bytes: 1, ms: 1 }),
   currentSlide: () => Promise.resolve(undefined),
   selectedShape: () => Promise.resolve(undefined),
-  slideIdAt: () => Promise.resolve(undefined),
+  slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
   onSlideChange: () => Promise.resolve(false),
-  insertPackage: () => Promise.resolve(undefined),
+  insertPackage: () => {
+    host.cycles += 1;
+    return Promise.resolve(undefined);
+  },
   removeSlideAt: () => Promise.resolve(undefined),
   hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
   openExternal: (url: string) => {
@@ -86,6 +90,16 @@ let externalOpens = true;
 /** The deck `readDeck` hands back, when a case has built one. */
 let deckBase64: string | undefined;
 
+/**
+ * A host that can be made to refuse.
+ *
+ * `cycles` counts insert-then-remove rounds, which is what "Remove from N
+ * slides" does one of per slide; `refuseAt` is the 1-based cycle whose count
+ * will NOT agree, which is the failure the run has to stop on rather than press
+ * through. Zero refuses nothing.
+ */
+const host = { slides: 3, cycles: 0, refuseAt: 0, namesSlides: true };
+
 vi.mock("../src/pane/catalogue.js", async () => {
   const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
   return {
@@ -113,7 +127,10 @@ vi.mock("../src/pane/catalogue.js", async () => {
                   size: "16:9",
                   width: 12192000,
                   height: 6858000,
-                  categories: [{ key: "boxes", name: "White boxes" }],
+                  categories: [
+                    { key: "boxes", name: "White boxes" },
+                    { key: "stamps", name: "Stamps and labels" },
+                  ],
                   elements: [
                     {
                       id: "one-box",
@@ -126,6 +143,21 @@ vi.mock("../src/pane/catalogue.js", async () => {
                       landing: "layout",
                       shapes: 1,
                       tags: ["boxes"],
+                      markup: { xml: "", rels: [], parts: [] },
+                    },
+                    // A PART, which is what "Remove from N slides" is offered
+                    // on, and the one the removal cases insert for real.
+                    {
+                      id: "markeringer-1",
+                      key: "Markeringer 1",
+                      name: "Marker, circle",
+                      category: { key: "stamps", name: "Stamps and labels" },
+                      slide: 2,
+                      kind: "part",
+                      box: { x: 0.6, y: 0.1, w: 0.2, h: 0.2 },
+                      landing: "cursor",
+                      shapes: 1,
+                      tags: ["stamp"],
                       markup: { xml: "", rels: [], parts: [] },
                     },
                   ],
@@ -179,6 +211,10 @@ afterEach(() => {
   opened.length = 0;
   externalOpens = true;
   deckBase64 = undefined;
+  host.slides = 3;
+  host.cycles = 0;
+  host.refuseAt = 0;
+  host.namesSlides = true;
   spliced.length = 0;
   window.localStorage.clear();
 });
@@ -534,5 +570,123 @@ describe("what the menu actually inserts", () => {
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await ran();
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+  });
+});
+
+describe("removing a part from every slide it is on", () => {
+  /**
+   * A deck with the library's one stamp on two slides, read by the pane.
+   *
+   * Built by INSERTING, through the real splice — this describe unmocks it,
+   * because what is under test is a sequence of real removals and a stubbed
+   * splice would leave nothing to remove.
+   */
+  async function deckWithStampOn(slides: number[]): Promise<string> {
+    const { splice: realSplice } =
+      await vi.importActual<typeof import("../src/core/splice/splice.js")>("../src/core/splice/splice.js");
+    const { Pkg: RealPkg, harvest } =
+      await vi.importActual<typeof import("../src/core/index.js")>("../src/core/index.js");
+    const names = JSON.parse(readFileSync("template/names.en.json", "utf8")) as Parameters<typeof harvest>[1]["names"];
+    const lib = await harvest(await RealPkg.open(new Uint8Array(readFileSync("template/library-16x9.pptx"))), {
+      size: "16:9",
+      names,
+    });
+    const el = lib.catalogue.elements.find((e) => e.id === "markeringer-1");
+    if (!el) throw new Error("the library has no markeringer-1");
+    let deck: string | Uint8Array = await makeDeck([
+      { paragraphs: [["First"]] },
+      { paragraphs: [["Second"]] },
+      { paragraphs: [["Third"]] },
+    ]);
+    for (const slide of slides) {
+      const report = await realSplice({
+        deck,
+        slide,
+        element: {
+          id: el.id,
+          name: el.name,
+          kind: el.kind,
+          box: el.box,
+          landing: el.landing,
+          markup: el.markup,
+        },
+        options: { target: "onto", group: true, colours: "deck" },
+        catalogue: { version: "v1", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+        store: (path: string) => Promise.resolve(lib.parts.get(path)),
+      });
+      deck = report.base64;
+    }
+    return deck as string;
+  }
+
+  async function askedToRemove(): Promise<HTMLElement> {
+    indexMode = "ok";
+    deckBase64 = await deckWithStampOn([0]);
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="used"]') as HTMLElement).click();
+    for (let i = 0; i < 300; i++) {
+      if (pane.querySelector(".used-list")) break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    // The part's category, so its tile is on screen to carry the button.
+    const stamps = [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].find(
+      (c) => c.dataset["key"] === "stamps",
+    );
+    stamps?.click();
+    (pane.querySelector('[data-action="remove"]') as HTMLElement).click();
+    return pane;
+  }
+
+  /** Wait for a run to finish: the footer is what says it did. */
+  async function ran(pane: HTMLElement): Promise<string> {
+    for (let i = 0; i < 300; i++) {
+      const said = pane.querySelector(".outcome")?.textContent;
+      if (said) return said;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    return "";
+  }
+
+  it("asks first, and removes nothing while the question is up", async () => {
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask")?.textContent).toContain("cannot undo");
+    expect(host.cycles).toBe(0);
+  });
+
+  it("does nothing at all if the question is answered no", async () => {
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
+    expect(pane.querySelector(".tile-ask")).toBeNull();
+    expect(host.cycles).toBe(0);
+  });
+
+  it("runs one insert-and-remove cycle per slide once it is answered yes", async () => {
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    expect(await ran(pane)).toContain("Removed from 1 slide");
+    expect(host.cycles).toBe(1);
+  });
+
+  it("stops at the first step the deck's own size does not confirm", async () => {
+    // The rule the insert path is built on: the DELTA is the evidence, and a
+    // loop that pressed on past a step it could not verify would be editing a
+    // deck whose shape it has already misread.
+    host.refuseAt = 1;
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    const said = await ran(pane);
+    expect(said).toContain("Removed from 0 of 1 slides");
+    expect(said).toContain("as they were");
+    expect(pane.querySelector(".outcome.by-hand")).not.toBeNull();
+  });
+
+  it("forgets what it knew about the deck afterwards, rather than showing a stale list", async () => {
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    await ran(pane);
+    // Back to "never asked": the deck has changed under the pane, and the list
+    // it read is about the deck as it was.
+    expect(pane.querySelector('[data-action="used"]')?.textContent).toBe("See what this deck already uses");
   });
 });

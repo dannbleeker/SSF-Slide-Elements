@@ -24,6 +24,10 @@ import {
   otherTargetLabel,
   primary,
   remember,
+  removableFrom,
+  removalOutcome,
+  removeLabel,
+  removeQuestion,
   runOf,
   settingsLine,
   slideLine,
@@ -602,5 +606,50 @@ describe("what the card draws in grey", () => {
     // there is.
     const landed = { x: 0.2, y: 0.5, w: 0.6, h: 0.3 };
     expect(withLanded(onSlide, 3, landed, true)).toEqual({ slide: 3, boxes: [landed] });
+  });
+});
+
+describe("taking a part off the slides it is on", () => {
+  const stamp = element({ id: "approved", kind: "part", name: "Approved stamp", landing: "top-right" });
+  const box = element({ id: "one-box", kind: "slide", name: "One box" });
+  const read = { ...browsing, used: [{ element: "approved", slides: [2, 5, 9] }] };
+
+  it("offers nothing until the deck has been read", () => {
+    // Before the read the pane does not know what is in the deck, and a button
+    // offering to remove something from nowhere is worse than no button.
+    expect(removableFrom(stamp, browsing)).toEqual([]);
+    expect(removableFrom(stamp, read)).toEqual([2, 5, 9]);
+  });
+
+  it("offers nothing on a whole-slide element", () => {
+    // Section 4 puts this on a PART. "Remove" for a slide's worth of content is
+    // the slide's own delete key.
+    expect(removableFrom(box, { ...read, used: [{ element: "one-box", slides: [1] }] })).toEqual([]);
+  });
+
+  it("counts slides rather than shapes, and says so in the singular too", () => {
+    expect(removeLabel([2, 5, 9])).toBe("Remove from 3 slides");
+    expect(removeLabel([2])).toBe("Remove from 1 slide");
+  });
+
+  it("asks a question that names the slides and admits it cannot be undone", () => {
+    // "3 slides" is not something a user can check; "slides 2, 5 and 9" is. And
+    // the pane genuinely cannot undo it — Undo is one INSERT deep.
+    const asked = removeQuestion(stamp, [2, 5, 9]);
+    expect(asked).toBe("Take Approved stamp off slides 2, 5 and 9? The pane cannot undo this.");
+  });
+
+  it("reports how far a run got, and marks a short one as the user's to finish", () => {
+    expect(removalOutcome("Approved stamp", 3, 3)).toEqual({
+      ok: true,
+      byHand: false,
+      name: "Approved stamp",
+      detail: "Removed from 3 slides.",
+    });
+    const short = removalOutcome("Approved stamp", 2, 3);
+    expect(short.ok).toBe(false);
+    expect(short.byHand).toBe(true);
+    expect(short.detail).toContain("Removed from 2 of 3 slides");
+    expect(short.detail).toContain("as they were");
   });
 });

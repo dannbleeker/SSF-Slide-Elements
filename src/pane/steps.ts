@@ -156,6 +156,19 @@ export interface PaneState {
    * is the honest half of a snapshot.
    */
   onSlide?: { slide: number; boxes: Box[] };
+  /**
+   * The removal the user is being asked to confirm, and how far it has got.
+   *
+   * `docs/DESIGN.md` section 6's deck-wide stamps. Confirmed rather than done on
+   * the click, because it is the only thing this add-in does that takes
+   * something OUT of somebody's deck and the pane cannot put it back: Undo is
+   * one insert deep by design (section 6), and an undo of this would mean
+   * holding a copy of the deck per slide touched.
+   *
+   * `done` counts slides finished, so a run that stops halfway can say where it
+   * stopped rather than leaving the user to count.
+   */
+  removing?: { id: string; slides: number[]; done: number };
 }
 
 export const EMPTY: PaneState = {
@@ -405,6 +418,51 @@ export function otherTargetLabel(settings: Settings): string {
 export function occupiedFor(state: PaneState): Box[] {
   if (!state.onSlide || state.slide === undefined) return [];
   return state.onSlide.slide === state.slide ? state.onSlide.boxes : [];
+}
+
+/**
+ * Whether a tile offers "Remove from N slides", and for which slides.
+ *
+ * Section 4 puts it on a PART already in the deck — a stamp or a marker, the
+ * things that go on many slides. A whole-slide element is one slide's worth of
+ * content and "remove" for one of those is the slide's own delete key.
+ *
+ * Answers nothing until the deck has been read: the pane does not know what is
+ * in the deck before then, and a button offering to remove something from
+ * nowhere is worse than no button.
+ */
+export function removableFrom(element: Element, state: PaneState): number[] {
+  if (element.kind !== "part" || state.used === undefined) return [];
+  return state.used.find((u) => u.element === element.id)?.slides ?? [];
+}
+
+/** What that button says, counting the slides rather than the shapes. */
+export function removeLabel(slides: number[]): string {
+  return slides.length === 1 ? "Remove from 1 slide" : `Remove from ${slides.length} slides`;
+}
+
+/**
+ * The question the pane asks before it takes anything out of the deck.
+ *
+ * Names the slides, because "3 slides" is not something a user can check and
+ * "slides 2, 5 and 9" is. Says the pane cannot undo it, because it cannot:
+ * Undo is one insert deep, and this is not an insert.
+ */
+export function removeQuestion(element: Element, slides: number[]): string {
+  return `Take ${element.name} off ${slideList(slides)}? The pane cannot undo this.`;
+}
+
+/** How far a removal got, for the footer. */
+export function removalOutcome(element: string, done: number, wanted: number): Outcome {
+  const ok = done === wanted;
+  return {
+    ok,
+    byHand: !ok,
+    name: element,
+    detail: ok
+      ? `Removed from ${done === 1 ? "1 slide" : `${done} slides`}.`
+      : `Removed from ${done} of ${wanted} slides. The rest are as they were — try again, or take them off by hand.`,
+  };
 }
 
 /**

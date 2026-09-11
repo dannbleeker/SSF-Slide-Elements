@@ -41,7 +41,8 @@ small file that says where that page is.
 | Colours | An element takes the theme of the deck you put it in, or keeps the library's own — one setting behind the gear | built |
 | Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
 | What your slide already has | The preview card shows the shapes already on your slide, in grey, behind where the element would land | built |
-| Remove from N slides | Taking a stamp off every slide it is on, in one click | planned |
+| Remove from N slides | Taking a stamp off every slide it is on, in one click, after asking | built — not yet run against a real PowerPoint |
+| Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | planned |
 
 ## The pane
 
@@ -95,6 +96,13 @@ fetched only when you insert it.
   slide** when you are set to a new one. It does not change the setting, and
   `Esc` closes it. Stamps and markers offer nothing, because they always land on
   the slide you are on whatever the setting says;
+- **Remove from N slides**, on a stamp or a marker the deck already holds. It
+  appears under the tile once you have asked what the deck uses, and clicking it
+  asks first — naming the slides, and saying that the pane cannot undo it.
+  `Esc` answers no. It takes off only what the add-in put there: a shape you
+  drew yourself carries none of its marks and cannot be reached by it. If a step
+  cannot be confirmed the run stops there and the footer says how far it got,
+  leaving the rest of the deck as it was;
 - **Used in this deck**, which starts as one line: *See what this deck already
   uses*. Click it and the pane reads the open presentation and lists the library
   elements it finds, with the slides each one is on. It reads on request rather

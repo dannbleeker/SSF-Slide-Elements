@@ -30,8 +30,9 @@ import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, writeShapeTags } from "../pptx/tags.js";
-import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, element, elements } from "../pptx/xml.js";
+import { A_NS, PKG_REL_NS, P_NS, child, children, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
+import { keepOnly } from "./listing.js";
 import { pinColoursInXml, pinSchemeColours } from "./colours.js";
 import { authored, moveFrom, place, type Box, type Landing, type Rect } from "./landing.js";
 import {
@@ -47,8 +48,6 @@ import {
   topLevel,
   unplaceholder,
 } from "./shapes.js";
-
-const PRESENTATION = "ppt/presentation.xml";
 
 /** What the pane knows about the element it is inserting. */
 export interface SpliceElement {
@@ -128,35 +127,6 @@ export interface SpliceReport {
   pinned: number;
   /** Empty content placeholders taken off the rebuilt slide. */
   placeholders: number;
-}
-
-/**
- * Leave exactly one slide listed in the deck's own order.
- *
- * The `<p:sldId>` entries go and the relationships stay, which is the "unlisted"
- * arm of probe question 1 rather than the "pruned" one — both landed a single
- * slide on the web, and this is the half that touches least.
- */
-async function keepOnly(pkg: Pkg, slidePath: string): Promise<number> {
-  const pres = await pkg.doc(PRESENTATION);
-  const list = element(pres, P_NS, "sldIdLst");
-  if (!list) throw new Error("ssf-slide-elements: this deck's presentation.xml has no <p:sldIdLst>");
-  let removed = 0;
-  for (const sldId of elements(list, P_NS, "sldId")) {
-    const rId = sldId.getAttributeNS(R_NS, "id") ?? sldId.getAttribute("r:id");
-    const target = rId ? await pkg.relTarget(PRESENTATION, rId) : undefined;
-    if (target === slidePath) continue;
-    sldId.parentNode?.removeChild(sldId);
-    removed += 1;
-  }
-  // The one slide that survives is the one the caller named. A package listing
-  // nothing at all would be handed to `insertSlidesFromBase64` as a deck with
-  // no slides in it, and the host's answer to that is not something any round
-  // has measured — so it is refused here, where the cause is still nameable.
-  if (!element(pres, P_NS, "sldIdLst")?.getElementsByTagNameNS(P_NS, "sldId").length) {
-    throw new Error(`ssf-slide-elements: ${slidePath} is not in this deck's slide order, so nothing would be inserted`);
-  }
-  return removed;
 }
 
 /**

@@ -20,10 +20,11 @@ where you left it, the preview card, "Did you mean …" for a query with no hits
 the category chips a search shows, the stepper greying the sizes a search did
 not ask for, the first-run coach marks, the gear's two external links, and
 **Used in this deck**. Still to come, all of it from `docs/DESIGN.md` sections
-4, 6 and 8: **Remove from N slides** for a stamp, which is the last one that
-needs writing rather than reading — it takes shapes OUT of the user's deck, by a
-path no round has run, which is why it waits for one; and **the jump** from a
-slide number in "Used in this deck", which needs a host call no round has made.
+4, 6 and 8: **the jump** from a slide number in "Used in this deck", which needs
+a host call no round has made. **Remove from N slides** is built, and is the one
+feature whose mechanism — a sequence of insert-then-remove cycles — no round has
+exercised; the next round on any platform should put a stamp on three slides and
+take it off again.
 
 ### The rest of the host round
 

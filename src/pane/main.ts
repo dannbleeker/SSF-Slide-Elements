@@ -14,6 +14,7 @@ import type { Box } from "../core/catalogue/types.js";
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { usedInDeck } from "../core/pptx/tags.js";
+import { removeElement } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
@@ -44,6 +45,8 @@ import {
   offersOtherTarget,
   otherTarget,
   remember,
+  removableFrom,
+  removalOutcome,
   stepFor,
   toggle,
   withInsert,
@@ -628,6 +631,74 @@ async function readUsed(): Promise<void> {
  * right-clicks the search box should still get the browser's own menu, with
  * paste in it.
  */
+/**
+ * Take an element off every slide it is on (`docs/DESIGN.md` sections 4 and 6).
+ *
+ * The same insert-then-remove cycle as an insert, once per slide, because that
+ * is the only sequence this family has measured: hand PowerPoint a package
+ * holding the rebuilt slide, prove the deck grew, then take the original away
+ * and prove it shrank back. Nothing is deleted through the shape collection.
+ *
+ * **Every cycle is confirmed by the deck's own size before the next one
+ * starts, and the first refusal stops the run.** A loop that pressed on after a
+ * step it could not verify would be a loop editing a deck whose shape it has
+ * already misread — and the user is told how far it got rather than left to
+ * count slides.
+ *
+ * One deck read for the whole run. Each package is built from the bytes read at
+ * the start, which is sound because a cycle only rewrites the slide it targets
+ * and leaves every other slide's bytes as they were.
+ *
+ * NOT MEASURED: no round has run this against a real PowerPoint. The mechanism
+ * is the insert's, which has been measured on the web and on Windows, but a
+ * sequence of them has not. `docs/DESIGN.md` section 15 says so.
+ */
+async function removeEverywhere(id: string): Promise<void> {
+  const plan = state.removing;
+  const element = elementOf(state.library, id);
+  if (!plan || !element || plan.id !== id || state.busy === true) return;
+  set({ busy: true, notice: `Taking ${element.name} off ${plan.slides.length} slide(s)…`, outcome: undefined });
+
+  let done = 0;
+  try {
+    const deck = await readDeck();
+    for (const slide of plan.slides) {
+      // Counting from one in the state, from zero in the engine and the host.
+      const at = slide - 1;
+      const before = await slideCount();
+      const targetId = await slideIdAt(at);
+      if (targetId === undefined) break;
+      const report = await removeElement({ deck: deck.base64, slide: at, element: id });
+      const refused = await insertPackage(report.base64, targetId);
+      if (refused !== undefined) break;
+      if ((await countReaching(before + 1)) !== before + 1) break;
+      const failed = await removeSlideAt(at);
+      if (failed !== undefined) break;
+      if ((await countReaching(before)) !== before) break;
+      done += 1;
+    }
+  } catch {
+    // Whatever went wrong, `done` is the number of slides that were seen
+    // through to the end, and the outcome below reports it.
+  }
+
+  const outcome = removalOutcome(element.name, done, plan.slides.length);
+  state = {
+    ...state,
+    busy: false,
+    removing: undefined,
+    outcome,
+    // What the deck holds has changed under the pane, and the snapshot of the
+    // current slide with it. Both are dropped rather than guessed: the next
+    // "See what this deck already uses" is what puts them back.
+    used: undefined,
+    onSlide: undefined,
+  };
+  delete state.notice;
+  draw();
+  announce(outcome.detail);
+}
+
 function onContextMenu(event: MouseEvent): void {
   const found = actionOf(event.target);
   const id = found?.el.dataset["id"];
@@ -735,6 +806,21 @@ function onClick(event: MouseEvent): void {
     case "used":
       void readUsed();
       break;
+    // Sections 4 and 6: a part already in the deck, off every slide it is on —
+    // asked first, because the pane cannot put it back.
+    case "remove":
+      if (id) {
+        const element = elementOf(state.library, id);
+        const slides = element ? removableFrom(element, state) : [];
+        if (slides.length > 0) set({ removing: { id, slides, done: 0 }, menuFor: undefined });
+      }
+      break;
+    case "remove-cancel":
+      set({ removing: undefined });
+      break;
+    case "remove-go":
+      if (id) void removeEverywhere(id);
+      break;
     // Section 6: the other insert target, for this one insert, without touching
     // the setting.
     case "other-target":
@@ -803,9 +889,11 @@ function onKey(event: KeyboardEvent): void {
   if (event.key === "Escape") {
     // The card first: it is the most recently opened thing and the one the user
     // is most likely to mean, and shutting it must not also clear their search.
-    // The tile menu first, then the card, then the gear: back out of what was
-    // opened last, and never clear a search on the way past something else.
-    if (state.menuFor !== undefined) set({ menuFor: undefined });
+    // The confirm first, then the tile menu, then the card, then the gear: back
+    // out of what was opened last, and never clear a search on the way past
+    // something else. A question the user escapes is a question answered "no".
+    if (state.removing !== undefined) set({ removing: undefined });
+    else if (state.menuFor !== undefined) set({ menuFor: undefined });
     else if (state.previewing !== undefined) closePreview();
     else if (state.gear === true) set({ gear: false });
     else if (state.query !== "" || state.tags.length > 0) set({ query: "", tags: [] });

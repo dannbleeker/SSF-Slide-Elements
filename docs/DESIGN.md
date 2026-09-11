@@ -263,7 +263,8 @@ PowerPoint would settle.
   a tag opens what it finds; category headers stick while scrolling. Tiles are
   two across, three from 400 px. A tile is the element's picture and name; a
   sized element carries its stepper; a part already in the deck carries
-  "Remove from N slides".
+  "Remove from N slides" — which appears only once the deck has been read, since
+  before that the pane does not know what is in it (section 6 has the rest).
 - **The preview card** opens after a third of a second of hover or focus: the
   element at full width, its name, one line saying where it lands. At 512 px and
   wider it docks beside the list and hides no tiles, the list giving up a gutter
@@ -385,6 +386,35 @@ exception for width.
 - **Deck-wide stamps.** A stamp already in the deck can be removed from every
   slide it is on with one click, found by the tag written at insert. The manual
   says that shape tags do not survive cut and paste on the web.
+
+  Built 2026-09-11, and it is the only thing this add-in does that takes
+  something OUT of somebody's deck. Four things follow from that, all decided in
+  the building:
+
+  - **It is asked, not done.** The tile's button opens a question naming the
+    slides — "Take Confidential off slides 2, 5 and 9?" — and saying the pane
+    cannot undo it, because it cannot: Undo is one insert deep (above), and an
+    undo of this would mean holding a copy of the deck per slide touched. Escape
+    answers the question "no".
+  - **One cycle per slide, each confirmed before the next starts.** The same
+    insert-then-remove sequence an insert uses: hand over a package holding the
+    rebuilt slide, prove the deck grew, take the original away, prove it shrank
+    back. The first step that cannot be verified stops the run, and the footer
+    says how far it got — "Removed from 2 of 3 slides. The rest are as they
+    were."
+  - **One deck read for the whole run.** A cycle only rewrites the slide it
+    targets, so every package is built from the bytes read at the start.
+  - **What it can reach is what this add-in tagged.** The shapes are found
+    through `readShapeTags`, which keys on the tag NAME — a user's own shape
+    carries no tag of ours, and another add-in's tags in the same folder are not
+    ours either. The tag parts and pictures those shapes pointed at are left as
+    orphans rather than swept: deciding what else in somebody's deck still needs
+    a part is the one class of mistake that produces a file PowerPoint calls
+    damaged.
+
+  **Not measured.** No round has run this against a real PowerPoint. The
+  mechanism is the insert's, measured on the web and on Windows, but a SEQUENCE
+  of them has not been, and section 15 says so.
 - **Tags at insert**: every inserted shape or group carries the element's key
   and the catalogue version in a shape tag, written in the package before the
   insert because a slide the run just added does not resolve by id.
@@ -776,7 +806,12 @@ elements without a group; the stamps are rotated 29° and 35°; a table's frame 
 narrower than the table PowerPoint draws.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
-run. Also assumed: the two-second budget in section 11, and the certification
+run. Also assumed, and newly so: that a SEQUENCE of insert-then-remove cycles
+behaves the way one does. "Remove from N slides" (section 6) runs one per slide,
+and while the single cycle is measured on the web and on Windows, a run of them
+is not — it is the one built feature whose mechanism has never been exercised
+end to end against a host, and the next round on any platform should put a stamp
+on three slides and take it off again. Also assumed: the two-second budget in section 11, and the certification
 reading in section 12. Windows is no longer assumed — the section above is its
 round — but one Windows machine is one machine, and the "50 MB in about ten
 seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a
@@ -817,3 +852,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | "Used in this deck" reads the deck when the user asks rather than when the pane opens, and its slide numbers are text rather than links — the read is the sixth open question's unmeasured cost, and the jump is a host call no round has made | decided in the build, 2026-09-11 |
 | Right-click opens on `contextmenu` rather than a mouse-only handler, offers nothing on a part, and anchors to the top of its own tile rather than to the pointer — so the keyboard reaches it, the pane never promises a landing the engine does not do, and no coordinate reaches the state | decided in the build, 2026-09-11 |
 | The preview card's grey boxes are a snapshot stamped with the slide it was read from, drawn only while the user is still on that slide, rather than a read per slide change — and they are read out of the FILE, so they need no host capability the insert does not already use | decided in the build, 2026-09-11 |
+| "Remove from N slides" asks before it removes, runs one confirmed cycle per slide, stops at the first step it cannot verify and says how far it got — and reaches only shapes this add-in tagged | decided in the build, 2026-09-11 |

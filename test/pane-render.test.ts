@@ -631,3 +631,50 @@ describe("the preview card's grey boxes", () => {
     expect(tile.querySelectorAll(".ghost-held").length).toBe(0);
   });
 });
+
+describe("removing a part from the deck", () => {
+  const stamps = { key: "stamps", name: "Stamps and labels" };
+  const withStamp: Library = {
+    ...LIBRARY,
+    categories: [...LIBRARY.categories, stamps],
+    elements: [
+      ...LIBRARY.elements,
+      element({ id: "approved", name: "Approved stamp", kind: "part", landing: "top-right", category: stamps }),
+    ],
+  };
+  const read = {
+    ...browsing,
+    library: withStamp,
+    open: ["boxes", "stamps"],
+    used: [{ element: "approved", slides: [2, 5, 9] }],
+  };
+
+  it("puts the button on the part's tile once the deck has been read, and nowhere else", () => {
+    render(root, { ...browsing, library: withStamp, open: ["boxes", "stamps"] }, "browse");
+    expect(root.querySelector('[data-action="remove"]')).toBeNull();
+
+    render(root, read, "browse");
+    const buttons = [...root.querySelectorAll<HTMLElement>('[data-action="remove"]')];
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.textContent).toBe("Remove from 3 slides");
+    expect(buttons[0]?.dataset["id"]).toBe("approved");
+  });
+
+  it("asks before it removes, names the slides, and offers a way out", () => {
+    render(root, { ...read, removing: { id: "approved", slides: [2, 5, 9], done: 0 } }, "browse");
+    expect(root.querySelector(".tile-ask")?.textContent).toContain("slides 2, 5 and 9");
+    expect(root.querySelector(".tile-ask")?.textContent).toContain("cannot undo");
+    expect(root.querySelector('[data-action="remove-go"]')?.textContent).toBe("Remove");
+    expect(root.querySelector('[data-action="remove-cancel"]')?.textContent).toBe("Keep them");
+    // And the button that opened it is gone, so the question is the only thing
+    // to answer.
+    expect(root.querySelector('[data-action="remove"]')).toBeNull();
+  });
+
+  it("draws one question at a time, and not the right-click menu beside it", () => {
+    const both = { ...read, menuFor: "one-box", removing: { id: "approved", slides: [2], done: 0 } };
+    render(root, both, "browse");
+    expect(root.querySelectorAll(".tile-menu").length).toBe(1);
+    expect(root.querySelector('[data-action="other-target"]')).toBeNull();
+  });
+});
