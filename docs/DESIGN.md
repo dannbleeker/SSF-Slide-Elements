@@ -384,6 +384,12 @@ exception for width.
     always lands on the slide the user is on (section 5), so a menu offering it
     "as a new slide" would promise something the engine does not do — the same
     reason the preview card's landing line refuses to say it.
+  - **It belongs to a TILE, not to an element.** One element is drawn in
+    Favourites, in Recent and in its own category, so a menu keyed by element id
+    opened on all three at once — found by rendering every combination of the
+    pane's optional state rather than by using it, because it needs Recent to be
+    holding the very element the menu is open on. The same is true of the
+    question before a removal.
   - **The menu is anchored to the TOP of its own tile**, not to the pointer. The
     pane is 320 px at its narrowest, where a menu at the cursor hangs off the
     edge as often as not; and the tile's name is at its bottom, so a menu there
@@ -861,3 +867,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | "Remove from N slides" asks before it removes, runs one confirmed cycle per slide, stops at the first step it cannot verify and says how far it got — and reaches only shapes this add-in tagged | decided in the build, 2026-09-11 |
 | A rectangle measured on the user's slide is divided by the USER's slide size, never the library deck's — they differ exactly on a borrowed library, which is the case that would never have shown up in testing | fixed in the build, 2026-09-11 |
 | A removal re-reads which slides carry the element from the deck it is about to change, rather than trusting the list the question was asked about | fixed in the build, 2026-09-11 |
+| Anything anchored to a tile — the right-click menu, the question before a removal — is keyed by TILE rather than by element, because one element is drawn in up to three lists at once | fixed in the build, 2026-09-11 |

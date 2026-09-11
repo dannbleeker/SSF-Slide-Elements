@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — one right-click, one menu
+
+- **An element can sit in Favourites, in Recent and in its own section at the
+  same time.** Right-clicking one of them opened the little menu on all three —
+  and the question before removing a stamp appeared three times too. Each now
+  belongs to the tile you clicked.
+
 ### Fixed — two found by hunting rather than by using
 
 - **The grey boxes on a deck that is not 16:9 or 4:3.** The rectangle showing

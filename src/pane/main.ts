@@ -49,6 +49,7 @@ import {
   removableFrom,
   removalOutcome,
   stepFor,
+  tileKey,
   toggle,
   withInsert,
   withLanded,
@@ -713,7 +714,7 @@ function onContextMenu(event: MouseEvent): void {
     return;
   }
   event.preventDefault();
-  set({ menuFor: element.id });
+  set({ menuFor: tileKey(found.el.dataset["where"] ?? "", element.id) });
 }
 
 /**
@@ -740,9 +741,10 @@ function onPointerDown(event: PointerEvent): void {
   const found = actionOf(event.target);
   const element = elementOf(state.library, found?.el.dataset["id"]);
   if (!found || found.action !== "tile" || !element || !offersOtherTarget(element)) return;
+  const key = tileKey(found.el.dataset["where"] ?? "", element.id);
   pressing = setTimeout(() => {
     pressing = undefined;
-    if (state.busy !== true) set({ menuFor: element.id });
+    if (state.busy !== true) set({ menuFor: key });
   }, LONG_PRESS);
 }
 
@@ -816,7 +818,11 @@ function onClick(event: MouseEvent): void {
       if (id) {
         const element = elementOf(state.library, id);
         const slides = element ? removableFrom(element, state) : [];
-        if (slides.length > 0) set({ removing: { id, slides, done: 0 }, menuFor: undefined });
+        // The question is asked ON the tile that asked it: an element is drawn
+        // in Favourites, in Recent and in its category, and a question keyed by
+        // id alone appears on all three.
+        const where = el.dataset["where"] ?? "";
+        if (slides.length > 0) set({ removing: { id, slides, done: 0, where }, menuFor: undefined });
       }
       break;
     case "remove-cancel":
