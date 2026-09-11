@@ -12,6 +12,7 @@
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
+import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import {
@@ -228,28 +229,33 @@ async function load(): Promise<void> {
  * is running: a read that overlaps the insert tells the user nothing they need
  * and costs the host a context it is already using.
  */
-let following = false;
-
-/** Keep the line under the header naming the slide the user is actually on. */
-async function followSelection(): Promise<void> {
-  if (following || state.busy === true) return;
-  following = true;
-  try {
-    const current = await currentSlide();
-    const slide = current === undefined ? undefined : current.index + 1;
-    // Only when the number changed. `set` redraws the pane, and a redraw the
-    // user did not ask for is a redraw that can take the focus off whatever
-    // they were on.
-    if (slide !== state.slide) set({ slide });
-  } finally {
-    following = false;
-  }
-}
+/**
+ * Keep the line under the header naming the slide the user is actually on.
+ *
+ * Coalesced rather than guarded by a flag: a flag DROPS the event that arrives
+ * while a read is running, and on the web that read takes long enough for a
+ * second click to fall inside it. Measured on 2026-09-11 — slides 2, 3 and 4
+ * clicked a quarter of a second apart left the pane saying "Slide 3." with no
+ * later event coming to put it right. `src/host/coalesce.ts` carries the rule.
+ *
+ * Nothing is read while an insert is running: the host has a context open and
+ * a read for a line nobody is looking at is a full presentation save for
+ * nothing. `insert` and `undo` each ask for one when they finish instead.
+ */
+const followSelection = coalescing(async () => {
+  if (state.busy === true) return;
+  const current = await currentSlide();
+  const slide = current === undefined ? undefined : current.index + 1;
+  // Only when the number changed. `set` redraws the pane, and a redraw the
+  // user did not ask for is a redraw that can take the focus off whatever they
+  // were on.
+  if (slide !== state.slide) set({ slide });
+});
 
 /** Subscribe once; a host that refuses simply keeps the line it has. */
 async function follow(): Promise<void> {
   if (followed) return;
-  followed = await onSlideChange(() => void followSelection());
+  followed = await onSlideChange(followSelection);
 }
 let followed = false;
 
@@ -340,6 +346,9 @@ async function insert(id: string): Promise<void> {
     keep();
     draw();
     announce(announcement(outcome, element.name));
+    // The insert may have moved the selection, and nothing was read while it
+    // ran. Ask once now.
+    followSelection();
   } catch (e) {
     state = {
       ...state,
@@ -399,6 +408,7 @@ async function undo(): Promise<void> {
     delete state.notice;
     draw();
     announce(`${entry.name} taken back.`);
+    followSelection();
   } catch (e) {
     state = {
       ...state,

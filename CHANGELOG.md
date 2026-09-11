@@ -120,6 +120,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The pane could settle on the wrong slide number and stay there.** The line
+  under the header follows your selection now, but the first version of that
+  dropped any change that arrived while it was still reading the last one — and
+  on the web that read is slow enough for an ordinary second click to fall
+  inside it. Clicking slides 2, 3 and 4 a quarter of a second apart left the
+  pane saying "Slide 3." for as long as anyone cared to watch, with no later
+  event coming to put it right. It now remembers that something changed and
+  asks once more when the read in flight finishes, so a burst of ten costs two
+  reads rather than ten or one.
+
 - **An undo could report failure and leave the deck wrong.** PowerPoint on the
   web can still give the OLD slide count after an insert that has already
   happened — 2.8 seconds of it, measured on 2026-09-11 by polling the count
