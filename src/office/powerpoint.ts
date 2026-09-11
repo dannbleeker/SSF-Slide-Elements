@@ -141,6 +141,37 @@ export interface Current {
 }
 
 /**
+ * Whether a collection read came back WHOLE, judged against the deck's own
+ * scalar count.
+ *
+ * A collection load over about fifty items answers short on the web
+ * (office-js#4272), and `docs/SIBLING.md` triaged that as relevant here months
+ * before there was any code to be relevant to. The row promised the sibling's
+ * defence — page `getItemAt` at twenty — and the code that shipped does three
+ * plain collection loads and no paging at all. This is the defence that
+ * replaces it, and the reason it is a check rather than a paging loop: paging
+ * is more host calls on a host that also fails to load properties reliably
+ * after a `context.sync()` (office-js#6363), while the count is one scalar in
+ * the batch that is already being sent.
+ *
+ * What a short read costs here is not a shorter list. Both callers turn the
+ * list into an INDEX — which slide the user is on, which slide to aim an insert
+ * at — and an index off a list that dropped something in the middle names a
+ * different slide. The removal that follows an insert is positional. So a list
+ * that does not match the count is refused outright, and both callers already
+ * have somewhere honest to go when the host will not say: the pane tells the
+ * user it does not know which slide they are on, and the undo says PowerPoint
+ * would not name the slide.
+ *
+ * Never the other way round: a count that disagrees is not evidence the deck
+ * changed, and nothing here concludes anything about the deck from a read.
+ * `CLAUDE.md`: an empty collection read is not an empty slide.
+ */
+function whole(read: number, counted: number): boolean {
+  return read === counted;
+}
+
+/**
  * The slide the user is looking at.
  *
  * `getSelectedSlides` is PowerPointApi 1.5 and is READ-ONLY; nothing here ever
@@ -166,9 +197,13 @@ export async function currentSlide(): Promise<Current | undefined> {
         selected.load("items/id");
         const all = context.presentation.slides;
         all.load("items/id");
+        // The scalar count, in the SAME batch, because the list cannot be
+        // trusted to be whole. See `whole` above.
+        const count = all.getCount();
         await context.sync();
         const first = selected.items[0]?.id;
         if (first === undefined) return undefined;
+        if (!whole(all.items.length, count.value)) return undefined;
         const index = all.items.findIndex((s) => s.id === first);
         return index < 0 ? undefined : { index, id: first };
       }),
@@ -216,6 +251,41 @@ export async function selectedShape(): Promise<Rect | undefined> {
 }
 
 /**
+ * Tell me when the user moves, so the pane can stop naming the wrong slide.
+ *
+ * The pane reads which slide you are on once, at boot. Without this the line
+ * under the header keeps naming that slide however many others you click, and
+ * on 2026-09-11 in PowerPoint for the web it did exactly that: the API said
+ * slide 2 was selected and the pane still read "Slide 1.". The insert has
+ * always read the selection again for itself, so nothing landed in the wrong
+ * place — but the pane was telling the user something that was not true about
+ * where it was about to land, which is worse than saying nothing.
+ *
+ * `DocumentSelectionChanged` is a Common API event rather than a
+ * `PowerPointApi` one, so `hostSupports` cannot answer for it. `CLAUDE.md`:
+ * **probe for the method, do not trust the requirement set.** This asks whether
+ * the function is there, subscribes, and answers whether the host accepted —
+ * false on a host without it, where the pane simply keeps the line it has.
+ *
+ * The handler is called on every selection change, shapes included, so what it
+ * does with that has to be cheap. That is the caller's problem, not this
+ * file's: nothing here decides anything.
+ */
+export async function onSlideChange(handler: () => void): Promise<boolean> {
+  const doc: Office.Document | undefined = Office.context?.document;
+  if (typeof doc?.addHandlerAsync !== "function") return false;
+  try {
+    return await new Promise<boolean>((resolve) => {
+      doc.addHandlerAsync(Office.EventType.DocumentSelectionChanged, handler, (result) => {
+        resolve(result.status === Office.AsyncResultStatus.Succeeded);
+      });
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The id of the slide at a POSITION, for an insert that has to aim at one.
  *
  * Read positionally and used immediately. Undo has to put a slide back next to
@@ -234,7 +304,9 @@ export async function slideIdAt(index: number): Promise<string | undefined> {
       PowerPoint.run(async (context) => {
         const slides = context.presentation.slides;
         slides.load("items/id");
+        const count = slides.getCount();
         await context.sync();
+        if (!whole(slides.items.length, count.value)) return undefined;
         return slides.items[index]?.id;
       }),
       BUDGET.read,

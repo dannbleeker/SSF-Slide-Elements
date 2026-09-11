@@ -4,17 +4,16 @@ A library of ready-made slide elements for PowerPoint. Browse the collection in
 the task pane, click an element, and it lands on the slide you are on with every
 font, colour and placement intact.
 
-> **Status.** Very little of that is built yet. What you can install today is
-> the pane itself: it opens, shows which build it is, checks that your
-> PowerPoint clears the floor, and says plainly that there is nothing to insert
-> yet. Everything marked *planned* below is designed and not built, and a line
-> moves out of *planned* in the same change that makes it true — never before.
-> [The backlog](BACKLOG.md) is the order it arrives in.
+> **Status.** The picker, the insert and taking it back are built, and were run
+> end to end in PowerPoint for the web on 2026-09-11. Windows, Mac and iPad have
+> had no round yet. Everything still marked *planned* below is designed and not
+> built, and a line moves out of *planned* in the same change that makes it true
+> — never before. [The backlog](BACKLOG.md) is the order the rest arrives in.
 
 ## Contents
 
 - [Before you start](#before-you-start)
-- [What it will do](#what-it-will-do)
+- [What it does](#what-it-does)
 - [The pane](#the-pane)
 - [Adding an element to the library](#adding-an-element-to-the-library)
 - [Installing it](#installing-it) — [what needs re-installing](#what-needs-re-installing-and-what-does-not), [which PowerPoint](#why-it-does-not-say-which-powerpoint-it-needs)
@@ -28,15 +27,16 @@ from [Installing it](#installing-it). Nothing is installed onto your machine:
 the add-in is a web page PowerPoint opens in a task pane, and the manifest is a
 small file that says where that page is.
 
-## What it will do
+## What it does
 
 | Piece | What it does | State |
 | --- | --- | --- |
 | The pane | Opens from **Slide elements** on the Home tab, shows its build, checks the host | built |
-| The library | Two curated decks of elements — boxes, flows, tables, markers, stamps — harvested into the catalogue the pane will read | built |
-| The picker | Browse the library by section, search it, see a thumbnail of each element | planned |
-| The insert | Drop the chosen element onto the slide you are on, formatting intact | planned |
-| Taking it back | Remove what an insert added, and nothing else | planned |
+| The library | Two curated decks of elements — boxes, flows, tables, markers, stamps — harvested into the catalogue the pane reads | built |
+| The picker | Browse the library by section, search it, see where each element lands | built |
+| The insert | Drop the chosen element onto the slide you are on, formatting intact | built |
+| Taking it back | Remove what an insert added, and nothing else | built |
+| A picture of each element | A photograph of the element itself, rather than the diagram of its landing the tile draws today | planned |
 
 ## The pane
 
@@ -45,7 +45,7 @@ The pane shows which build you are running, seven characters in the header on
 the right, and then one of three screens.
 
 **Loading the library.** The catalogue is fetched from the add-in's own site.
-It is about 110 KB and takes a moment; an element's own markup and pictures are
+It is about 190 KB and takes a moment; an element's own markup and pictures are
 fetched only when you insert it.
 
 **Slide elements**, once it has arrived. Top to bottom:
@@ -234,7 +234,8 @@ there.
 
 ## Limits
 
-- It inserts nothing yet. See [What it will do](#what-it-will-do).
+- A tile draws a diagram of where the element lands, not a picture of the
+  element. See [What it does](#what-it-does).
 - The pane follows PowerPoint's theme when it opens; switching PowerPoint's
   theme mid-session needs the pane reopened, because PowerPoint offers no
   theme-change event to a task pane.

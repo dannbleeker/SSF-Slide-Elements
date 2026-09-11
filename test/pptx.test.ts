@@ -8,9 +8,10 @@ import { makeDeck } from "./fixtures/deck.js";
  * The package layer, on bytes the fixture built.
  *
  * Ported from SSF-Merge's `test/pptx.test.ts` on 2026-09-08: the blocks that
- * need only `Pkg`, the XML helpers and the deck fixture. The blocks that drove
- * SSF-Merge's clone, its tags and its merge run stay there until the splice
- * brings the code they test. The measurements and incidents the comments
+ * need only `Pkg`, the XML helpers and the deck fixture. The splice brought
+ * the clone and the tag writer on 2026-09-10, and their blocks came with them:
+ * they are in `pptx-clone.test.ts` and `pptx-tags.test.ts`, not here. The
+ * merge run's blocks stay in SSF-Merge, where the merge is. The measurements and incidents the comments
  * narrate ("a merge was quadratic", "every merged copy") are SSF-Merge's.
  */
 async function deck(...args: Parameters<typeof makeDeck>): Promise<Pkg> {

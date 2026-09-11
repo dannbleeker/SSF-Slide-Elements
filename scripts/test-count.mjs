@@ -22,8 +22,10 @@
  * because the MACHINE cannot run it is not a test somebody switched off, and
  * counting the two the same way made the floor platform-dependent: this repo's
  * `is-main.test.ts` needs a symlink, Windows refuses that without elevation, so
- * the same commit counted 1475 on Windows and 1476 on Linux. Either number
- * committed breaks the other machine — and the first way out taken was worse
+ * the same commit counts one lower on Windows than on Linux. (The numbers this
+ * paragraph used to quote, 1475 and 1476, were a SIBLING's; this repo's floor
+ * has never been near them. It is in `test/fixtures/test-count.json`.) Either
+ * number committed breaks the other machine — and the first way out taken was worse
  * than the problem, because it left the whole suite failing locally, which
  * teaches everyone to scroll past a red run.
  *

@@ -47,9 +47,9 @@ option yet, because a switch with one working position is worse than no switch.
 PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
 pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. Windows, Mac and
 iPad are not, and `docs/DESIGN.md` section 9 says how the first iPad measurement
-will be taken. The insert path itself has been run against the web host; a round
-on each of the others is what turns the design's "assumed" column into
-"measured".
+will be taken. The whole product has been run against the web host — the pane,
+the insert and the Undo, 2026-09-11 — so what is left is a round on each of the
+other three, which is what turns the design's "assumed" column into "measured".
 
 ### Release and AppSource
 

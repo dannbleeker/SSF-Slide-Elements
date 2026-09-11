@@ -16,9 +16,11 @@ import { makeDeck } from "./fixtures/deck.js";
 /**
  * The rest of the package layer's surface, on bytes the fixture built.
  *
- * SSF-Merge exercised these through its clone and its merge run. Neither is
- * here yet, and a method nothing calls is a method whose next caller finds the
- * bug — so each is asked directly, for the answer the splice will rely on.
+ * SSF-Merge exercised these through its clone and its merge run. The clone
+ * arrived here on 2026-09-10 and the splice with it, so these are no longer
+ * uncalled methods — but they are still asked directly, because a method
+ * exercised only through the thing above it is a method whose own contract
+ * nobody has written down.
  */
 
 async function deck(...args: Parameters<typeof makeDeck>): Promise<Pkg> {

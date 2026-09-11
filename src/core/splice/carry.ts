@@ -39,7 +39,7 @@ import { PKG_REL_NS, elements, parseXml, serializeXml } from "../pptx/xml.js";
  * by. Answers undefined for a part the store does not hold.
  *
  * A function rather than a map, because the pane fetches these over the network
- * one at a time and a whole library of parts is 18 MB.
+ * one at a time and a whole library of parts is about 16 MB.
  */
 export type PartStore = (path: string) => Promise<Uint8Array | string | undefined>;
 

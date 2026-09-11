@@ -78,7 +78,7 @@ PowerPoint would settle.
   key-figure flows one run by an explicit rule. The stepper names what it
   counts ("boxes 1 2 3 4 5 6"). The pane never uses the word "family"; that
   word is for this document. The 16:9 deck has twelve such runs, so 117
-  elements show as 85 tiles.
+  elements show as 84 tiles: the runs cover 45 elements, so 117 − 45 + 12.
 - **Categories** are the heading slides (a slide with a title and no content).
   **Tags** are derived from names; there is no authored tag vocabulary.
 - An off-slide shape (x at or beyond the slide's right edge) is never part of
@@ -114,7 +114,8 @@ PowerPoint would settle.
   both sizes, and a content hash as its version) plus one file per element with
   its markup, relationships and the parts it carries, and the parts themselves.
   The index is committed and CI fails when it no longer matches the decks; the
-  element files and parts (about 14 MB, generated JSON) are built on every
+  element files and parts (about 16 MB of generated JSON across both sizes,
+  measured 2026-09-11) are built on every
   deploy and never committed. Thumbnails and previews join them with hashed
   names (section 11). Adding an element is editing the deck, re-printing, and
   merging a PR. The site also gets a catalogue page generated
@@ -381,6 +382,14 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host.
+- **The whole product was run on this host on 2026-09-11**, from the pane rather
+  than from a snippet: a tile clicked in the picker, the element onto the slide
+  the user was on, and Undo afterwards. The insert reported `5 → 6 → 5 slides,
+  slide 1 replaced`, and slide 1 came back from the Undo with the same slide id
+  and the same two shapes, by id and by name, that it carried before —
+  `2:Title 1` and `9:White box, 1 large` — with the inserted triangle gone and
+  the other four slides untouched. The shape inventory was read through the
+  pane's own Office.js, which is the only place on the web it exists.
 
 Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
 them parts of four collection slides, twelve runs of sizes, 42 whole-slide

@@ -55,6 +55,58 @@ describe("the manual keeps up with the pane", () => {
     expect(body.toLowerCase()).not.toContain("planned");
   });
 
+  /**
+   * A feature table row that calls a built thing planned — anywhere in the
+   * file, not only under one heading.
+   *
+   * The guard above this one reads the manual's pane section and nothing else,
+   * and on 2026-09-11 every word of it passed while the manual's status block
+   * told the reader "there is nothing to insert yet" and three rows of its
+   * feature table said `planned` for the picker, the insert and the undo. The
+   * README said the same. All three had shipped weeks earlier. A guard that
+   * only looks under one heading is a guard the stale text simply sits outside
+   * of.
+   *
+   * So each row below is pinned to a SYMBOL, and the pair is what makes it a
+   * test rather than a list: if the symbol is gone the row is allowed to say
+   * planned again, and the first half of the assertion fails loudly if the
+   * symbol was renamed rather than removed. Prose is never matched against
+   * prose.
+   */
+  const BUILT: Array<{ row: string; file: string; proof: string }> = [
+    { row: "The picker", file: "src/pane/steps.ts", proof: `"browse"` },
+    { row: "The insert", file: "src/pane/main.ts", proof: "insertPackage(" },
+    { row: "Taking it back", file: "src/host/insert.ts", proof: "export function undoPlan" },
+  ];
+
+  it.each(BUILT)("does not call $row planned while $proof is in $file", ({ row, file, proof }) => {
+    expect(readFileSync(file, "utf8"), `${file} no longer contains ${proof}`).toContain(proof);
+    for (const [name, text] of [
+      ["the manual", manual],
+      ["the README", readme],
+    ] as const) {
+      // The row's own line, wherever the table sits in the file.
+      const line = text.split("\n").find((l) => l.startsWith(`| ${row} |`));
+      if (line === undefined) continue;
+      expect(line.toLowerCase(), `${name} still calls "${row}" planned`).not.toContain("planned");
+    }
+  });
+
+  it("never tells the reader the add-in cannot insert", () => {
+    // The status sentence, rather than the table. Same defect, different
+    // shape: a table row can be right while the paragraph above it is not.
+    expect(readFileSync("src/pane/main.ts", "utf8")).toContain("insertPackage(");
+    for (const denial of ["nothing to insert", "inserts nothing", "reads nothing and writes nothing"]) {
+      for (const [name, text] of [
+        ["the manual", manual],
+        ["the README", readme],
+        ["the security page", readFileSync("SECURITY.md", "utf8")],
+      ] as const) {
+        expect(text.toLowerCase(), `${name} still says "${denial}"`).not.toContain(denial);
+      }
+    }
+  });
+
   it("says which parts are not built yet, rather than describing them as shipped", () => {
     // The manual documents a design that is ahead of the code. That is fine as
     // long as it never claims to be behind it, and as long as the promise is

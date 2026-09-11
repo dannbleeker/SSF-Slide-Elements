@@ -142,8 +142,8 @@ export function insertionBlame(ours: Verdict, self: Verdict): string {
 /**
  * Question 1: which pruning of a package the host accepts on the way in.
  *
- * The engine will read the user's whole deck, splice an element into one
- * slide and send ONE slide back. The cheap way to send one slide is to unlist
+ * The engine reads the user's whole deck, splices an element into one slide
+ * and sends ONE slide back. The cheap way to send one slide is to unlist
  * the others and leave their parts in the zip; the expensive way is
  * `Pkg.removeSlide` over every other slide, orphans walked. Three arms tell
  * them apart:
@@ -446,9 +446,11 @@ export interface ExportPartsObservation {
  *
  * office-js#6867 reports the slide-level export omitting modern comments and
  * `ppt/authors.xml`; SSF-Merge's sixth sheet found the presentation-level
- * export does the same on the web. This add-in has not chosen its read yet:
- * `getFileAsync` (the floor) hands back the whole deck, the export (1.10)
- * only the slides asked for. What each drops on THIS host decides it.
+ * export does the same on the web. This question CHOSE this add-in's read: the
+ * sheets of 2026-09-10 measured the export dropping the comment part and
+ * `ppt/authors.xml` on this host, so `getFileAsync` (the floor) is what the
+ * insert reads with and the export (1.10) is deliberately not called. The
+ * question stays asked, because another host may answer differently.
  *
  * A deck with no comments cannot answer, and says so.
  */

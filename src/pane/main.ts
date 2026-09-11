@@ -17,6 +17,7 @@ import { readable } from "../host/errors.js";
 import {
   currentSlide,
   insertPackage,
+  onSlideChange,
   ready as hostReady,
   readDeck,
   removeSlideAt,
@@ -55,8 +56,8 @@ let store: Store | undefined;
  */
 interface Undoable {
   target: "onto" | "new";
-  /** Which slide the insert was aimed at, counting from zero. */
-  slide: number;
+  /** Which slide the insert was aimed at, counting from ZERO. */
+  index: number;
   /** The deck as it was before the insert. */
   before: string;
   name: string;
@@ -215,7 +216,41 @@ async function load(): Promise<void> {
   }
   const current = await currentSlide();
   set({ slide: current === undefined ? undefined : current.index + 1 });
+  void follow();
 }
+
+/**
+ * Whether a selection read is already in flight.
+ *
+ * PowerPoint fires the selection event for every shape a user touches, and each
+ * read is a `PowerPoint.run`. One at a time, and none at all while an insert
+ * is running: a read that overlaps the insert tells the user nothing they need
+ * and costs the host a context it is already using.
+ */
+let following = false;
+
+/** Keep the line under the header naming the slide the user is actually on. */
+async function followSelection(): Promise<void> {
+  if (following || state.busy === true) return;
+  following = true;
+  try {
+    const current = await currentSlide();
+    const slide = current === undefined ? undefined : current.index + 1;
+    // Only when the number changed. `set` redraws the pane, and a redraw the
+    // user did not ask for is a redraw that can take the focus off whatever
+    // they were on.
+    if (slide !== state.slide) set({ slide });
+  } finally {
+    following = false;
+  }
+}
+
+/** Subscribe once; a host that refuses simply keeps the line it has. */
+async function follow(): Promise<void> {
+  if (followed) return;
+  followed = await onSlideChange(() => void followSelection());
+}
+let followed = false;
 
 // ---------------------------------------------------------------------------
 // Inserting.
@@ -289,7 +324,7 @@ async function insert(id: string): Promise<void> {
       ...(error === undefined ? {} : { error }),
     });
     undoable = outcome.ok
-      ? { target: state.settings.target, slide: at, before: deck.base64, name: element.name }
+      ? { target: state.settings.target, index: at, before: deck.base64, name: element.name }
       : undefined;
     state = {
       ...state,
@@ -335,7 +370,7 @@ async function undo(): Promise<void> {
       if (targetId === undefined) {
         throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
       }
-      const original = await onlySlide(entry.before, entry.slide);
+      const original = await onlySlide(entry.before, entry.index);
       const refused = await insertPackage(original.base64, targetId);
       const grown = await slideCount();
       if (grown !== plan.grownTo(before)) {

@@ -379,7 +379,7 @@ describe("what an element carries into the deck", () => {
     /**
      * An element that shows one picture twice names it twice. Copying per
      * relationship rather than per part gives the deck two identical pictures
-     * under two names — invisible in the slide, and the 18 MB library says what
+     * under two names — invisible in the slide, and the 16 MB library says what
      * that costs at scale.
      *
      * The store's ask count is the sharp end of it: `copyPart` answers an

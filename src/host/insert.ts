@@ -21,7 +21,15 @@ export type Target = "onto" | "new";
 /** The counts an insert produced, each measured in its own read. */
 export interface Attempt {
   target: Target;
-  /** The slide the user was on, counting from one, for the sentence. */
+  /**
+   * The slide the user was on, counting from ONE, because it goes into a
+   * sentence a user reads.
+   *
+   * `undoPlan` below counts the same slide from ZERO, because its numbers go
+   * into API calls. Two bases in one file is a trap, and it is the trap the
+   * undo defect fell into, so each is named at the field rather than left to
+   * the reader.
+   */
   slide: number;
   /** Slides in the deck before anything was asked of the host. */
   before: number;
@@ -160,12 +168,16 @@ export interface UndoPlan {
  *
  * A new slide is the simple case. It sits immediately after the slide it was
  * inserted against, and taking it back is one removal.
+ *
+ * `index` counts from ZERO, unlike `Attempt.slide` above, which counts from one
+ * because it is read aloud. The field is named for its base rather than for the
+ * thing it points at, so a call site cannot quietly hand over the other one.
  */
-export function undoPlan(entry: { target: Target; slide: number }): UndoPlan {
+export function undoPlan(entry: { target: Target; index: number }): UndoPlan {
   if (entry.target === "new") {
-    return { remove: entry.slide + 1, grownTo: (before) => before };
+    return { remove: entry.index + 1, grownTo: (before) => before };
   }
-  return { after: entry.slide, remove: entry.slide, grownTo: (before) => before + 1 };
+  return { after: entry.index, remove: entry.index, grownTo: (before) => before + 1 };
 }
 
 /**

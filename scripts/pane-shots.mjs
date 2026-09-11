@@ -371,10 +371,12 @@ function audit() {
    * The fifth thing: whether a FINGER can hit what a mouse can.
    *
    * A task pane runs on touch-only devices, which AppSource asks about, and
-   * nothing here had ever measured a hit area. When this was first run, sixteen
-   * controls were under 24 CSS px on the short side — every "Back to…", every
-   * option link, and both run-log disclosures, each at the line box of its own
-   * text with `padding: 0`.
+   * nothing here had ever measured a hit area. The incident this was written
+   * for is a SIBLING's — sixteen controls under 24 CSS px, every "Back to…",
+   * every option link and both run-log disclosures, each at the line box of its
+   * own text with `padding: 0`. This pane has none of those three kinds of
+   * control, which is why the measure is worth keeping rather than dropping: it
+   * is the check that would catch the first one to arrive.
    *
    * **24px BY SIZE, and the spacing exception is deliberately not taken.**
    * WCAG 2.5.8 lets an undersized target pass when a 24px circle centred on it

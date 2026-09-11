@@ -10,12 +10,17 @@ rather than in a public issue.
 
 Worth stating plainly, because a presentation is often confidential.
 
-- **Today the pane reads nothing and writes nothing.** It shows which build it
-  is and asks PowerPoint which API version it has. That is the whole of it.
-- **By design, everything happens on the user's own machine.** The element
-  library will ship inside the pane as static files built from the owner's own
-  deck; the user's presentation will be read and written through Microsoft's
-  Office JavaScript interface, in the pane, and never uploaded.
+- **The pane reads your whole presentation and writes it back**, because that
+  is what an insert is here. Office.js has no call that puts arbitrary markup
+  onto a slide, so the add-in reads the open deck through `getFileAsync`,
+  changes the package, hands it back through one `insertSlidesFromBase64`, and
+  removes the slide it replaced. It reads the deck once per insert and keeps
+  one copy afterwards, so Undo has something to put back; that copy is dropped
+  when you insert again or close the pane.
+- **All of that happens on your own machine.** The element library is static
+  files on the add-in's own site, built from the owner's own deck; your
+  presentation is read and written through Microsoft's Office JavaScript
+  interface, in the pane, and is never uploaded.
 - **It sends nothing anywhere.** There is no `XMLHttpRequest`, no socket and no
   `sendBeacon` anywhere in `src/`, so the add-in has no way to transmit
   anything at all. It does make one kind of request: the element library is

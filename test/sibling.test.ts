@@ -14,9 +14,12 @@ import { withoutTsProse } from "../scripts/without-prose.mjs";
 /**
  * The borrowed-fact guard.
  *
- * Everything this repo knows about the PowerPoint host was learned by a
- * sibling project and hand-copied here. `docs/SIBLING.md` is the ledger; this
- * is the half of it a machine can hold.
+ * Everything this repo knew about the PowerPoint host when this guard was
+ * written had been learned by a sibling project and hand-copied here. Some of
+ * it is first-hand now — the probe's four sheets of 2026-09-10 and the product
+ * round of 2026-09-11, both on the web — and none of it is first-hand for
+ * Windows, Mac or iPad. `docs/SIBLING.md` is the ledger and says which is
+ * which; this is the half of it a machine can hold.
  *
  * What rots is narrow. A single run's observation ("a by-id clean-up reported
  * 45 deletes and removed nothing") is true forever and needs nothing. A COUNT

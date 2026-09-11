@@ -8,9 +8,10 @@ import { makeDeck } from "./fixtures/deck.js";
  * What the engine HANDS OVER, checked as a package rather than as slides.
  *
  * Ported from SSF-Merge's `test/package-valid.test.ts` on 2026-09-08: the
- * oracle and the two tests that prove it is not vacuous. The cases that ran a
- * merge through it come back as element inserts when the splice lands, and
- * every one of them will read `problemsIn(bytes)` and expect `[]`.
+ * oracle and the two tests that prove it is not vacuous. The splice's own
+ * sweep over all 117 elements went to `scripts/package-integrity.mjs` instead,
+ * because it runs outside the suite as well; `problemsIn` stays here as the
+ * file-local oracle those two tests are about.
  *
  * The question PowerPoint asks is whether the file it is given is a legal OOXML
  * package, and the answer is binary and expensive: a deck that opens as

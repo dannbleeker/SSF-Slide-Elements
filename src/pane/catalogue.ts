@@ -11,7 +11,7 @@
  *
  * Why it fetches at all: `docs/DESIGN.md` section 3 makes the catalogue static
  * files on Pages rather than a bundle, because the element markup and the parts
- * it carries come to about 18 MB across both sizes and the pane has to be
+ * it carries come to about 16 MB across both sizes and the pane has to be
  * usable in about two seconds (section 11). The index is small and comes first;
  * an element's markup and the pictures it carries are fetched when somebody
  * actually inserts it.

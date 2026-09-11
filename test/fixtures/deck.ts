@@ -461,13 +461,6 @@ function modernChartXml(spec: ModernChartSpec): string {
 }
 
 /**
- * The slide markup a modern chart sits in.
- *
- * `mc:Choice` holds the graphic frame; `mc:Fallback` holds a PICTURE of the
- * chart, which is the half SSF-Merge's engine replaces. Both branches carry the same
- * shape id, as they do in the real file.
- */
-/**
  * An icon and a linked picture, as PowerPoint writes them.
  *
  * The `<a:extLst>` uri is the one Office stamps on an SVG companion, and the
@@ -492,6 +485,13 @@ function iconShapes(): string {
   );
 }
 
+/**
+ * The slide markup a modern chart sits in.
+ *
+ * `mc:Choice` holds the graphic frame; `mc:Fallback` holds a PICTURE of the
+ * chart, which is the half SSF-Merge's engine replaces. Both branches carry the
+ * same shape id, as they do in the real file.
+ */
 function modernChartFrame(spec: ModernChartSpec): string {
   const box = `<a:off x="1000000" y="500000"/><a:ext cx="6000000" cy="4000000"/>`;
   const fallback = spec.noFallback

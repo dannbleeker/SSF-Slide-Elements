@@ -12,8 +12,11 @@
  * link, so the two never matched and the CLI did nothing, silently, exiting 0.
  * `npm run` passes a direct path and is unaffected; `npm link`, a
  * `node_modules/.bin` shim and a global install all go through a link. Every
- * CLI script here imports this, `check-release.mjs` among them — a release pre-flight
- * that quietly declines to run is worse than one that fails.
+ * script that can be invoked through a link imports this, `check-release.mjs`
+ * among them — a release pre-flight that quietly declines to run is worse than
+ * one that fails. The four that do not (`build-probe`, `harvest`,
+ * `pane-shots`, `read-answers`) run their body at module top level and are
+ * only ever reached through `npm run`, which passes a direct path.
  *
  * `realpathSync` throws for a path that is not there, which is not a reason to
  * lose the answer: an entry that cannot be resolved is compared as written,

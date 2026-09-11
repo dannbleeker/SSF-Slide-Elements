@@ -143,8 +143,9 @@ describe("a raise with nothing in it", () => {
   /**
    * An `OfficeExtension.Error` routinely carries an empty `message` and puts
    * the content in `debugInfo`. `readable` answered "" for it, so the sentence
-   * the pane builds around the answer stopped mid-air: "The merge did not
-   * run: ". An empty answer is the same defect as "[object Object]", which is
+   * the pane builds around the answer stopped mid-air — in the SIBLING where
+   * this was found, "The merge did not run: ", and here "The insert was
+   * refused: ". An empty answer is the same defect as "[object Object]", which is
    * what the rest of this function exists to refuse — it occupies the space
    * where a reason goes and says nothing.
    */

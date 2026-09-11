@@ -250,7 +250,7 @@ input:focus-visible,
  * TILES ARE A GRID, not a column. The "one column" rule is about the pane's
  * SECTIONS — search above tags above categories above the footer — and
  * `docs/DESIGN.md` section 4 asks for tiles two across, three from 400px. A
- * column of 85 tiles is a scroll nobody finishes.
+ * column of 84 tiles is a scroll nobody finishes.
  *
  * EVERY HIT AREA IS 24px ON THE SHORT SIDE, which `scripts/pane-shots.mjs`
  * measures. The star sits ON the tile and is the one that gets this wrong, so
