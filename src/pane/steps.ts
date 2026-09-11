@@ -89,6 +89,14 @@ export interface PaneState {
   /** True when the gear is open. */
   gear?: boolean;
   /**
+   * The category chip the user has picked while searching, if any.
+   *
+   * Section 8's chips narrow a search to one category. Not remembered per
+   * machine and not carried across a cleared search: it is a way of reading one
+   * set of results, not a preference.
+   */
+  category?: string;
+  /**
    * The element whose preview card is open, if any.
    *
    * In the state rather than managed beside it, so the card cannot survive a
@@ -162,7 +170,10 @@ export interface Group {
  */
 export function groups(library: Library, state: PaneState): Group[] {
   const wanted = library.elements.filter(
-    (el) => matches(el, state.query) && state.tags.every((tag) => el.tags.includes(tag)),
+    (el) =>
+      matches(el, state.query) &&
+      state.tags.every((tag) => el.tags.includes(tag)) &&
+      (state.category === undefined || el.category.key === state.category),
   );
   const seen = new Set<string>();
   const tiles = wanted.filter((el) => {
@@ -178,6 +189,42 @@ export function groups(library: Library, state: PaneState): Group[] {
     out.push({ key: category.key, name: category.name, elements });
   }
   return out;
+}
+
+/** A category a search found something in, and how many tiles it left there. */
+export interface CategoryHit {
+  key: string;
+  name: string;
+  count: number;
+}
+
+/**
+ * Which categories a search found something in, with counts, for the chips
+ * `docs/DESIGN.md` section 8 puts above the results while searching.
+ *
+ * Counted WITHOUT the category the user has already picked applied, which is
+ * the whole point: the chips have to keep showing the other categories and
+ * their counts, or picking one would hide the way back and the way across. The
+ * query and the tags DO apply, because those are what the counts are counts of.
+ *
+ * Counts are tiles, not elements, so they agree with the number beside the
+ * search and with what a person can see: a run of six sizes is one tile.
+ */
+export function categoryHits(library: Library, state: PaneState): CategoryHit[] {
+  const free: PaneState = { ...state, category: undefined };
+  return groups(library, free).map((g) => ({ key: g.key, name: g.name, count: g.elements.length }));
+}
+
+/**
+ * Whether this member of a sized run matches the search.
+ *
+ * Section 8: a sized tile greys out the counts that do not match. The tile
+ * itself is the first member that survived the search, and its stepper still
+ * offers every size — so without this, a search for "3 boxes" shows a stepper
+ * of six numbers with nothing to say which one was searched for.
+ */
+export function stepMatches(member: Element, state: PaneState): boolean {
+  return matches(member, state.query) && state.tags.every((tag) => member.tags.includes(tag));
 }
 
 /** Every member of a sized element's run, in count order, for the stepper. */

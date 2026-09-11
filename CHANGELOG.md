@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — narrowing a search
+
+- **While you search, the sections that have hits appear as chips with counts.**
+  Tap one to see only that section, tap it again to see them all. The counts stay
+  put when you pick one, so you can always see what is in the others.
+- **A sized element greys the sizes your search did not ask for.** Search for
+  "3 boxes" and the stepper says which of its six numbers you meant. They are
+  still pickable — the size exists, you may still want it.
+
 ### Added — a search that finds nothing offers a way out
 
 - **Mistype a name and the pane suggests what you probably meant**, as chips you

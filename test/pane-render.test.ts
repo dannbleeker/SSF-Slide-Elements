@@ -417,3 +417,77 @@ describe("a search that found nothing", () => {
     }
   });
 });
+
+describe("the category chips", () => {
+  // The library above has one category, so it could never show a chip — the
+  // chips exist to choose BETWEEN categories. This one has two.
+  const TWO: Library = {
+    ...LIBRARY,
+    categories: [
+      { key: "boxes", name: "White boxes" },
+      { key: "stamps", name: "Stamps and labels" },
+    ],
+    elements: [
+      element({ id: "one-box", name: "One box" }),
+      element({
+        id: "draft",
+        name: "Draft box stamp",
+        kind: "part",
+        category: { key: "stamps", name: "Stamps and labels" },
+      }),
+    ],
+  };
+  const searching: PaneState = { ...EMPTY, library: TWO, open: ["boxes", "stamps"], query: "box" };
+
+  it("are not drawn until something is being searched for", () => {
+    // With no query the categories are already the list's own headings, and a
+    // row of chips repeating them is the same information twice.
+    render(root, { ...searching, query: "" }, "browse");
+    expect(root.querySelector(".cats")).toBeNull();
+  });
+
+  it("are not drawn when only one category has hits", () => {
+    // A chip narrowing to the only category on screen chooses nothing.
+    render(root, { ...searching, query: "stamp" }, "browse");
+    expect(root.querySelector(".cats")).toBeNull();
+  });
+
+  it("appear while searching, each naming a category and its count", () => {
+    render(root, searching, "browse");
+    const chips = [...root.querySelectorAll('[data-action="category-chip"]')] as HTMLElement[];
+    expect(chips.length).toBe(2);
+    for (const chip of chips) {
+      expect(chip.dataset["key"]).toBeTruthy();
+      expect(chip.textContent).toMatch(/\s\d+$/);
+    }
+  });
+
+  it("marks the picked one pressed, and keeps the others reachable", () => {
+    render(root, { ...searching, category: "stamps" }, "browse");
+    const chips = [...root.querySelectorAll('[data-action="category-chip"]')] as HTMLElement[];
+    expect(chips.length).toBe(2);
+    const picked = chips.filter((c) => c.getAttribute("aria-pressed") === "true");
+    expect(picked).toHaveLength(1);
+    expect(picked[0]?.dataset["key"]).toBe("stamps");
+  });
+});
+
+describe("the stepper while searching", () => {
+  it("greys the sizes the search did not ask for, and leaves them pickable", () => {
+    render(root, { ...browsing, query: "1 box" }, "browse");
+    const steps = [...root.querySelectorAll('[data-action="step"]')] as HTMLButtonElement[];
+    expect(steps.length).toBeGreaterThan(1);
+    const off = steps.filter((s) => s.className.includes("off"));
+    expect(off.length).toBeGreaterThan(0);
+    for (const step of off) {
+      expect(step.disabled).toBe(false);
+      expect(step.getAttribute("aria-label")).toContain("not a match");
+    }
+  });
+
+  it("greys nothing when nothing is being searched for", () => {
+    render(root, browsing, "browse");
+    const steps = [...root.querySelectorAll('[data-action="step"]')] as HTMLElement[];
+    expect(steps.filter((s) => s.className.includes("off"))).toHaveLength(0);
+  });
+});

@@ -505,7 +505,15 @@ function onClick(event: MouseEvent): void {
       }
       break;
     case "clear":
-      set({ query: "", tags: [] });
+      set({ query: "", tags: [], category: undefined });
+      break;
+    // Section 8's chips narrow a search to one category; picking the one
+    // already picked widens it again.
+    case "category-chip":
+      if (el.dataset["key"]) {
+        const key = el.dataset["key"];
+        set({ category: state.category === key ? undefined : key, previewing: undefined });
+      }
       break;
     // A "Did you mean" suggestion is a name the library really has, so putting
     // it in the search box is a search that will find something.

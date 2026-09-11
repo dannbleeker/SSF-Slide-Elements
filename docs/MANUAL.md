@@ -57,7 +57,9 @@ fetched only when you insert it.
   owner's deck, its category and its tags. Every word has to match, so
   "white box" finds "White boxes, 2x1 vertical". Press `/` to jump to the box
   and `Esc` to clear it. If a search finds nothing, the pane offers what you
-  might have meant — tap one and it searches for that instead;
+  might have meant — tap one and it searches for that instead. While you are
+  searching, the sections that have hits appear as chips with counts: tap one to
+  see only that section, tap it again to see them all;
 - a line of **tags**, most used first. Picking one narrows the list, and a
   picked tag moves to the front so it stays visible;
 - the **gear**, beside the search, holding the two settings: whether an element
@@ -76,7 +78,9 @@ fetched only when you insert it.
   land. In a wide pane it sits beside the list; in a narrow one it lies over the
   bottom of it.  shuts it;
 - an element that comes in several sizes is **one tile with a stepper** naming
-  what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list;
+  what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list. While
+  you are searching, the sizes your search did not ask for are greyed, though you
+  can still pick them;
 - the **footer**, carrying what the last insert did, measured: "12 → 13 slides"
   for a new slide, "12 → 13 → 12 slides, slide 4 replaced" for one onto the
   slide you were on. Beside it, **Again** repeats the last insert and **Undo**
