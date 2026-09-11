@@ -106,6 +106,7 @@ npm run icons      # redraw public/assets/*.png
 npm run manifests  # regenerate the four manifests from scripts/manifest-source.mjs
 npm run probe      # regenerate probe/probe-snippet.ts for Script Lab; needs build:lib first
 npm run pane-shots # render and measure the pane; needs `npx vite --port 5199 --strictPort &` first
+npm run dead-exports # list exports in src/ that nothing shipping calls; the suite holds it at zero
 ```
 
 Every npm script is FLAT. A script that nests `npm run` is blocked by AppLocker

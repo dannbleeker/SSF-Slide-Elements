@@ -19,7 +19,10 @@
  * A file that explains itself is not a defect; a guard that cannot tell an
  * explanation from an instruction is. Three strippers in three files is three
  * chances to write a fourth, so they are one module — and the next person
- * reaching for one finds it here rather than inventing it.
+ * reaching for one finds it here rather than inventing it. There are four now,
+ * and the fourth arrived the way this module predicted: a new guard needed a
+ * stripper one shade different from an existing one, and the difference
+ * mattered.
  *
  * None of these is a PARSER. Each is the smallest thing that makes its own
  * guard honest, and each is checked by `test/without-prose.test.ts` against the
@@ -56,6 +59,71 @@ export function withoutTsComments(text) {
     .split("\n")
     .filter((line) => !/^\s*(\/\/|\*)/.test(line))
     .join("\n");
+}
+
+/**
+ * One template literal's INTERPOLATIONS, with its text dropped.
+ *
+ * `` `${size} library, scaled to ${nameOfRatio(ratio)} slides.` `` answers
+ * `size nameOfRatio(ratio)`: the prose goes, the calls stay.
+ *
+ * Brace depth is counted rather than matched with a regex, because an
+ * interpolation routinely contains braces of its own — `${exact ? {} : x}` is
+ * ordinary, and a pattern stopping at the first `}` would cut the expression in
+ * half and lose whatever came after it.
+ *
+ * A template literal NESTED inside an interpolation keeps its text. That is the
+ * lenient direction for every guard that uses this — a name is reported as used
+ * rather than as dead — and unpicking it would mean a parser.
+ */
+function interpolationsOf(literal) {
+  const out = [];
+  let at = 1; // past the opening backtick
+  while (at < literal.length - 1) {
+    if (literal[at] === "\\") {
+      at += 2;
+      continue;
+    }
+    if (literal[at] === "$" && literal[at + 1] === "{") {
+      let depth = 1;
+      let end = at + 2;
+      while (end < literal.length && depth > 0) {
+        if (literal[end] === "{") depth += 1;
+        else if (literal[end] === "}") depth -= 1;
+        end += 1;
+      }
+      out.push(literal.slice(at + 2, end - 1));
+      at = end;
+      continue;
+    }
+    at += 1;
+  }
+  return out.join(" ");
+}
+
+/**
+ * Comments and literal TEXT, with interpolated EXPRESSIONS kept.
+ *
+ * The fourth stripper, and the one `withoutTsProse` cannot be: it blanks a
+ * template literal whole, and a call written inside one is a call.
+ * `src/pane/catalogue.ts` reaches `nameOfRatio` exactly once, from inside
+ * `` `${size} library, scaled to ${nameOfRatio(ratio)} slides.` `` — so the
+ * dead-export sweep, reading `withoutTsProse`, reported a function the pane
+ * runs on every borrowed deck as reached by nothing but its test.
+ *
+ * Reach for this when the question is WHAT THIS FILE CALLS. Reach for
+ * `withoutTsProse` when the question is what it mentions, where a name inside a
+ * string is a sentence about a thing rather than a use of it.
+ */
+export function withoutTsText(text) {
+  return (
+    withoutTsComments(text)
+      .replace(/`(?:[^`\\]|\\.)*`/g, (literal) => ` ${interpolationsOf(literal)} `)
+      .replace(/"(?:[^"\\\n]|\\.)*"/g, '""')
+      .replace(/'(?:[^'\\\n]|\\.)*'/g, '""')
+      // Trailing comments, for the reason `withoutTsProse` spells out below.
+      .replace(/(?<!\\)\/\/[^\n]*/g, "")
+  );
 }
 
 /**

@@ -14,7 +14,6 @@ import {
   relIdsIn,
   renumber,
   repoint,
-  shapesOf,
   slideShapes,
   topLevel,
   unionOf,
@@ -177,13 +176,6 @@ describe("an element's shapes, parsed", () => {
     // element's shape count depend on how it was written out.
     const fragment = parseFragment(`<!-- Kasse -->\n  ${sp(1)}\n  ${sp(2)}\n`);
     expect(topLevel(fragment)).toHaveLength(2);
-  });
-
-  it("answers those same shapes through the name the splice adopts them by", () => {
-    // `shapesOf` is what the splice imports into the destination document, so
-    // it and `topLevel` disagreeing is an element that lands half-spliced.
-    const fragment = parseFragment(sp(1) + sp(2));
-    expect(shapesOf(fragment)).toEqual(topLevel(fragment));
   });
 
   it("refuses markup naming a prefix nothing declared, which is what makes the sweep below a gate", () => {

@@ -367,11 +367,6 @@ export function unplaceholder(shapes: Element[]): number {
   return stripped;
 }
 
-/** The fragment's shapes, ready to be adopted into a slide's own document. */
-export function shapesOf(fragment: Document): Element[] {
-  return topLevel(fragment);
-}
-
 /** Direct children of a shape tree that are shapes rather than its properties. */
 export function slideShapes(spTree: Element): Element[] {
   const out: Element[] = [];
