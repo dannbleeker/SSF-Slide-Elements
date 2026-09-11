@@ -37,7 +37,7 @@ small file that says where that page is.
 | The picker | Browse the library by section, search it, see where each element lands | built |
 | The insert | Drop the chosen element onto the slide you are on, formatting intact | built |
 | Taking it back | Remove what an insert added, and nothing else | built |
-| A picture of each element | A photograph of the element itself, rather than the diagram of its landing the tile draws today | planned |
+| A picture of each element | A photograph of the element itself, cut from a PDF print of the library deck | built |
 
 ## The pane
 
@@ -66,8 +66,10 @@ fetched only when you insert it.
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag
-  opens whatever it found. Each tile shows the element's name and a small
-  drawing of where on the slide it lands and how much of it it covers;
+  opens whatever it found. Each tile shows the element's name and its picture —
+  PowerPoint's own rendering of it, cut from a print of the library deck. Where
+  there is no picture yet the tile keeps the small drawing of where on the slide
+  the element lands and how much of it it covers;
 - an element that comes in several sizes is **one tile with a stepper** naming
   what it counts — "boxes 1 2 3 4 5 6" — so the run does not fill the list;
 - the **footer**, carrying what the last insert did, measured: "12 → 13 slides"

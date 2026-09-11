@@ -16,6 +16,7 @@
  * reads to check that a state shows what it claims to.
  */
 import type { Element } from "../core/catalogue/types.js";
+import { previewUrl } from "./catalogue.js";
 import {
   STEP_TITLE,
   blockedReason,
@@ -61,12 +62,16 @@ function button(action: string, className: string, text: string): HTMLButtonElem
 /**
  * The little slide with the element's box on it.
  *
- * The library's own pictures are not in the catalogue yet — `docs/DESIGN.md`
- * section 3 has them cut from a PDF print of each deck, which the owner has
- * still to commit — so a tile would otherwise be a name and nothing else. This
- * draws what the catalogue DOES know: the slide's shape, and where on it the
- * element sits and how much of it the element covers. It is the same ghost the
- * preview card uses for the landing, at tile size.
+ * The FALLBACK now rather than the only thing a tile can show: `picture` below
+ * puts the element's own photograph on the tile, cut from the deck's print, and
+ * this draws when there is none. That happens in a tree where the previews have
+ * not been built — they are generated at deploy, not committed — and it would
+ * happen for a new element whose deck has been merged but not yet deployed.
+ *
+ * What it draws is what the catalogue KNOWS without a picture: the slide's
+ * shape, and where on it the element sits and how much of it the element
+ * covers. It is the same ghost the preview card uses for the landing, at tile
+ * size.
  *
  * Built with `createElementNS`, not markup, for the same reason as everything
  * else here.
@@ -98,6 +103,40 @@ function ghost(element: Element, aspect: number): SVGSVGElement {
   return svg;
 }
 
+/**
+ * The element's own photograph, with the landing ghost behind it.
+ *
+ * PowerPoint's rendering of the element, cut out of the deck's print
+ * (`docs/DESIGN.md` section 3). The picture is what a person recognises an
+ * element BY, which a diagram of its box is not.
+ *
+ * The ghost is drawn first and the image laid over it, rather than swapping one
+ * for the other on load. A tile that draws nothing until a PNG arrives is a
+ * list of empty boxes on a slow connection, and an `onload` swap would reflow
+ * every tile in the category as the images land. If the picture never arrives —
+ * a tree where the previews have not been built, a deploy that has not caught
+ * up with a new element — the ghost is simply what stays visible.
+ */
+function picture(element: Element, library: Library): HTMLElement {
+  const frame = el("span", "tile-shot");
+  frame.appendChild(ghost(element, library.width / library.height));
+
+  const img = document.createElement("img");
+  img.className = "tile-img";
+  // Decorative: the name beside it is the accessible label, and the ghost
+  // underneath already carries aria-hidden for the same reason.
+  img.alt = "";
+  // Attributes rather than properties: a category can hold 22 tiles and only a
+  // few are on screen, so `lazy` is doing real work — and it is only testable
+  // as an attribute, which is also how it reaches the parser.
+  img.setAttribute("loading", "lazy");
+  img.setAttribute("decoding", "async");
+  img.src = previewUrl(library.size, element.id, library.version);
+  img.addEventListener("error", () => img.remove(), { once: true });
+  frame.appendChild(img);
+  return frame;
+}
+
 /** One element's tile: where it lands, what it is called, and whether it is starred. */
 function tile(state: PaneState, library: Library, element: Element): HTMLElement {
   const item = el("li", "tile");
@@ -106,7 +145,7 @@ function tile(state: PaneState, library: Library, element: Element): HTMLElement
   pick.setAttribute("aria-label", `Insert ${element.name}`);
   if (state.chosen === element.id) pick.setAttribute("aria-current", "true");
   if (state.busy === true) pick.disabled = true;
-  pick.appendChild(ghost(element, library.width / library.height));
+  pick.appendChild(picture(element, library));
   pick.appendChild(el("span", "tile-name", element.name));
   if (state.busy === true && state.chosen === element.id) {
     pick.appendChild(el("span", "tile-busy", "Inserting…"));

@@ -24,6 +24,14 @@
   --bg: #ffffff;
   --surface: #ffffff;
   --sunk: #edf2f7;
+  /*
+   * A slide's own paper, behind an element's photograph. NOT a theme colour,
+   * and deliberately the same in dark: the library is authored on white slides,
+   * so a preview of one IS white, and tinting the letterbox around it to match
+   * the pane would put a seam through every tile. PowerPoint's own slide
+   * thumbnails stay white in a dark window for the same reason.
+   */
+  --slide: #ffffff;
   --text: #1a202c;
   --muted: #5b6672;
   --hair: #cbd5e0;
@@ -442,6 +450,29 @@ input:focus-visible,
 .tile-pick:disabled {
   color: var(--disabled);
   cursor: default;
+}
+
+/*
+ * The element's photograph sits ON the landing ghost, not instead of it, so a
+ * tile has something in it from the first paint and nothing reflows when the
+ * PNG lands. The frame takes the ghost's size; the image covers it.
+ */
+.tile-shot {
+  display: block;
+  position: relative;
+}
+
+.tile-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The cut carries 3% of air already; `contain` keeps it rather than cropping
+     a wide element to a square tile. */
+  object-fit: contain;
+  background: var(--slide);
+  pointer-events: none;
 }
 
 .ghost {
