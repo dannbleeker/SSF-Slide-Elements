@@ -40,6 +40,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   reordered between asking what the deck uses and pressing Remove, the pane
   worked from the older list. It now asks the deck it is about to change.
 
+### Changed — an element with a picture in it stops making your deck bigger
+
+- **Every insert of an element that carries a picture used to put another copy
+  of that picture in your presentation.** Stamp thirty slides with the same
+  marker and the file carried thirty identical copies of the same image. It now
+  carries one: the second insert finds the picture already there and points at
+  it, which is what PowerPoint does with its own.
+- Measured on the test deck: the second and later inserts of a marker cost
+  **1.9 KB instead of 11.6 KB**, and inserting it four times leaves one copy of
+  its image rather than four.
+- A chart or an embedded workbook is still copied per insert, deliberately —
+  two charts sharing one workbook would mean editing one edits both.
+
 ### Fixed — an element you have grouped is still an element
 
 - **Group something the add-in inserted with a shape of your own, and the pane

@@ -255,14 +255,21 @@ describe("what an element carries into the deck", () => {
       store,
     });
 
-    expect(carried.parts.get("ppt/media/icon1.png")).toBe("ppt/media/icon2.png");
-    expect(pkg.has("ppt/media/icon2.png")).toBe(true);
+    // Read from the answer rather than written here. A media part's name is
+    // derived from its own bytes now, so that the NEXT insert of the same
+    // picture finds it already in the package instead of copying it again —
+    // what this case is about is that the copy is there, declared, and pointed
+    // at, which is true whatever it ends up called.
+    const name = carried.parts.get("ppt/media/icon1.png") ?? "";
+    expect(name).toMatch(/^ppt\/media\/[^/]+\.png$/);
+    expect(name, "the library's own name would collide in a deck that has one").not.toBe("ppt/media/icon1.png");
+    expect(pkg.has(name)).toBe(true);
     const added = (await relsOf(pkg, SLIDE)).find((r) => r.id === carried.ids.get("rId5"));
     expect(added?.type).toBe(IMAGE);
     // Relative to the SLIDE, which is the part that now owns the relationship.
-    expect(added?.target).toBe("../media/icon2.png");
+    expect(added?.target).toBe(`../media/${name.split("/").pop() ?? ""}`);
     expect(added?.mode).toBe("");
-    expect(pkg.resolved(SLIDE, added?.target ?? "")).toBe("ppt/media/icon2.png");
+    expect(pkg.resolved(SLIDE, added?.target ?? "")).toBe(name);
   });
 
   it("renames every id the element's markup uses, and never twice to the same one", async () => {
@@ -342,14 +349,15 @@ describe("what an element carries into the deck", () => {
      * So the assertion is on the literal entry in `[Content_Types].xml`.
      */
     const pkg = await crowded();
-    await carry({
+    const carried = await carry({
       pkg,
       owner: SLIDE,
       rels: [rel("rId5", IMAGE, "ppt/media/icon1.png")],
       types: { "ppt/media/icon1.png": "image/png" },
       store: storeOf({ "ppt/media/icon1.png": PNG }),
     });
-    expect(await pkg.text("[Content_Types].xml")).toContain('PartName="/ppt/media/icon2.png"');
+    const name = carried.parts.get("ppt/media/icon1.png") ?? "";
+    expect(await pkg.text("[Content_Types].xml")).toContain(`PartName="/${name}"`);
   });
 
   it("declares nothing for a part the catalogue has no content type for", async () => {
@@ -375,6 +383,65 @@ describe("what an element carries into the deck", () => {
     expect(await bare.contentTypeOf(without.parts.get("ppt/embeddings/oleObject1.bin") as string)).toBeUndefined();
   });
 
+  it("does not copy a picture the package already holds from an earlier insert", async () => {
+    /**
+     * The second insert of the same element used to copy its picture again.
+     * Measured on the validators' deck before this: four inserts of
+     * `markeringer-1` left four byte-identical copies of one 29 KB `.emf` and
+     * cost 11.6 KB each. A user who stamps thirty slides carried thirty.
+     *
+     * A media part's name is its own fingerprint and length, so the second
+     * carry finds it with one lookup — rather than by decompressing every
+     * picture in the user's deck to compare, which on a deck full of
+     * photographs is the cost this engine spent a day taking out of the base64
+     * path.
+     */
+    const pkg = await plain();
+    const before = pkg.partNames().filter((n) => n.startsWith("ppt/media/")).length;
+    const twice = async (): Promise<string> => {
+      const store = storeOf({ "ppt/media/image1.png": PNG });
+      const carried = await carry({
+        pkg,
+        owner: SLIDE,
+        rels: [rel("rId5", IMAGE, "ppt/media/image1.png")],
+        types: { "ppt/media/image1.png": "image/png" },
+        store,
+      });
+      return carried.parts.get("ppt/media/image1.png") ?? "";
+    };
+
+    const first = await twice();
+    const second = await twice();
+    expect(second, "the same bytes were carried under a second name").toBe(first);
+    expect(pkg.partNames().filter((n) => n.startsWith("ppt/media/"))).toHaveLength(before + 1);
+
+    // Both inserts point at it, and the package still declares it once.
+    const declarations = (await pkg.text("[Content_Types].xml")).split(`PartName="/${first}"`).length - 1;
+    expect(declarations, "the content type was declared twice").toBe(1);
+  });
+
+  it("carries a DIFFERENT picture separately, whatever it is called", async () => {
+    // The other half, and the one that would make the case above vacuous if it
+    // broke: sharing by content must not share by extension. Two pictures that
+    // differ by a byte are two pictures.
+    const pkg = await plain();
+    const other = new Uint8Array([...PNG.slice(0, PNG.length - 1), 0x02]);
+    const names: string[] = [];
+    for (const bytes of [PNG, other]) {
+      const carried = await carry({
+        pkg,
+        owner: SLIDE,
+        rels: [rel("rId5", IMAGE, "ppt/media/image1.png")],
+        types: { "ppt/media/image1.png": "image/png" },
+        store: storeOf({ "ppt/media/image1.png": bytes }),
+      });
+      names.push(carried.parts.get("ppt/media/image1.png") ?? "");
+    }
+    expect(names[0]).not.toBe(names[1]);
+    expect(pkg.has(names[0] ?? "")).toBe(true);
+    expect(pkg.has(names[1] ?? "")).toBe(true);
+  });
+
   it("copies a part named by two relationships once, and points both at it", async () => {
     /**
      * An element that shows one picture twice names it twice. Copying per
@@ -398,15 +465,14 @@ describe("what an element carries into the deck", () => {
 
     expect(carried.parts.size).toBe(1);
     expect(store.asked.filter((p) => p === "ppt/media/image1.png")).toHaveLength(1);
-    expect(pkg.partNames().filter((n) => n.startsWith("ppt/media/"))).toEqual(["ppt/media/image1.png"]);
+    const name = carried.parts.get("ppt/media/image1.png") ?? "";
+    expect(pkg.partNames().filter((n) => n.startsWith("ppt/media/"))).toEqual([name]);
     // Two relationships, two ids, one target.
     const ids = [carried.ids.get("rId5"), carried.ids.get("rId6")];
     expect(new Set(ids).size).toBe(2);
     const slide = await relsOf(pkg, SLIDE);
-    expect(slide.filter((r) => ids.includes(r.id)).map((r) => r.target)).toEqual([
-      "../media/image1.png",
-      "../media/image1.png",
-    ]);
+    const target = `../media/${name.split("/").pop() ?? ""}`;
+    expect(slide.filter((r) => ids.includes(r.id)).map((r) => r.target)).toEqual([target, target]);
   });
 });
 

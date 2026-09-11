@@ -33,6 +33,23 @@
  * than damage, and a sweep that deleted them would be a sweep deciding what
  * else in the user's deck still needs a part — which is the one class of
  * mistake that produces a file PowerPoint calls damaged.
+ *
+ * **What that weighs, measured rather than assumed** (2026-09-11, 50
+ * insert-then-remove cycles on `template/validators.pptx`, 37.9 KB to start):
+ *
+ * | element                        | per cycle | after 50 |
+ * | ------------------------------ | --------- | -------- |
+ * | `hvid-kasse-1-stor`, 5 shapes  |  5.5 KB   |  315 KB  |
+ * | `confidential`, 1 shape        |  4.1 KB   |  242 KB  |
+ * | `markeringer-1`, carries an EMF|  3.5 KB   |  211 KB  |
+ *
+ * Read it at the right scope: that is what chaining THIS engine's own packages
+ * costs, and it is an upper bound rather than what a user's file does. Each
+ * cycle leaves an unlisted slide, its relationships and its tag parts behind,
+ * and whether PowerPoint carries an unreferenced part through a save is a HOST
+ * question no round has asked. The number to watch is the one that is the
+ * engine's whatever the host does: the same marker's picture, which used to be
+ * copied again on every insert and now is not (`carry.ts`).
  */
 import { cloneSlide } from "../pptx/clone.js";
 import { Pkg } from "../pptx/pkg.js";
