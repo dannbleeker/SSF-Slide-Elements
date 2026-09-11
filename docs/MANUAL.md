@@ -51,6 +51,9 @@ fetched only when you insert it.
 
 **Slide elements**, once it has arrived. Top to bottom:
 
+- the **getting-started note**, the first time you ever open the pane: three
+  lines saying what to do. **Got it** dismisses it for good on that machine;
+
 - a line saying which slide you are on, and — only when your deck is neither
   16:9 nor 4:3 — which library was borrowed for it and what it was scaled to;
 - **Search**, which matches an element's English name, its Danish name in the

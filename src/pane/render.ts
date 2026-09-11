@@ -18,10 +18,12 @@
 import type { Element } from "../core/catalogue/types.js";
 import { previewUrl } from "./catalogue.js";
 import {
+  COACH,
   STEP_TITLE,
   blockedReason,
   borrowedLine,
   categoryHits,
+  coaching,
   didYouMean,
   elementOf,
   footerOf,
@@ -279,6 +281,19 @@ function footer(state: PaneState): HTMLElement {
 
 /** The browse screen: search, tags, favourites, recent, and the categories. */
 function browse(main: HTMLElement, state: PaneState, library: Library): void {
+  // Section 4: on the first open ever, three coach marks, dismissed once.
+  // Drawn before the search so it is the first thing read, and it is a panel of
+  // three lines rather than three callouts — see COACH for why.
+  if (coaching(state)) {
+    const coach = el("section", "coach");
+    coach.setAttribute("aria-label", "Getting started");
+    const list = el("ul", "coach-list");
+    for (const line of COACH) list.appendChild(el("li", "coach-line", line));
+    coach.appendChild(list);
+    coach.appendChild(button("coached", "secondary", "Got it"));
+    main.appendChild(coach);
+  }
+
   const tools = el("div", "tools");
   const search = el("input", "search");
   search.type = "search";

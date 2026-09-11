@@ -17,14 +17,13 @@ Built: search, tags, categories, tiles with the element's own picture on them,
 the stepper, favourites, recent, the gear, the footer with the measured delta,
 Undo, Again, the keyboard, the live region, high contrast, the pane reopening
 where you left it, the preview card, "Did you mean …" for a query with no hits,
-the category chips a search shows, and the stepper greying the sizes a search
-did not ask for. Still to come,
+the category chips a search shows, the stepper greying the sizes a search did
+not ask for, and the first-run coach marks. Still to come,
 all of it from `docs/DESIGN.md` sections 4, 6 and 8: the preview card's grey
 boxes for what the destination slide already has — the card itself is built, and
 those boxes need a host read of the slide's shapes that no round has verified;
 **Used in this deck**, read from the tags the insert writes (measured on 2026-09-11: they survive the insert, see `docs/DESIGN.md` section 15); **Remove from N
-slides** for a stamp; the three first-run coach marks; and right-click for the other
-insert target on one insert.
+slides** for a stamp; and right-click for the other insert target on one insert.
 
 ### The colour switch
 

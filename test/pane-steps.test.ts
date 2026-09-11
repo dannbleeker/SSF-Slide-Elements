@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Element } from "../src/core/catalogue/types.js";
 import {
+  COACH,
   DEFAULT_SETTINGS,
   EMPTY,
   RECENT_DEPTH,
@@ -9,6 +10,7 @@ import {
   blockedReason,
   borrowedLine,
   categoryHits,
+  coaching,
   didYouMean,
   elementOf,
   footerOf,
@@ -431,5 +433,22 @@ describe("greying the sizes a search did not ask for", () => {
     const tagged = element({ id: "a", name: "A", tags: ["boxes"] });
     expect(stepMatches(tagged, { ...EMPTY, tags: ["boxes"] })).toBe(true);
     expect(stepMatches(tagged, { ...EMPTY, tags: ["stamps"] })).toBe(false);
+  });
+});
+
+describe("the first-run coach marks", () => {
+  it("are shown on the first open, and not once dismissed", () => {
+    expect(coaching({ ...EMPTY, library: LIBRARY })).toBe(true);
+    expect(coaching({ ...EMPTY, library: LIBRARY, coached: true })).toBe(false);
+  });
+
+  it("are not shown before the library is there", () => {
+    // Nothing to be coached about yet, and the loading screen has its own job.
+    expect(coaching(EMPTY)).toBe(false);
+  });
+
+  it("says three things, which is what section 4 asks for", () => {
+    expect(COACH).toHaveLength(3);
+    for (const line of COACH) expect(line.length).toBeGreaterThan(0);
   });
 });

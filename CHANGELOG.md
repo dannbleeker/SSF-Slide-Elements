@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — a note the first time you open the pane
+
+- **The first time you open it, three lines say what to do**: rest on a tile to
+  see the element, click to place it, and where Undo and the gear are. Dismiss it
+  once and it stays dismissed, on that machine.
+
 ### Added — narrowing a search
 
 - **While you search, the sections that have hits appear as chips with counts.**

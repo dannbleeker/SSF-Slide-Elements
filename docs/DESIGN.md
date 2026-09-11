@@ -243,7 +243,12 @@ PowerPoint would settle.
   already had content, **Again**, **Undo (n)**), then a line with the current
   settings that opens the gear.
 - **First open ever**: three coach marks (hover to preview, click to insert,
-  Undo and the gear), dismissed once.
+  Undo and the gear), dismissed once and remembered per machine.
+  Built 2026-09-11 as three LINES OF ONE PANEL above the search, not three
+  callouts pointing at the controls. The pane is 320 px at its narrowest, where
+  three floating callouts would cover the very tiles, footer and gear they were
+  pointing at — and a coach mark that hides what it is describing teaches
+  nothing. The panel says the same three things and leaves the pane readable.
 - **The pane reopens where you left it**: search, tags, open categories,
   scroll position, picked counts and settings are kept per deck across pane
   closes and reloads, in the browser's storage on the user's machine.
