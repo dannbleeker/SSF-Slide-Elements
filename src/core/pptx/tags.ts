@@ -249,7 +249,7 @@ export async function writeShapeTags(
   else nvPr.appendChild(custDataLst);
 }
 
-/** One tagged top-level shape: which element it is, and where it sits. */
+/** One tagged shape: which element it is, and where it sits. */
 export interface TaggedShape {
   /** The value of `SSF_SLIDE_ELEMENT`: the catalogue id of the element. */
   element: string;
@@ -260,12 +260,16 @@ export interface TaggedShape {
 }
 
 /**
- * Every top-level shape on a slide that this add-in put there.
+ * Every shape on a slide that this add-in put there, wherever it now sits.
  *
  * What "Used in this deck" and "Remove from N slides" are read from
  * (`docs/DESIGN.md` sections 4 and 6). Read from the FILE rather than through
- * the API for the reason at the top of this file, and read per top-level shape
- * rather than per slide because one slide can carry several elements.
+ * the API for the reason at the top of this file, and read per SHAPE rather
+ * than per slide because one slide can carry several elements.
+ *
+ * Inside the user's own groups as well as beside them: grouping our stamp with
+ * a shape of their own is one gesture, and a top-level sweep answered that the
+ * element was not in the deck while it sat on the slide in front of them.
  *
  * A shape carrying a tag part that is not ours answers nothing rather than
  * throwing: a deck touched by another add-in has exactly that on every slide.
@@ -278,31 +282,55 @@ export async function readShapeTags(pkg: Pkg, slidePath: string): Promise<Tagged
   const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
   if (!spTree) return out;
 
-  for (const node of Array.from(spTree.childNodes)) {
-    if (node.nodeType !== 1) continue;
-    const shape = node as Element;
+  /** One shape's tag values, or undefined when it points at no tag part of ours. */
+  const valuesOf = async (shape: Element): Promise<Map<string, string> | undefined> => {
     const nvPr = nvPrOf(shape);
-    if (!nvPr) continue;
+    if (!nvPr) return undefined;
     const custData = child(nvPr, P_NS, "custDataLst");
     const ref = custData ? child(custData, P_NS, "tags") : undefined;
     const rId = ref?.getAttributeNS(R_NS, "id") ?? ref?.getAttribute("r:id");
-    if (!rId) continue;
+    if (!rId) return undefined;
     const target = await pkg.relTarget(slidePath, rId);
-    if (!target || !pkg.has(target)) continue;
+    if (!target || !pkg.has(target)) return undefined;
     const values = new Map<string, string>();
     for (const tag of elements(await pkg.doc(target), P_NS, "tag")) {
       const name = tag.getAttribute("name");
       if (name) values.set(name, tag.getAttribute("val") ?? "");
     }
-    const element = values.get(TAG_ELEMENT);
-    if (element === undefined) continue;
-    const catalogue = values.get(TAG_CATALOGUE);
-    out.push({
-      element,
-      ...(catalogue === undefined ? {} : { catalogue }),
-      shapeId: idOf(shape) ?? "",
-    });
-  }
+    return values;
+  };
+
+  /**
+   * Shapes in document order, INSIDE the user's groups as well as beside them.
+   *
+   * A top-level sweep was what this did first, and it was wrong in a way a user
+   * produces in one gesture: group our stamp with a logo of your own and the
+   * tag is one level down, so "Used in this deck" answered that the element was
+   * not in the deck while it sat on the slide in front of them.
+   *
+   * A tagged shape is not descended into. When the insert groups an element,
+   * the tag goes on the GROUP and the group is the element — walking into it
+   * would count the same use once per shape inside.
+   */
+  const walk = async (container: Element): Promise<void> => {
+    for (const node of Array.from(container.childNodes)) {
+      if (node.nodeType !== 1) continue;
+      const shape = node as Element;
+      const values = await valuesOf(shape);
+      const element = values?.get(TAG_ELEMENT);
+      if (element !== undefined) {
+        const catalogue = values?.get(TAG_CATALOGUE);
+        out.push({
+          element,
+          ...(catalogue === undefined ? {} : { catalogue }),
+          shapeId: idOf(shape) ?? "",
+        });
+        continue;
+      }
+      if (shape.namespaceURI === P_NS && shape.localName === "grpSp") await walk(shape);
+    }
+  };
+  await walk(spTree);
   return out;
 }
 

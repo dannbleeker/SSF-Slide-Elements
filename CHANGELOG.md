@@ -40,6 +40,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   reordered between asking what the deck uses and pressing Remove, the pane
   worked from the older list. It now asks the deck it is about to change.
 
+### Fixed — an element you have grouped is still an element
+
+- **Group something the add-in inserted with a shape of your own, and the pane
+  stopped seeing it.** "See what this deck already uses" answered that the
+  element was not in the deck while it sat on the slide in front of you, and
+  "Remove from N slides" was never offered for it. Grouping is one gesture and
+  the mark the add-in leaves is still there; the pane now finds it, inside your
+  groups and inside groups within them.
+- **Removing one takes the element out of your group and leaves your own shape
+  where it was.** If the element was the only thing left in that group, the
+  group goes too — an empty group is not something PowerPoint makes.
+
 ### Fixed — the privacy page can now count
 
 - **The page that tells you what the add-in keeps on your machine said "four
