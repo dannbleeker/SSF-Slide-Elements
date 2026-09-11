@@ -14,6 +14,7 @@ import {
   didYouMean,
   elementOf,
   footerOf,
+  fractionOf,
   groups,
   isOpen,
   landingLine,
@@ -651,5 +652,41 @@ describe("taking a part off the slides it is on", () => {
     expect(short.byHand).toBe(true);
     expect(short.detail).toContain("Removed from 2 of 3 slides");
     expect(short.detail).toContain("as they were");
+  });
+});
+
+describe("a landed rectangle, in fractions of the right slide", () => {
+  // The splice reports where an element landed in the DESTINATION deck's EMU.
+  const landed = { x: 3048000, y: 1714500, cx: 6096000, cy: 3429000 };
+  const library16x9 = { width: 12192000, height: 6858000 };
+  // A4 landscape, which is one of the sizes `libraryFor` hands the NEAREST
+  // library to rather than an exact one.
+  const a4 = { width: 10692000, height: 7560000 };
+
+  it("measures against the deck the element landed in", () => {
+    expect(fractionOf(landed, library16x9)).toEqual({ x: 0.25, y: 0.25, w: 0.5, h: 0.5 });
+  });
+
+  it("gives a DIFFERENT answer on a deck that borrowed the library, which is the whole point", () => {
+    // This is the bug the function exists to prevent: the pane used to divide
+    // by `library.width`/`library.height`, which are the LIBRARY deck's size.
+    // On an exact 16:9 deck the two are the same number and nothing shows; on a
+    // borrowed one the rectangle lands a sixth of a slide out.
+    const borrowed = fractionOf(landed, a4) as { x: number; w: number };
+    const wrong = fractionOf(landed, library16x9) as { x: number; w: number };
+    expect(borrowed.x).toBeCloseTo(0.285, 3);
+    expect(borrowed.w).toBeCloseTo(0.57, 3);
+    expect(borrowed.x).not.toBeCloseTo(wrong.x, 3);
+  });
+
+  it("answers nothing rather than a fraction of a size nobody read", () => {
+    expect(fractionOf(landed, undefined)).toBeUndefined();
+    expect(fractionOf(landed, { width: 0, height: 0 })).toBeUndefined();
+  });
+
+  it("drops the snapshot when the size is unknown, rather than keeping a stale one", () => {
+    const onSlide = { slide: 2, boxes: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.2 }] };
+    expect(withLanded(onSlide, 2, undefined, false)).toBeUndefined();
+    expect(withLanded(onSlide, 2, undefined, true)).toBeUndefined();
   });
 });

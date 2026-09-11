@@ -146,9 +146,9 @@ function ghost(element: Element, aspect: number, occupied: Box[] = []): SVGSVGEl
  * a tree where the previews have not been built, a deploy that has not caught
  * up with a new element — the ghost is simply what stays visible.
  */
-function picture(element: Element, library: Library, occupied: Box[] = []): HTMLElement {
+function picture(element: Element, library: Library, occupied: Box[] = [], aspect?: number): HTMLElement {
   const frame = el("span", "tile-shot");
-  frame.appendChild(ghost(element, library.width / library.height, occupied));
+  frame.appendChild(ghost(element, aspect ?? library.width / library.height, occupied));
 
   const img = document.createElement("img");
   img.className = "tile-img";
@@ -189,7 +189,14 @@ function card(element: Element, library: Library, state: PaneState): HTMLElement
   // Announced by the tile it belongs to, not by itself: the tile already
   // carries "Insert <name>", and a live card would interrupt a reader mid-word.
   box.setAttribute("aria-hidden", "true");
-  box.appendChild(picture(element, library, occupiedFor(state)));
+  // The card's little slide is the USER's slide, so it is drawn in the user's
+  // own shape when the pane has read it: the grey boxes are fractions of that
+  // slide, and on a deck that borrowed the nearest library — A4, 16:10, custom
+  // — the library's shape is a different rectangle. The element's own frame is
+  // in LIBRARY fractions and is therefore approximate on such a deck, which is
+  // what the borrowed line under the header already says out loud.
+  const aspect = state.deck && state.deck.height > 0 ? state.deck.width / state.deck.height : undefined;
+  box.appendChild(picture(element, library, occupiedFor(state), aspect));
   box.appendChild(el("strong", "card-name", element.name));
   box.appendChild(el("p", "card-landing", landingLine(element, state.settings)));
   return box;

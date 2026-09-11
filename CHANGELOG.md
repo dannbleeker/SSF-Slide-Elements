@@ -7,6 +7,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — two found by hunting rather than by using
+
+- **The grey boxes on a deck that is not 16:9 or 4:3.** The rectangle showing
+  where an element just landed was measured against the library's slide size
+  instead of your deck's. On a deck that borrows the nearest library — A4,
+  16:10, anything custom — it was drawn in the wrong place. The card's little
+  slide is now your deck's shape too.
+- **Removing a stamp after the deck moved on.** If slides were added, deleted or
+  reordered between asking what the deck uses and pressing Remove, the pane
+  worked from the older list. It now asks the deck it is about to change.
+
 ### Changed — the toolchain
 
 - Seven development dependencies moved forward, including vitest to 5. Nothing
