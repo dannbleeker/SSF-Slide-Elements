@@ -99,6 +99,14 @@ PowerPoint would settle.
   A part is cut to its box with 3% of air, the boxes of neighbouring parts
   painted white, and a rotated part masked to its rotated frame. The parts are
   the same objects in both decks, so their cuts are shared.
+  **Both prints are committed**, `template/library-16x9.pdf` (110 pages,
+  2,220,422 bytes) and `template/library-4x3.pdf` (108 pages, 2,432,141 bytes),
+  taken on 2026-09-11 from the decks as they stand. They are prints of the
+  UN-EDITED decks: section 14's deck edits have not happened, so both need
+  retaking after that pass, and the cutting code does not exist yet. `*.pdf` is
+  declared `binary` in `.gitattributes` for the same reason `*.pptx` is — the
+  repo's `* text=auto eol=lf` would otherwise leave a print to git's binary
+  heuristic.
 - **Both decks open in desktop PowerPoint. They did not until 2026-09-11, and
   why is worth keeping.** Measured on Windows that day (PowerPoint
   16.0.20326.20132, Microsoft 365 Current Channel, x64): both decks were refused
@@ -535,21 +543,31 @@ The rest of this section is about the DECKS and the print rather than Office.js.
 - **`ExportAsFixedFormat` cannot be called through automation on this build.**
   Every arity, from PowerShell and from VBScript alike, raises
   `DISP_E_TYPEMISMATCH`; the method is present on the type and refuses to bind.
-  A print driven from code therefore goes through `SaveAs(path, ppSaveAsPDF)`,
-  which takes PowerPoint's default publish options rather than named ones, or
-  through the File → Export dialog by hand. A print taken this way is checked by
-  its output — page count against slide count, and the PDF's `/MediaBox` against
-  the slide size — rather than by the switches that were set.
-- **Both decks render correctly.** Printed while the fix was still on copies:
-  the 16:9 deck gives 110 pages for 110 slides at 960×540 pt (2,220,241 bytes),
-  the 4:3 deck 108 pages for 108 slides at 720×540 pt (2,431,939 bytes), neither
-  deck carrying a hidden slide. Sampled pages are rendered slides, and each one's
-  slide-number footer matches its page number. Those prints were NOT committed,
-  because they were prints of copies rather than of the bytes on `main`, and a
-  print whose provenance does not match the deck the harvest checks it against
-  would pass the slide-count check while being cut from the wrong file. The
-  print to commit is taken from the decks as they now stand, and arrives on its
-  own.
+  So a print cannot be driven from code with its options named. The committed
+  prints went through the **File → Export dialog by hand** instead, which is
+  what section 3 says to do and is the only route on this build where the
+  switches can be both set and read back. `SaveAs(path, ppSaveAsPDF)` works and
+  takes PowerPoint's defaults; on these two decks it is equivalent, since they
+  carry no comments, no ink and no hidden slides, so every non-default switch
+  the print needs is a no-op — but it cannot show which options were used, only
+  what came out.
+- **Both decks print correctly, and the prints are committed.** Taken through
+  **File → Export → Create PDF/XPS → Options** from the decks at their committed
+  paths, with Range all, Publish what Slides, Frame slides off, Include hidden
+  slides on, Include comments off, Include ink off, and Optimise for Standard —
+  each setting read back off the dialog before publishing, because the Options
+  dialog resets to its defaults between presentations and does NOT remember what
+  the previous publish used. The 16:9 deck gives 110 pages for 110 slides at
+  960×540 pt (2,220,422 bytes); the 4:3 deck 108 pages for 108 slides at
+  720×540 pt (2,432,141 bytes). Page counts were read from the PDF page tree and
+  again through `Windows.Data.Pdf`, against slide counts read from the decks'
+  own `ppt/slides/slideN.xml` parts and `<p:sldId>` entries. Sampled pages are
+  rendered slides with no frame, and each one's slide-number footer matches its
+  page number. Both decks were byte-identical to `HEAD` afterwards.
+  An earlier pair of prints, taken from corrected copies before the fix was
+  committed, was deliberately NOT committed: a print whose provenance does not
+  match the deck the harvest checks it against would pass the slide-count check
+  while being cut from the wrong file.
 
 Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
 them parts of four collection slides, twelve runs of sizes, 42 whole-slide

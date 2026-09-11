@@ -21,14 +21,17 @@ and commits them beside the `.pptx`, the harvest has nothing to cut, and the
 pane is a list of names and landings rather than a picture book. The tile has
 the slot; nothing else is blocked by it.
 
-**The decks themselves are no longer in the way.** They did not open in desktop
-PowerPoint until 2026-09-11 — two `[Content_Types].xml` overrides per deck were
-missing the leading `/` on their `PartName`, and PowerPoint offered Repair
-instead of opening (`docs/DESIGN.md` section 3). The four slashes are in, nothing
-else about either package changed, and the harvested index did not move. What is
-left of this item is the print itself, and before that the section 14 deck edits
-— English placeholder text, the Icons slide, the rules text into notes, the
-collection marker line — since a deck change means a re-print either way.
+**The prints are committed now**, `template/library-16x9.pdf` and
+`template/library-4x3.pdf`, 110 and 108 pages, taken 2026-09-11
+(`docs/DESIGN.md` section 3). So what is left of this item is the CUTTING: the
+harvest reading each element's box out of the print, the white-out of
+neighbouring parts, the rotated mask, and the hashed preview files the tiles
+point at. Two things to know before that work starts. The prints are of the
+UN-EDITED decks — section 14's pass has not happened, and a deck change means a
+re-print — so do not treat a preview cut today as final. And the decks
+themselves would not open in desktop PowerPoint until 2026-09-11: two
+`[Content_Types].xml` overrides per deck were missing the leading `/` on their
+`PartName`, which is fixed, and is why the print could not be taken sooner.
 
 ### The preview card, and the rest of section 4
 

@@ -16,9 +16,10 @@
 # matches what the gate demands rather than what the platform prefers.
 * text=auto eol=lf
 
-# Decks and images are bytes. Normalising them corrupts them. Declared rather
-# than left to git's binary heuristic, which is good and is still a guess.
+# Decks, prints and images are bytes. Normalising them corrupts them. Declared
+# rather than left to git's binary heuristic, which is good and is still a guess.
 *.pptx binary
+*.pdf binary
 *.png binary
 *.jpg binary
 *.jpeg binary

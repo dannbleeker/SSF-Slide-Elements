@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the printed library
+
+- **Both library decks are now committed as PDFs beside the decks themselves**,
+  110 pages and 108. This is the raw material the tiles' pictures get cut from;
+  the cutting itself is still to come, so the pane looks the same today. The
+  prints are of the decks as they stand, which still carry their Danish
+  placeholder text — they will be retaken once the decks are edited.
+
 ### Fixed — the library decks open in PowerPoint again
 
 - **The two library decks under `template/` would not open in PowerPoint on
