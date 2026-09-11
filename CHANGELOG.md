@@ -7,6 +7,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — the toolchain
+
+- Seven development dependencies moved forward, including vitest to 5. Nothing
+  a user installs changed: none of them reach the add-in itself.
+
 ### Added — taking a stamp off every slide it is on
 
 - **A stamp or marker already in your deck now carries "Remove from N slides"**,
