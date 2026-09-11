@@ -385,6 +385,33 @@ exception for width.
   (`Office.context.ui.openBrowserWindow`, probed at runtime; a plain new-tab
   link is unreliable on desktop) and never navigate the pane itself.
 
+  Both built 2026-09-11, and three things about them were decided in the
+  building:
+
+  - **What may go in the address is an ALLOWLIST, in `src/host/links.ts`.**
+    Three values — a build that looks like a commit, a host and a platform that
+    are on Office's own lists — and no way to add a fourth. This is a privacy
+    rule before it is a formatting one: the pane is running inside somebody's
+    presentation, the support page is on the open web, and a URL is the least
+    private thing there is. The support page holds the same two lists from the
+    other end and shows nothing it does not recognise, which is what stops a
+    crafted link putting a word of its choosing on the page somebody in trouble
+    lands on. `test/security.test.ts` holds the two spellings together.
+  - **The site is the one the PANE was served from**, never a production
+    address written into the code — so a dev build links to the dev origin, and
+    nothing in the pane can send a user to a site the add-in did not come from.
+  - **The links are buttons.** An `<a href>` in a task pane either does nothing
+    or navigates the pane away from itself, and a user whose pane has become a
+    web page has to close and reopen it to get back. When the host opens
+    nothing at all — no `openBrowserWindow` and a blocked `window.open` — the
+    pane says so and names the address, because a click that silently does
+    nothing is the version the user cannot work around.
+
+  Not yet measured: whether `openBrowserWindow` is there and behaves on each
+  host. The requirement set is probed rather than assumed and `window.open` is
+  the fallback, so both positions are covered — but which one runs where is a
+  question for the next round on each platform.
+
 ## 8. Search
 
 Matches the English name, the Danish key (and later every locale's name), the
@@ -737,3 +764,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The colour switch resolves the library theme at HARVEST time, one map per size, and refuses a deck with two themes — rather than carrying the theme part into the user's package, which would make every insert add a theme the user did not ask for | decided in the build, 2026-09-11 |
 | The store listing is written into the repo (`docs/LISTING.md`) and held to the manifests by a test, rather than typed into Partner Center at submission time — and the screenshot, the validators' test deck and the listing name are left as the owner's, because a composited screenshot or a deck built by this repo's own code would be a picture of something that does not exist | decided in the build, 2026-09-11 |
 | The 4:3 deck was re-themed to the 16:9 deck's colour scheme rather than the other way round: the 16:9 deck is the owner's own 2021 template and the 4:3 deck's palette came from the company it was authored at in 2013. The change is the deck's, so the committed print no longer belongs to it and the print gate says so until it is re-printed | decided in the build, 2026-09-11 |
+| The gear's two external links carry an allowlist of three values and open the site the PANE was served from, as buttons rather than anchors — and the support page reads the same allowlist back, so a crafted link can put a build code on that page and nothing else | decided in the build, 2026-09-11 |

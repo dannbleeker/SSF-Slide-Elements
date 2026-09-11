@@ -73,6 +73,13 @@ fetched only when you insert it.
   **this deck's theme** or come out **as in the library**. The line at the
   bottom of the pane always says what those are set to, and opens the gear when
   clicked;
+- **two links out of the gear.** **Report a problem** opens the support page in
+  your browser with the build code, the app and the platform already filled in,
+  so a report says which version was running without you looking anything up.
+  **Browse the catalogue on the site** opens the element library as a web page,
+  which is the easy way to show somebody an element without opening PowerPoint.
+  Neither one navigates the pane itself; if PowerPoint refuses to open a
+  browser window, the pane says so and gives you the address;
 - **colours, in a little more detail.** Left alone — the setting you start on —
   an element takes the theme of the deck you put it in, so it comes out in your
   own colours and follows you if you change the deck's design later. Switch to

@@ -267,6 +267,20 @@ function gearPanel(state: PaneState): HTMLElement {
     colours.appendChild(choice);
   }
   panel.appendChild(colours);
+
+  // The two links that leave the pane (`docs/DESIGN.md` section 7). Buttons
+  // rather than anchors, deliberately: a task pane is a WebView with no browser
+  // around it, so an `<a href>` either does nothing or — worse — navigates the
+  // pane away from itself, and the user's way back is to close and reopen it.
+  // `openExternal` in `src/office` is what actually opens them.
+  const links = el("div", "option links");
+  for (const [action, label] of [
+    ["report", "Report a problem"],
+    ["catalogue", "Browse the catalogue on the site"],
+  ] as const) {
+    links.appendChild(button(action, "link", label));
+  }
+  panel.appendChild(links);
   return panel;
 }
 

@@ -213,7 +213,7 @@ const STATES = [
     name: "browse-gear",
     step: "browse",
     state: { ...BROWSING, gear: true },
-    shows: ["target", "group", "colours"],
+    shows: ["target", "group", "colours", "report", "catalogue"],
   },
   {
     name: "browse-searched",

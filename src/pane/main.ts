@@ -15,11 +15,14 @@ import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
+import { catalogueUrl, reportUrl, siteFrom } from "../host/links.js";
 import { BUDGET } from "../host/timeout.js";
 import {
   currentSlide,
+  hostStamp,
   insertPackage,
   onSlideChange,
+  openExternal,
   ready as hostReady,
   readDeck,
   removeSlideAt,
@@ -459,6 +462,33 @@ function actionOf(target: EventTarget | null): { action: string; el: HTMLElement
   return action ? { action, el: node } : undefined;
 }
 
+/**
+ * Open one of the site's own pages in the user's browser.
+ *
+ * The site is the one the PANE was served from, so a dev build's links point at
+ * the dev origin and nothing here can send somebody to an origin the add-in did
+ * not come from.
+ *
+ * When the host opens nothing — no `openBrowserWindow`, and a blocked
+ * `window.open` — the pane says so and names the address, because a click that
+ * silently does nothing is the version of this the user cannot work around.
+ */
+function leave(urlFor: (site: { origin: string }) => string, what: string): void {
+  const site = siteFrom(window.location.href);
+  if (!site) {
+    set({ notice: `This pane was not opened from a web address, so it cannot open ${what}.` });
+    return;
+  }
+  const url = urlFor(site);
+  if (openExternal(url)) {
+    set({ notice: undefined, gear: false });
+    return;
+  }
+  set({
+    notice: `PowerPoint would not open a browser window. You can reach ${what} at ${url.replace(/^https?:\/\//, "")}`,
+  });
+}
+
 function onClick(event: MouseEvent): void {
   const found = actionOf(event.target);
   if (!found) return;
@@ -506,6 +536,16 @@ function onClick(event: MouseEvent): void {
         set({ settings: { ...state.settings, colours: value } });
         keep();
       }
+      break;
+    // Section 7's two links. Both open the site the PANE was served from, in
+    // the user's browser, and neither navigates the pane.
+    case "report":
+      // The build stamp, the host and the platform go with it — nothing else
+      // can, because `reportUrl` takes nothing else (`src/host/links.ts`).
+      leave((site) => reportUrl(site, { build: buildStamp(), ...hostStamp() }), "the support page");
+      break;
+    case "catalogue":
+      leave(catalogueUrl, "the catalogue page");
       break;
     case "tag":
       if (value) set({ tags: toggle(state.tags, value) });
@@ -678,8 +718,13 @@ function applyTheme(): void {
  * as a clean run of the wrong build. The sibling projects record whole rounds
  * lost to it. Seven characters in the header is how the two are told apart.
  */
+/** The commit this pane was built from, or undefined outside a build. */
+function buildStamp(): string | undefined {
+  return typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : undefined;
+}
+
 function showBuild(): void {
-  const build = typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : "unknown";
+  const build = buildStamp() ?? "unknown";
   const header = document.querySelector("header");
   if (!header || build === "unknown") return;
   const span = document.createElement("span");
