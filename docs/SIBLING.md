@@ -121,8 +121,8 @@ worse than no row at all, because the next reader builds on it.
 | `getitemat-past-end` — what the host does past the end of a collection | SSF-Charts' `FAKE_BASELINE` | **Relevant.** No paging was built, so what it bounds is removing the replaced slide by index if the deck moved. |
 | `which-end-a-short-read-drops` | SSF-Charts' `FAKE_BASELINE` | **Relevant.** A short read that is not a prefix makes a slide NUMBER wrong, not merely a list shorter, and this add-in addresses the slide the user is on by position. |
 | `how-many-collection-reads-a-context-survives` | SSF-Charts' `PENDING_QUESTIONS`; SSF-Merge's paging loop | **Smaller than it was, re-triaged 2026-09-11.** There is no paging, so there is no loop: one `PowerPoint.run` per read, one collection load inside it, and no context accumulates reads either way. |
-| `delete-then-lookup` — whether a deleted slide still resolves | SSF-Charts' `FAKE_BASELINE` | **Adopted as doctrine.** The replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed. |
-| `scratch-slides-returned` — whether a probe gets its slides back | SSF-Charts' positional sweep; SSF-Merge's triple-clamped undo | **Adopted as doctrine.** Any removal here is positional and clamped. |
+| `delete-then-lookup` — whether a deleted slide still resolves | SSF-Charts' `FAKE_BASELINE` | **Adopted as doctrine, re-verdicted 2026-09-11.** The replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed. "Remove from N slides" is a SECOND caller of the same delete and runs it once per slide; each cycle is counted back before the next one starts. |
+| `scratch-slides-returned` — whether a probe gets its slides back | SSF-Charts' positional sweep; SSF-Merge's triple-clamped undo | **Adopted as doctrine, re-verdicted 2026-09-11.** Any removal here is positional and clamped. The deck-wide removal can stop half-way — by design, at the first cycle the deck's own size does not confirm — and says how far it got, which is the opposite failure to 45 slides nobody asked for. |
 
 ### The rows that are no exposure
 
