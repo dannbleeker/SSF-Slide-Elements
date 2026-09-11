@@ -61,15 +61,31 @@ PowerPoint would settle.
   into the slide's notes, not onto the slide.
 - **Names.** A slide element is named by its title. A part is named by its own
   text with brackets stripped, else by its PowerPoint shape name when that is
-  not a generic `Gruppe N`, else by the slide title numbered. The deck stays
-  Danish and its titles are the **keys**; `template/names.en.json` carries the
-  English name for every key, one file per locale later, and the harvest fails
-  on a key with no name. The pane shows only the English name: no Danish
-  tooltip, no per-element description.
-- **Placeholder text in the library is English in v1**, in both decks, so what
-  lands on the slide reads in the pane's language. Per-locale text comes later
-  the way names do. Slide titles stay Danish because they are the keys and are
-  never shown.
+  not a generic `Gruppe N`, else by the slide title numbered. The deck's TITLES
+  stay Danish and are the **keys**; `template/names.en.json` carries the English
+  name for every key, one file per locale later, and the harvest fails on a key
+  with no name. The pane shows only the English name: no Danish tooltip, no
+  per-element description.
+  **A PART's key is English**, because a part is keyed by its own text and that
+  text was translated on 2026-09-11: eleven keys moved with it, `Fortroligt` to
+  `Confidential` and so on, and `names.en.json` moved with them. Two consequences
+  worth knowing. An element's `id` is a slug of its key, so those eleven ids
+  changed — a favourite or a "Used in this deck" tag written before that date
+  names an id the catalogue no longer has. And `tagsFor` matches the key against
+  a word list that was written in Danish; a rule a part can reach needs both
+  spellings, which is why it now reads `dokument|document` and why four elements
+  had quietly lost their `meeting` tag before it did.
+- **Placeholder text in the library is English**, in both decks, done
+  2026-09-11: 76 distinct strings across 3,393 paragraphs, so what lands on the
+  slide reads in the pane's language. Per-locale text comes later the way names
+  do. Left in Danish, deliberately: slide titles (the keys), and the 4:3 deck's
+  276 off-slide guidance shapes, which no element carries. Left alone as well:
+  the deliberate filler — lorem ipsum, `xxxx`, a Wingdings tick — which is meant
+  to read as obviously fake in any language.
+  Slide titles are never shown because the splice skips `title` and `ctrTitle`
+  placeholders when it takes the library slide's shapes
+  (`src/core/splice/shapes.ts`), for a new slide as well as onto the current
+  one — so a Danish title cannot reach a user's deck by either route.
 - **An element that comes in several sizes is one tile with a stepper.** A run
   of elements that differ only by one count (process flows with 1 to 6 boxes,
   hierarchies with 2 to 5 boxes, matrices with 2 to 5 rows, and so on) is
@@ -100,10 +116,11 @@ PowerPoint would settle.
   painted white, and a rotated part masked to its rotated frame. The parts are
   the same objects in both decks, so their cuts are shared.
   **Both prints are committed**, `template/library-16x9.pdf` (110 pages,
-  2,220,422 bytes) and `template/library-4x3.pdf` (108 pages, 2,432,141 bytes),
-  taken on 2026-09-11 from the decks as they stand. They are prints of the
-  UN-EDITED decks: section 14's deck edits have not happened, so both need
-  retaking after that pass, and the cutting code does not exist yet. `*.pdf` is
+  2,218,863 bytes) and `template/library-4x3.pdf` (108 pages, 2,307,900 bytes),
+  re-taken on 2026-09-11 after the placeholder text went English, from the decks
+  as they stand. Section 14's remaining deck edits have not happened, so both
+  need retaking again after that pass, and the cutting code does not exist yet
+  either — nothing downstream is holding a stale cut. `*.pdf` is
   declared `binary` in `.gitattributes` for the same reason `*.pptx` is — the
   repo's `* text=auto eol=lf` would otherwise leave a print to git's binary
   heuristic.
@@ -383,9 +400,22 @@ picker are built, and the sheets are filed under `docs/host-answers/`.
 
 Everything approved ships in v1; there is no v1/v2 split. The order is
 `docs/BACKLOG.md`: harvest → host probe → splice → picker → host handshake →
-release and AppSource. Before the harvest the owner edits both decks: English
-placeholder text, the Icons slide, the rules text into notes, the collection
-marker line, then a fresh PDF print of each.
+release and AppSource. Four deck edits belong before the library is final, and
+each one ends in a fresh PDF print of both decks:
+
+1. **English placeholder text** — DONE 2026-09-11, section 2.
+2. **The rules text into notes** — already true where it was checked: the
+   "gode regler for flowcharts" box is in the notes of the 16:9 deck's flowchart
+   slide and on no slide. The 4:3 deck's equivalent guidance is the 276
+   off-slide shapes, which are out of every element already. Nothing found that
+   still needs moving; re-check before calling it closed.
+3. **The collection marker line** — `SSF: ét element pr. figur` is in the notes
+   of one heading slide per deck. Whether the slides under it inherit it, or
+   whether the other collection headings need their own, is unsettled.
+4. **The Icons slide** — the least specified of the four. Section 2 says the
+   Icons collection "holds the scales and the waste bin, which are neither"
+   marker, stamp nor flowchart shape; it says what is wrong and not what the
+   fix is. This one needs a decision before it can be done.
 
 ## 15. Measured and assumed
 

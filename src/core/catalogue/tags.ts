@@ -1,9 +1,18 @@
 /**
- * Tags derived from the deck's Danish names and categories.
+ * Tags derived from the deck's names and categories.
  *
  * Derived, not authored: the owner turned an authored vocabulary down
  * (`docs/DESIGN.md` section 16). A tag is a word people filter by, so the list
  * is the words the library's own names use, mapped to English.
+ *
+ * The words are mostly Danish because the keys mostly are: a whole-slide
+ * element is keyed by its slide title, and titles stay Danish
+ * (`docs/DESIGN.md` section 2). A PART is keyed by its own text on the slide,
+ * and that text is English since 2026-09-11 — so any rule a part can match
+ * needs BOTH spellings. `dokument|document` is the one that actually bites;
+ * `proces` already matches "process" as a substring, and `decision` was
+ * already there beside `beslutning`. The rest are reached through the
+ * category, which is a heading slide's title and so still Danish.
  */
 
 const TAGS: [RegExp, string][] = [
@@ -25,7 +34,7 @@ const TAGS: [RegExp, string][] = [
   [/stempl|markering|etiket/, "stamps"],
   [/flowchart/, "flowchart"],
   [/ikon/, "icons"],
-  [/agenda|ændringslog|decision|beslutning|dokument/, "meeting"],
+  [/agenda|ændringslog|decision|beslutning|dokument|document/, "meeting"],
   [/vertikal/, "columns"],
   [/horisontal|rækker/, "rows"],
   [/grå/, "grey"],

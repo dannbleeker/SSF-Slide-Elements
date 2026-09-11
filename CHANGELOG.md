@@ -7,6 +7,22 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — the library speaks English
+
+- **Every placeholder an element puts on your slide is now English.** `[ Tekst ]`
+  reads `[ Text ]`, `[ Overskriften på kassen]` reads `[ Box heading ]`, and so
+  on through 76 phrases and about 3,400 pieces of text across both decks. What
+  lands on your slide now matches the language of the pane you picked it from.
+- Deliberately unchanged: the dummy filler (`Lorem ipsum`, `xxxx`) which is meant
+  to look obviously fake, and text that was already English.
+- **A handful of elements changed their internal id**, because an element in a
+  collection — the stamps, the labels, the flowchart shapes — is identified by
+  its own text. If you starred one of those as a favourite before today, the star
+  will not have followed it, and "Used in this deck" will not recognise a copy
+  you inserted earlier. Re-star it and it sticks.
+- Searching for **"meeting"** now finds four elements it had been missing.
+- Both PDF prints were retaken from the translated decks.
+
 ### Added — the printed library
 
 - **Both library decks are now committed as PDFs beside the decks themselves**,
