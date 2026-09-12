@@ -271,7 +271,12 @@ PowerPoint would settle.
 - **Favourites** (a star in the tile's corner, remembered per machine) and
   **Recent** (the last six inserts) sit above the categories.
 - **Categories** start collapsed, with "Open all" beside the count; a search or
-  a tag opens what it finds; category headers stick while scrolling. Tiles are
+  a tag opens what it finds; category headers stick while scrolling. Built
+  2026-09-12, with one detail the record did not have: the control is
+  WITHHELD once every category is open, and while a search or a tag is on,
+  because in both states it would be a click that changes nothing. There is
+  no "Close all" beside it — one control is what was approved, and a category
+  closes by its own header. Tiles are
   two across, three from 400 px. A tile is the element's picture and name; a
   sized element carries its stepper; a part already in the deck carries
   "Remove from N slides" — which appears only once the deck has been read, since

@@ -560,6 +560,23 @@ input:focus-visible,
   margin: 0 0 8px;
 }
 
+/* The count and "Open all" share a line: at 320px the button would otherwise
+   take a row of its own for three words. */
+.count-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* `.link` is a block that fills its column, which is right for the two links
+   that stand alone and wrong for one sitting beside the count. */
+.open-all {
+  display: inline-block;
+  width: auto;
+  flex: none;
+}
+
 .category {
   margin-bottom: 10px;
 }

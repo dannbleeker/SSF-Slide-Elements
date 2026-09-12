@@ -348,6 +348,21 @@ export function isOpen(state: PaneState, key: string): boolean {
   return state.open.includes(key);
 }
 
+/**
+ * Whether to offer "Open all" beside the count (`docs/DESIGN.md` section 4).
+ *
+ * Only while there is something to open. A search or a tag already opens
+ * everything it found, so the control would do nothing then; and once every
+ * category is open it has done its job and hides rather than staying on screen
+ * as a button that changes nothing. There is no "Close all" beside it: the
+ * design record asks for one control, and one category closes by its own
+ * header the way it always has.
+ */
+export function offersOpenAll(state: PaneState, library: Library): boolean {
+  if (state.query.trim() !== "" || state.tags.length > 0) return false;
+  return library.categories.some((category) => !state.open.includes(category.key));
+}
+
 /** The element a tile id names, if the library still has it. */
 export function elementOf(library: Library | undefined, id: string | undefined): Element | undefined {
   if (!library || id === undefined) return undefined;

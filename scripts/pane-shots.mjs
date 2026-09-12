@@ -159,7 +159,24 @@ const STATES = [
     shows: ["retry"],
     hides: ["search", "tile"],
   },
-  { name: "browse", step: "browse", state: BROWSING, shows: ["search", "gear", "tile", "star", "category", "step"] },
+  {
+    name: "browse",
+    step: "browse",
+    state: BROWSING,
+    // `open-all` is here because BROWSING opens one of the two categories, so
+    // the control is offered; `browse-all-open` below is the state where it
+    // has done its job and withholds itself.
+    shows: ["search", "gear", "tile", "star", "category", "step", "open-all"],
+  },
+  {
+    // Every category open: the state "Open all" leaves behind, and the one
+    // where the control must be GONE rather than a click that changes nothing.
+    name: "browse-all-open",
+    step: "browse",
+    state: { ...BROWSING, open: ["boxes", "stamps"] },
+    shows: ["search", "category"],
+    hides: ["open-all"],
+  },
   {
     // The first open ever (section 4): three lines and one way out.
     name: "browse-first-run",
