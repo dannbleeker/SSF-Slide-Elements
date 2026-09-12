@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see, again
+
+- The part of the engine that reads a .pptx now gets tested against files that
+  are damaged in the ways real files are: a picture declared twice, a link with
+  nothing on the end of it, a slide the presentation lists but cannot find. It
+  already coped with all of them; nothing was checking that it did.
+
 ### Fixed — a marker would have stopped being a marker
 
 - **A future category whose name merely contained the word "mark" would have had
