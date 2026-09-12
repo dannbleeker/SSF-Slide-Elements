@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -116,4 +116,71 @@ describe("the listing's own files", () => {
     // how this assertion read before it was tried.
     expect(bytes.subarray(30, 60).toString("latin1")).toContain("[Content_Types].xml");
   });
+});
+
+describe("the testing notes admit which platforms nobody has measured", () => {
+  /**
+   * The disclosure the design record has been claiming for days.
+   *
+   * `docs/DESIGN.md` section 9 said "the testing notes say the publisher has
+   * not measured it" about iPad. They did not — the sentence was never
+   * written, and nothing was checking, which is the exact shape of the four
+   * stale claims found on 2026-09-11 one level up. Read against the answer
+   * sheets rather than a hand-kept list: a platform with no sheet must be
+   * disclosed, and a platform WITH one must not be, so the day a Mac sheet is
+   * filed this goes red until the notes stop calling Mac unmeasured.
+   *
+   * Certification policy 1120 has validators exercise every platform the
+   * manifest claims, and a PowerPoint task pane cannot exclude any of them. So
+   * the notes telling a validator that a Mac or iPad finding is a FIRST
+   * measurement is the difference between a useful report and a surprise.
+   */
+
+  /** `Office.context.diagnostics.platform`, in the words the listing uses. */
+  const AS_LISTED: Record<string, string> = {
+    OfficeOnline: "web",
+    PC: "Windows",
+    Mac: "Mac",
+    iOS: "iPad",
+  };
+
+  /** Every platform an answer sheet under `docs/host-answers/` was taken on. */
+  function measured(): Set<string> {
+    const out = new Set<string>();
+    for (const name of readdirSync("docs/host-answers")) {
+      if (!name.endsWith(".json")) continue;
+      const sheet = JSON.parse(readFileSync(`docs/host-answers/${name}`, "utf8")) as { platform?: string };
+      const listed = AS_LISTED[sheet.platform ?? ""];
+      if (listed) out.add(listed);
+    }
+    return out;
+  }
+
+  it("discloses every platform with no answer sheet, and claims none that has one", () => {
+    const taken = measured();
+    expect(taken.size, "no answer sheets read — the sweep is broken, not the listing").toBeGreaterThan(0);
+    // The Products row is what the submission claims to run on.
+    const products = field("Products");
+    const claimed = Object.values(AS_LISTED).filter((name) => products.includes(name));
+    expect(claimed.length, "the Products row names no platform this sweep knows").toBeGreaterThan(2);
+
+    const notes = LISTING.slice(LISTING.indexOf("## Testing notes"));
+    const said = notes.toLowerCase().replace(/\s+/g, " ");
+    for (const platform of claimed) {
+      const disclosed =
+        said.includes(`not been measured on ${platform.toLowerCase()}`) || unmeasuredPair(said, platform);
+      if (taken.has(platform)) {
+        expect(disclosed, `${platform} has an answer sheet and the notes still call it unmeasured`).toBe(false);
+      } else {
+        expect(disclosed, `no answer sheet was taken on ${platform} and the notes do not say so`).toBe(true);
+      }
+    }
+  });
+
+  /** "not been measured on Mac or on iPad" discloses both, not just the first. */
+  function unmeasuredPair(said: string, platform: string): boolean {
+    const at = said.indexOf("not been measured on");
+    if (at < 0) return false;
+    return said.slice(at, at + 60).includes(platform.toLowerCase());
+  }
 });

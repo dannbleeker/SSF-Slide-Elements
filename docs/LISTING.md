@@ -92,6 +92,17 @@ so is the decision under "Still the owner's" at the bottom.
 > control shows a focus ring. It is tested at 320 px wide in light and dark and
 > in high contrast.
 >
+> Platforms, and what the publisher has and has not measured: the add-in has
+> been run end to end on **PowerPoint for the web** (10 September 2026) and on
+> **PowerPoint on Windows** (11 September 2026) — the pane, the insert and Undo,
+> with the host's own answers recorded. It has **not been measured on Mac or on
+> iPad**, because the publisher has neither device. It is built to degrade
+> honestly there rather than to assume: the requirement floor is checked at
+> runtime and refused with a plain sentence rather than declared in the
+> manifest, and touch is first class — a tap opens the preview, a second tap
+> inserts, and nothing depends on hover. A finding on Mac or iPad is a first
+> measurement rather than a surprise, and we would like to hear it.
+>
 > Privacy: <https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html>
 > Support: <https://ssf-slide-elements.struktureretsundfornuft.dk/support.html>
 

@@ -619,13 +619,27 @@ top hit.
 - **Pane sizes**: usable at 320 px, three columns from 400 px, docked preview
   from 512 px, and the list stays scrollable with the footer visible in a
   400 px tall pane. `pane-shots` measures these states.
-- **Platforms**: PowerPoint on the web, Windows, Mac and iPad. The manifest
-  cannot exclude iPad, so iPad is in whether measured or not; the owner has no
-  iPad, so the first iPad measurement is a borrowed device with the manifest
-  sideloaded through OneDrive, a real-device cloud if PowerPoint installs
-  there, or the validators' report. Until then the pane degrades honestly on
-  iPad through the floor check, and the testing notes say the publisher has not
-  measured it.
+- **Platforms**: PowerPoint on the web, Windows, Mac and iPad. A task pane is
+  offered wherever PowerPoint runs and the manifest cannot exclude a platform,
+  so **all four are in whether measured or not**.
+
+  The owner has **neither a Mac nor an iPad** (2026-09-12), so both are in the
+  same position, and it is not the position iPad alone was in: a Mac round used
+  to be a release requirement in section 12 and no longer is. Three ways a first
+  measurement can still arrive, cheapest first — a **borrowed device running the
+  Script Lab probe**, which needs no sideload of this add-in and answers all
+  seven questions in one paste; a borrowed device with the manifest sideloaded,
+  through OneDrive on iPad and `~/Library/Containers/…/wef` on Mac; or a
+  real-device cloud, if PowerPoint installs and licenses there.
+
+  Until one of those happens the **validators' report is the first measurement**
+  for both, which is a deliberate trade and not an oversight. What makes it
+  survivable: the pane degrades honestly through the runtime floor check rather
+  than a `<Requirements>` element, touch is first class, and the testing notes
+  say plainly that the publisher has measured neither — so a finding on Mac or
+  iPad reaches us as a first measurement rather than as a surprise.
+  `test/listing.test.ts` derives that disclosure from which answer sheets exist,
+  so the day a Mac sheet is filed the notes have to stop calling Mac unmeasured.
 
 ## 10. Loading and failure states
 
@@ -706,7 +720,8 @@ live region, high contrast, 320 px; the runtime floor check with a plain message
 instead of a `<Requirements>` element; Office.js from the official CDN; the
 store logo 300×300, at least one screenshot 1366×768 (the docked 512 px view
 serves), descriptions, testing notes and a validators' test deck; one measured
-round on web, Windows and Mac, and iPad as section 9 says.
+round on web and Windows, both taken. **Mac and iPad are NOT release
+requirements** — section 9 says why, and the testing notes disclose it.
 
 **Not checked by anyone yet: the listing NAME.** Section 12 was read against the
 certification policies' section 1120 and the submission form; nothing here has
@@ -992,7 +1007,9 @@ claims nothing it did not see, and probe question 7 is the arm that turns this
 paragraph into a measured one on the next round.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
-run. Also assumed, and newly so: that a SEQUENCE of insert-then-remove cycles
+run — and, from 2026-09-12, where none is planned before release: the owner has
+neither device, so the validators' report is the first measurement for both
+(section 9). Also assumed, and newly so: that a SEQUENCE of insert-then-remove cycles
 behaves the way one does. "Remove from N slides" (section 6) runs one per slide,
 and while the single cycle is measured on the web and on Windows, a run of them
 is not — it is the one built feature whose mechanism has never been exercised
@@ -1050,3 +1067,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | "Move to a new slide" is an undo followed by a second insert rather than a third operation, so it inherits the positional count-checked undo and the delta-proving insert and adds no new failure of its own; it stops at a failed undo rather than leaving a second copy; and "a slide that already had content" is `contentCount`, which does not count the slide's own title or an empty placeholder the insert removes — reported by the splice out of bytes it already holds, so the offer costs no second deck read | decided in the build, 2026-09-12 |
 | The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |
 | The scroll position is kept OUT of the pane's state — an offset in the state is a re-render per scroll event — and written on a 250 ms trailing timer; it is put back once, after the first draw that has tiles in it, and stood down by any scroll the user makes first | decided in the build, 2026-09-12 |
+| The owner has neither a Mac nor an iPad, so a Mac round stops being a release requirement and joins iPad's position: the validators' report is the first measurement for both, the pane degrades through the runtime floor check rather than a manifest requirement set, and the testing notes disclose it — derived by `test/listing.test.ts` from which answer sheets exist, so a filed Mac sheet forces the disclosure to drop Mac | owner: no access to a Mac or an iPad, 2026-09-12 |

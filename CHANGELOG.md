@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — what the store listing tells Microsoft's reviewers
+
+- **The testing notes now say which platforms have not been tested.** The
+  add-in has been run end to end on PowerPoint for the web and on Windows; it
+  has not been run on Mac or iPad, and the notes say so rather than leaving a
+  reviewer to find out. A build check keeps that list honest: it is read off
+  the recorded test results, so it cannot claim a platform was tested when it
+  was not, or keep calling one untested after it has been.
+
 ### Changed — nothing you can see, again
 
 - A build check that the pane actually has the controls its design record names.
