@@ -334,3 +334,45 @@ export function directoryTableProblems(root = ".") {
   }
   return out;
 }
+
+/** The heading whose fenced block lists what a maintainer can run. */
+const COMMANDS = "## Commands";
+
+/**
+ * Every `npm run` command `CLAUDE.md`'s Commands block names, and every script
+ * `package.json` actually has.
+ *
+ * The block is where a session looks for what it may run, and on 2026-09-12 it
+ * was missing five: `previews` — a step the Pages deploy runs — along with
+ * `print-stamp`, `bench`, `dead-exports` and `release:check`. A command nobody
+ * knows about is a step nobody takes, and `npm run previews` is the one that
+ * puts the pictures on the tiles.
+ *
+ * `format:check` and `test:count` are the two the block need not repeat: the
+ * first is `format` in its read-only spelling and the second is already there.
+ * Everything else must be listed, and everything listed must exist.
+ *
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function commandDrift(root = ".") {
+  const text = readFileSync(join(root, "CLAUDE.md"), "utf8");
+  const at = text.indexOf(COMMANDS);
+  if (at < 0) return ["CLAUDE.md has no Commands section"];
+  const block = text.slice(at).split("```")[1] ?? "";
+  const listed = new Set([...block.matchAll(/npm (?:run )?([\w:-]+)/g)].map((m) => m[1] ?? ""));
+  const scripts = Object.keys(
+    /** @type {{ scripts: Record<string, string> }} */ (JSON.parse(readFileSync(join(root, "package.json"), "utf8")))
+      .scripts,
+  );
+  /** @type {string[]} */
+  const out = [];
+  for (const name of listed) {
+    if (!scripts.includes(name)) out.push(`the Commands block names npm run ${name}, which package.json has not`);
+  }
+  for (const name of scripts) {
+    if (name === "format:check") continue;
+    if (!listed.has(name)) out.push(`package.json has ${name} and the Commands block does not name it`);
+  }
+  return out;
+}

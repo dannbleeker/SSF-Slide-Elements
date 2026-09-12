@@ -21,6 +21,7 @@ const probeQuestions = refs.probeQuestions as () => number[];
 const questionDrift = refs.questionDrift as () => string[];
 const directoryRows = refs.directoryRows as () => { paths: string[]; files: string[] }[];
 const directoryTableProblems = refs.directoryTableProblems as () => string[];
+const commandDrift = refs.commandDrift as () => string[];
 const brokenAnchors = refs.brokenAnchors as () => string[];
 const brokenCitations = refs.brokenCitations as () => string[];
 const markdownLinks = refs.markdownLinks as () => { anchor?: string }[];
@@ -111,5 +112,18 @@ describe("the directory table in CLAUDE.md", () => {
     const rows = directoryRows();
     expect(rows.length, "no table rows were found").toBeGreaterThan(6);
     expect(rows.filter((row) => row.files.length > 0).length, "no row names any module").toBeGreaterThan(2);
+  });
+});
+
+describe("the Commands block in CLAUDE.md", () => {
+  /**
+   * What a session is told it can run, against what `package.json` has.
+   *
+   * On 2026-09-12 the block was missing five scripts, and one of them —
+   * `npm run previews` — is a step the Pages deploy runs to put the pictures
+   * on the tiles. A command nobody knows about is a step nobody takes.
+   */
+  it("names every script, and only scripts that are there", () => {
+    expect(commandDrift()).toEqual([]);
   });
 });

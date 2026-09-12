@@ -35,7 +35,7 @@ name and the Partner Center submission.
 
 | directory | what it owns |
 | --- | --- |
-| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts); `splice/` puts an element into a copy of a slide and takes one back out |
+| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts, and `cut.ts`, where on the deck's PDF print each element's picture is); `splice/` puts an element into a copy of a slide and takes one back out |
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `coalesce.ts` (one selection read at a time), `errors.ts` (a raise as a bounded sentence), `insert.ts` (what a measured delta means, and the undo plan), `jump.ts` (whether the host was seen on the slide), `links.ts` (what may reach a URL), `probe.ts` (what each probe observation means), `timeout.ts` (every budget, and the backoff a lagging count needs) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `catalogue.ts` (the index and an element's markup, fetched from the site), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
@@ -280,12 +280,20 @@ npm run typecheck
 npm run lint
 npm run coverage       # enforces the floors in vitest.config.ts
 npm run test:count     # holds the floor in test/fixtures/test-count.json
+npm run dead-exports   # every export the shipped add-in never calls
 npm run harvest        # both decks into public/catalogue; CI diffs the committed index
+npm run previews       # cut every element's picture out of its deck's PDF print; runs on deploy
+npm run print-stamp    # re-stamp template/*.print.json after a new print; test/print.test.ts gates it
 npm run probe          # regenerate probe/probe-snippet.ts; CI diffs it; needs build:lib first
 npm run manifests      # regenerate the four manifests; test/manifest.test.ts diffs them
 npm run icons          # redraw public/assets; test/manifest.test.ts diffs them
 npm run sibling-watch  # sweep both siblings' tables for findings with no row in TRIAGED
+npm run bench          # what the engine costs per insert, printed
+npm run release:check  # the release pre-flight, against RELEASE_VERSION
 npm run build          # the site, for GitHub Pages
+npm run build:lib      # the engine to dist-lib/, which harvest, previews and probe need first
+npm run dev            # the pane at localhost:3002
+npm run format         # Prettier, on code only
 npm run pane-shots     # needs `npx vite --port 5199 --strictPort &` first
 ```
 
