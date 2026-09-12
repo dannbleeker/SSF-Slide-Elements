@@ -41,12 +41,14 @@ import {
   slideIdAt,
 } from "../office/powerpoint.js";
 import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
+import { restored, shouldRestoreScroll, storedScroll, writes } from "./storage.js";
 import { render } from "./render.js";
 import {
-  DEFAULT_SETTINGS,
   EMPTY,
   RECENT_DEPTH,
+  arrowTo,
   elementOf,
+  escapeCloses,
   fractionOf,
   offersOtherTarget,
   otherTarget,
@@ -176,23 +178,13 @@ function set(changes: Partial<PaneState>): void {
 let deckBucket = GLOBAL_KEY;
 
 /**
- * What is remembered where (`docs/DESIGN.md` section 4).
+ * One bucket, or nothing when it cannot be had.
  *
- * Two buckets, and the split is the record's: favourites and the first-run flag
- * are statements about the LIBRARY and the person, so they are per machine;
- * everything about how you were reading the library is per DECK, because a deck
- * is the unit of work and the search that found what you needed for one is
- * rarely the search you want for the next.
- *
- * Recent is per deck too, which the record does not say either way. Decided
- * here: Recent exists so the thing you just used is easy to reach again, and
- * "just used" is a fact about a deck. Favourites is the per-machine half of
- * that pair by the record's own wording.
- *
- * Wrapped, because storage is not always there: a WebView with site data
- * blocked throws on the accessor itself rather than answering empty, and a pane
- * that will not open because it could not remember a search box is worse than
- * one that forgets.
+ * Wrapped because storage is not always there: a WebView with site data blocked
+ * throws on the accessor itself rather than answering empty, and a pane that
+ * will not open because it could not remember a search box is worse than one
+ * that forgets. WHAT is in a bucket and which half it belongs to is
+ * `src/pane/storage.ts`; this is the reading, which is all that has to be here.
  */
 function read(key: string): Partial<PaneState> {
   try {
@@ -207,53 +199,30 @@ function read(key: string): Partial<PaneState> {
 function remembered(): Partial<PaneState> {
   deckBucket = deckKey(deckUrl());
   const machine = read(GLOBAL_KEY);
-  // The same object when the host would not name a deck, and that is the
-  // fallback working rather than a special case: one bucket holds both halves.
+  // The same object when the host would not name a deck: one bucket holds both
+  // halves, and `restored` treats that as the ordinary case rather than one to
+  // branch on.
   const deck = deckBucket === GLOBAL_KEY ? machine : read(deckBucket);
-  // Not part of the state, so it is taken here rather than returned. A stored
-  // value that is not a positive number is treated as no value at all.
-  const scroll = (deck as { scroll?: unknown }).scroll;
-  keptScroll = typeof scroll === "number" && Number.isFinite(scroll) && scroll > 0 ? scroll : 0;
-  return {
-    favourites: machine.favourites ?? [],
-    coached: machine.coached === true,
-    settings: { ...DEFAULT_SETTINGS, ...(deck.settings ?? {}) },
-    recent: deck.recent ?? [],
-    open: deck.open ?? [],
-    // Section 4 asks for the search and the tags back too, and for the size
-    // picked in a stepper — which is `chosen`. It is written only by the
-    // operations that already persist, so what comes back is the step last
-    // INSERTED rather than wherever the keyboard was left: the pane marks both
-    // with the same field, and a focus cursor is not a pick.
-    query: typeof deck.query === "string" ? deck.query : "",
-    tags: deck.tags ?? [],
-    ...(typeof deck.chosen === "string" ? { chosen: deck.chosen } : {}),
-  };
+  // Not part of the state, so it is taken here rather than returned.
+  keptScroll = storedScroll(deck);
+  return restored(machine, deck);
 }
 
 /**
- * How far down the list the user had scrolled, and putting it back once.
+ * How far down the list the user had scrolled.
  *
- * `docs/DESIGN.md` section 4's last unbuilt line. Kept OUTSIDE `PaneState` on
- * purpose: a scroll offset in the state means a re-render per scroll event, and
- * a re-render of the whole list while it is moving under the user's finger is
- * the one thing this feature must not cost.
- *
- * Put back after the first draw that has tiles in it, and only that one. The
- * tile reserves its own box — `.tile-img` is absolutely positioned inside it —
- * so a picture arriving later does not move anything below it, and one restore
- * lands where the user left off rather than approximately. Later draws are the
- * user's own doing: re-scrolling them to where they were an hour ago would be
- * the pane fighting them.
+ * Kept OUTSIDE `PaneState` on purpose: an offset in the state means a re-render
+ * per scroll event, and re-rendering the whole list while it moves under the
+ * user's finger is the one thing this feature must not cost. WHEN it goes back
+ * is `shouldRestoreScroll` in `src/pane/storage.ts`; the DOM question it needs
+ * answering — are there tiles yet — is the one thing only this file can ask.
  */
 let keptScroll = 0;
 let scrollRestored = false;
 
 function restoreScroll(): void {
-  if (scrollRestored || keptScroll <= 0) return;
-  // Tiles, not merely a browse step: the loading screen is one short paragraph
-  // and scrolling it to 800 px would leave the user looking at nothing.
-  if (!root().querySelector('[data-action="tile"]')) return;
+  const hasTiles = root().querySelector('[data-action="tile"]') !== null;
+  if (!shouldRestoreScroll({ restored: scrollRestored, kept: keptScroll, hasTiles })) return;
   scrollRestored = true;
   window.scrollTo(0, keptScroll);
 }
@@ -286,24 +255,7 @@ function write(key: string, value: unknown): void {
 }
 
 function keep(): void {
-  const machine = { favourites: state.favourites, coached: state.coached === true };
-  const deck = {
-    settings: state.settings,
-    recent: state.recent,
-    open: state.open,
-    query: state.query,
-    tags: state.tags,
-    ...(state.chosen === undefined ? {} : { chosen: state.chosen }),
-    ...(keptScroll > 0 ? { scroll: keptScroll } : {}),
-  };
-  // One write when there is no deck to tell apart, so the fallback bucket does
-  // not get half of itself overwritten by the other half a moment later.
-  if (deckBucket === GLOBAL_KEY) {
-    write(GLOBAL_KEY, { ...machine, ...deck });
-    return;
-  }
-  write(GLOBAL_KEY, machine);
-  write(deckBucket, deck);
+  for (const [key, value] of writes(deckBucket, state, keptScroll)) write(key, value);
 }
 
 // ---------------------------------------------------------------------------
@@ -1090,31 +1042,31 @@ function onKey(event: KeyboardEvent): void {
     return;
   }
   if (event.key === "Escape") {
-    // The card first: it is the most recently opened thing and the one the user
-    // is most likely to mean, and shutting it must not also clear their search.
-    // The confirm first, then the tile menu, then the card, then the gear: back
-    // out of what was opened last, and never clear a search on the way past
-    // something else. A question the user escapes is a question answered "no".
-    if (state.removing !== undefined) set({ removing: undefined });
-    else if (state.menuFor !== undefined) set({ menuFor: undefined });
-    else if (state.previewing !== undefined) closePreview();
-    else if (state.gear === true) set({ gear: false });
-    else if (state.query !== "" || state.tags.length > 0) set({ query: "", tags: [] });
-    return;
-  }
-  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+    // The ladder is `escapeCloses` in `steps.ts`; this only does what it says.
+    // `preview` is not a `set` like the others — it cancels a pending timer as
+    // well — which is why the rule answers a name rather than a state patch.
+    switch (escapeCloses(state)) {
+      case "removing":
+        set({ removing: undefined });
+        break;
+      case "menu":
+        set({ menuFor: undefined });
+        break;
+      case "preview":
+        closePreview();
+        break;
+      case "gear":
+        set({ gear: false });
+        break;
+      case "search":
+        set({ query: "", tags: [] });
+        break;
+    }
     return;
   }
   const tiles = [...root().querySelectorAll<HTMLElement>('[data-action="tile"]')];
-  if (tiles.length === 0) return;
-  const at = tiles.findIndex((t) => t === document.activeElement);
-  if (at < 0) {
-    event.preventDefault();
-    tiles[0]?.focus();
-    return;
-  }
-  const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
-  const next = tiles[Math.min(tiles.length - 1, Math.max(0, at + step))];
+  const to = arrowTo(event.key, tiles.indexOf(document.activeElement as HTMLElement), tiles.length);
+  const next = to === undefined ? undefined : tiles[to];
   if (next) {
     event.preventDefault();
     next.focus();

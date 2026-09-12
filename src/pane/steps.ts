@@ -883,3 +883,47 @@ export function remember(list: string[], id: string, depth: number): string[] {
 export function toggle(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((other) => other !== id) : [id, ...list];
 }
+
+/**
+ * What Escape shuts, given everything the pane currently has open.
+ *
+ * `docs/DESIGN.md` section 9: back out of what was opened last, and never clear
+ * a search on the way past something else. A question the user escapes is a
+ * question answered "no", so the confirm goes first.
+ *
+ * A LADDER rather than five independent checks, and the order is the whole
+ * rule: it lived inside the pane's key handler, where nothing could reach it,
+ * and getting it wrong loses somebody's search while they were only trying to
+ * shut a preview card. The names are what to close; `main.ts` does the closing,
+ * because two of them cancel a timer as well as clearing a field.
+ */
+export type EscapeTarget = "removing" | "menu" | "preview" | "gear" | "search" | undefined;
+
+export function escapeCloses(state: PaneState): EscapeTarget {
+  if (state.removing !== undefined) return "removing";
+  if (state.menuFor !== undefined) return "menu";
+  if (state.previewing !== undefined) return "preview";
+  if (state.gear === true) return "gear";
+  if (state.query !== "" || state.tags.length > 0) return "search";
+  return undefined;
+}
+
+/**
+ * Which tile an arrow key moves the focus to, counting from zero.
+ *
+ * Clamped at both ends rather than wrapping: a grid that jumps from the last
+ * tile back to the first reads as a glitch, and the two ends are exactly where
+ * an off-by-one hides. Answers nothing for a key that is not an arrow and for a
+ * list with no tiles in it.
+ *
+ * `at` is where the focus is now, or `-1` when it is on none of them — the
+ * first arrow press then lands on the FIRST tile whichever direction it was,
+ * which is what a user pressing Down from the search box expects. That falls
+ * out of the clamp (`-1 + 1` and `-1 - 1` both floor to 0) rather than needing
+ * a case of its own: `main.ts` carried one, and it could not be made to go red.
+ */
+export function arrowTo(key: string, at: number, count: number): number | undefined {
+  const step = key === "ArrowRight" || key === "ArrowDown" ? 1 : key === "ArrowLeft" || key === "ArrowUp" ? -1 : 0;
+  if (step === 0 || count <= 0) return undefined;
+  return Math.min(count - 1, Math.max(0, at + step));
+}

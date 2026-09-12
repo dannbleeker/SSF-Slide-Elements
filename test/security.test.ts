@@ -290,18 +290,27 @@ describe("the XML parser does not fetch or expand what a deck tells it to", () =
  * per deck — and both are swept: a guard that found only the first would go
  * quiet on exactly the half that is new.
  */
-function keptFields(pane: string): { machine: string[]; deck: string[] } {
-  const body = pane.slice(pane.indexOf("function keep()"));
+function keptFields(): { machine: string[]; deck: string[] } {
+  // `src/pane/storage.ts` since the rules were lifted out of `main.ts`, which
+  // is exempt from the coverage floor and was therefore the wrong place for
+  // them. This guard noticed the move by going red on its own vacuity check
+  // rather than by quietly sweeping nothing, which is what it is for.
+  const body = readFileSync("src/pane/storage.ts", "utf8");
+  const from = body.slice(body.indexOf("export function writes("));
   const of = (name: string): string[] => {
-    const at = body.indexOf(`const ${name} = {`);
+    const at = from.indexOf(`const ${name} = {`);
     if (at < 0) return [];
-    const block = body.slice(at, body.indexOf("};", at));
+    const block = from.slice(at, from.indexOf("};", at));
     // Every `name:` at the top level of the literal, whether the object is
     // spread over lines or written on one — `machine` is one line and `deck`
     // is several, and a pattern anchored to the line start finds one field in
     // the first, silently, which is the shape of failure this guard exists to
     // avoid rather than to have.
-    return [...block.matchAll(/(?:[{,]\s*)(\w+):/g)].map((m) => m[1] ?? "");
+    // `name:` and the ES shorthand `{ name }` alike. `scroll` is written
+    // shorthand, and a pattern that saw only the colon form counted six fields
+    // where the code writes seven — an undercount, which on this particular
+    // page means telling the reader less is stored than is.
+    return [...block.matchAll(/(?:[{,]\s*)(\w+)\s*[:,}]/g)].map((m) => m[1] ?? "");
   };
   return { machine: of("machine"), deck: of("deck") };
 }
@@ -362,7 +371,7 @@ describe("the privacy page says what the pane actually stores", () => {
     // A field added without a word on the page turns this red — which is the
     // whole point, because the page is read by someone deciding whether to
     // trust the add-in with a deck.
-    const { machine, deck } = keptFields(pane);
+    const { machine, deck } = keptFields();
     expect(machine.length, "no per-machine fields found — the pattern has stopped matching").toBeGreaterThan(1);
     expect(deck.length, "no per-deck fields found — the pattern has stopped matching").toBeGreaterThan(4);
     // Whitespace-collapsed: prettier reflows this page, and a phrase split
@@ -477,14 +486,13 @@ describe("the privacy page's own arithmetic", () => {
    * not catch it: every field was described, correctly, under a wrong total.
    */
   const privacy = readFileSync("public/privacy.html", "utf8");
-  const pane = readFileSync("src/pane/main.ts", "utf8");
   const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
   it("says how many things it stores in each of its two places, and means it", () => {
     // One number per bucket since 2026-09-12. A single total would be the
     // wrong shape for a page that has to tell the reader which of the two a
     // given thing lands in.
-    const { machine, deck } = keptFields(pane);
+    const { machine, deck } = keptFields();
     expect(machine.length, "no per-machine fields found — the pattern has stopped matching").toBeGreaterThan(1);
     expect(deck.length, "no per-deck fields found — the pattern has stopped matching").toBeGreaterThan(4);
     for (const [what, fields] of [
