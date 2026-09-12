@@ -165,6 +165,85 @@ export function skippedNames(report) {
     .map((test) => test.fullName ?? test.title ?? "?");
 }
 
+/**
+ * The names of the tests that FAILED, so a run that goes red says which.
+ *
+ * `--reporter=json` writes everything to a FILE and nothing to the console, and
+ * `execFileSync` throws on a non-zero exit — so before this, a failing run
+ * printed a Node stack trace about `execFileSync` and not one word about the
+ * suite. Measured on 2026-09-12: `main` went red exactly that way after #73
+ * merged, and the log gave no way at all to tell which test had failed. The
+ * coverage step immediately above it had passed all 1196.
+ *
+ * Scratch files are NOT filtered out here, unlike in `counts` above, and the
+ * difference is deliberate: the floor is a number about the repository, but the
+ * exit code is a fact about the run. A failure in a scratch file is why the
+ * command failed, and hiding it would leave the same silence this exists to
+ * end.
+ *
+ * A file that failed before defining any test — an import that threw, a worker
+ * that died — has no failed assertion to name, and is precisely the case a bare
+ * stack trace leaves the reader guessing about. It is named by its own message,
+ * bounded, because a report is not a place to paste a stack.
+ *
+ * @param {unknown} report
+ * @returns {string[]}
+ */
+export function failedNames(report) {
+  const files =
+    /** @type {{ name?: string, status?: string, message?: string, assertionResults?: { status?: string, fullName?: string, title?: string }[] }[]} */ (
+      /** @type {{ testResults?: unknown }} */ (report ?? {}).testResults ?? []
+    );
+  return files.flatMap((file) => {
+    const where = file.name ?? "?";
+    const cases = (file.assertionResults ?? []).filter((test) => test.status === "failed");
+    if (cases.length) return cases.map((test) => `${where} > ${test.fullName ?? test.title ?? "?"}`);
+    if (file.status !== "failed") return [];
+    const why = (file.message ?? "no message").replace(/\s+/g, " ").slice(0, 200);
+    return [`${where} (no test ran: ${why})`];
+  });
+}
+
+/**
+ * What to print when the run exited non-zero, from the report it left behind.
+ *
+ * The second sentence is for a non-zero exit with NOTHING failed in the report.
+ * A worker the kernel killed looks exactly like that: the tests it had already
+ * finished are in the file, the ones it never reached are simply absent, and
+ * vitest exits 1 with no failure to point at. Saying how much of the suite the
+ * report accounts for is what separates that from a run that failed for a
+ * reason outside the tests, and it is the only thing the log can offer.
+ *
+ * @param {unknown} report
+ * @returns {string}
+ */
+export function failureMessage(report) {
+  const names = failedNames(report);
+  if (names.length) return `the suite failed —\n  ${names.join("\n  ")}`;
+  const { defined, skipped } = counts(report);
+  return (
+    `the run exited non-zero with no failed test in its report — ${defined} tests accounted for, ` +
+    `${skipped} skipped. A worker that died or ran out of memory reads like this.`
+  );
+}
+
+/**
+ * Say what failed. False only when there is no report to read at all.
+ *
+ * @param {string} out
+ * @returns {boolean}
+ */
+function reportFailures(out) {
+  let report;
+  try {
+    report = JSON.parse(readFileSync(out, "utf8"));
+  } catch {
+    return false;
+  }
+  console.error(`test-count: ${failureMessage(report)}`);
+  return true;
+}
+
 function main() {
   const update = process.argv.includes("--update");
   const out = join(mkdtempSync(join(tmpdir(), "ssf-slide-elements-")), "results.json");
@@ -174,11 +253,22 @@ function main() {
   // be run at all on the owner's machine while CI on ubuntu passed it. Naming
   // the installed entry also guarantees the pinned vitest rather than whatever
   // `npx` would resolve, which is what a floor under the suite wants anyway.
-  execFileSync(
-    process.execPath,
-    [join("node_modules", "vitest", "vitest.mjs"), "run", "--reporter=json", `--outputFile=${out}`],
-    { stdio: "inherit" },
-  );
+  try {
+    execFileSync(
+      process.execPath,
+      [join("node_modules", "vitest", "vitest.mjs"), "run", "--reporter=json", `--outputFile=${out}`],
+      { stdio: "inherit" },
+    );
+  } catch (error) {
+    // The run failed. Everything it knows is in `out` and nothing is on the
+    // console, so read it back rather than letting the throw surface as a
+    // stack trace about `execFileSync`. See `failedNames` for the run that
+    // forced this.
+    if (!reportFailures(out)) {
+      console.error(`test-count: the suite failed and left no readable report: ${String(error)}`);
+    }
+    process.exit(1);
+  }
 
   const report = JSON.parse(readFileSync(out, "utf8"));
   const record = JSON.parse(readFileSync(RECORD, "utf8"));

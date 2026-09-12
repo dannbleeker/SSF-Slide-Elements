@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see
+
+- One of the build's own checks re-runs the whole test suite to count it, and it
+  did that in a mode that writes every result to a file and nothing to the
+  screen. So when it failed, the log showed a stack trace from the tool that
+  started it and not one word about which test had gone wrong — which is exactly
+  what happened twice this afternoon. It now reads the results back and names
+  them, and says plainly when a run failed with nothing in it failing, which is
+  what a build machine running out of memory looks like.
+
 ### Fixed — the manual now warns you about the one thing that loses an element's mark
 
 - Cutting a shape out of one slide and pasting it onto another drops the mark
