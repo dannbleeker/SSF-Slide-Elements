@@ -45,29 +45,27 @@ import {
 import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
 import { restored, shouldRestoreScroll, storedScroll, writes } from "./storage.js";
 import { render } from "./render.js";
+import { fractionOf, withLanded } from "./card.js";
+import { elementOf } from "./search.js";
 import {
-  EMPTY,
-  RECENT_DEPTH,
   arrowTo,
-  elementOf,
+  EMPTY,
   escapeCloses,
-  fractionOf,
   moveableAfter,
   offersOtherTarget,
   otherTarget,
+  RECENT_DEPTH,
   remember,
   removableFrom,
   removalOutcome,
   stepFor,
   tileKey,
   toggle,
-  withInsert,
-  withLanded,
-  withoutInsert,
   wrapsSelection,
   type Library,
   type PaneState,
 } from "./steps.js";
+import { withInsert, withoutInsert } from "./used.js";
 
 let state: PaneState = { ...EMPTY };
 let index: Index | undefined;
