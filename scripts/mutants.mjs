@@ -52,7 +52,8 @@
  * Usage: `node scripts/mutants.mjs [--only <substring>] [--list]`
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { isMain } from "./is-main.mjs";
 
@@ -350,6 +351,13 @@ function main() {
   });
   const total = plan.reduce((sum, one) => sum + one.mutations.length, 0);
   console.log(`mutants: ${total} mutations across ${plan.length} files`);
+  // Survivors go to a file as well as the console, because the sweep is over an
+  // hour and the console is where an interrupted run's output goes to die.
+  const report = join(tmpdir(), "ssf-mutants-survivors.txt");
+  if (!listing) {
+    writeFileSync(report, "");
+    console.log(`mutants: survivors also written to ${report}`);
+  }
   if (listing) {
     for (const { file, text, mutations, tests } of plan) {
       console.log(`  ${file} <- ${tests.join(" ") || "NOTHING"}`);
@@ -371,22 +379,21 @@ function main() {
       done += 1;
       const where = `${file}:${lineOf(text, m.at)}  ${m.what}  ${JSON.stringify(m.was)} -> ${JSON.stringify(m.now)}`;
       if (!lived) {
-        process.stdout.write(`\rmutants: ${done}/${total} killed ${done - survivors.length}   `);
+        if (done % 10 === 0) console.log(`mutants: ${done}/${total}, ${survivors.length} surviving so far`);
         continue;
       }
       // A survivor of the fast tier is not a survivor yet. Re-run it against
       // everything before it goes in the report.
       if (tryMutation(file, text, mutated, null)) {
         survivors.push(where);
-        // Printed as it is found, not only in the summary. A sweep of the whole
-        // set is over an hour, and a run that is interrupted should still have
-        // told the reader everything it knew at the time.
-        process.stdout.write(`\nmutants: SURVIVED  ${where}\n`);
+        // Written and printed as it is found, not only in the summary. A sweep
+        // of the whole set is over an hour, and a run that is interrupted
+        // should still have told the reader everything it knew at the time.
+        console.log(`mutants: SURVIVED  ${where}`);
+        appendFileSync(report, `${where}\n`);
       }
-      process.stdout.write(`\rmutants: ${done}/${total} survivors ${survivors.length}      `);
     }
   }
-  process.stdout.write("\n");
   if (!survivors.length) {
     console.log("mutants: no survivors — every mutation the suite could see, it saw");
     return;
