@@ -308,11 +308,12 @@ PowerPoint would settle.
   flow first and the shots showed exactly that. Overlaying the TOP would cover
   the search box and the tags, which are the two controls a user is most likely
   to be reaching for while browsing, so it overlays the bottom.
-  **The grey boxes for what the destination slide already has are NOT built.**
-  They need the pane to read the slide's shapes, which is host work that cannot
-  be verified without a round against a real PowerPoint. The ghost frame for the
-  landing is drawn from the catalogue and needs no host at all, so that half is
-  there.
+  The grey boxes for what the destination slide already has were the half of
+  this that waited: they need the slide's own shapes, and that was called host
+  work no round had done. It turned out not to need a host call at all — they
+  are read out of the FILE the insert already reads, and they shipped on
+  2026-09-11 as the snapshot described above. The ghost frame for the landing
+  is drawn from the catalogue and never needed one either.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
   already had content, **Again**, **Undo (n)**), then a line with the current
@@ -638,8 +639,10 @@ build task.
 
 Each is written so a single round settles it. The probe that asks them is a
 Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
-is put. The owner runs it on web, Windows and Mac before the splice and the
-picker are built, and the sheets are filed under `docs/host-answers/`.
+is put, and the sheets are filed under `docs/host-answers/`. Questions 1 to 6
+were asked before the splice and the picker were built, and answered on the web
+and on Windows; question 7 arrived after them, with the jump, and no round has
+answered it yet. Mac and iPad have had no round at all.
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted?
@@ -653,6 +656,11 @@ picker are built, and the sheets are filed under `docs/host-answers/`.
    the pane's Undo must not fight it.
 6. How long does `getFileAsync` take on a 50 MB deck, since the file route reads
    the whole deck for every insert, and is the floor met on iPad?
+7. Does `setSelectedSlides` move the view, and does the host still answer a
+   selection read afterwards? Added 2026-09-12 with the jump in section 4: that
+   call is the one selection WRITE the pane makes, it is made on SSF-Charts'
+   web measurement rather than this repo's, and until a sheet answers this the
+   jump is borrowed on every platform.
 
 ## 14. Build order
 
