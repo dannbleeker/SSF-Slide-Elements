@@ -27,17 +27,29 @@ deck" and read probe question 7, which is the jump measured directly, and use
 "Move to a new slide" once — it is an undo and an insert back to back, which no
 round has done either.
 
-### The rest of the host round
+### Probe question 7, and whatever Mac and iPad turn out to do
 
 PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
 pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. **Windows is
 measured too** — one pair of sheets from 2026-09-11 and a product round of four
 inserts and undos from the pane the same day, both read in `docs/DESIGN.md`
-section 15. Mac and iPad are not, and `docs/DESIGN.md` section 9 says how the
-first iPad measurement will be taken. So what is left is a round on each of
-those two, which is what turns the last of the design's "assumed" column into
-"measured" — and, on every platform, probe question 7 (`setSelectedSlides`,
-the jump's call), which no sheet of this repo's has answered yet.
+section 15.
+
+**Mac and iPad will not be measured before release.** The owner has neither
+device (2026-09-12), so a Mac round stopped being a release requirement and
+both sit where iPad already sat: the pane degrades honestly through the runtime
+floor check, the validators' testing notes disclose that the publisher has
+measured neither, and the validators' report is the first measurement.
+`docs/DESIGN.md` section 9 carries the reasoning and the three ways an earlier
+measurement could still arrive — cheapest being a borrowed device running the
+**Script Lab probe**, which needs no sideload of this add-in at all.
+
+What is genuinely still open and needs no new hardware: **probe question 7**
+(`setSelectedSlides`, the jump's call), which no sheet of this repo's has
+answered on ANY platform. Until one does, the jump is borrowed from
+SSF-Charts' dated web measurement rather than measured here. The next round on
+the web or on Windows settles it, and the same round should exercise
+"Remove from N slides" and "Move to a new slide" — see the item above.
 
 ### Release and AppSource
 

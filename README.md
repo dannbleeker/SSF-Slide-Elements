@@ -18,8 +18,11 @@ and it lands on the slide you are on. The first whole round on PowerPoint for
 the web was **2026-09-11**: a tile clicked, the element on the selected slide,
 and Undo putting that slide back to the shapes it held before. **Windows was
 measured the same day** — a probe pair and a product round, both read in
-`docs/DESIGN.md` section 15. Mac and iPad have had no round yet, and
-[the backlog](docs/BACKLOG.md) is what is still open.
+`docs/DESIGN.md` section 15. **Mac and iPad have had no round and will not have
+one before release** — nobody here has either device, so the add-in degrades
+honestly there through a runtime floor check and the store listing's testing
+notes say plainly that neither was measured. [The backlog](docs/BACKLOG.md) is
+what is still open.
 
 | Piece | State |
 | --- | --- |
@@ -44,7 +47,7 @@ measured the same day** — a probe pair and a product round, both read in
 | The preview card's grey boxes — what the destination slide already holds, read from the deck | done |
 | Remove from N slides — a stamp off every slide it is on, asked first, one confirmed cycle per slide | done — built, and the one feature no round has exercised |
 | The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |
-| Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad still unmeasured |
+| Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad unmeasured, and disclosed as such to the store's reviewers rather than assumed |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |
 | The catalogue page on the site — every element in both sizes, generated at harvest and diffed by CI | done |
 | The store listing — logo, descriptions, validators' notes and a PowerPoint-authored test deck, each held by a test | done — the screenshot and the listing NAME are the owner's, and `docs/LISTING.md` says why |

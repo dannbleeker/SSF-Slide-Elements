@@ -70,8 +70,13 @@ rules: one orange element per view, one column, one primary control drawn last.
 2026-09-11; `docs/DESIGN.md` section 15 reads them and is the one place to
 change when a sheet is filed. The splice ran against the web on 2026-09-10, and
 the whole product — pane, insert and Undo — against the web and then against
-Windows on 2026-09-11. **Mac and iPad have had no round**, so every claim about
-those two is still borrowed and must say so.
+Windows on 2026-09-11. **Mac and iPad have had no round, and none is planned
+before release** — the owner has neither device (2026-09-12), so the
+validators' report is the first measurement for both and a Mac round is not a
+release requirement (`docs/DESIGN.md` section 9). Every claim about those two
+is borrowed and must say so; `test/listing.test.ts` holds the store listing's
+testing notes to disclosing exactly the platforms with no answer sheet, so the
+disclosure cannot rot when a sheet is filed.
 
 **Windows answered every question the way the web did**, and every timing
 difference went the same direction: faster. Two of them matter, because the
