@@ -22,25 +22,29 @@ directions.
 library decks under `template/` are read into `public/catalogue/` by
 `npm run harvest` (the index committed, the rest built on deploy); the pane
 reads the open deck, splices an element into a copy of the slide you are on,
-hands it back in one insert and removes the original by position. What is NOT
-built is in `docs/BACKLOG.md`, and the largest of it is the library's own
-pictures — every tile draws a diagram of where the element lands, because no
-PDF print of either deck is committed for the harvest to cut from.
+hands it back in one insert and removes the original by position. Every tile
+carries PowerPoint's own rendering of its element, cut from the committed PDF
+print of the deck it came from (`template/library-*.pdf`, with the geometry in
+`*.print.json`); the landing diagram is the fallback for an element the cut
+could not reach. What is NOT built is in `docs/BACKLOG.md`, and none of it is
+code this repo can write on its own: a round that exercises "Remove from N
+slides", rounds on Mac and iPad, and the release — a screenshot, the listing
+name and the Partner Center submission.
 
 ## Where things live
 
 | directory | what it owns |
 | --- | --- |
-| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts). The splice arrives next |
-| `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `errors.ts` (a raise as a bounded sentence), `probe.ts` (what each probe observation means) |
+| `src/core/` | the engine, pure: `pptx/` is the package layer (`Pkg` over a .pptx as parts, relationships, content types and the slide list; `xml.ts`, `parts.ts`); `catalogue/` is the harvest (a deck into elements: headings, the collection marker, boxes with rotation and table columns, size runs, tags, carried parts); `splice/` puts an element into a copy of a slide and takes one back out |
+| `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `coalesce.ts` (one selection read at a time), `errors.ts` (a raise as a bounded sentence), `insert.ts` (what a measured delta means, and the undo plan), `jump.ts` (whether the host was seen on the slide), `links.ts` (what may reach a URL), `probe.ts` (what each probe observation means), `timeout.ts` (every budget, and the backoff a lagging count needs) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
-| `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
+| `src/pane/` | `steps.ts` (which step, what the one button says, why it is blocked), `render.ts` (the DOM), `catalogue.ts` (the index and an element's markup, fetched from the site), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet |
 | `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`) and the answer reader (`read-answers.mjs`) |
 | `probe/` | `probe-snippet.ts`, GENERATED for Script Lab and committed; CI rebuilds and diffs it. Pasted into PowerPoint by the owner, never imported here |
 | `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
-| `template/` | the owner's library: the two decks (one per slide size, arriving with the harvest), their PDF prints the previews are cut from, and `names.en.json`, the English name of every element keyed by the deck's Danish title |
-| `docs/DESIGN.md` | the design record: every decision, dated, and the six host questions the probe answers first |
+| `template/` | the owner's library: the two decks (one per slide size), the PDF print of each and the `*.print.json` saying where every element sits on it, `names.en.json` (the English name of every element keyed by the deck's Danish title), and `validators.pptx`, the deck AppSource's reviewers are given |
+| `docs/DESIGN.md` | the design record: every decision, dated, and the seven host questions the probe asks |
 
 **`src/host` decides, `src/office` calls, and the architecture test holds both
 directions.** An Office.js import in `src/host` makes a rule untestable; a rule
@@ -304,3 +308,7 @@ single round settles it, and `probe/probe-snippet.ts` asks all of them
    the pane's Undo must not fight it.
 6. How long does `getFileAsync` take on a 50 MB deck, since the file route
    reads the whole deck for every insert, and is the floor met on iPad?
+7. Does `setSelectedSlides` move the view, and does the host still answer a
+   selection read afterwards? The jump in "Used in this deck" makes that call
+   on a sibling's evidence; until a sheet answers this, it is borrowed
+   everywhere.

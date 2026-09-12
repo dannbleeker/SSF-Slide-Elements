@@ -653,6 +653,11 @@ picker are built, and the sheets are filed under `docs/host-answers/`.
    the pane's Undo must not fight it.
 6. How long does `getFileAsync` take on a 50 MB deck, since the file route reads
    the whole deck for every insert, and is the floor met on iPad?
+7. Does `setSelectedSlides` move the view, and does the host still answer a
+   selection read afterwards? Added 2026-09-12 with the jump in section 4: that
+   call is the one selection WRITE the pane makes, it is made on SSF-Charts'
+   web measurement rather than this repo's, and until a sheet answers this the
+   jump is borrowed on every platform.
 
 ## 14. Build order
 

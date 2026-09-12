@@ -1,9 +1,8 @@
 # The host probe
 
-The six questions in [the design record](DESIGN.md#13-open-questions-for-the-host)
-that only a real PowerPoint can answer, asked directly, and a seventh added on
-2026-09-12 for the one selection write the pane makes. Nothing in the splice or
-the picker should be built on a guess about any of them.
+The seven questions in [the design record](DESIGN.md#13-open-questions-for-the-host)
+that only a real PowerPoint can answer, asked directly. Nothing in the splice,
+the picker or the jump should be built on a guess about any of them.
 
 Running it takes a few minutes and leaves your deck as it found it, apart from
 one slide it leaves on purpose and takes back on the second run (see
