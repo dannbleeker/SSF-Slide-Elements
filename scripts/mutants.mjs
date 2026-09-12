@@ -52,7 +52,7 @@
  * Usage: `node scripts/mutants.mjs [--only <substring>] [--list]`
  */
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { isMain } from "./is-main.mjs";
@@ -338,12 +338,52 @@ function tryMutation(file, text, mutated, tests) {
   }
 }
 
+/**
+ * A throwaway copy of the repository to do the mutating in.
+ *
+ * The first two attempts at a full sweep mutated the working tree itself, and
+ * restored each file within a second or two — which is correct and still
+ * unpleasant: for the hour the sweep runs, `git status` is never trustworthy,
+ * every editor in the directory sees files changing under it, and an
+ * interrupted run can leave a source file wrong. None of that is worth saving
+ * a copy of 332 MB that takes a few seconds.
+ *
+ * `cp -a` rather than a git worktree, because the sweep must see the tree AS IT
+ * IS — including anything uncommitted and the built `dist-lib` and harvested
+ * `public/catalogue` that some tests read. A worktree would silently sweep a
+ * different tree from the one the reader is looking at.
+ *
+ * @returns {string}
+ */
+function workspace() {
+  const dir = mkdtempSync(join(tmpdir(), "ssf-mutants-"));
+  execFileSync("cp", ["-a", ".", dir], { stdio: "ignore" });
+  return dir;
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const onlyAt = argv.indexOf("--only");
   const only = onlyAt === -1 ? "" : (argv[onlyAt + 1] ?? "");
   const listing = argv.includes("--list");
   const files = TARGETS.filter((f) => f.includes(only));
+
+  if (!listing) {
+    const dir = workspace();
+    console.log(`mutants: working in ${dir}, the tree you are in is untouched`);
+    const sweep = () => rmSync(dir, { recursive: true, force: true });
+    process.on("exit", sweep);
+    // A killed sweep is the normal way this ends when a reader has seen enough,
+    // and `exit` does not run on a signal. Both of the first two attempts were
+    // killed, so this is the ordinary case rather than the exceptional one.
+    for (const signal of ["SIGINT", "SIGTERM"]) {
+      process.on(signal, () => {
+        sweep();
+        process.exit(1);
+      });
+    }
+    process.chdir(dir);
+  }
 
   const plan = files.map((file) => {
     const text = readFileSync(file, "utf8");
