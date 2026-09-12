@@ -320,6 +320,47 @@ describe("the sibling sweep", () => {
     expect(missing, "acted on but absent from docs/SIBLING.md").toEqual([]);
   });
 
+  it("names the call behind every claim that this add-in never makes one", () => {
+    /**
+     * A row saying "never" has to say never WHAT, and be right.
+     *
+     * On 2026-09-12 three rows rested on "a collection this add-in never
+     * loads", and `selectedShape` in `src/office/powerpoint.ts` loads one —
+     * `getSelectedShapes()`, for an element that lands at the cursor. The
+     * claim had been true when it was written and nothing re-read it, which
+     * is the exact failure `docs/SIBLING.md` warns about: "A row that reads
+     * as a description of this add-in and is not is worse than no row at
+     * all, because the next reader builds on it."
+     *
+     * Two halves, and the first is what makes the second possible. An
+     * unnamed never is a claim nothing can check, so a reason claiming one
+     * must name the surface in backticks; and a named surface must then be
+     * absent from the only directory that calls Office.js.
+     */
+    // Against the CODE. The file explains at length why it does not call
+    // `setSelectedShapes`, in comments that name it twice — and the first
+    // version of this guard read those and reported the true row as false.
+    // Fourth time in this family, and `scripts/without-prose.mjs` exists
+    // because of the other three.
+    const office = withoutTsProse(readFileSync("src/office/powerpoint.ts", "utf8")) as string;
+    /** The rows that claim this add-in does not make some call. */
+    const claims = Object.entries(TRIAGED as Record<string, string>).flatMap(([key, why]) =>
+      [...why.matchAll(/never (?:calls|loads|reads|writes|adds)\s+(`[^`]+`)?/g)].map((m) => ({
+        key,
+        named: m[1]?.replace(/`/g, ""),
+      })),
+    );
+    expect(claims.length, "no row claims a never at all — the pattern has stopped matching").toBeGreaterThan(0);
+
+    const unnamed = claims.filter((c) => c.named === undefined).map((c) => c.key);
+    expect(unnamed, "a row claims a never without naming the call, so nothing can check it").toEqual([]);
+
+    const untrue = claims
+      .filter((c) => c.named !== undefined && office.includes(c.named))
+      .map((c) => `${c.key} says it never touches ${c.named ?? ""}, and src/office/powerpoint.ts does`);
+    expect(untrue).toEqual([]);
+  });
+
   it("reads raw files and never runs the siblings' code", () => {
     expect(table).toContain("raw.githubusercontent.com");
     expect(table).toContain("dannbleeker/SSF-Charts");

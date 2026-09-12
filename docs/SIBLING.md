@@ -124,14 +124,19 @@ worse than no row at all, because the next reader builds on it.
 | `how-many-collection-reads-a-context-survives` | SSF-Charts' `PENDING_QUESTIONS`; SSF-Merge's paging loop | **Smaller than it was, re-triaged 2026-09-11.** There is no paging, so there is no loop: one `PowerPoint.run` per read, one collection load inside it, and no context accumulates reads either way. |
 | `delete-then-lookup` — whether a deleted slide still resolves | SSF-Charts' `FAKE_BASELINE` | **Adopted as doctrine, re-verdicted 2026-09-11.** The replaced slide is removed by position, highest index first, and the deck is re-counted rather than the call believed. "Remove from N slides" is a SECOND caller of the same delete and runs it once per slide; each cycle is counted back before the next one starts. |
 | `scratch-slides-returned` — whether a probe gets its slides back | SSF-Charts' positional sweep; SSF-Merge's triple-clamped undo | **Adopted as doctrine, re-verdicted 2026-09-11.** Any removal here is positional and clamped. The deck-wide removal can stop half-way — by design, at the first cycle the deck's own size does not confirm — and says how far it got, which is the opposite failure to 45 slides nobody asked for. |
+| `shapes-by-index-vs-items` — whether a shape collection answers the same by index and by items | SSF-Charts' `FAKE_BASELINE` | **Corrected 2026-09-12, and it had been wrong.** The row said "a collection this add-in never loads". It loads one: `selectedShape` (`src/office/powerpoint.ts`) calls `getSelectedShapes()` and loads four properties of its items, for an element that lands at the cursor. The exposure is bounded rather than absent — only `items[0]` is read, and a selection is rarely near the ~50 the ceiling is about, so a short read that still carries item 0 gives the same answer and one that carries none falls back to the slide centre, which is what `docs/DESIGN.md` section 5 already promises. Every other shape read here is out of the package. |
+| `shapes-items-count-honest` — whether that collection's count matches its items | SSF-Charts' `FAKE_BASELINE` | **Corrected 2026-09-12 with the row above**, whose false premise it inherited. Nothing here turns on that count: the one shape collection this add-in loads is read for its first item alone. Where a short read does cost something is the SLIDE collection, and that is office-js#4272's row. |
+| `shapes-items-via-positional-slide` — the same question reached through a slide read by position | SSF-Charts' `FAKE_BASELINE` | **Corrected 2026-09-12 with the two rows above.** The exact shape is still untouched: `selectedShape` asks the PRESENTATION for the selection rather than reaching a shape collection through a positionally-read slide. What is no longer true is the broader claim it rested on, that no shape collection is loaded here at all. |
 
 ### The rows that are no exposure
 
-The other 54 rows — 20 issues and 34 host questions, counted 2026-09-08 — are
-about surfaces this add-in never touches: adding shapes through the API,
-grouping, creation ids, held shape and slide proxies, tags written through a
-proxy, bindings, pictures, rasterising, layouts and masters, rotation and
-presets. Each row in `TRIAGED` says which surface it is not, so a later reader
+The other 51 rows — counted 2026-09-12, three fewer than on 2026-09-08
+because the shape-collection rows moved off NO EXPOSURE — are about surfaces
+this add-in never touches: adding shapes through the API, grouping, creation
+ids, held shape and slide proxies, tags written through a proxy, bindings,
+pictures, rasterising, layouts and masters, rotation and presets. Reading the
+SELECTED shapes is no longer on that list: `selectedShape` loads that
+collection for an element that lands at the cursor. Each row in `TRIAGED` says which surface it is not, so a later reader
 can see the check was made. They become exposure the moment anything here adds
 a shape through the API, and that route is on the rejected list in
 `docs/BACKLOG.md`.
