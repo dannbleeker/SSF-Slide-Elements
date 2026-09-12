@@ -286,7 +286,13 @@ export function mutationsOf(text) {
   return found.sort((a, b) => a.at - b.at);
 }
 
-/** Where a mutation sits, as `file:line`, for a report a person reads. */
+/**
+ * Which line a mutation sits on, for a report a person reads.
+ *
+ * @param {string} text
+ * @param {number} at
+ * @returns {number}
+ */
 export function lineOf(text, at) {
   return text.slice(0, at).split("\n").length;
 }
@@ -306,6 +312,28 @@ function suitePasses(files) {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Put the mutation in place, run the tests, and ALWAYS put the original back.
+ *
+ * The restore is in a `finally` because a half-written file left behind by an
+ * interrupted sweep is the one way this script can do damage, and a `git
+ * checkout` to recover it would take the reader's own work with it.
+ *
+ * @param {string} file
+ * @param {string} text the original
+ * @param {string} mutated
+ * @param {string[]|null} tests null for the whole suite
+ * @returns {boolean} true when the suite passed, which for a mutant is survival
+ */
+function tryMutation(file, text, mutated, tests) {
+  writeFileSync(file, mutated);
+  try {
+    return suitePasses(tests);
+  } finally {
+    writeFileSync(file, text);
   }
 }
 
@@ -338,14 +366,8 @@ function main() {
   for (const { file, text, mutations, tests } of plan) {
     if (!tests.length) console.log(`\nmutants: NOTHING IMPORTS ${file} — every mutation of it will survive`);
     for (const m of mutations) {
-      const mutated = text.slice(0, m.at) + m.now + text.slice(at2(m));
-      writeFileSync(file, mutated);
-      let lived = false;
-      try {
-        lived = suitePasses(tests);
-      } finally {
-        writeFileSync(file, text);
-      }
+      const mutated = text.slice(0, m.at) + m.now + text.slice(endOf(m));
+      const lived = tryMutation(file, text, mutated, tests);
       done += 1;
       const where = `${file}:${lineOf(text, m.at)}  ${m.what}  ${JSON.stringify(m.was)} -> ${JSON.stringify(m.now)}`;
       if (!lived) {
@@ -354,14 +376,7 @@ function main() {
       }
       // A survivor of the fast tier is not a survivor yet. Re-run it against
       // everything before it goes in the report.
-      writeFileSync(file, mutated);
-      let reallyLived = false;
-      try {
-        reallyLived = suitePasses(null);
-      } finally {
-        writeFileSync(file, text);
-      }
-      if (reallyLived) {
+      if (tryMutation(file, text, mutated, null)) {
         survivors.push(where);
         // Printed as it is found, not only in the summary. A sweep of the whole
         // set is over an hour, and a run that is interrupted should still have
@@ -383,8 +398,13 @@ function main() {
   );
 }
 
-/** The end of a mutation's original text. */
-function at2(m) {
+/**
+ * Where a mutation's original text ends.
+ *
+ * @param {{ at: number, was: string }} m
+ * @returns {number}
+ */
+function endOf(m) {
   return m.at + m.was.length;
 }
 
