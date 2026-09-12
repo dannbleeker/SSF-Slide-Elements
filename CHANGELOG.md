@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — the list comes back where you left it
+
+- **How far down the list you had scrolled is remembered**, per presentation,
+  like the search and the tags. Reopen the pane and it scrolls back as soon as
+  the tiles are drawn — and if you have already started scrolling by then, it
+  leaves you where you are.
+
 ### Changed — nothing you can see
 
 - Tests for parts of the engine that had none: leaving one slide listed in a

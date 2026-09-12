@@ -377,6 +377,7 @@ describe("the privacy page says what the pane actually stores", () => {
       query: ["what you last typed in the search box"],
       tags: ["which tags you picked"],
       chosen: ["which size you picked"],
+      scroll: ["how far down the list you had scrolled"],
     };
     for (const field of [...machine, ...deck]) {
       const words = WORDS[field];

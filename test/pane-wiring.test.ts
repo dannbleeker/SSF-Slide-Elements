@@ -241,6 +241,23 @@ document.addEventListener = ((type: string, fn: EventListener, options?: AddEven
 }) as typeof document.addEventListener;
 
 /**
+ * The same, for `window`.
+ *
+ * The pane binds its scroll listener there rather than on `document`, because
+ * the pane scrolls the document rather than a box of its own. Tracking only
+ * `document` left every pane ever opened still listening for scrolls, each with
+ * its own module instance and its own idea of where the list was — and the
+ * cases below, which reopen the pane on purpose, are exactly the ones that
+ * notice.
+ */
+const boundToWindow: [string, EventListener][] = [];
+const addToWindow = window.addEventListener.bind(window);
+window.addEventListener = ((type: string, fn: EventListener, options?: AddEventListenerOptions) => {
+  boundToWindow.push([type, fn]);
+  addToWindow(type, fn, options);
+}) as typeof window.addEventListener;
+
+/**
  * Detach every pane opened so far, so the NEXT `openPane` starts alone.
  *
  * `afterEach` does this between cases. A case that reopens the pane several
@@ -252,6 +269,7 @@ document.addEventListener = ((type: string, fn: EventListener, options?: AddEven
  */
 function detachPanes(): void {
   for (const [type, fn] of bound.splice(0)) document.removeEventListener(type, fn);
+  for (const [type, fn] of boundToWindow.splice(0)) window.removeEventListener(type, fn);
 }
 
 afterEach(() => {
@@ -275,6 +293,9 @@ afterEach(() => {
   host.removed.length = 0;
   host.refuseRemoval = false;
   host.url = undefined;
+  // The scroll cases fake this, and a value left behind is the next case's
+  // pane booting onto somebody else's scroll position.
+  Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
   spliced.length = 0;
   window.localStorage.clear();
 });
@@ -838,6 +859,141 @@ describe("what the pane remembers, and where", () => {
       [...pane.querySelectorAll('[data-action="category"]')].filter((h) => h.getAttribute("aria-expanded") === "true")
         .length,
     ).toBe(2);
+  });
+});
+
+describe("where the list was left", () => {
+  /**
+   * `docs/DESIGN.md` section 4's last line. jsdom has no layout, so nothing
+   * here measures a real scroll — what it holds is the WIRING: that the offset
+   * is written under the deck's own key, that it is put back once when there
+   * are tiles to put it back into, and that it is not put back over a scroll
+   * the user has already made.
+   *
+   * Real timers, not fake ones. The pane's write trails a scroll by 250 ms, and
+   * `settle()` above is a `setTimeout(0)` — under `vi.useFakeTimers` it never
+   * resolves and every case here hangs, which is how the first version of this
+   * describe behaved. Waiting 300 ms four times is the cheaper of the two.
+   */
+  const A = "https://contoso-my.sharepoint.com/personal/me/Documents/Q4.pptx";
+  const B = "https://contoso-my.sharepoint.com/personal/me/Documents/Q3.pptx";
+
+  const written = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 300));
+
+  /** Pretend the document is scrolled to `y`, and tell the pane about it. */
+  function scrollTo(y: number): void {
+    Object.defineProperty(window, "scrollY", { value: y, configurable: true });
+    window.dispatchEvent(new Event("scroll"));
+  }
+
+  /** Open the pane on a deck and open a category, so there are tiles. */
+  async function opened(url: string | undefined): Promise<HTMLElement> {
+    detachPanes();
+    host.url = url;
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    await settle();
+    return pane;
+  }
+
+  /** Record every `window.scrollTo` while `run` is going, then put it back. */
+  async function scrolls(run: () => Promise<void>): Promise<number[]> {
+    const put: number[] = [];
+    // `window.scrollTo` bound back through the window, not held as a bare
+    // reference: jsdom's own implementation reads `this`.
+    const real = window.scrollTo.bind(window);
+    window.scrollTo = ((_x: number, y: number): void => {
+      put.push(y);
+    }) as typeof window.scrollTo;
+    try {
+      await run();
+    } finally {
+      window.scrollTo = real;
+    }
+    return put;
+  }
+
+  /**
+   * Leave deck A scrolled to 640, written through, with NO category open.
+   *
+   * The open categories are remembered too, so opening one here would mean the
+   * reopen below draws tiles on its very first pass — and the case that matters
+   * is the one where the restore has to wait for them.
+   */
+  async function leftAt640(): Promise<void> {
+    detachPanes();
+    host.url = A;
+    indexMode = "ok";
+    await openPane();
+    await settle();
+    scrollTo(640);
+    await written();
+  }
+
+  /** What the deck's own bucket holds, whatever its hashed key is. */
+  function deckBucket(): { scroll?: number } {
+    const key = Object.keys(localStorage).find((k) => k !== "ssf-slide-elements");
+    return JSON.parse(localStorage.getItem(key ?? "") ?? "{}") as { scroll?: number };
+  }
+
+  it("writes the offset into the deck's own bucket, after it stops moving", async () => {
+    await opened(A);
+    Object.defineProperty(window, "scrollY", { value: 640, configurable: true });
+    window.dispatchEvent(new Event("scroll"));
+    // Nothing yet: a scroll fires tens of times a second and `keep` is a
+    // `setItem`, so the write trails.
+    expect(deckBucket()).not.toHaveProperty("scroll");
+    await written();
+    expect(deckBucket().scroll).toBe(640);
+  });
+
+  it("puts it back on the next open, once there are tiles to put it back into, and only once", async () => {
+    await leftAt640();
+    const put = await scrolls(async () => {
+      detachPanes();
+      host.url = A;
+      indexMode = "ok";
+      const pane = await openPane();
+      await settle();
+      // The loading screen and the first browse draw have no tiles, and
+      // scrolling a short paragraph to 640 leaves the user looking at nothing.
+      expect(pane.querySelector('[data-action="tile"]')).toBeNull();
+      (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+      await settle();
+      // And not again on every draw after it: re-scrolling the user to where
+      // they were an hour ago is the pane fighting them.
+      (pane.querySelector('[data-action="search"]') as HTMLInputElement).dispatchEvent(
+        new Event("input", { bubbles: true }),
+      );
+      await settle();
+    });
+    expect(put).toEqual([640]);
+  });
+
+  it("does not put it back over a scroll the user has already made", async () => {
+    await leftAt640();
+    const put = await scrolls(async () => {
+      detachPanes();
+      host.url = A;
+      indexMode = "ok";
+      const pane = await openPane();
+      await settle();
+      // The user gets there first, before any tile is drawn.
+      scrollTo(20);
+      (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+      await settle();
+    });
+    expect(put).toEqual([]);
+  });
+
+  it("keeps each deck's place separate, and offers none for a deck never scrolled", async () => {
+    await leftAt640();
+    const put = await scrolls(async () => {
+      await opened(B);
+    });
+    expect(put).toEqual([]);
   });
 });
 

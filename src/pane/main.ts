@@ -153,6 +153,7 @@ function draw(): void {
       if (caret !== null) search.setSelectionRange(caret, caret);
     }
   }
+  restoreScroll();
 }
 
 function set(changes: Partial<PaneState>): void {
@@ -209,6 +210,10 @@ function remembered(): Partial<PaneState> {
   // The same object when the host would not name a deck, and that is the
   // fallback working rather than a special case: one bucket holds both halves.
   const deck = deckBucket === GLOBAL_KEY ? machine : read(deckBucket);
+  // Not part of the state, so it is taken here rather than returned. A stored
+  // value that is not a positive number is treated as no value at all.
+  const scroll = (deck as { scroll?: unknown }).scroll;
+  keptScroll = typeof scroll === "number" && Number.isFinite(scroll) && scroll > 0 ? scroll : 0;
   return {
     favourites: machine.favourites ?? [],
     coached: machine.coached === true,
@@ -224,6 +229,52 @@ function remembered(): Partial<PaneState> {
     tags: deck.tags ?? [],
     ...(typeof deck.chosen === "string" ? { chosen: deck.chosen } : {}),
   };
+}
+
+/**
+ * How far down the list the user had scrolled, and putting it back once.
+ *
+ * `docs/DESIGN.md` section 4's last unbuilt line. Kept OUTSIDE `PaneState` on
+ * purpose: a scroll offset in the state means a re-render per scroll event, and
+ * a re-render of the whole list while it is moving under the user's finger is
+ * the one thing this feature must not cost.
+ *
+ * Put back after the first draw that has tiles in it, and only that one. The
+ * tile reserves its own box — `.tile-img` is absolutely positioned inside it —
+ * so a picture arriving later does not move anything below it, and one restore
+ * lands where the user left off rather than approximately. Later draws are the
+ * user's own doing: re-scrolling them to where they were an hour ago would be
+ * the pane fighting them.
+ */
+let keptScroll = 0;
+let scrollRestored = false;
+
+function restoreScroll(): void {
+  if (scrollRestored || keptScroll <= 0) return;
+  // Tiles, not merely a browse step: the loading screen is one short paragraph
+  // and scrolling it to 800 px would leave the user looking at nothing.
+  if (!root().querySelector('[data-action="tile"]')) return;
+  scrollRestored = true;
+  window.scrollTo(0, keptScroll);
+}
+
+/**
+ * Remember where the list is, without a render and without a write per event.
+ *
+ * A scroll fires tens of times a second and `keep` is a `setItem`, so the write
+ * trails by a quarter of a second. A pane torn down inside that window loses up
+ * to that much scrolling, which is a few pixels of where the user was — the
+ * only thing this stores.
+ */
+let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+
+function onScroll(): void {
+  keptScroll = window.scrollY;
+  // Once the user has scrolled, the restore has had its chance: putting the old
+  // offset back after that would undo the scroll that just happened.
+  scrollRestored = true;
+  if (scrollTimer !== undefined) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(keep, 250);
 }
 
 function write(key: string, value: unknown): void {
@@ -243,6 +294,7 @@ function keep(): void {
     query: state.query,
     tags: state.tags,
     ...(state.chosen === undefined ? {} : { chosen: state.chosen }),
+    ...(keptScroll > 0 ? { scroll: keptScroll } : {}),
   };
   // One write when there is no deck to tell apart, so the fallback bucket does
   // not get half of itself overwritten by the other half a moment later.
@@ -1197,6 +1249,9 @@ void Office.onReady(() => {
   document.addEventListener("pointermove", cancelPress);
   document.addEventListener("pointercancel", cancelPress);
   document.addEventListener("input", onInput);
+  // On `window`, because the pane scrolls the document rather than a box of its
+  // own: nothing in `taskpane.css` sets `overflow` on a container.
+  window.addEventListener("scroll", onScroll, { passive: true });
   document.addEventListener("keydown", onKey);
   document.addEventListener("focusin", onFocus);
   document.addEventListener("mouseover", onOver);
