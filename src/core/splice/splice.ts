@@ -163,7 +163,16 @@ export async function onlySlide(deck: Uint8Array | string, slide: number): Promi
   return { base64: await pkg.toBase64(), path };
 }
 
-/** The shape tree of a slide part. */
+/**
+ * The shape tree of a slide part.
+ *
+ * The missing-`<p:spTree>` raise is reachable and `splice-malformed.test.ts`
+ * holds it. The `cSld ? … : undefined` arm beside it is NOT: measured
+ * 2026-09-12, a slide with no `<p:cSld>` is refused by `cloneSlide` first, with
+ * a sentence naming that element instead. It stays because it is what lets this
+ * return an `Element` rather than an `Element | undefined`, which every caller
+ * would then have to re-check.
+ */
 async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
   const doc = await pkg.doc(slidePath);
   const cSld = child(doc.documentElement, P_NS, "cSld");
@@ -339,6 +348,11 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   const wanted = request.options.group && groupable(tops);
   if (wanted) groupShapes(fragment, tops, request.element.name, nextId);
 
+  // Not reachable, and kept for the type rather than for the case: `spTree` was
+  // found by walking a document `pkg.doc` parsed, so it has one. `ownerDocument`
+  // is nullable on the DOM's own `Node`, and a non-null assertion here would be
+  // a claim with no sentence attached — this at least says what went wrong if
+  // the impossible happens. Measured uncovered 2026-09-12; nothing can reach it.
   const doc = spTree.ownerDocument;
   if (!doc) throw new Error(`ssf-slide-elements: ${rebuilt} belongs to no document`);
   const added: Element[] = [];

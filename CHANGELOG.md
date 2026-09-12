@@ -9,6 +9,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see, again
 
+- The code that actually puts an element on your slide, takes one back off, and
+  measures what is already there now gets tested against slides that are not
+  shaped the way it expects — including, for the first time, a slide whose XML
+  has been through a formatter, which is how any file that has been opened in an
+  editor looks. It coped with all of them; nothing had been checking.
+
+### Changed — nothing you can see, again
+
 - The largest file behind the pane was one file doing six jobs, and finding
   anything in it meant knowing where it happened to be. It is now four, each
   named after the thing it decides: the picker's search, the preview card, the

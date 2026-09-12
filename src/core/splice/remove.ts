@@ -103,7 +103,16 @@ export async function slidesHolding(pkg: Pkg, element: string): Promise<number[]
   return out;
 }
 
-/** The shape tree of a slide part. */
+/**
+ * The shape tree of a slide part.
+ *
+ * A copy of `splice.ts`'s, and unlike that one it cannot be reached at all:
+ * measured 2026-09-12, `removeElement` requires at least one shape carrying
+ * this add-in's tag BEFORE it gets here, and a slide with no shape tree has no
+ * shapes — so a deck that would trip this is refused earlier, with a sentence
+ * about the missing element rather than the missing part. What is left is the
+ * type: this returns an `Element`, so the caller's walk needs no null check.
+ */
 async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
   const doc = await pkg.doc(slidePath);
   const cSld = child(doc.documentElement, P_NS, "cSld");
