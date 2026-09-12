@@ -445,6 +445,16 @@ function footer(state: PaneState): HTMLElement {
     bar.appendChild(el("p", report.byHand ? "outcome by-hand" : "outcome", report.detail));
   }
   const actions = el("div", "actions");
+  if (report.move) {
+    // First, which is the order `docs/DESIGN.md` section 6 lists the three in.
+    // Not for the wrap: at 320 px the row wraps to two lines with Undo alone on
+    // the second whichever way round these two go — measured on 2026-09-12,
+    // both orders, in `/tmp/pane-shots`. It is the record's order and nothing
+    // more, which is the honest reason to have picked it.
+    const move = button("move", "secondary", "Move to a new slide");
+    if (state.busy === true) move.disabled = true;
+    actions.appendChild(move);
+  }
   if (report.again) {
     const again = button("again", "secondary", "Again");
     if (state.busy === true) again.disabled = true;

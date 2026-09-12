@@ -39,6 +39,7 @@ measured the same day** — a probe pair and a product round, both read in
 | Used in this deck — which library elements the open deck already holds, and where, read from the tags an insert writes | done |
 | The jump — a slide number in Used in this deck goes to that slide, and the pane says so only once PowerPoint reports being there | done — on SSF-Charts' web measurement of the call, read back on every click; not yet measured on any host by this repo (probe question 7) |
 | Right-click a tile for the other insert target, for one insert | done |
+| Move to a new slide — a whole-slide element that landed on a slide with something already on it, put on a slide of its own instead | done — an undo and a second insert, so it can offer nothing the undo cannot deliver |
 | The preview card's grey boxes — what the destination slide already holds, read from the deck | done |
 | Remove from N slides — a stamp off every slide it is on, asked first, one confirmed cycle per slide | done — built, and the one feature no round has exercised |
 | The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |

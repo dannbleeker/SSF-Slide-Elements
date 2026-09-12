@@ -24,6 +24,7 @@
  * slide points at are the ones already in it, and the insert does not grow the
  * deck by a master. Building the slide from the library deck instead would have.
  */
+import { contentCount } from "../catalogue/boxes.js";
 import type { MarkupRel } from "../catalogue/types.js";
 import { cloneSlide } from "../pptx/clone.js";
 import { framesOf, slideSize } from "../pptx/layout.js";
@@ -127,6 +128,16 @@ export interface SpliceReport {
   pinned: number;
   /** Empty content placeholders taken off the rebuilt slide. */
   placeholders: number;
+  /**
+   * What the slide the user was ON already held, counted by `contentCount`:
+   * its own title and the empty placeholders an insert removes do not count.
+   *
+   * The slide the request NAMED, always — not the rebuilt copy and not the
+   * blanked clone "as a new slide" starts from. It is what the footer's "Move
+   * to a new slide" is decided on (`docs/DESIGN.md` section 6), and that offer
+   * is about the slide the user was looking at.
+   */
+  held: number;
 }
 
 /**
@@ -257,6 +268,9 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
 
   const size = await slideSize(pkg);
   const frames = await framesOf(pkg, source);
+  // Read from `source` BEFORE anything is cloned or blanked, so it is the
+  // user's own slide that is counted whichever target this call is for.
+  const held = contentCount(await pkg.doc(source), size.width, size.height);
 
   const rebuilt = await cloneSlide(pkg, source);
   if (request.options.target === "new") await blank(pkg, rebuilt);
@@ -400,5 +414,6 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
     parts: carried.parts.size,
     pinned,
     placeholders,
+    held,
   };
 }

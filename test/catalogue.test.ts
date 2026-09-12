@@ -4,6 +4,7 @@ import {
   HarvestError,
   Pkg,
   boxOf,
+  contentCount,
   countKeys,
   countedNoun,
   harvest,
@@ -519,5 +520,47 @@ describe("what a destination slide already holds", () => {
 
   it("answers nothing for an empty slide", () => {
     expect(occupiedBoxes(slide(""), W, H)).toEqual([]);
+  });
+
+  describe("counted for the offer to move to a new slide", () => {
+    // `contentCount` answers the other question about the same slide: not
+    // WHERE things are but whether there is anything a whole-slide element
+    // would cover (`docs/DESIGN.md` section 6).
+
+    it("counts a shape, and nothing on an empty slide", () => {
+      expect(contentCount(slide(""), W, H)).toBe(0);
+      expect(contentCount(slide(rect(0, 0, W / 2, H / 2)), W, H)).toBe(1);
+      expect(contentCount(slide(rect(0, 0, W / 4, H / 4) + rect(W / 2, H / 2, W / 4, H / 4)), W, H)).toBe(2);
+    });
+
+    it("does not count the slide's own title, in either spelling", () => {
+      // A whole-slide element lands BELOW the title and the insert never
+      // removes it, so a slide holding nothing but its title is the ordinary
+      // destination. Counting it would put the offer on almost every insert.
+      expect(contentCount(slide(placeholder("title", "Q4 results")), W, H)).toBe(0);
+      expect(contentCount(slide(placeholder("ctrTitle", "Q4 results")), W, H)).toBe(0);
+      // And a title beside real content is still one thing, not two.
+      expect(contentCount(slide(placeholder("title", "Q4 results") + rect(0, H / 2, W / 2, H / 4)), W, H)).toBe(1);
+    });
+
+    it("does not count a ghost the insert is about to remove, and does count one with text in it", () => {
+      expect(contentCount(slide(placeholder("body")), W, H)).toBe(0);
+      expect(contentCount(slide(placeholder("body", "real text")), W, H)).toBe(1);
+    });
+
+    it("counts a shape with no frame of its own, which `occupiedBoxes` cannot draw", () => {
+      // The difference between the two readings, and it is deliberate: a body
+      // placeholder inheriting its geometry from the layout cannot be DRAWN in
+      // grey, and is still something on the slide.
+      const bare =
+        `<p:sp><p:nvSpPr><p:cNvPr id="4" name="x"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>` +
+        `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>hi</a:t></a:r></a:p></p:txBody></p:sp>`;
+      expect(occupiedBoxes(slide(bare), W, H)).toEqual([]);
+      expect(contentCount(slide(bare), W, H)).toBe(1);
+    });
+
+    it("does not count a shape parked off the slide", () => {
+      expect(contentCount(slide(rect(W + 100000, 0, 500000, 500000)), W, H)).toBe(0);
+    });
   });
 });

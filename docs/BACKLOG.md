@@ -15,18 +15,19 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 Almost everything in `docs/DESIGN.md` sections 4, 6 and 8 is built: the jump
 from a slide number in "Used in this deck" (2026-09-12, on the sibling's
-measurement, read back on every click) and "Open all" beside the category
-count (2026-09-12). Two approved behaviours are still missing, both found by
-reading the record against the code on 2026-09-12 rather than by anyone
-noticing them absent: **"Move to a new slide"** in the footer when a
-whole-slide element lands on a slide that already had content (section 6), and
-the pane remembering **search, tags, scroll position and picked counts** and
-doing it **per deck** — it remembers five things today and keys them per
+measurement, read back on every click), "Open all" beside the category count
+(2026-09-12) and "Move to a new slide" in the footer (2026-09-12). One
+approved behaviour is still missing, found by reading the record against the
+code on 2026-09-12 rather than by anyone noticing it absent: the pane
+remembering **search, tags, scroll position and picked counts** and doing it
+**per deck** — it remembers five things today and keys them per
 machine (section 4). **Remove from N slides** is the one
 feature whose mechanism — a sequence of insert-then-remove cycles — no round has
 exercised; the next round on any platform should put a stamp on three slides and
 take it off again. The same round should click a slide number in "Used in this
-deck" and read probe question 7, which is the jump measured directly.
+deck" and read probe question 7, which is the jump measured directly, and use
+"Move to a new slide" once — it is an undo and an insert back to back, which no
+round has done either.
 
 ### The rest of the host round
 

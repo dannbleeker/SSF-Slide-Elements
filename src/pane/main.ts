@@ -463,6 +463,12 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     state = {
       ...state,
       busy: false,
+      // Section 6's "Move to a new slide". `report.held` is what the slide the
+      // user was on already carried, counted by the splice out of the bytes it
+      // was already holding — so the offer costs no second read and no host
+      // call. A part never gets it: a part ignores the target switch, so there
+      // is no other target to move it to.
+      moveable: outcome.ok && target === "onto" && element.kind === "slide" && report.held > 0 ? element.id : undefined,
       recent: outcome.ok ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
       undo: outcome.ok ? 1 : 0,
       outcome: { ...outcome, name: element.name },
@@ -506,9 +512,9 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
  * id: `CLAUDE.md` records that a slide the run just added does not resolve by
  * one on the web, and undo is working right next to one.
  */
-async function undo(): Promise<void> {
+async function undo(): Promise<boolean> {
   const entry = undoable;
-  if (!entry || state.busy === true) return;
+  if (!entry || state.busy === true) return false;
   set({ busy: true, notice: "Undoing…" });
   const plan = undoPlan(entry);
   try {
@@ -541,6 +547,10 @@ async function undo(): Promise<void> {
     state = {
       ...state,
       busy: false,
+      // `moveable` is deliberately NOT cleared here. `footerOf` gates the offer
+      // on `undo` as well, so zeroing this is what makes it go, and a second
+      // line saying the same thing would be one nothing could catch — a line
+      // the suite cannot make go red is a line that rots quietly.
       undo: 0,
       outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
       // The slide it was on is the user's own again, so whatever the insert put
@@ -552,6 +562,7 @@ async function undo(): Promise<void> {
     draw();
     announce(`${entry.name} taken back.`);
     followSelection();
+    return true;
   } catch (e) {
     state = {
       ...state,
@@ -560,7 +571,30 @@ async function undo(): Promise<void> {
     };
     delete state.notice;
     draw();
+    return false;
   }
+}
+
+/**
+ * Put the last insert on a new slide instead (`docs/DESIGN.md` section 6).
+ *
+ * A whole-slide element that landed on a slide which already had something on
+ * it covers that something. The offer is the way back out, and it is built from
+ * the two operations the pane already has rather than a third: take the insert
+ * back, then make it again with the other target. So it inherits both of their
+ * guarantees — the undo is positional and count-checked, the second insert
+ * reads the deck fresh and proves the delta — and it introduces no new way for
+ * the deck to end up somewhere neither of them can describe.
+ *
+ * If the undo does not work the move stops there, with the undo's own sentence
+ * on screen. The alternative is inserting a second copy beside the first, which
+ * is the one outcome a user asking to MOVE something cannot have meant.
+ */
+async function moveToNewSlide(): Promise<void> {
+  const id = state.moveable;
+  if (id === undefined || state.busy === true) return;
+  if (!(await undo())) return;
+  await insert(id, "new");
 }
 
 // ---------------------------------------------------------------------------
@@ -850,6 +884,11 @@ function onClick(event: MouseEvent): void {
         set({ open: state.library.categories.map((category) => category.key) });
         keep();
       }
+      break;
+    // Section 6: the whole-slide element that landed on a busy slide, moved off
+    // it. Undo then insert again, which is why it lives next to the two.
+    case "move":
+      void moveToNewSlide();
       break;
     case "used":
       void readUsed();

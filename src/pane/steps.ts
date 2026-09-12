@@ -103,6 +103,22 @@ export interface PaneState {
   slide?: number;
   /** How many inserts can still be taken back. */
   undo: number;
+  /**
+   * The element the footer offers to move to a new slide, by id.
+   *
+   * `docs/DESIGN.md` section 6: a whole-slide element that landed ONTO a slide
+   * which already had content gets the offer beside Undo. Set only when all
+   * four hold — the insert worked, the target was "onto", the element is a
+   * whole slide rather than a part, and the splice counted something already
+   * on the slide — because the move is an undo followed by a second insert and
+   * it can offer nothing an undo cannot deliver.
+   *
+   * The id rather than a flag, so the pane re-inserts the element the user
+   * actually placed even if the tile they are hovering has moved on. Mirrors
+   * `undoable` in `main.ts` the way `undo` does: the entry itself is not in the
+   * state, and the render needs to know the offer stands.
+   */
+  moveable?: string;
   /** Element ids the user has starred, most recent first. */
   favourites: string[];
   /** Element ids inserted recently, most recent first. */
@@ -413,6 +429,22 @@ export interface Footer {
   undo: number;
   /** True when the last insert can be repeated on the current slide. */
   again: boolean;
+  /**
+   * True when the last insert can be moved onto a new slide instead.
+   *
+   * Gated on `undo` as well as on `moveable`, and that is not belt and braces:
+   * the move is an undo followed by a second insert, so an offer standing
+   * after the history has gone would be a button that cannot do what it says.
+   *
+   * NOT gated on `busy`, unlike `again` beside it. The two differ because they
+   * are about different things: Again offers a NEW insert, which there is no
+   * point drawing while one is running, and the move is about the insert that
+   * just happened, which is still the last one whatever the pane is doing. So
+   * it stays on screen and `render.ts` disables it, the way Undo does — a
+   * control that vanishes and comes back under the cursor is worse than one
+   * that greys out.
+   */
+  move: boolean;
 }
 
 export function footerOf(state: PaneState): Footer {
@@ -421,6 +453,7 @@ export function footerOf(state: PaneState): Footer {
     byHand: state.outcome?.byHand ?? false,
     undo: state.undo,
     again: state.recent.length > 0 && state.busy !== true,
+    move: state.moveable !== undefined && state.undo > 0,
   };
 }
 

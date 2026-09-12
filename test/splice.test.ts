@@ -604,6 +604,45 @@ describe("the ghosts a whole-slide element lands over", () => {
   });
 });
 
+describe("what the destination slide already held", () => {
+  // `report.held` is what the footer's "Move to a new slide" is decided on
+  // (`docs/DESIGN.md` section 6). Reported by the splice because the splice has
+  // the bytes open already; asking again in the pane would read the deck twice.
+
+  it("counts what is on the slide the request named", async () => {
+    const report = await spliceOne(element("hvid-kasse-2x1-vertikale"));
+    expect(report.held).toBe(1);
+  });
+
+  it("counts nothing on a slide that holds only its own title", async () => {
+    // The ordinary destination: a title and an empty body. Neither is something
+    // a whole-slide element covers, so there is nothing to offer to move off.
+    const deck = await makeDeck([
+      { paragraphs: [["First"]] },
+      { paragraphs: [], title: "Just a heading", noBody: true },
+    ]);
+    const report = await splice({
+      deck,
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(report.held).toBe(0);
+  });
+
+  it("counts the slide the user was on even when the element lands as a new one", async () => {
+    // "As a new slide" clones the destination and BLANKS the clone, so a count
+    // taken after that would be zero every time. It is the user's own slide the
+    // number is about, and it is read before anything is cloned.
+    const onto = await spliceOne(element("hvid-kasse-2x1-vertikale"), { target: "onto" });
+    const asNew = await spliceOne(element("hvid-kasse-2x1-vertikale"), { target: "new" });
+    expect(asNew.held).toBe(onto.held);
+    expect(asNew.held).toBeGreaterThan(0);
+  });
+});
+
 describe("as a new slide, in detail", () => {
   it("keeps a placeholder but empties every paragraph in it", async () => {
     // A `<p:txBody>` with no `<a:p>` at all is schema-invalid and PowerPoint

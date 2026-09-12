@@ -323,6 +323,25 @@ const STATES = [
       outcome: { ok: true, byHand: false, name: "One box", detail: "12 → 13 → 12 slides, slide 2 replaced." },
     },
     shows: ["again", "undo", "star"],
+    // No `move`: this insert landed on a slide with nothing on it, which is
+    // most of them, and the offer must not be the default picture.
+    hides: ["move"],
+  },
+  {
+    // The same insert onto a slide that already had something on it: three
+    // actions in the footer at 320 px, which is the width the row has to
+    // survive (`docs/DESIGN.md` section 6).
+    name: "browse-after-insert-covered",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      chosen: "one-box",
+      recent: ["one-box"],
+      undo: 1,
+      moveable: "one-box",
+      outcome: { ok: true, byHand: false, name: "One box", detail: "12 → 13 → 12 slides, slide 2 replaced." },
+    },
+    shows: ["again", "undo", "move"],
   },
   {
     name: "browse-by-hand",

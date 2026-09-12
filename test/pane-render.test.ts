@@ -282,6 +282,40 @@ describe("browsing", () => {
     expect(root.querySelector('[data-action="undo"]')?.textContent).toBe("Undo (1)");
   });
 
+  it("draws Move to a new slide first, ahead of Again and Undo", () => {
+    // The order `docs/DESIGN.md` section 6 lists the three in.
+    const covered = {
+      ...browsing,
+      recent: ["one-box"],
+      undo: 1,
+      moveable: "one-box",
+      outcome: { ok: true, byHand: false, name: "One box", detail: "3 → 4 → 3 slides, slide 2 replaced." },
+    };
+    render(root, covered, "browse");
+    const drawn = actions();
+    expect(drawn).toContain("move");
+    expect(root.querySelector('[data-action="move"]')?.textContent).toBe("Move to a new slide");
+    expect(drawn.indexOf("move")).toBeLessThan(drawn.indexOf("again"));
+    expect(drawn.indexOf("again")).toBeLessThan(drawn.indexOf("undo"));
+  });
+
+  it("draws no Move to a new slide when the element did not land on anything", () => {
+    const plain = {
+      ...browsing,
+      recent: ["one-box"],
+      undo: 1,
+      outcome: { ok: true, byHand: false, name: "One box", detail: "3 → 4 → 3 slides, slide 2 replaced." },
+    };
+    render(root, plain, "browse");
+    expect(actions()).not.toContain("move");
+  });
+
+  it("disables Move to a new slide while an insert is going", () => {
+    const busy = { ...browsing, recent: ["one-box"], undo: 1, moveable: "one-box", busy: true };
+    render(root, busy, "browse");
+    expect(root.querySelector<HTMLButtonElement>('[data-action="move"]')?.disabled).toBe(true);
+  });
+
   it("marks an outcome the user has to put right by hand", () => {
     const stuck = {
       ...browsing,
