@@ -5,6 +5,8 @@ import {
   DEFAULT_SETTINGS,
   EMPTY,
   RECENT_DEPTH,
+  arrowTo,
+  escapeCloses,
   STEPS,
   STEP_TITLE,
   blockedReason,
@@ -781,5 +783,91 @@ describe("offering to open every category", () => {
     expect(offersOpenAll({ ...EMPTY, open: [], tags: ["white"] }, two)).toBe(false);
     // A query of only spaces is not a search.
     expect(offersOpenAll({ ...EMPTY, open: [], query: "   " }, two)).toBe(true);
+  });
+});
+
+describe("what Escape shuts", () => {
+  /**
+   * The ladder, which lived inside the pane's key handler where nothing could
+   * reach it. The ORDER is the rule: getting it wrong loses somebody's search
+   * while they were only trying to shut a preview card.
+   */
+  const open = {
+    ...browsing,
+    removing: { id: "markeringer-1", slides: [1, 2], done: 0 } as PaneState["removing"],
+    menuFor: "boxes:one-box",
+    previewing: "one-box",
+    gear: true,
+    query: "flow",
+    tags: ["stamp"],
+  };
+
+  it("backs out of what was opened last, in order", () => {
+    // Peeled one at a time, so each rung is asserted against everything below
+    // it still being open rather than against a state built to suit it.
+    expect(escapeCloses(open)).toBe("removing");
+    const noAsk = { ...open, removing: undefined };
+    expect(escapeCloses(noAsk)).toBe("menu");
+    const noMenu = { ...noAsk, menuFor: undefined };
+    expect(escapeCloses(noMenu)).toBe("preview");
+    const noCard = { ...noMenu, previewing: undefined };
+    expect(escapeCloses(noCard)).toBe("gear");
+    const noGear = { ...noCard, gear: false };
+    expect(escapeCloses(noGear)).toBe("search");
+  });
+
+  it("clears the search for a tag with no query, and answers nothing when all is shut", () => {
+    expect(escapeCloses({ ...browsing, tags: ["stamp"] })).toBe("search");
+    expect(escapeCloses({ ...browsing, query: "flow" })).toBe("search");
+    expect(escapeCloses(browsing)).toBeUndefined();
+  });
+
+  it("never reaches the search while anything else is open", () => {
+    // The whole point of the ladder: a user shutting a card keeps their search.
+    for (const also of [
+      { previewing: "one-box" },
+      { gear: true },
+      { menuFor: "boxes:one-box" },
+    ] as Partial<PaneState>[]) {
+      expect(escapeCloses({ ...browsing, query: "flow", tags: ["stamp"], ...also })).not.toBe("search");
+    }
+  });
+});
+
+describe("where an arrow key moves the focus", () => {
+  it("steps forward and back, and treats both axes the same", () => {
+    expect(arrowTo("ArrowRight", 2, 6)).toBe(3);
+    expect(arrowTo("ArrowDown", 2, 6)).toBe(3);
+    expect(arrowTo("ArrowLeft", 2, 6)).toBe(1);
+    expect(arrowTo("ArrowUp", 2, 6)).toBe(1);
+  });
+
+  it("lands on the FIRST tile when the focus is on none of them", () => {
+    // Whichever direction: a user pressing Down from the search box expects the
+    // first tile, and one pressing Up expects the same rather than the last.
+    // This falls out of the clamp rather than out of a case of its own —
+    // `main.ts` carried `if (at < 0) return 0`, and taking it out left every
+    // case here green, so it went. The behaviour is still pinned here.
+    expect(arrowTo("ArrowDown", -1, 6)).toBe(0);
+    expect(arrowTo("ArrowUp", -1, 6)).toBe(0);
+  });
+
+  it("clamps at both ends rather than wrapping", () => {
+    // A grid that jumps from the last tile back to the first reads as a glitch,
+    // and the two ends are exactly where an off-by-one hides.
+    expect(arrowTo("ArrowRight", 5, 6)).toBe(5);
+    expect(arrowTo("ArrowLeft", 0, 6)).toBe(0);
+  });
+
+  it("answers nothing for a key that is not an arrow, or a list with no tiles", () => {
+    expect(arrowTo("Enter", 2, 6)).toBeUndefined();
+    expect(arrowTo("a", 2, 6)).toBeUndefined();
+    expect(arrowTo("ArrowDown", -1, 0)).toBeUndefined();
+  });
+
+  it("handles a list of one, where every arrow stays put", () => {
+    expect(arrowTo("ArrowRight", 0, 1)).toBe(0);
+    expect(arrowTo("ArrowLeft", 0, 1)).toBe(0);
+    expect(arrowTo("ArrowDown", -1, 1)).toBe(0);
   });
 });

@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see, again
+
+- Rules about what the pane remembers, what Escape shuts and where an arrow key
+  moves were written inside the one file the build does not measure. They moved
+  somewhere it does, and gained tests. No behaviour changed.
+
 ### Changed — what the store listing tells Microsoft's reviewers
 
 - **The testing notes now say which platforms have not been tested.** The
