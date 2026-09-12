@@ -7,6 +7,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — the pane in Windows high contrast
+
+- **The little orange mark above the heading was invisible if you use Windows
+  high contrast**, because its whole appearance is its colour and high contrast
+  replaces colours with your own. It is drawn in your text colour there now, so
+  it is there like everything else. Nothing changes for anybody not using high
+  contrast.
+- The weekly check that measures the pane now renders every screen in high
+  contrast too, which is how this was found. It had been promised and never
+  looked at.
+
 ### Added — click a slide number to go there
 
 - **The slide numbers under "Used in this deck" are links now.** Click one and

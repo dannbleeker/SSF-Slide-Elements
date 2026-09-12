@@ -533,7 +533,14 @@ top hit.
 - **Touch**: the first tap on a tile shows the preview, the second inserts;
   nothing depends on hover.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
-  tiles and the tick stay visible.
+  tiles and the tick stay visible. **Measured from 2026-09-12**, when
+  `pane-shots` gained a forced-colours pass over every state: until then this
+  was a promise nothing rendered, and the tick was not keeping it — a 26x3
+  block whose only visual is its background, erased the moment backgrounds are
+  forced. It is painted `CanvasText` there now, so it survives in the user's
+  own palette rather than in SSF orange, which is what asking for forced
+  colours means. The audit refuses any decoration that goes the same colour as
+  the thing behind it.
 - **Office themes**: light and dark, from `Office.context.officeTheme`.
 - **Pane sizes**: usable at 320 px, three columns from 400 px, docked preview
   from 512 px, and the list stays scrollable with the footer visible in a

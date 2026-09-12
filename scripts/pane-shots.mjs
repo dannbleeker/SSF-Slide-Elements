@@ -352,7 +352,12 @@ const EXECUTABLE = process.env.CHROMIUM || (existsSync(CONTAINER_CHROMIUM) ? CON
  * behind it falls back to white rather than being skipped, because skipping is
  * how a measurement quietly stops measuring.
  */
-function audit() {
+/**
+ * @param {boolean} [forced] True when the page is rendered in forced colours,
+ *   where the OS supplies every colour and a contrast ratio measured here is a
+ *   fact about the operating system rather than about this pane.
+ */
+function audit(forced) {
   const numbers = (/** @type {string} */ s) => (s.match(/[\d.]+/g) ?? []).map(Number);
   const luminance = (/** @type {number[]} */ [r, g, b]) => {
     const channel = (v) => {
@@ -424,7 +429,49 @@ function audit() {
       } else if (node.nodeType === 1) walk(node);
     }
   };
-  walk(document.body);
+  // Skipped in forced colours: the palette is the user's, guaranteed by the
+  // system colour pairs, so a ratio measured here would be a fact about the
+  // operating system. Every other rule in this function still holds there —
+  // more so the focus ring, which is the first thing custom CSS loses when
+  // colours are forced.
+  if (forced !== true) walk(document.body);
+
+  // A DECORATION THAT HAS BECOME INVISIBLE, which only forced colours can
+  // produce: an element whose entire visual is its background, painted the
+  // same colour as the thing behind it.
+  //
+  // The pane's orange tick is exactly that shape — a 26x3 span with no text,
+  // no border and no children — and forcing its background to Canvas erased
+  // it, against `docs/DESIGN.md` section 9's promise that "rings, chips, tiles
+  // and the tick stay visible". Nothing measured it: the first forced-colours
+  // run was clean and the tick was missing from the picture, which is what a
+  // person noticed. This is that noticing, written down.
+  if (forced === true) {
+    for (const el of document.querySelectorAll("#pane *")) {
+      // HTML only. An SVG shape is painted by `fill` and `stroke` rather than
+      // by a CSS background, so every `<rect>` in the little slide answers
+      // this rule and none of them means it — the ghosts have their own
+      // forced-colours block a few lines up in `taskpane.css`.
+      if (!(el instanceof HTMLElement)) continue;
+      if (el.childNodes.length > 0) continue;
+      const box = el.getBoundingClientRect();
+      if (box.width === 0 || box.height === 0) continue;
+      const style = getComputedStyle(el);
+      const bordered = ["Top", "Right", "Bottom", "Left"].some(
+        (side) => Number.parseFloat(style[`border${side}Width`]) > 0,
+      );
+      if (bordered || style.outlineStyle !== "none") continue;
+      const own = numbers(style.backgroundColor);
+      const transparent = own.length >= 4 && own[3] === 0;
+      const behind = groundOf(el.parentElement ?? el);
+      if (transparent || (own[0] === behind[0] && own[1] === behind[1] && own[2] === behind[2])) {
+        findings.push(
+          `invisible in forced colours: ${el.tagName.toLowerCase()}.${el.className || "-"} is ` +
+            `${Math.round(box.width)}x${Math.round(box.height)} with nothing but a background, and it is the ground's own colour`,
+        );
+      }
+    }
+  }
 
   // WHERE THE KEYBOARD IS, which is the third thing a PNG cannot show and the
   // one a screenshot cannot show at all: a focus ring is only on screen while
@@ -584,10 +631,34 @@ const found = new Map();
 // as a defect in the pane.
 /** @type {string[]} */
 const claims = [];
-for (const width of [320, 512]) {
-  for (const theme of ["light", "dark"]) {
+/**
+ * What gets rendered: the two widths in both themes, and then every state once
+ * more in FORCED COLOURS.
+ *
+ * A pass rather than a third axis. Forced colours replaces the palette
+ * outright, so light and dark are the same picture under it and 512 px would
+ * measure the same CSS as 320 — doubling 88 shots to 176 would buy one more
+ * width of a layout the other passes already measure. 320 is the tight one and
+ * the one the listing names.
+ *
+ * It exists because `docs/LISTING.md` tells Microsoft's validators the pane
+ * "is tested at 320 px wide in light and dark and in high contrast" and
+ * `docs/DESIGN.md` section 9 promises forced colours are honoured, while this
+ * file rendered neither: the `@media (forced-colors: active)` block in
+ * `src/pane/taskpane.css` had never been exercised by anything.
+ */
+const PASSES = [
+  ...[320, 512].flatMap((width) => ["light", "dark"].map((theme) => ({ width, theme, forced: false }))),
+  { width: 320, theme: "light", forced: true },
+];
+
+for (const { width, theme, forced } of PASSES) {
+  {
     for (const { name, step, state, shows, hides } of STATES) {
-      const page = await browser.newPage({ viewport: { width, height: 620 } });
+      const page = await browser.newPage({
+        viewport: { width, height: 620 },
+        ...(forced ? { forcedColors: "active" } : {}),
+      });
       // Office.js is fetched from Microsoft by `taskpane.html` and is not what
       // is being measured here — `render` is called directly. Refused rather
       // than waited on: on a machine that cannot reach it, every one of these
@@ -628,7 +699,7 @@ for (const width of [320, 512]) {
         if (drawn.has(action)) claims.push(`${name}: claims to withhold "${action}" and shows it`);
       }
 
-      await page.screenshot({ path: `${OUT}/${width}-${theme}-${name}.png` });
+      await page.screenshot({ path: `${OUT}/${width}-${forced ? "forced" : theme}-${name}.png` });
       // BEFORE the Tab below: a focus ring in the accessibility tree is not
       // what axe is being asked about, and the shot above is the clean state.
       await page.addScriptTag({ content: AXE });
@@ -637,21 +708,35 @@ for (const width of [320, 512]) {
       // it here rather than there is how this file would start carrying an
       // untyped shape it never uses.
       /** @type {string[]} */
-      const violations = await page.evaluate(async () => {
+      // `color-contrast` is turned off for the forced-colours pass, and only
+      // there, because axe reads the AUTHOR's colours rather than the ones the
+      // browser computed. Measured here on 2026-09-12 with axe-core 4.13.0, in
+      // one page at one moment: axe reported `#a8c4e0` on `#ffffff` (1.8:1) for
+      // the header's wordmark while `getComputedStyle` in the same evaluate
+      // answered `rgb(0, 0, 0)` on `rgb(255, 255, 255)` — the browser had
+      // substituted the system pair, as forced colours is supposed to, and axe
+      // had not noticed. Leaving it on would have made this pass go red on a
+      // pane that is correct, which is the one thing a new gate must not do.
+      // Every other axe rule runs, and the pane's own contrast rule is skipped
+      // there for the different reason given at `audit`.
+      const violations = await page.evaluate(async (forced) => {
         /** @type {{ violations: { impact: string; id: string; help: string }[] }} */
-        const run = await globalThis.axe.run(document, { resultTypes: ["violations"] });
+        const run = await globalThis.axe.run(document, {
+          resultTypes: ["violations"],
+          ...(forced ? { rules: { "color-contrast": { enabled: false } } } : {}),
+        });
         return run.violations.map((x) => `${x.impact}: ${x.id} — ${x.help}`);
-      });
+      }, forced);
       for (const v of violations) {
-        if (!found.has(v)) found.set(v, `${width} ${theme} ${name}`);
+        if (!found.has(v)) found.set(v, `${width} ${forced ? "forced-colours" : theme} ${name}`);
       }
       // AFTER the shot, and before the audit. It tells Chrome the last
       // interaction was a keyboard one, which is what makes `:focus-visible`
       // match the programmatic `focus()` the focus sweep uses — and it would
       // put a ring in the picture if it ran first.
       await page.keyboard.press("Tab");
-      for (const finding of await page.evaluate(audit)) {
-        if (!found.has(finding)) found.set(finding, `${width} ${theme} ${name}`);
+      for (const finding of await page.evaluate(audit, forced)) {
+        if (!found.has(finding)) found.set(finding, `${width} ${forced ? "forced-colours" : theme} ${name}`);
       }
       await page.close();
       taken++;
@@ -672,7 +757,7 @@ if (found.size === 0) {
   console.log(
     "audit: nothing overflows, every live label clears its contrast floor, every control shows where the keyboard is, " +
       "every hit area is at least 24px on its short side, every wrapped link label starts flush left, " +
-      "and axe finds no violation",
+      "nothing decorative disappears when colours are forced, and axe finds no violation",
   );
 } else {
   console.log(`audit: ${found.size} finding(s)`);
