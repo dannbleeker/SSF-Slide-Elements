@@ -38,6 +38,34 @@ describe("an insert that worked", () => {
   });
 });
 
+describe("an insert that raised and landed anyway", () => {
+  /**
+   * The host rule this whole function exists for, and the one case it had none
+   * of — found by auditing `CLAUDE.md`'s host rules against the code on
+   * 2026-09-12.
+   *
+   * "A call can raise and still have done the work. SSF-Merge's insert timed
+   * out with both slides landed. Read the delta." Every `error` case in this
+   * file paired the raise with a deck that did NOT grow, so the delta and the
+   * error always agreed and nothing distinguished them. An early
+   * `if (attempt.error) return failure` at the top of `outcomeOf` would have
+   * kept the entire suite green — and would have told a user their insert
+   * failed while the slide was on their screen, and left them no Undo for it.
+   */
+  it("reports success when the host raised and the deck grew regardless", () => {
+    const out = outcomeOf({ ...base, inserted: 13, removed: 12, error: "RichApi.Error: timeout" });
+    expect(out.ok, "the delta is the evidence, not the raise").toBe(true);
+    expect(out.detail, "and the sentence does not mention a refusal").not.toMatch(/refused/i);
+  });
+
+  it("still reports the refusal when the raise came with no growth", () => {
+    // The pair, so the case above cannot be read as "errors are ignored".
+    const out = outcomeOf({ ...base, inserted: 12, removed: undefined, error: "RichApi.Error: timeout" });
+    expect(out.ok).toBe(false);
+    expect(out.detail).toMatch(/refused/i);
+  });
+});
+
 describe("an insert that did not land", () => {
   it("names the host's reason when there was one", () => {
     const out = outcomeOf({ ...base, inserted: 12, removed: undefined, error: "InvalidArgument" });

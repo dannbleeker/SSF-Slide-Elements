@@ -115,6 +115,12 @@ fetched only when you insert it.
   takes only the element out of that group, leaving your own shape where it
   was. Ungrouping one keeps it too: the shapes inside carry the mark as well, so
   an element you have taken apart is still listed and can still be taken off.
+  **Cutting and pasting is the one that loses it**, on PowerPoint for the web:
+  a shape you cut from one slide and paste onto another comes back without its
+  mark, so it stops being listed here and *Remove from N slides* can no longer
+  reach it. The element itself is untouched and still looks the same — insert it
+  again if you want it listed. Move a whole slide instead of its contents and
+  nothing is lost.
   **Each slide number is a link**: click it and PowerPoint moves to that slide.
   The pane says "Slide 4" only once PowerPoint reports being there; if it does
   not, the pane says so and asks you to click the slide in the strip instead.
