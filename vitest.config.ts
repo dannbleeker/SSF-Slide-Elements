@@ -76,6 +76,13 @@ export default defineConfig({
       // branches rise 90 -> 92, three points of headroom; the other three
       // already have theirs and stay.
       //
+      // And again on 2026-09-12, after the three thinnest files left — the ones
+      // that read and rewrite the user's own SLIDE — were given the malformed
+      // slides their guards were written for: **99.2 statements, 96.6 branches,
+      // 100 functions, 99.7 lines**, with `boxes.ts` at 100 and `splice.ts` at
+      // 97.1. Branches rise 92 -> 94, which leaves the two or three points this
+      // paragraph asks for; statements and lines already have theirs.
+      //
       // What is LEFT uncovered in those files is one kind of thing, and it is
       // deliberately left: nullish guards TypeScript requires over DOM calls
       // that never return null in `@xmldom/xmldom` — a matched regex group,
@@ -86,7 +93,7 @@ export default defineConfig({
       // Raise them the same way next time: measure, leave two or three points,
       // and say what you measured. A threshold that follows coverage upward on
       // its own only ever ratchets, and the first hard week gets it deleted.
-      thresholds: { statements: 96, branches: 92, functions: 97, lines: 97 },
+      thresholds: { statements: 96, branches: 94, functions: 97, lines: 97 },
     },
   },
 });
