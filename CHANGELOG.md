@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — an element could vanish from "Used in this deck" straight after you inserted it
+
+- **Reading the deck takes a while, and the pane deliberately stays usable while
+  it does — so you can insert something in the middle of a read.** When you did,
+  the read finished afterwards with an answer from before your insert and quietly
+  put it back: the list said "Nothing from the library is in this deck yet" about
+  an element you had just watched land, and the little slide on the preview card
+  went back to how it looked before. The read now notices the deck changed under
+  it, throws its own answer away, and tells you to ask again.
+
 ### Changed — nothing you can see, again
 
 - The code that actually puts an element on your slide, takes one back off, and

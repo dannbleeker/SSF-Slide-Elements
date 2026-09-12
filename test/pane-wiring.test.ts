@@ -48,10 +48,17 @@ vi.mock("../src/office/powerpoint.js", () => ({
   slideCount: () => Promise.resolve(host.slides),
   // The count the pane is waiting for, unless this run is refusing.
   countReaching: (want: number) => Promise.resolve(host.cycles === host.refuseAt ? host.slides : want),
-  readDeck: () =>
-    deckBase64 === undefined
-      ? Promise.reject(new Error("no deck in a test runner"))
-      : Promise.resolve({ base64: deckBase64, bytes: 1, ms: 1 }),
+  readDeck: () => {
+    // Only the FIRST call waits, and the field is cleared synchronously so the
+    // second caller does not join the queue. That is what lets a case hold the
+    // deck read that "Used in this deck" starts with while an insert — whose
+    // own read is the second call — runs all the way through underneath it.
+    const hold = host.holdRead;
+    host.holdRead = undefined;
+    if (deckBase64 === undefined) return Promise.reject(new Error("no deck in a test runner"));
+    const answer = { base64: deckBase64, bytes: 1, ms: 1 };
+    return hold ? hold.then(() => answer) : Promise.resolve(answer);
+  },
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
@@ -137,6 +144,8 @@ const host = {
   current: undefined as { index: number; id: string } | undefined,
   /** What the stubbed splice reports the destination slide already held. */
   held: 0,
+  /** Set to hold the next `readDeck` open, so something else can finish under it. */
+  holdRead: undefined as Promise<void> | undefined,
   /** Every position the pane asked the host to delete, in order. */
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
@@ -302,6 +311,7 @@ afterEach(() => {
   host.removed.length = 0;
   host.refuseRemoval = false;
   host.url = undefined;
+  host.holdRead = undefined;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -1247,5 +1257,78 @@ describe("a removal asks the deck it is about to change", () => {
     expect(said).toContain("Removed from 1 slide");
     expect(said).not.toContain("of 2");
     expect(host.cycles).toBe(1);
+  });
+});
+
+describe("a deck read that the deck outran", () => {
+  /**
+   * The race the pane is BUILT to allow, and the one it was losing.
+   *
+   * "Used in this deck" reads the whole deck, and the pane deliberately stays
+   * usable while it does — `docs/DESIGN.md` section 4 and `render.ts` both say
+   * so, because the read's cost on a fifty-megabyte deck is section 13's sixth
+   * open question and locking the pane for an unmeasured wait is the worse
+   * trade. So an insert can finish in the middle of a read.
+   *
+   * When it did, the read landed second and overwrote `used` and `onSlide` with
+   * its answer — which was about the deck as it stood BEFORE the insert. The
+   * preview card's grey boxes rolled back to the slide as it was, and the list
+   * said, in as many words, **"Nothing from the library is in this deck yet"** —
+   * measured 2026-09-12, with the guard removed, one second after the user
+   * watched an element land. No error and no notice, and nothing in the suite
+   * reaching it: every case here ran the read and the insert one after the
+   * other.
+   *
+   * Found by reading the guards rather than by a failure: `readUsed` and
+   * `jumpTo` check `state.reading`, and `insert`, `undo` and `removeEverywhere`
+   * do not. An asymmetric lock is either a bug or a comment, and this one had
+   * no comment.
+   */
+  async function readingWhileInserting(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = 1;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    let release = (): void => {};
+    host.holdRead = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const pane = await openPane();
+    await settle();
+    // The read starts and stops at its first await, holding `reading`.
+    (pane.querySelector('[data-action="used"]') as HTMLElement).click();
+    await settle();
+
+    // The insert runs all the way through underneath it — which the pane allows
+    // on purpose, and which is the whole point of the case.
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
+    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    await settle();
+
+    release();
+    for (let i = 0; i < 200; i++) {
+      if (pane.querySelector(".notice") ?? pane.querySelector(".used-head")) break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    await settle();
+    return pane;
+  }
+
+  it("throws the stale answer away rather than writing it over what the insert learned", async () => {
+    const pane = await readingWhileInserting();
+    expect(spliced.length, "the insert really did run during the read").toBe(1);
+    expect(pane.textContent).toContain("The deck changed while it was being read");
+  });
+
+  it("does not leave the pane saying it is still reading", async () => {
+    // The other half: discarding the answer must still end the read, or the
+    // button says "Reading this deck…" for as long as the pane is open and
+    // nothing can ask again.
+    const pane = await readingWhileInserting();
+    const ask = pane.querySelector<HTMLButtonElement>('[data-action="used"]');
+    expect(ask?.disabled, "asking again is what the notice tells them to do").toBe(false);
+    expect(ask?.textContent).not.toContain("Reading");
   });
 });
