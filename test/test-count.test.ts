@@ -14,6 +14,8 @@ interface Answer {
 const verdict = tool.verdict as (o: { defined: number; skipped: number; record: Record_; update?: boolean }) => Answer;
 const skippedNames = tool.skippedNames as (report: unknown) => string[];
 const counts = tool.counts as (report: unknown) => { defined: number; skipped: number };
+const failedNames = tool.failedNames as (report: unknown) => string[];
+const failureMessage = tool.failureMessage as (report: unknown) => string;
 
 /**
  * The gate that holds a floor under the suite, which had no test of its own.
@@ -177,5 +179,111 @@ describe("a scratch file in the directory", () => {
       ],
     };
     expect(counts(committed)).toEqual({ defined: 2, skipped: 0 });
+  });
+});
+
+describe("what a failing run says", () => {
+  /**
+   * The gate ran the suite with `--reporter=json`, which writes everything to a
+   * FILE and nothing to the console, and `execFileSync` throws on a non-zero
+   * exit — so a red run printed a Node stack trace about `execFileSync` and not
+   * one word about the suite.
+   *
+   * Measured on 2026-09-12: `main` went red exactly that way, and the log gave
+   * no way at all to tell which test had failed. The coverage step immediately
+   * above it, running the same suite, had passed all 1196.
+   */
+  it("names the failed test and the file it is in", () => {
+    const report = {
+      testResults: [
+        {
+          name: "/repo/test/host-insert.test.ts",
+          assertionResults: [
+            { status: "passed", fullName: "an insert that worked > says so" },
+            { status: "failed", fullName: "an insert that raised > reads the delta" },
+          ],
+        },
+      ],
+    };
+    expect(failedNames(report)).toEqual(["/repo/test/host-insert.test.ts > an insert that raised > reads the delta"]);
+  });
+
+  it("says nothing about a run that passed", () => {
+    const report = {
+      testResults: [{ name: "/repo/test/a.test.ts", assertionResults: [{ status: "passed", fullName: "fine" }] }],
+    };
+    expect(failedNames(report)).toEqual([]);
+  });
+
+  it("names a file that failed before defining a single test", () => {
+    // An import that threw or a worker that died leaves no failed assertion to
+    // name, and is exactly the case a bare stack trace leaves the reader
+    // guessing about.
+    const report = {
+      testResults: [
+        {
+          name: "/repo/test/broken.test.ts",
+          status: "failed",
+          message: "Error: Cannot find module\n    at load (node:internal)",
+          assertionResults: [],
+        },
+      ],
+    };
+    expect(failedNames(report)).toEqual([
+      "/repo/test/broken.test.ts (no test ran: Error: Cannot find module at load (node:internal))",
+    ]);
+  });
+
+  it("bounds the message, because a report is not a place to paste a stack", () => {
+    const report = {
+      testResults: [
+        { name: "/repo/test/broken.test.ts", status: "failed", message: "x".repeat(5000), assertionResults: [] },
+      ],
+    };
+    const named = failedNames(report)[0] ?? "";
+    // Named first, then bounded. `?? ""` is a length of zero, so a version that
+    // reported nothing at all would satisfy the bound and this case would pass
+    // over the very silence it exists to prevent — measured, on the break that
+    // removed the file-level branch.
+    expect(named, "the file is still named").toContain("/repo/test/broken.test.ts");
+    expect(named.length, "and the stack is not pasted into the log").toBeLessThan(300);
+  });
+
+  it("names a scratch file's failure, unlike the count the floor uses", () => {
+    // `counts` leaves `test/zz…` out on purpose: the floor is a number about
+    // the repository. The exit code is not — it is a fact about the RUN, and a
+    // scratch file that fails is why the command failed. Leaving it out here
+    // would recreate the same silence in the one case a developer is most
+    // likely to hit.
+    const report = {
+      testResults: [
+        { name: "/repo/test/zz-dbg.test.ts", assertionResults: [{ status: "failed", fullName: "scratch" }] },
+      ],
+    };
+    expect(counts(report)).toEqual({ defined: 0, skipped: 0 });
+    expect(failedNames(report)).toEqual(["/repo/test/zz-dbg.test.ts > scratch"]);
+  });
+
+  it("says how much of the suite the report accounts for when nothing in it failed", () => {
+    // A non-zero exit with no failed test is what a worker the kernel killed
+    // looks like: the tests it finished are in the file, the ones it never
+    // reached are simply absent, and vitest exits 1 with nothing to point at.
+    // Measured on 2026-09-12: `main` went red twice this way, and the report
+    // was the only thing that could have said which of the two it was.
+    const report = {
+      testResults: [{ name: "/repo/test/a.test.ts", assertionResults: [{ status: "passed", fullName: "fine" }] }],
+    };
+    const said = failureMessage(report);
+    expect(said, "it does not claim a test failed").not.toContain("the suite failed");
+    expect(said, "and it says how far the report got").toContain("1 tests accounted for");
+  });
+
+  it("names the failures rather than counting, when there are any", () => {
+    const report = {
+      testResults: [{ name: "/repo/test/a.test.ts", assertionResults: [{ status: "failed", fullName: "broke" }] }],
+    };
+    const said = failureMessage(report);
+    expect(said).toContain("/repo/test/a.test.ts > broke");
+    expect(said, "the count sentence is the OTHER case, not both").not.toContain("accounted for");
   });
 });
