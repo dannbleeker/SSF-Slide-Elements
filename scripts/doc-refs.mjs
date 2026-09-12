@@ -26,6 +26,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, sep } from "node:path";
+import { withoutTsComments } from "./without-prose.mjs";
 
 const SKIP = new Set(["node_modules", "dist", "dist-lib", ".git", "coverage"]);
 
@@ -373,6 +374,110 @@ export function commandDrift(root = ".") {
   for (const name of scripts) {
     if (name === "format:check") continue;
     if (!listed.has(name)) out.push(`package.json has ${name} and the Commands block does not name it`);
+  }
+  return out;
+}
+
+/**
+ * Control labels the design record quotes that the pane does not draw.
+ *
+ * The gap this session kept finding by hand. `docs/DESIGN.md` sections 4 and 6
+ * describe the pane, and every one of the four behaviours built on 2026-09-12
+ * had been described there — approved by the owner, quoted by name — and never
+ * built, with nothing going red. The lockstep rule holds the MANUAL to the
+ * pane; nothing held the RECORD to it, in the direction that matters: the
+ * record is written first, so it is the record that gets ahead.
+ *
+ * Held against the pane run through `withoutTsComments`, not the raw source.
+ * A label appears in a comment explaining why the pane does NOT have it — this
+ * file's own section 4 says there is no "Close all" — and a sweep over the raw
+ * text reports that as built. `scripts/without-prose.mjs` exists because the
+ * same mistake has been made four times in this family; this would have been
+ * the fifth.
+ *
+ * A label carrying an `N` is a template: "Remove from N slides" is built as
+ * `Remove from ${n} slides`, so each side of the `N` is looked for on its own,
+ * spaces and all.
+ *
+ * **What this does NOT catch**, said here rather than left to be discovered: a
+ * behaviour the record describes without quoting a label for it. The sweep can
+ * only see what the prose put in quotes. It is a floor, not a proof — but at
+ * `e34b379`, the commit before "Open all" was built, it named "Open all" and
+ * "Move to a new slide" and nothing else real.
+ */
+const NOT_DRAWN = {
+  Borrowed: "a word section 4 uses for a library the deck borrowed, not a control.",
+  "Close all": 'section 4 records that there is deliberately NO "Close all" beside "Open all".',
+  "Picked counts": "section 4's name for what a stepper remembers, not a label on anything.",
+};
+
+/**
+ * The pane's own source, comments removed, as one string.
+ *
+ * @param {string} root
+ * @returns {string}
+ */
+function paneCode(root = ".") {
+  /** @type {string[]} */
+  const out = [];
+  for (const dir of ["src/pane", "src/host"]) {
+    const here = join(root, dir);
+    for (const name of readdirSync(here)) {
+      if (!name.endsWith(".ts") || name.endsWith(".d.ts")) continue;
+      out.push(withoutTsComments(readFileSync(join(here, name), "utf8")));
+    }
+  }
+  return out.join("\n");
+}
+
+/**
+ * The `## N. …` section of a markdown file, heading included.
+ *
+ * @param {string} text
+ * @param {number} n
+ * @returns {string}
+ */
+function numberedSection(text, n) {
+  const head = new RegExp(`^## ${n}\\. .*$`, "m").exec(text);
+  if (!head) return "";
+  const rest = text.slice(head.index + head[0].length);
+  const next = new RegExp(`^## ${n + 1}\\. `, "m").exec(rest);
+  return next ? rest.slice(0, next.index) : rest;
+}
+
+/**
+ * @param {string} root
+ * @returns {string[]}
+ */
+export function paneControlProblems(root = ".") {
+  const record = readFileSync(join(root, "docs/DESIGN.md"), "utf8");
+  const body = numberedSection(record, 4) + numberedSection(record, 6);
+  const labels = [
+    ...new Set([...body.matchAll(/"([A-Z][^"\n]{1,28})"/g)].map((/** @type {RegExpMatchArray} */ m) => m[1] ?? "")),
+  ];
+  const code = paneCode(root);
+  /** @type {string[]} */
+  const out = [];
+  // Vacuity: a regex that stopped matching would report a clean sweep of
+  // nothing, which is the failure this whole file exists to make impossible.
+  if (labels.length < 6)
+    out.push(`only ${labels.length} quoted labels found in sections 4 and 6 — the sweep is broken`);
+  /**
+   * @param {string} label
+   * @returns {boolean}
+   */
+  const drawn = (label) =>
+    label
+      .split(/\bN\b/)
+      .filter((part) => part !== "")
+      .every((part) => code.includes(part));
+  for (const label of labels) {
+    if (drawn(label)) {
+      if (label in NOT_DRAWN) out.push(`"${label}" is listed as not drawn and the pane draws it — drop the entry`);
+      continue;
+    }
+    if (label in NOT_DRAWN) continue;
+    out.push(`docs/DESIGN.md names the control "${label}" and the pane does not draw it`);
   }
   return out;
 }

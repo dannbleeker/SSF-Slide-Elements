@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
 import * as refs from "../scripts/doc-refs.mjs";
@@ -22,6 +25,7 @@ const questionDrift = refs.questionDrift as () => string[];
 const directoryRows = refs.directoryRows as () => { paths: string[]; files: string[] }[];
 const directoryTableProblems = refs.directoryTableProblems as () => string[];
 const commandDrift = refs.commandDrift as () => string[];
+const paneControlProblems = refs.paneControlProblems as (root?: string) => string[];
 const brokenAnchors = refs.brokenAnchors as () => string[];
 const brokenCitations = refs.brokenCitations as () => string[];
 const markdownLinks = refs.markdownLinks as () => { anchor?: string }[];
@@ -125,5 +129,60 @@ describe("the Commands block in CLAUDE.md", () => {
    */
   it("names every script, and only scripts that are there", () => {
     expect(commandDrift()).toEqual([]);
+  });
+});
+
+describe("the controls the design record names", () => {
+  /**
+   * The gap this session kept finding by hand, made mechanical.
+   *
+   * Four behaviours built on 2026-09-12 — the jump, "Open all", "Move to a new
+   * slide" and the pane remembering itself per deck — had all been described in
+   * `docs/DESIGN.md` sections 4 and 6, approved by the owner, and never built.
+   * Nothing went red for any of them. The lockstep rule holds the MANUAL to the
+   * pane; nothing held the RECORD to it, and the record is written FIRST, so it
+   * is the record that gets ahead of the code.
+   *
+   * Checked against the pane with its comments stripped, because a label
+   * appears in a comment explaining why the pane does not have it — section 4
+   * records that there is deliberately no "Close all" — and a raw sweep reads
+   * that as built. Four guards in this family have gone red for exactly that
+   * reason; this would have been the fifth.
+   */
+  it("draws every control the record quotes, or says why not", () => {
+    expect(paneControlProblems()).toEqual([]);
+  });
+
+  it("would have caught the two the record was ahead on, and did not cry wolf", async () => {
+    // The claim above, run rather than asserted. `e34b379` is the commit before
+    // "Open all" was built; the record at that commit already named it and
+    // "Move to a new slide", and the pane drew neither. If this sweep is worth
+    // having, it says so — and says nothing else real.
+    const { execFileSync } = await import("node:child_process");
+    const at = (path: string): string =>
+      execFileSync("git", ["show", `e34b379:${path}`], { encoding: "utf8", maxBuffer: 1 << 24 });
+    const files = execFileSync("git", ["ls-tree", "--name-only", "-r", "e34b379", "src/pane/", "src/host/"], {
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
+    expect(files.length, "no pane source at e34b379 — this case is asserting about nothing").toBeGreaterThan(8);
+    const dir = mkdtempSync(join(tmpdir(), "ssf-slide-elements-record-"));
+    try {
+      mkdirSync(join(dir, "docs"), { recursive: true });
+      mkdirSync(join(dir, "src/pane"), { recursive: true });
+      mkdirSync(join(dir, "src/host"), { recursive: true });
+      writeFileSync(join(dir, "docs/DESIGN.md"), at("docs/DESIGN.md"));
+      for (const f of files) writeFileSync(join(dir, f), at(f));
+      const then = paneControlProblems(dir);
+      // "Borrowed" is section 4's word for a library the deck borrowed rather
+      // than a control, and it is on the not-drawn list today for that reason.
+      const real = then.filter((p) => !p.includes('"Borrowed"'));
+      expect(real).toHaveLength(2);
+      expect(real.join(" ")).toContain('"Open all"');
+      expect(real.join(" ")).toContain('"Move to a new slide"');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see, again
+
+- A build check that the pane actually has the controls its design record names.
+  Four things the record described were never built, and nothing noticed until
+  someone read the two side by side.
+
 ### Added — the list comes back where you left it
 
 - **How far down the list you had scrolled is remembered**, per presentation,

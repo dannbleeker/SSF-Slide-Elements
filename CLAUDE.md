@@ -219,6 +219,16 @@ a refactor, and a check that guessed would be noise.
   comments explaining why the engine avoids it. `scripts/without-prose.mjs`
   exists because the same mistake was made three times in three syntaxes.
 
+- **The design record gets ahead of the code, and nothing used to notice.**
+  Four behaviours approved in `docs/DESIGN.md` sections 4 and 6 — the jump,
+  "Open all", "Move to a new slide", the pane's per-deck memory — sat described
+  and unbuilt until they were found by reading the record against the pane on
+  2026-09-12. `paneControlProblems` in `scripts/doc-refs.mjs` now holds every
+  control label the record QUOTES against what the pane draws. It is a floor,
+  not a proof: a behaviour the record describes without quoting a label for it
+  still slips through, so reading the two side by side after a pane increment
+  is still the practice.
+
 - **A gate that cannot fail is not a gate.** Ask of each one "what would I
   break to make this go red?", then break it. Four of a sibling's could not.
 
