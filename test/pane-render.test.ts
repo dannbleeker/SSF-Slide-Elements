@@ -776,3 +776,27 @@ describe("the slide numbers in Used in this deck", () => {
     for (const b of buttons) expect(b.disabled).toBe(true);
   });
 });
+
+describe("Open all beside the count", () => {
+  it("is offered while a category is closed, and shares the count's row", () => {
+    render(root, { ...browsing, open: [] }, "browse");
+    const all = root.querySelector<HTMLElement>('[data-action="open-all"]');
+    expect(all?.textContent).toBe("Open all");
+    expect(all?.closest(".count-row")?.querySelector(".count")).not.toBeNull();
+  });
+
+  it("is gone once every category is open", () => {
+    // A control that has done its job and cannot do it again is worse than no
+    // control: it invites a click that changes nothing.
+    const open = LIBRARY.categories.map((c) => c.key);
+    render(root, { ...browsing, open }, "browse");
+    expect(root.querySelector('[data-action="open-all"]')).toBeNull();
+    // The count is still drawn, on its own, when the row is not.
+    expect(root.querySelector(".count")).not.toBeNull();
+  });
+
+  it("is gone while searching, which opens what it finds by itself", () => {
+    render(root, { ...browsing, open: [], query: "box" }, "browse");
+    expect(root.querySelector('[data-action="open-all"]')).toBeNull();
+  });
+});

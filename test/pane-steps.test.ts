@@ -32,6 +32,7 @@ import {
   runOf,
   settingsLine,
   slideLine,
+  offersOpenAll,
   slideList,
   slideParts,
   stepFor,
@@ -731,5 +732,31 @@ describe("a landed rectangle, in fractions of the right slide", () => {
     const onSlide = { slide: 2, boxes: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.2 }] };
     expect(withLanded(onSlide, 2, undefined, false)).toBeUndefined();
     expect(withLanded(onSlide, 2, undefined, true)).toBeUndefined();
+  });
+});
+
+describe("offering to open every category", () => {
+  const two: Library = {
+    ...LIBRARY,
+    categories: [
+      { key: "boxes", name: "White boxes" },
+      { key: "stamps", name: "Stamps and labels" },
+    ],
+  };
+
+  it("offers while any category is still closed", () => {
+    expect(offersOpenAll({ ...EMPTY, open: [] }, two)).toBe(true);
+    expect(offersOpenAll({ ...EMPTY, open: ["boxes"] }, two)).toBe(true);
+  });
+
+  it("stops offering once they are all open, rather than staying as a button that does nothing", () => {
+    expect(offersOpenAll({ ...EMPTY, open: ["boxes", "stamps"] }, two)).toBe(false);
+  });
+
+  it("stays out of the way of a search, which opens what it found by itself", () => {
+    expect(offersOpenAll({ ...EMPTY, open: [], query: "box" }, two)).toBe(false);
+    expect(offersOpenAll({ ...EMPTY, open: [], tags: ["white"] }, two)).toBe(false);
+    // A query of only spaces is not a search.
+    expect(offersOpenAll({ ...EMPTY, open: [], query: "   " }, two)).toBe(true);
   });
 });

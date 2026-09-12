@@ -7,6 +7,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — open every section at once
+
+- **"Open all" beside the count** opens every category in one click. The
+  sections still start closed, because a list of six categories opened is a lot
+  of scrolling before you have said what you are looking for. The link goes
+  once they are all open, since there would be nothing left for it to do.
+
 ### Fixed — the pane in Windows high contrast
 
 - **The little orange mark above the heading was invisible if you use Windows

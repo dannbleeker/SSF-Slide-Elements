@@ -332,6 +332,25 @@ describe("what this deck already uses", () => {
     expect(pane.querySelector(".used-where")?.textContent).toBe("slide 1");
   });
 
+  it("opens every category when Open all is clicked, and remembers it", async () => {
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    const expanded = () =>
+      [...pane.querySelectorAll('[data-action="category"]')].filter(
+        (head) => head.getAttribute("aria-expanded") === "true",
+      ).length;
+    expect(expanded()).toBe(0);
+    pane.querySelector<HTMLElement>('[data-action="open-all"]')?.click();
+    await settle();
+    // Both categories the stub library carries, and the control has gone.
+    expect(expanded()).toBe(2);
+    expect(pane.querySelector('[data-action="open-all"]')).toBeNull();
+    // Written through to the browser's storage, like any other open category.
+    const kept = JSON.parse(localStorage.getItem("ssf-slide-elements") ?? "{}") as { open?: string[] };
+    expect(kept.open?.sort()).toEqual(["boxes", "stamps"]);
+  });
+
   it("keeps saying it was never asked when the read fails", async () => {
     // Not an empty list: an empty list is a claim about the deck, and this is a
     // failure to look at it.

@@ -124,8 +124,11 @@ fetched only when you insert it.
   stay plain text;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
-- the **categories**, collapsed until you open one. Searching or picking a tag
-  opens whatever it found. Each tile shows the element's name and its picture —
+- the **categories**, collapsed until you open one, with **Open all** beside
+  the count to open every one at once. That link goes once they are all open,
+  because it has nothing left to do; close one by its own heading the way you
+  opened it. Searching or picking a tag opens whatever it found. Each tile
+  shows the element's name and its picture —
   PowerPoint's own rendering of it, cut from a print of the library deck. Where
   there is no picture yet the tile keeps the small drawing of where on the slide
   the element lands and how much of it it covers;

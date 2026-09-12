@@ -50,6 +50,7 @@ import {
   type PaneState,
   type StepId,
   slideParts,
+  offersOpenAll,
 } from "./steps.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -538,7 +539,17 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
   const found = groups(library, state);
   const count = tileCount(found);
   const summary = el("p", "count", count === 0 ? "Nothing matches that." : `${count} of ${library.elements.length}`);
-  main.appendChild(summary);
+  if (offersOpenAll(state, library)) {
+    // Section 4 puts it beside the count, so the two share a row rather than
+    // the button taking a line of its own in a 320px pane.
+    const row = el("div", "count-row");
+    row.appendChild(summary);
+    const all = button("open-all", "link open-all", "Open all");
+    row.appendChild(all);
+    main.appendChild(row);
+  } else {
+    main.appendChild(summary);
+  }
 
   if (count === 0) {
     // A search that found nothing is a dead end; section 8 turns it into a

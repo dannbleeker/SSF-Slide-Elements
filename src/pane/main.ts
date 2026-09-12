@@ -843,6 +843,14 @@ function onClick(event: MouseEvent): void {
     case "catalogue":
       leave(catalogueUrl, "the catalogue page");
       break;
+    // Section 4: every category at once, beside the count. Remembered like
+    // any other open category, because that is the same field.
+    case "open-all":
+      if (state.library) {
+        set({ open: state.library.categories.map((category) => category.key) });
+        keep();
+      }
+      break;
     case "used":
       void readUsed();
       break;
