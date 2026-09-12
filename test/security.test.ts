@@ -281,6 +281,31 @@ describe("the XML parser does not fetch or expand what a deck tells it to", () =
   });
 });
 
+/**
+ * The fields `keep()` writes, one list per bucket.
+ *
+ * Read off the source rather than listed here, so a field added without a word
+ * on the privacy page turns the cases below red. Since 2026-09-12 `keep()`
+ * builds two objects — what is remembered per machine and what is remembered
+ * per deck — and both are swept: a guard that found only the first would go
+ * quiet on exactly the half that is new.
+ */
+function keptFields(pane: string): { machine: string[]; deck: string[] } {
+  const body = pane.slice(pane.indexOf("function keep()"));
+  const of = (name: string): string[] => {
+    const at = body.indexOf(`const ${name} = {`);
+    if (at < 0) return [];
+    const block = body.slice(at, body.indexOf("};", at));
+    // Every `name:` at the top level of the literal, whether the object is
+    // spread over lines or written on one — `machine` is one line and `deck`
+    // is several, and a pattern anchored to the line start finds one field in
+    // the first, silently, which is the shape of failure this guard exists to
+    // avoid rather than to have.
+    return [...block.matchAll(/(?:[{,]\s*)(\w+):/g)].map((m) => m[1] ?? "");
+  };
+  return { machine: of("machine"), deck: of("deck") };
+}
+
 describe("the privacy page says what the pane actually stores", () => {
   /**
    * A public page making a false statement about a user's data.
@@ -300,6 +325,7 @@ describe("the privacy page says what the pane actually stores", () => {
    */
   const privacy = readFileSync("public/privacy.html", "utf8");
   const pane = readFileSync("src/pane/main.ts", "utf8");
+  const memory = readFileSync("src/host/memory.ts", "utf8");
 
   it("does not claim nothing is stored while the pane writes to storage", () => {
     const writes = /localStorage\.setItem/.test(pane);
@@ -312,19 +338,33 @@ describe("the privacy page says what the pane actually stores", () => {
   it("names the key the pane stores under", () => {
     // Read off the source, so a rename breaks this rather than quietly making
     // the page wrong. The key is what a user would look for in devtools.
-    const key = /const KEY = "([^"]+)"/.exec(pane)?.[1];
-    expect(key, "the pane's storage key could not be read out of main.ts").toBeTruthy();
+    const key = /const GLOBAL_KEY = "([^"]+)"/.exec(memory)?.[1];
+    expect(key, "the pane's storage key could not be read out of memory.ts").toBeTruthy();
     expect(privacy, `the privacy page does not name the key "${key ?? ""}"`).toContain(key ?? " ");
   });
 
-  it("accounts for every field the pane keeps", () => {
-    // The fields out of `keep()` itself. A fifth one added without a word on
-    // the page turns this red — which is the whole point, because the page is
-    // read by someone deciding whether to trust the add-in with a deck.
-    const body = pane.slice(pane.indexOf("function keep()"));
-    const block = body.slice(body.indexOf("JSON.stringify({"), body.indexOf("}),"));
-    const fields = [...block.matchAll(/^\s*(\w+):/gm)].map((m) => m[1] ?? "");
-    expect(fields.length, "no stored fields found — the pattern has stopped matching").toBeGreaterThan(2);
+  it("says there is a second key per presentation, and that it is not the address", () => {
+    // Since 2026-09-12 the pane writes two keys, and the second is derived from
+    // the deck's URL. A page describing one key would understate what is on the
+    // device AND leave the reader wondering what the eight characters after the
+    // colon are — which, for someone deciding whether to trust an add-in with a
+    // deck, is the question worth answering.
+    const derives = /\$\{GLOBAL_KEY\}:\$\{fnv1a\(/.test(memory);
+    expect(derives, "the deck key is no longer derived from the URL — rewrite this guard, do not delete it").toBe(true);
+    const said = privacy.toLowerCase().replace(/\s+/g, " ");
+    expect(said, "the privacy page does not mention the per-presentation key").toContain("ssf-slide-elements:");
+    expect(said, "the privacy page does not say the address itself is not stored").toContain(
+      "the address itself is not stored",
+    );
+  });
+
+  it("accounts for every field the pane keeps, in both of its buckets", () => {
+    // A field added without a word on the page turns this red — which is the
+    // whole point, because the page is read by someone deciding whether to
+    // trust the add-in with a deck.
+    const { machine, deck } = keptFields(pane);
+    expect(machine.length, "no per-machine fields found — the pattern has stopped matching").toBeGreaterThan(1);
+    expect(deck.length, "no per-deck fields found — the pattern has stopped matching").toBeGreaterThan(4);
     // Whitespace-collapsed: prettier reflows this page, and a phrase split
     // across two lines is the same promise to a reader.
     const said = privacy.toLowerCase().replace(/\s+/g, " ");
@@ -334,8 +374,11 @@ describe("the privacy page says what the pane actually stores", () => {
       recent: ["the last six you inserted"],
       open: ["categories you left open"],
       coached: ["dismissed the getting-started note"],
+      query: ["what you last typed in the search box"],
+      tags: ["which tags you picked"],
+      chosen: ["which size you picked"],
     };
-    for (const field of fields) {
+    for (const field of [...machine, ...deck]) {
       const words = WORDS[field];
       expect(words, `the privacy page has no wording mapped for the stored field "${field}"`).toBeTruthy();
       const mentioned = (words ?? []).some((w) => said.includes(w));
@@ -436,15 +479,21 @@ describe("the privacy page's own arithmetic", () => {
   const pane = readFileSync("src/pane/main.ts", "utf8");
   const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
-  it("says how many things it stores, and means it", () => {
-    const body = pane.slice(pane.indexOf("function keep()"));
-    const block = body.slice(body.indexOf("JSON.stringify({"), body.indexOf("}),"));
-    const fields = [...block.matchAll(/^\s*(\w+):/gm)].map((m) => m[1] ?? "");
-    expect(fields.length, "no stored fields found — the pattern has stopped matching").toBeGreaterThan(2);
-    const word = NUMBERS[fields.length] ?? String(fields.length);
-    expect(privacy, `the pane stores ${fields.length} things; the page should open with "${word}"`).toContain(
-      `${word.charAt(0).toUpperCase()}${word.slice(1)} things`,
-    );
+  it("says how many things it stores in each of its two places, and means it", () => {
+    // One number per bucket since 2026-09-12. A single total would be the
+    // wrong shape for a page that has to tell the reader which of the two a
+    // given thing lands in.
+    const { machine, deck } = keptFields(pane);
+    expect(machine.length, "no per-machine fields found — the pattern has stopped matching").toBeGreaterThan(1);
+    expect(deck.length, "no per-deck fields found — the pattern has stopped matching").toBeGreaterThan(4);
+    for (const [what, fields] of [
+      ["per machine", machine],
+      ["per deck", deck],
+    ] as const) {
+      const word = NUMBERS[fields.length] ?? String(fields.length);
+      const said = `${word.charAt(0).toUpperCase()}${word.slice(1)} things`;
+      expect(privacy, `the pane stores ${fields.length} things ${what}; the page should say "${said}"`).toContain(said);
+    }
   });
 
   it("says how many settings the gear holds, and means that too", () => {

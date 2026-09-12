@@ -20,10 +20,12 @@ import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
+import { GLOBAL_KEY, deckKey } from "../host/memory.js";
 import { catalogueUrl, reportUrl, siteFrom } from "../host/links.js";
 import { BUDGET } from "../host/timeout.js";
 import {
   currentSlide,
+  deckUrl,
   hostStamp,
   hostSupports,
   selectSlide,
@@ -159,51 +161,97 @@ function set(changes: Partial<PaneState>): void {
 }
 
 // ---------------------------------------------------------------------------
-// Settings, kept per machine.
+// What the pane remembers: some of it per machine, the rest per deck.
 // ---------------------------------------------------------------------------
 
-const KEY = "ssf-slide-elements";
+/**
+ * The deck's own bucket, decided once at boot.
+ *
+ * Once rather than per write, because the answer cannot change while the pane
+ * is open — a task pane is torn down and rebuilt when the user opens another
+ * presentation — and because `Office.context.document.url` is a host call, and
+ * one per keystroke in the search box is a cost for nothing.
+ */
+let deckBucket = GLOBAL_KEY;
 
 /**
- * The pane reopens where you left it (`docs/DESIGN.md` section 4).
+ * What is remembered where (`docs/DESIGN.md` section 4).
+ *
+ * Two buckets, and the split is the record's: favourites and the first-run flag
+ * are statements about the LIBRARY and the person, so they are per machine;
+ * everything about how you were reading the library is per DECK, because a deck
+ * is the unit of work and the search that found what you needed for one is
+ * rarely the search you want for the next.
+ *
+ * Recent is per deck too, which the record does not say either way. Decided
+ * here: Recent exists so the thing you just used is easy to reach again, and
+ * "just used" is a fact about a deck. Favourites is the per-machine half of
+ * that pair by the record's own wording.
  *
  * Wrapped, because storage is not always there: a WebView with site data
  * blocked throws on the accessor itself rather than answering empty, and a pane
  * that will not open because it could not remember a search box is worse than
  * one that forgets.
  */
-function remembered(): Partial<PaneState> {
+function read(key: string): Partial<PaneState> {
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return {};
-    const held = JSON.parse(raw) as Partial<PaneState>;
-    return {
-      settings: { ...DEFAULT_SETTINGS, ...(held.settings ?? {}) },
-      favourites: held.favourites ?? [],
-      coached: held.coached === true,
-      recent: held.recent ?? [],
-      open: held.open ?? [],
-    };
+    return JSON.parse(raw) as Partial<PaneState>;
   } catch {
     return {};
   }
 }
 
-function keep(): void {
+function remembered(): Partial<PaneState> {
+  deckBucket = deckKey(deckUrl());
+  const machine = read(GLOBAL_KEY);
+  // The same object when the host would not name a deck, and that is the
+  // fallback working rather than a special case: one bucket holds both halves.
+  const deck = deckBucket === GLOBAL_KEY ? machine : read(deckBucket);
+  return {
+    favourites: machine.favourites ?? [],
+    coached: machine.coached === true,
+    settings: { ...DEFAULT_SETTINGS, ...(deck.settings ?? {}) },
+    recent: deck.recent ?? [],
+    open: deck.open ?? [],
+    // Section 4 asks for the search and the tags back too, and for the size
+    // picked in a stepper — which is `chosen`. It is written only by the
+    // operations that already persist, so what comes back is the step last
+    // INSERTED rather than wherever the keyboard was left: the pane marks both
+    // with the same field, and a focus cursor is not a pick.
+    query: typeof deck.query === "string" ? deck.query : "",
+    tags: deck.tags ?? [],
+    ...(typeof deck.chosen === "string" ? { chosen: deck.chosen } : {}),
+  };
+}
+
+function write(key: string, value: unknown): void {
   try {
-    window.localStorage.setItem(
-      KEY,
-      JSON.stringify({
-        settings: state.settings,
-        favourites: state.favourites,
-        coached: state.coached === true,
-        recent: state.recent,
-        open: state.open,
-      }),
-    );
+    window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // A pane that cannot remember is still a pane that works.
   }
+}
+
+function keep(): void {
+  const machine = { favourites: state.favourites, coached: state.coached === true };
+  const deck = {
+    settings: state.settings,
+    recent: state.recent,
+    open: state.open,
+    query: state.query,
+    tags: state.tags,
+    ...(state.chosen === undefined ? {} : { chosen: state.chosen }),
+  };
+  // One write when there is no deck to tell apart, so the fallback bucket does
+  // not get half of itself overwritten by the other half a moment later.
+  if (deckBucket === GLOBAL_KEY) {
+    write(GLOBAL_KEY, { ...machine, ...deck });
+    return;
+  }
+  write(GLOBAL_KEY, machine);
+  write(deckBucket, deck);
 }
 
 // ---------------------------------------------------------------------------
@@ -922,7 +970,10 @@ function onClick(event: MouseEvent): void {
       if (id) void insert(id, otherTarget(state.settings));
       break;
     case "tag":
-      if (value) set({ tags: toggle(state.tags, value) });
+      if (value) {
+        set({ tags: toggle(state.tags, value) });
+        keep();
+      }
       break;
     case "category":
       if (el.dataset["key"]) {
@@ -961,6 +1012,11 @@ function onInput(event: Event): void {
   const target = event.target;
   if (!(target instanceof HTMLInputElement) || target.dataset["action"] !== "search") return;
   set({ query: target.value });
+  // Per keystroke, and deliberately not debounced: `keep` is one small
+  // synchronous `setItem`, and a debounce would mean the pane forgetting
+  // whatever was typed in the last moment before it was closed — which is
+  // exactly the search a user is most likely to want back.
+  keep();
 }
 
 /**

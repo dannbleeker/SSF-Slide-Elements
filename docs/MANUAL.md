@@ -173,6 +173,23 @@ the tags. `Tab` reaches the tiles; the arrow keys move between them and `Enter`
 or `Space` inserts the one you are on. Every outcome is announced to a screen
 reader as well as shown.
 
+### What the pane remembers
+
+Two things follow you everywhere: which elements you have starred, and that you
+have seen the getting-started note.
+
+Everything else is remembered **per presentation** — the three settings behind
+the gear, the last six you inserted, which categories you left open, what you
+typed in the search box, which tags you picked, and which size you picked on an
+element that comes in several. So a search that found what you needed for one
+deck is not still in the box when you open the next.
+
+It lives in your browser's storage, on your machine, and nothing about it is
+sent anywhere. One presentation is told from another by a number worked out from
+its address; the address itself is not written down. A presentation you have not
+saved yet has no address, so it shares the first bucket with everything else —
+which means two unsaved decks share one memory, and a saved one never does.
+
 ### What Undo does, and what Ctrl+Z does
 
 The pane's **Undo** takes back the LAST insert and only that one. For an

@@ -513,3 +513,25 @@ export async function selectSlide(id: string): Promise<Selected> {
     return { supported: true, selected: null, error: readable(e) };
   }
 }
+
+/**
+ * The URL the host gives for the open deck, or nothing when it will not say.
+ *
+ * `docs/DESIGN.md` section 4 keeps the way you were browsing per DECK, and this
+ * is what tells one deck from another. `Office.context.document.url` is Common
+ * API and needs no requirement set; on an unsaved deck it can be an empty
+ * string rather than absent, and on some hosts the property is missing
+ * altogether, so both answer `undefined` here and `deckKey` in `src/host` is
+ * where the fallback is decided.
+ *
+ * Nothing is judged here, and nothing is stored: the URL can name a client, a
+ * project or a person, and `deckKey` hashes it before it reaches storage.
+ */
+export function deckUrl(): string | undefined {
+  try {
+    const url = Office.context?.document?.url;
+    return typeof url === "string" && url !== "" ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
