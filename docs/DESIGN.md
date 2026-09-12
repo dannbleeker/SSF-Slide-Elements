@@ -322,7 +322,10 @@ PowerPoint would settle.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
   already had content, **Again**, **Undo (n)**), then a line with the current
-  settings that opens the gear.
+  settings that opens the gear. Built in that order, which is this list's:
+  measured on 2026-09-12, the row wraps to two lines at 320 px with Undo alone
+  on the second whichever way round the first two go, so the order is the
+  record's and nothing more.
 - **First open ever**: three coach marks (hover to preview, click to insert,
   Undo and the gear), dismissed once and remembered per machine.
   Built 2026-09-11 as three LINES OF ONE PANEL above the search, not three
@@ -386,6 +389,33 @@ exception for width.
   slide are removed when a whole-slide element lands, so no "Click to add
   text" ghost sits behind it; the title placeholder stays; Undo puts the
   placeholder back.
+
+  Built 2026-09-12, with three things decided in the building:
+
+  - **What "with content" counts.** `contentCount` in
+    `src/core/catalogue/boxes.ts`, reported by the splice as `report.held` out
+    of the bytes it already has open, so the offer costs no second deck read
+    and no host call. It is `occupiedBoxes`' reading with two differences, each
+    because the question is different: the slide's own TITLE does not count,
+    since a whole-slide element lands below it and the insert never removes it,
+    and a slide holding nothing but its title is the ordinary destination
+    rather than a crowded one; and no rectangle is required, since a body
+    placeholder the user has typed into is content wherever the layout puts it.
+    An empty placeholder still does not count, because the insert takes it
+    away.
+  - **The move is an undo followed by a second insert**, not a third
+    operation. So it inherits both of their guarantees — the undo positional
+    and count-checked, the insert reading the deck fresh and proving the delta
+    — and adds no new way for the deck to end up somewhere neither can
+    describe. When the undo does not work the move stops there with the undo's
+    own sentence: a second copy beside the first is the one outcome a user
+    asking to MOVE something cannot have meant.
+  - **It is offered exactly as long as Undo is**, because it needs Undo to
+    work. Unlike "Again" beside it, it stays on screen and greys out while an
+    insert runs rather than vanishing: Again offers a NEW insert and has no
+    business being drawn during one, while this is about the insert that just
+    happened, which is still the last one. A control that disappears and comes
+    back under the cursor is worse than one that greys.
 - **Multi-shape elements land as one group** (gear option, default on), so the
   user moves them as one and ungroups when editing.
 - **Right-click** (long-press on touch) on a tile offers the other insert
@@ -978,3 +1008,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | A carried MEDIA part is named after its own content — a fingerprint of its bytes and their length — so the second insert of the same element finds its picture already in the package and points at it instead of copying it again. Measured: four inserts of `markeringer-1` left four byte-identical copies of one 29 KB `.emf` and cost 11.6 KB each; they now cost 1.9 KB and leave one. It is the PACKAGE this add-in ships on every insert that shrinks, not the user's saved file — section 15 measured PowerPoint merging identical pictures itself on save. Derived from the content rather than found by searching, because a search means decompressing every picture in the user's deck on every insert. Media only: a chart or an embedded workbook is a document, and two charts sharing one workbook would mean editing one edits both | fixed in the build, 2026-09-11 |
 | An insert stamps the shapes INSIDE any group that lands, as well as the group, because ungrouping is one gesture and it destroys the group and its tag together — measured: a five-shape element ungrouped went from one use to not in the deck at all. The reader stops at a tagged shape, so while it is a group the answer is unchanged; a shape with no `<p:nvPr>` is skipped rather than refused, since failing an insert that works today is the worse trade. About 250 bytes a shape The first version of it asked whether THIS code had made the group, which left the 23 elements that are drawn as a group already — the stamps among them — behaving the old way; a sweep over every element in both libraries is what found that. | decided in the build, 2026-09-11 |
 | The tag sweep goes into the user's own groups rather than reading the top level of the slide only: grouping an element with a shape of your own is one gesture, and it made "Used in this deck" answer that the element was not in the deck while it sat on the slide. A removal takes the tagged shape out of that group, leaves the user's own shape beside it, and takes the group too only when the removal is what emptied it | fixed in the build, 2026-09-11 |
+| "Move to a new slide" is an undo followed by a second insert rather than a third operation, so it inherits the positional count-checked undo and the delta-proving insert and adds no new failure of its own; it stops at a failed undo rather than leaving a second copy; and "a slide that already had content" is `contentCount`, which does not count the slide's own title or an empty placeholder the insert removes — reported by the splice out of bytes it already holds, so the offer costs no second deck read | decided in the build, 2026-09-12 |

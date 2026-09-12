@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — put an element on a slide of its own after all
+
+- **"Move to a new slide"** in the footer, when you have just dropped a
+  whole-slide element onto a slide that already had something on it. It takes
+  the insert back and makes it again as a slide of its own, so the slide you
+  started with is yours again exactly as it was. Your own title does not count
+  as "something on it", and neither does an empty "Click to add text" box,
+  because the insert removes those anyway — so the offer turns up when the
+  element really is likely to be sitting on top of your work.
+
 ### Added — open every section at once
 
 - **"Open all" beside the count** opens every category in one click. The

@@ -198,3 +198,37 @@ function isEmptyPlaceholder(shape: Element): boolean {
   const hasGraphic = elements(shape, A_NS, "graphic").length > 0 || elements(shape, A_NS, "blip").length > 0;
   return !(hasText || hasGraphic);
 }
+
+/**
+ * How many things the slide already holds that a whole-slide element would
+ * land on top of (`docs/DESIGN.md` section 6's "Move to a new slide").
+ *
+ * The same reading `occupiedBoxes` takes, minus its geometry: an EMPTY
+ * placeholder is a ghost the insert removes rather than content, and a shape
+ * entirely off the slide is an authoring note. Two differences, each because
+ * the question is different:
+ *
+ * - **No box is required.** `occupiedBoxes` drops a shape that inherits its
+ *   geometry from the layout, because it cannot say WHERE to draw it. A body
+ *   placeholder the user has typed into is content wherever it sits, so
+ *   counting it needs no rectangle. Only a shape whose frame says it is off
+ *   the slide is dropped; one with no frame at all is on the slide.
+ * - **The TITLE does not count.** A whole-slide element lands below the
+ *   destination's title and inside its body area (section 6), and the title
+ *   placeholder is the one an insert never removes. A slide holding nothing
+ *   but its own title is the ordinary destination, not a crowded one, and
+ *   offering to move off it would be noise on almost every insert. Both
+ *   spellings, `title` and `ctrTitle`, the same pair `titleOf` reads.
+ */
+export function contentCount(slide: Document, width: number, height: number): number {
+  let held = 0;
+  for (const shape of topLevelShapes(slide)) {
+    const ph = placeholderType(shape);
+    if (ph === "title" || ph === "ctrTitle") continue;
+    if (isEmptyPlaceholder(shape)) continue;
+    const box = boxOf(shape, width, height);
+    if (box && offSlide(box)) continue;
+    held += 1;
+  }
+  return held;
+}

@@ -46,7 +46,7 @@ vi.mock("../src/office/powerpoint.js", () => ({
     deckBase64 === undefined
       ? Promise.reject(new Error("no deck in a test runner"))
       : Promise.resolve({ base64: deckBase64, bytes: 1, ms: 1 }),
-  currentSlide: () => Promise.resolve(undefined),
+  currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
   onSlideChange: () => Promise.resolve(false),
@@ -54,7 +54,10 @@ vi.mock("../src/office/powerpoint.js", () => ({
     host.cycles += 1;
     return Promise.resolve(undefined);
   },
-  removeSlideAt: () => Promise.resolve(undefined),
+  removeSlideAt: (at: number) => {
+    host.removed.push(at);
+    return Promise.resolve(host.refuseRemoval ? "the host refused" : undefined);
+  },
   hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
   openExternal: (url: string) => {
     opened.push(url);
@@ -85,6 +88,7 @@ vi.mock("../src/core/splice/splice.js", () => ({
       parts: 0,
       placeholders: 0,
       pinned: 0,
+      held: host.held,
     });
   },
   onlySlide: () => Promise.resolve({ base64: "", path: "ppt/slides/slide1.xml" }),
@@ -114,6 +118,21 @@ const host = {
   selected: [] as string[],
   /** What `selectSlide` answers, when a case wants something other than the slide asked for. */
   selectAnswers: undefined as { supported: boolean; selected: string[] | null; error?: string } | undefined,
+  /**
+   * The slide the user is on, and it is UNDEFINED by default on purpose.
+   *
+   * Most cases in this file want the insert to stop early — the pane refuses
+   * when the host will not name the slide, which is one line after the splice
+   * and is what keeps them from needing a whole deck. A case that wants a
+   * finished insert sets this.
+   */
+  current: undefined as { index: number; id: string } | undefined,
+  /** What the stubbed splice reports the destination slide already held. */
+  held: 0,
+  /** Every position the pane asked the host to delete, in order. */
+  removed: [] as number[],
+  /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
+  refuseRemoval: false,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -234,6 +253,10 @@ afterEach(() => {
   host.supports15 = true;
   host.selected.length = 0;
   host.selectAnswers = undefined;
+  host.current = undefined;
+  host.held = 0;
+  host.removed.length = 0;
+  host.refuseRemoval = false;
   spliced.length = 0;
   window.localStorage.clear();
 });
@@ -641,6 +664,72 @@ describe("what the menu actually inserts", () => {
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await ran();
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+  });
+});
+
+describe("moving the last insert to a new slide", () => {
+  /**
+   * A pane that has just finished an insert onto slide 1.
+   *
+   * Unlike the cases above, this one lets the insert RUN OUT: `host.current`
+   * names the slide, so the pane gets past the refusal every other case in this
+   * file stops at, and ends with a footer. `held` is what the stubbed splice
+   * reports the destination already carried, which is the whole of the pane's
+   * decision (`docs/DESIGN.md` section 6).
+   */
+  async function inserted(held: number, id = "one-box"): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = held;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    (pane.querySelector(`[data-tile="${id}"], [data-action="tile"]`) as HTMLElement).click();
+    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    await settle();
+    return pane;
+  }
+
+  it("offers the move only when the slide already held something", async () => {
+    expect((await inserted(1)).querySelector('[data-action="move"]')).not.toBeNull();
+    expect((await inserted(0)).querySelector('[data-action="move"]')).toBeNull();
+  });
+
+  it("takes the insert back and makes it again as a new slide", async () => {
+    const pane = await inserted(1);
+    expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+    pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
+    for (let i = 0; i < 200 && spliced.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    await settle();
+    // The second splice is the same element with the other target — an undo
+    // and a fresh insert, not a second copy beside the first.
+    expect(spliced.map((s) => s.target)).toEqual(["onto", "new"]);
+    // And the undo really ran: a positional delete happened between the two.
+    expect(host.removed.length).toBeGreaterThan(1);
+  });
+
+  it("stops at the undo when the undo does not work, rather than inserting a second copy", async () => {
+    // The one outcome a user asking to MOVE something cannot have meant.
+    const pane = await inserted(1);
+    const before = spliced.length;
+    host.refuseRemoval = true;
+    pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
+    await settle();
+    await settle();
+    expect(spliced.length).toBe(before);
+    expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not work");
+  });
+
+  it("withdraws the offer once the insert has simply been undone", async () => {
+    // The offer goes because the history it needs went, which is `footerOf`'s
+    // `undo > 0` — nothing clears `moveable`, deliberately. This is the
+    // end-to-end half of the steps case that says the same thing.
+    const pane = await inserted(1);
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    for (let i = 0; i < 200 && host.removed.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    await settle();
+    expect(pane.querySelector('[data-action="move"]')).toBeNull();
   });
 });
 

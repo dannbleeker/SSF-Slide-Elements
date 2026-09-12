@@ -147,8 +147,11 @@ fetched only when you insert it.
   can still pick them;
 - the **footer**, carrying what the last insert did, measured: "12 → 13 slides"
   for a new slide, "12 → 13 → 12 slides, slide 4 replaced" for one onto the
-  slide you were on. Beside it, **Again** repeats the last insert and **Undo**
-  takes it back;
+  slide you were on. Beside it, **Move to a new slide** puts the element on a
+  slide of its own instead — offered only when a whole-slide element landed on
+  a slide that already had something on it, which is when it is likely to be
+  covering it — then **Again**, which repeats the last insert, and **Undo**,
+  which takes it back;
 - and the one primary button, **Insert an element**, which inserts whatever
   tile the keyboard is on. Clicking a tile inserts it directly.
 
@@ -183,6 +186,23 @@ task pane. PowerPoint's own **Ctrl+Z** reverts an insert — measured on
 PowerPoint for the web on 2026-09-10 and on PowerPoint on Windows on
 2026-09-11 — and that is the deeper history. Press it on the slide canvas
 rather than in the pane.
+
+### Moving what you just inserted onto a new slide
+
+When a whole-slide element lands **onto** the slide you were on and that slide
+already had something on it, the footer offers **Move to a new slide**. It takes
+the insert back and makes it again as a slide of its own, after the one you were
+on — so the slide you started with is yours again, exactly as it was, and the
+element sits on its own.
+
+Your own title does not count as "something on it", and neither does an empty
+"Click to add text" placeholder, because the insert removes those anyway. So the
+offer appears when the element is genuinely likely to be sitting on top of
+something.
+
+It is offered while **Undo** is, and for the same reason: the move is an undo
+followed by a second insert. If the undo does not work the move stops there and
+says so, rather than leaving you with two copies.
 
 ### Where an element lands
 

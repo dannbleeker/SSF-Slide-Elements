@@ -311,7 +311,7 @@ describe("where the preview card says an element will land", () => {
 
 describe("the footer", () => {
   it("is empty before anything has happened", () => {
-    expect(footerOf(browsing)).toEqual({ detail: "", byHand: false, undo: 0, again: false });
+    expect(footerOf(browsing)).toEqual({ detail: "", byHand: false, undo: 0, again: false, move: false });
   });
 
   it("carries the outcome, and offers Again only once something has been inserted", () => {
@@ -337,6 +337,29 @@ describe("the footer", () => {
       outcome: { ok: false, byHand: true, name: "One box", detail: "delete slide 2 by hand." },
     };
     expect(footerOf(stuck).byHand).toBe(true);
+  });
+
+  it("offers Move to a new slide when the last insert can be moved", () => {
+    // `docs/DESIGN.md` section 6. `main.ts` decides WHETHER by asking the
+    // splice what the destination held; this is the footer's half of it.
+    expect(footerOf({ ...browsing, moveable: "one-box", undo: 1 }).move).toBe(true);
+  });
+
+  it("does not offer it when nothing was moved onto a busy slide", () => {
+    expect(footerOf({ ...browsing, undo: 1 }).move).toBe(false);
+  });
+
+  it("does not offer it once the history it needs has gone", () => {
+    // The move is an undo followed by a second insert, so an offer standing
+    // after Undo has been spent would be a button that cannot do what it says.
+    expect(footerOf({ ...browsing, moveable: "one-box", undo: 0 }).move).toBe(false);
+  });
+
+  it("keeps offering it while an insert is going, for the render to disable", () => {
+    // Unlike Again beside it. Again is a new insert and has no business being
+    // drawn during one; this is about the insert that just happened, which is
+    // still the last one. `pane-render` holds the disabling half.
+    expect(footerOf({ ...browsing, moveable: "one-box", undo: 1, busy: true }).move).toBe(true);
   });
 });
 
