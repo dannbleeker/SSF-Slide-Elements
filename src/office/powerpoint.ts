@@ -200,9 +200,10 @@ function whole(read: number, counted: number): boolean {
 /**
  * The slide the user is looking at.
  *
- * `getSelectedSlides` is PowerPointApi 1.5 and is READ-ONLY; nothing here ever
- * calls `setSelectedSlides` or `setSelectedShapes`, which wedge the web host's
- * selection subsystem (`CLAUDE.md`). The probe measured this on the web on
+ * `getSelectedSlides` is PowerPointApi 1.5 and is READ-ONLY. Nothing here ever
+ * calls `setSelectedShapes`, which wedges the web host's selection subsystem
+ * (`CLAUDE.md`); `setSelectedSlides` is called by `selectSlide` alone, below,
+ * on the sibling's dated evidence. The probe measured this read on the web on
  * 2026-09-10: the selection named slide 2, and the API's order matched the
  * file's own `sldIdLst` order, which is what lets a selected id become an index
  * the splice can use.
@@ -463,5 +464,52 @@ export function openExternal(url: string): boolean {
     return window.open(url, "_blank", "noopener,noreferrer") !== null;
   } catch {
     return false;
+  }
+}
+
+/** What the host answered after being asked to select a slide. */
+export interface Selected {
+  /** False when the host has no `setSelectedSlides` (PowerPointApi 1.5); nothing was asked. */
+  supported: boolean;
+  /** `getSelectedSlides` after the call, first item the active slide; null when the host did not answer. */
+  selected: string[] | null;
+  /** Why the call raised, bounded, if it did. */
+  error?: string;
+}
+
+/**
+ * Go to a slide, and read back where the host says it is.
+ *
+ * `setSelectedSlides` is PowerPointApi 1.5. It is the one selection WRITE this
+ * add-in makes, and the reason it may be made is in `src/host/jump.ts`: the
+ * sibling that ships it has measured it in every archived round on the web
+ * (2,429 rungs, 2026-08-13 to 2026-09-04, none silent) and the call the family
+ * saw wedge the host is `setSelectedShapes`, which is still never called here.
+ * No sibling measured this on Windows or Mac, so the call is never trusted on
+ * its own: the same batch reads the selection back, and `jumpOutcome` claims
+ * the jump only when that read names the slide. Office-js#3552 says desktop
+ * THROWS while the notes pane has focus; that is the `error` branch.
+ *
+ * Bounded by the ordinary read budget rather than a glance: the user clicked
+ * for this, and a silent host is reported as "did not say", never as moved.
+ */
+export async function selectSlide(id: string): Promise<Selected> {
+  if (!hostSupports("1.5")) return { supported: false, selected: null };
+  try {
+    const selected = await withTimeout(
+      PowerPoint.run(async (context) => {
+        context.presentation.setSelectedSlides([id]);
+        await context.sync();
+        const after = context.presentation.getSelectedSlides();
+        after.load("items/id");
+        await context.sync();
+        return after.items.map((s) => s.id);
+      }),
+      BUDGET.read,
+      "moving to a slide",
+    );
+    return { supported: true, selected };
+  } catch (e) {
+    return { supported: true, selected: null, error: readable(e) };
   }
 }

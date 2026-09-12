@@ -33,6 +33,7 @@ import {
   settingsLine,
   slideLine,
   slideList,
+  slideParts,
   stepFor,
   stepMatches,
   tagsOf,
@@ -494,6 +495,28 @@ describe("what this deck already uses", () => {
     // one place to look.
     expect(slideList([4, 4])).toBe("slide 4");
     expect(slideList([])).toBe("");
+  });
+
+  it("hands the renderer the same list in pieces, so each number can be a control", () => {
+    expect(slideParts([2])).toEqual([{ text: "slide " }, { slide: 2 }]);
+    expect(slideParts([11, 3, 5])).toEqual([
+      { text: "slides " },
+      { slide: 3 },
+      { text: ", " },
+      { slide: 5 },
+      { text: " and " },
+      { slide: 11 },
+    ]);
+    expect(slideParts([4, 4])).toEqual([{ text: "slide " }, { slide: 4 }]);
+    expect(slideParts([])).toEqual([]);
+    // One source for the wording: the string IS the pieces joined.
+    for (const slides of [[2], [2, 5], [11, 3, 5], [4, 4], []]) {
+      expect(
+        slideParts(slides)
+          .map((p) => ("text" in p ? p.text : String(p.slide)))
+          .join(""),
+      ).toBe(slideList(slides));
+    }
   });
 
   it("names each element from the library", () => {

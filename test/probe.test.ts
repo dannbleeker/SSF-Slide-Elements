@@ -23,6 +23,7 @@ import {
   notAsked,
   orderVerdict,
   pruningReading,
+  jumpProbeVerdict,
   selectionVerdict,
   summarizeParts,
   targetAddedVerdict,
@@ -182,14 +183,19 @@ describe("the probe snippet", () => {
     expect(code).toContain("from < deckAtStart");
   });
 
-  it("never sets a selection", () => {
-    // `setSelectedShapes` wedges the web host's selection subsystem, and
-    // `setSelectedSlides` is the same family. Against the CODE: the prose
-    // explains why they are avoided, by name.
+  it("never sets a SHAPE selection, and puts the slide selection back after the jump arm", () => {
+    // `setSelectedShapes` wedges the web host's selection subsystem and is
+    // never called. `setSelectedSlides` IS called, by question 7 alone, on the
+    // sibling's measurement (src/host/jump.ts); the arm restores what was
+    // selected. Against the CODE: the prose names both calls.
     const prose = withoutTsProse(snippet) as string;
     expect(prose).not.toContain("setSelectedShapes");
-    expect(prose).not.toContain("setSelectedSlides");
     expect(code).toContain("getSelectedSlides");
+    const arm = code.slice(code.indexOf("async function jumpProbe"), code.indexOf("async function exportProbe"));
+    expect(arm).toContain("setSelectedSlides([first])");
+    expect(arm).toContain("setSelectedSlides(before)");
+    // Nowhere else writes a selection.
+    expect(code.split("setSelectedSlides(").length - 1).toBe(2);
   });
 
   it("asks its control arm BEFORE it inserts anything of its own", () => {
@@ -688,5 +694,34 @@ describe("leftBehind", () => {
     expect(changed).toContain("masters 1 → 2");
     expect(changed).toContain("themes 1 → 2");
     expect(changed).toContain("authors part gained");
+  });
+});
+
+describe("jumpProbeVerdict", () => {
+  const asked = { supported: true, wanted: "256#1", ms: 480, afterwards: { answered: true, ms: 12 } };
+
+  it("cannot say without the call or without the arm, and names a throw", () => {
+    expect(jumpProbeVerdict({ supported: false }).detail).toContain("1.5");
+    expect(jumpProbeVerdict({ supported: true }).detail).toContain("NOT ASKED");
+    expect(jumpProbeVerdict({ supported: true, error: "boom" })).toMatchObject({ verdict: "threw" });
+  });
+
+  it("says yes only when the view moved AND the host still answered afterwards", () => {
+    expect(jumpProbeVerdict({ ...asked, selected: ["256#1"] })).toMatchObject({ verdict: "yes" });
+    expect(jumpProbeVerdict({ ...asked, selected: ["256"] })).toMatchObject({ verdict: "yes" });
+    const wedged = jumpProbeVerdict({
+      ...asked,
+      selected: ["256#1"],
+      afterwards: { answered: false, error: "gave up" },
+    });
+    expect(wedged.verdict).toBe("no");
+    expect(wedged.detail).toContain("NEXT selection read");
+  });
+
+  it("says no when the view did not move or the read-back went silent", () => {
+    expect(jumpProbeVerdict({ ...asked, selected: ["257#2"] }).detail).toContain("did not move");
+    const silent = jumpProbeVerdict({ ...asked, selected: null, afterwards: { answered: false } });
+    expect(silent.verdict).toBe("no");
+    expect(silent.detail).toContain("wedge");
   });
 });

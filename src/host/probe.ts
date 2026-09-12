@@ -397,6 +397,74 @@ export function selectionVerdict(o: SelectionObservation): Reading {
 }
 
 // ---------------------------------------------------------------------------
+// Question 7: does setSelectedSlides move the view, and does the host still
+// answer afterwards?
+// ---------------------------------------------------------------------------
+
+export interface JumpProbeObservation {
+  /** False when the host has no setSelectedSlides (PowerPointApi 1.5). */
+  supported?: boolean;
+  /** The id the arm asked the host to select. */
+  wanted?: string;
+  /** What getSelectedSlides answered straight after, or null when it did not answer inside the budget. */
+  selected?: string[] | null;
+  /** Milliseconds for the set-and-read-back batch. */
+  ms?: number;
+  /** Whether the follow-up read, after the selection was put back, answered inside its budget. */
+  afterwards?: { answered: boolean; ms?: number; error?: string };
+  error?: string;
+}
+
+/**
+ * Whether `setSelectedSlides` moves the view, and whether the host is still
+ * answering afterwards.
+ *
+ * The pane's jump (`src/host/jump.ts`) rests on SSF-Charts' web measurement
+ * of this call and on a read-back per click; this arm is how a round on any
+ * platform measures it directly. Two facts, because they fail differently:
+ * whether the read-back named the slide asked for, and whether the NEXT
+ * selection read still came back — which is how the sibling saw the wedge:
+ * the write is taken, and everything after it goes silent.
+ */
+export function jumpProbeVerdict(o: JumpProbeObservation): Reading {
+  if (o.supported === false) {
+    return {
+      verdict: "unknown",
+      detail:
+        "NOT ASKED — this host has no setSelectedSlides (PowerPointApi 1.5); the pane keeps the slide numbers as text here.",
+    };
+  }
+  if (o.error !== undefined) return { verdict: "threw", detail: `the call threw: ${o.error}` };
+  if (o.wanted === undefined || o.selected === undefined)
+    return { verdict: "unknown", detail: "NOT ASKED — this sheet carries no jump arm." };
+  const wedged = o.afterwards !== undefined && !o.afterwards.answered;
+  if (o.selected === null) {
+    return {
+      verdict: "no",
+      detail: `the host took setSelectedSlides and then did not answer the read-back inside the budget${wedged ? ", and the next selection read went silent too — the wedge the sibling measured for setSelectedShapes" : ""}.`,
+    };
+  }
+  const first = o.selected[0];
+  const moved = first !== undefined && (first === o.wanted || first.split("#")[0] === o.wanted.split("#")[0]);
+  if (!moved) {
+    return {
+      verdict: "no",
+      detail: `the host answered [${o.selected.join(", ")}] after being asked for ${o.wanted}, so the view did not move${wedged ? ", and the next selection read went silent" : ""}.`,
+    };
+  }
+  if (wedged) {
+    return {
+      verdict: "no",
+      detail: `the view moved (${o.ms ?? "?"} ms) but the NEXT selection read did not answer inside its budget${o.afterwards?.error ? ` (${o.afterwards.error})` : ""}: the call is not safe to make here.`,
+    };
+  }
+  return {
+    verdict: "yes",
+    detail: `setSelectedSlides moved the view to the slide asked for in ${o.ms ?? "?"} ms, and the next selection read answered in ${o.afterwards?.ms ?? "?"} ms. The pane's jump is measured on this host.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Question 4: which read of the deck, and what each drops.
 // ---------------------------------------------------------------------------
 

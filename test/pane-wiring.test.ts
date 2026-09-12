@@ -29,6 +29,12 @@ let indexMode: IndexMode = "fail";
 
 vi.mock("../src/office/powerpoint.js", () => ({
   ready: () => readiness,
+  hostSupports: () => host.supports15,
+  // The one selection write, recorded; the read-back answers what the case set.
+  selectSlide: (id: string) => {
+    host.selected.push(id);
+    return Promise.resolve(host.selectAnswers ?? { supported: true, selected: [id] });
+  },
   // Every call the pane can make, so a missing export cannot be mistaken for a
   // pane that decided not to make it. The last case in this file holds this
   // list against the real module, because the claim above was untrue for three
@@ -98,7 +104,17 @@ let deckBase64: string | undefined;
  * will NOT agree, which is the failure the run has to stop on rather than press
  * through. Zero refuses nothing.
  */
-const host = { slides: 3, cycles: 0, refuseAt: 0, namesSlides: true };
+const host = {
+  slides: 3,
+  cycles: 0,
+  refuseAt: 0,
+  namesSlides: true,
+  supports15: true,
+  /** Every id the pane asked the host to select. */
+  selected: [] as string[],
+  /** What `selectSlide` answers, when a case wants something other than the slide asked for. */
+  selectAnswers: undefined as { supported: boolean; selected: string[] | null; error?: string } | undefined,
+};
 
 vi.mock("../src/pane/catalogue.js", async () => {
   const actual = await vi.importActual<typeof import("../src/pane/catalogue.js")>("../src/pane/catalogue.js");
@@ -215,6 +231,9 @@ afterEach(() => {
   host.cycles = 0;
   host.refuseAt = 0;
   host.namesSlides = true;
+  host.supports15 = true;
+  host.selected.length = 0;
+  host.selectAnswers = undefined;
   spliced.length = 0;
   window.localStorage.clear();
 });
@@ -278,6 +297,39 @@ describe("what this deck already uses", () => {
     deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
     const pane = await openAndAsk();
     expect(pane.querySelector(".used-head")?.textContent).toBe("Nothing from the library is in this deck yet");
+  });
+
+  it("goes to the slide when its number is clicked, and says so only once the host was seen there", async () => {
+    deckBase64 = await deckWithOneBox();
+    const pane = await openAndAsk();
+    const go = pane.querySelector<HTMLButtonElement>('[data-action="jump"]');
+    expect(go?.dataset["value"]).toBe("1");
+    go?.click();
+    await settle();
+    // slideIdAt(0) answers "256" in this harness; that is the id the host was asked for.
+    expect(host.selected).toEqual(["256"]);
+    expect(document.getElementById("announcer")?.textContent).toBe("Slide 1");
+    expect(pane.querySelector(".notice")).toBeNull();
+  });
+
+  it("claims nothing when the read-back names another slide", async () => {
+    deckBase64 = await deckWithOneBox();
+    host.selectAnswers = { supported: true, selected: ["999#1"] };
+    const pane = await openAndAsk();
+    pane.querySelector<HTMLButtonElement>('[data-action="jump"]')?.click();
+    await settle();
+    expect(pane.querySelector(".notice")?.textContent).toBe(
+      "PowerPoint did not move to slide 1. Click slide 1 in the strip.",
+    );
+    expect(document.getElementById("announcer")?.textContent).not.toBe("Slide 1");
+  });
+
+  it("leaves the numbers as text on a host below PowerPointApi 1.5", async () => {
+    deckBase64 = await deckWithOneBox();
+    host.supports15 = false;
+    const pane = await openAndAsk();
+    expect(pane.querySelector('[data-action="jump"]')).toBeNull();
+    expect(pane.querySelector(".used-where")?.textContent).toBe("slide 1");
   });
 
   it("keeps saying it was never asked when the read fails", async () => {

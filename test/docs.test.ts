@@ -77,6 +77,7 @@ describe("the manual keeps up with the pane", () => {
     { row: "The picker", file: "src/pane/steps.ts", proof: `"browse"` },
     { row: "The insert", file: "src/pane/main.ts", proof: "insertPackage(" },
     { row: "Taking it back", file: "src/host/insert.ts", proof: "export function undoPlan" },
+    { row: "Jumping to a slide", file: "src/host/jump.ts", proof: "export function jumpOutcome" },
   ];
 
   it.each(BUILT)("does not call $row planned while $proof is in $file", ({ row, file, proof }) => {

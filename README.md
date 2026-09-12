@@ -37,6 +37,7 @@ measured the same day** — a probe pair and a product round, both read in
 | Splice — an element into the slide you are on, and the package self-check | done — proven over all 117 elements against the package integrity check |
 | The picker — browse by section, search, insert, Recent, favourites, Undo one deep | done |
 | Used in this deck — which library elements the open deck already holds, and where, read from the tags an insert writes | done |
+| The jump — a slide number in Used in this deck goes to that slide, and the pane says so only once PowerPoint reports being there | done — on SSF-Charts' web measurement of the call, read back on every click; not yet measured on any host by this repo (probe question 7) |
 | Right-click a tile for the other insert target, for one insert | done |
 | The preview card's grey boxes — what the destination slide already holds, read from the deck | done |
 | Remove from N slides — a stamp off every slide it is on, asked first, one confirmed cycle per slide | done — built, and the one feature no round has exercised |

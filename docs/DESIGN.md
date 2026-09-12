@@ -247,9 +247,20 @@ PowerPoint would settle.
     who never looks at this list. Once read, an insert updates the list rather
     than re-reading the deck, and an undo takes its entry out again — the pane
     knows exactly what it just put where.
-  - **The slide numbers are text, not links.** The jump is a host call no round
-    has made, and a control that might do nothing is worse than a sentence that
-    says where the element is. It comes back with the round that can verify it.
+  - **The slide numbers are links, and the pane says "Slide N" only when it saw
+    the host there.** Built 2026-09-12 on `setSelectedSlides` (PowerPointApi
+    1.5), on SSF-Charts' measurement rather than this repo's: that sibling ships
+    the same call and its archive from 2026-08-13 to 2026-09-04 holds 2,429
+    selection-ladder rungs on PowerPoint for the web with none silent and none
+    refused (section 15, "Borrowed"). The call the family saw wedge the host is
+    `setSelectedShapes`, which is still never made. After the call the pane
+    reads the selection back in the same batch, and only a read-back naming the
+    slide produces "Slide N"; a host that answers another slide, or nothing, or
+    raises (office-js#3552: desktop throws while the notes pane has focus) gets
+    "click slide N in the strip" and no claim. Below 1.5 the numbers stay text.
+    `goToByIdAsync`, the older route, was rejected on the tracker's record
+    (#2595, #2631, #567). Probe question 7 measures the call directly on the
+    next round of any platform.
 
   Three states, and the pane says which: never asked, asked and empty ("Nothing
   from the library is in this deck yet"), asked and answered. An id the current
@@ -879,6 +890,18 @@ them parts of four collection slides, twelve runs of sizes, 42 whole-slide
 elements without a group; the stamps are rotated 29° and 35°; a table's frame is
 narrower than the table PowerPoint draws.
 
+**Borrowed, dated, and read back rather than trusted:** `setSelectedSlides`,
+the one selection write this add-in makes (the jump in section 4). No sheet of
+this repo's measures it. SSF-Charts' self-test archive does, on PowerPoint for
+the web: 2,429 selection-ladder rungs over about 347 rounds between 2026-08-13
+and 2026-09-04, every rung answered, none silent, none refused; its wedge
+finding is `setSelectedShapes([id])` on build `55011a3`, and `setSelectedSlides`
+went silent only downstream of that. Windows and Mac: no sibling has measured
+the call; the tracker has office-js#3552 (desktop throws while the notes pane
+has focus). The pane therefore reads the selection back after every jump and
+claims nothing it did not see, and probe question 7 is the arm that turns this
+paragraph into a measured one on the next round.
+
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run. Also assumed, and newly so: that a SEQUENCE of insert-then-remove cycles
 behaves the way one does. "Remove from N slides" (section 6) runs one per slide,
@@ -924,6 +947,7 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The 4:3 deck was re-themed to the 16:9 deck's colour scheme rather than the other way round: the 16:9 deck is the owner's own 2021 template and the 4:3 deck's palette came from the company it was authored at in 2013. The change is the deck's, so the committed print no longer belongs to it and the print gate says so until it is re-printed | decided in the build, 2026-09-11 |
 | The gear's two external links carry an allowlist of three values and open the site the PANE was served from, as buttons rather than anchors — and the support page reads the same allowlist back, so a crafted link can put a build code on that page and nothing else | decided in the build, 2026-09-11 |
 | "Used in this deck" reads the deck when the user asks rather than when the pane opens, and its slide numbers are text rather than links — the read is the sixth open question's unmeasured cost, and the jump is a host call no round has made | decided in the build, 2026-09-11 |
+| The jump built after all, on `setSelectedSlides`, on SSF-Charts' dated web measurement (2,429 rungs, 2026-08-13 to 2026-09-04, none silent) rather than this repo's, with the selection read back on every click so the pane claims only what it saw; text below PowerPointApi 1.5; `goToByIdAsync` rejected on office-js#2595, #2631 and #567; probe question 7 added to measure the call on the next round | owner: build what can be built on the siblings' and the tracker's research, 2026-09-12 |
 | Right-click opens on `contextmenu` rather than a mouse-only handler, offers nothing on a part, and anchors to the top of its own tile rather than to the pointer — so the keyboard reaches it, the pane never promises a landing the engine does not do, and no coordinate reaches the state | decided in the build, 2026-09-11 |
 | The preview card's grey boxes are a snapshot stamped with the slide it was read from, drawn only while the user is still on that slide, rather than a read per slide change — and they are read out of the FILE, so they need no host capability the insert does not already use | decided in the build, 2026-09-11 |
 | "Remove from N slides" asks before it removes, runs one confirmed cycle per slide, stops at the first step it cannot verify and says how far it got — and reaches only shapes this add-in tagged | decided in the build, 2026-09-11 |

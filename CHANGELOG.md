@@ -7,6 +7,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — click a slide number to go there
+
+- **The slide numbers under "Used in this deck" are links now.** Click one and
+  PowerPoint moves to that slide; the pane says "Slide 4" once PowerPoint
+  confirms it is there, and if PowerPoint does not confirm it the pane says so
+  and asks you to click the slide in the strip instead. Nothing in your deck
+  changes either way.
+- On Windows and Mac the jump can be refused while the notes pane has the
+  focus; click the slide canvas first. On a PowerPoint too old for the call the
+  numbers stay plain text, as before.
+- The probe asks a seventh question, so the next round on any platform measures
+  the jump directly.
+
 ### Changed — inserting into a big presentation is much faster
 
 - **An insert into a 45 MB deck used to cost about four seconds of the add-in's

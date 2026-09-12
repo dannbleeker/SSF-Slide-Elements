@@ -494,6 +494,100 @@ async function selectionProbe(ownBinary: string | undefined): Promise<Record<str
 }
 
 /**
+ * Question 7: does setSelectedSlides move the view, and is the host still
+ * answering afterwards?
+ *
+ * The pane's jump from "Used in this deck" makes this call. It selects the
+ * user's FIRST slide, reads the selection straight back in the same batch,
+ * puts the selection back to what it was, and then reads the selection once
+ * more on its own — because the wedge the family measured for
+ * setSelectedShapes shows as the call being taken and the NEXT read going
+ * silent. Only setSelectedSlides is ever called; setSelectedShapes is not.
+ */
+async function jumpProbe(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {};
+  if (!supports("1.5")) {
+    out.supported = false;
+    return out;
+  }
+  out.supported = true;
+  try {
+    const before = await withTimeout(
+      PowerPoint.run(async (context) => {
+        const selected = context.presentation.getSelectedSlides();
+        selected.load("items/id");
+        await context.sync();
+        return selected.items.map((s) => s.id);
+      }),
+      15000,
+      "reading the selection before the jump",
+    );
+    out.before = before;
+    const [first] = await positionalIds(0, 1);
+    if (first === undefined) {
+      out.error = "the deck has no first slide to go to";
+      return out;
+    }
+    out.wanted = first;
+    const started = Date.now();
+    try {
+      out.selected = await withTimeout(
+        PowerPoint.run(async (context) => {
+          context.presentation.setSelectedSlides([first]);
+          await context.sync();
+          const after = context.presentation.getSelectedSlides();
+          after.load("items/id");
+          await context.sync();
+          return after.items.map((s) => s.id);
+        }),
+        20000,
+        "selecting the first slide and reading the selection back",
+      );
+    } catch (e) {
+      out.selected = null;
+      out.readBackError = message(e);
+    }
+    out.ms = Date.now() - started;
+    // Put the user back where they were, when they were somewhere.
+    if (before.length > 0) {
+      try {
+        await withTimeout(
+          PowerPoint.run(async (context) => {
+            context.presentation.setSelectedSlides(before);
+            await context.sync();
+          }),
+          20000,
+          "putting the selection back",
+        );
+        out.restored = true;
+      } catch (e) {
+        out.restored = false;
+        out.restoreError = message(e);
+      }
+    }
+    const again = Date.now();
+    try {
+      await withTimeout(
+        PowerPoint.run(async (context) => {
+          const selected = context.presentation.getSelectedSlides();
+          selected.load("items/id");
+          await context.sync();
+          return selected.items.length;
+        }),
+        20000,
+        "reading the selection after the jump",
+      );
+      out.afterwards = { answered: true, ms: Date.now() - again };
+    } catch (e) {
+      out.afterwards = { answered: false, ms: Date.now() - again, error: message(e) };
+    }
+  } catch (e) {
+    out.error = message(e);
+  }
+  return out;
+}
+
+/**
  * Question 4: does exportAsBase64Presentation drop parts the file route keeps?
  *
  * Both arms cover every slide in the deck, or the export would legitimately
@@ -712,6 +806,10 @@ async function main() {
 
   // Question 3, read-only.
   answers.selection = await selectionProbe(ownBinary);
+
+  // Question 7: the one selection WRITE the pane makes, read back, and the
+  // host asked again afterwards. Restores what was selected.
+  answers.jump = await jumpProbe();
 
   // Question 4, timed for question 6.
   answers.exportParts = await exportProbe(ownNames);

@@ -175,12 +175,12 @@ export const TRIAGED = {
   "charts:issue:3014":
     "NO EXPOSURE — powerPoint's API has no grouping story. Re-triaged 2026-09-11 against the shipped pane, and the wording it replaced (\"no shape-level work at all\") had stopped being true: the splice DOES group an element's shapes, and the preview card reads what a slide holds. Both happen in the PACKAGE, in `<p:grpSp>` markup and in `<a:xfrm>` on a parsed slide; the API's grouping story is still never asked for, which is what makes this no exposure.",
   "charts:issue:3083":
-    "NO EXPOSURE — setSelectedShapes([]) does not clear the selection on the web. NO EXPOSURE — this add-in never calls `setSelectedShapes`, which is what puts `getSelectedSlides` on the safe part of that surface.",
+    "NO EXPOSURE — setSelectedShapes([]) does not clear the selection on the web. NO EXPOSURE — this add-in never calls `setSelectedShapes`. The one selection WRITE it makes is `setSelectedSlides`, for the jump (2026-09-12), on the sibling's dated ladder evidence and read back on every click; that call is not the one this issue is about.",
   "charts:issue:3269":
     "NO EXPOSURE — office.js cannot read speaker notes at all. An element is spliced onto a slide whose notes page is untouched, inside the package; the API gap is real and never reached for.",
   "charts:issue:3309": "NO EXPOSURE — sVG cannot be read back out of a shape. NO EXPOSURE.",
   "charts:issue:3698":
-    "RELEVANT — a picture cannot be inserted while a shape is selected, and setSelectedShapes([]) may never resolve. No exposure to the picture half; the selection half is the same class as #2775: this add-in inserts SLIDES, which is neither case; inserts against a standing SLIDE selection were measured safe here on 2026-09-11, and a standing SHAPE selection is still unmeasured; re-triaged 2026-09-11 against the shipped insert.",
+    "RELEVANT — a picture cannot be inserted while a shape is selected, and setSelectedShapes([]) may never resolve. No exposure to the picture half; the selection half is the same class as #2775: this add-in inserts SLIDES, which is neither case; inserts against a standing SLIDE selection were measured safe here on 2026-09-11, and a standing SHAPE selection is still unmeasured; re-triaged 2026-09-11 against the shipped insert. `setSelectedShapes` is still never called; the jump's `setSelectedSlides` (2026-09-12) is a different call, adopted on the sibling's ladder evidence and read back on every click (docs/SIBLING.md).",
   "charts:issue:3826":
     "NO EXPOSURE — a freshly-added slide's layout shapes throw GeneralException. NO EXPOSURE — nothing here reads a slide's layout through the API.",
   "charts:issue:4272":
