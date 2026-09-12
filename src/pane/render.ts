@@ -49,6 +49,7 @@ import {
   type Library,
   type PaneState,
   type StepId,
+  slideParts,
 } from "./steps.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -402,11 +403,27 @@ function usedSection(state: PaneState, library: Library): HTMLElement {
     for (const row of rows) {
       const item = el("li", row.known ? "used-row" : "used-row unknown");
       item.appendChild(el("span", "used-name", row.name));
-      // The slide numbers are TEXT, not links. Section 4 says a number jumps to
-      // that slide, and jumping is a host call no round has made: it would ship
-      // as a control that might do nothing. Saying where the element is works
-      // without one.
-      item.appendChild(el("span", "used-where", row.where));
+      // Section 4: a number jumps to that slide. The call behind it is
+      // PowerPointApi 1.5 and the pane knows at boot whether the host has it;
+      // without it the numbers stay TEXT, because a control that might do
+      // nothing is worse than a sentence that says where the element is.
+      const where = el("span", "used-where");
+      if (state.canJump === true) {
+        for (const part of slideParts(row.slides)) {
+          if ("text" in part) {
+            where.appendChild(document.createTextNode(part.text));
+          } else {
+            const go = button("jump", "jump", String(part.slide));
+            go.dataset["value"] = String(part.slide);
+            go.setAttribute("aria-label", `Go to slide ${part.slide}`);
+            if (state.reading === true || state.busy === true) go.disabled = true;
+            where.appendChild(go);
+          }
+        }
+      } else {
+        where.textContent = row.where;
+      }
+      item.appendChild(where);
       list.appendChild(item);
     }
     section.appendChild(list);

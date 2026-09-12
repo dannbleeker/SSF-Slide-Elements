@@ -468,6 +468,29 @@ input:focus-visible,
   white-space: nowrap;
 }
 
+/* A slide number that goes to the slide: a link the size of a finger, inline
+   with the words around it. */
+.jump {
+  display: inline-block;
+  min-width: 24px;
+  min-height: 24px;
+  margin: -4px 0;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.jump:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
+}
+
 .link {
   display: block;
   width: 100%;

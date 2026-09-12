@@ -143,6 +143,12 @@ counter dated.
   `load("items/id")`. Collection loads over ~50 items can answer short.
 - **Nothing calls `setSelectedShapes`.** It wedges the web host's selection
   subsystem. `getSelectedSlides` is read-only and measured safe.
+  `setSelectedSlides` is called by ONE thing, the jump in "Used in this deck"
+  (`src/host/jump.ts`), on SSF-Charts' dated web measurement (2,429 rungs,
+  2026-08-13 to 2026-09-04, none silent), never on desktop evidence — so the
+  pane reads the selection back after every call and claims only what it saw.
+  Probe question 7 measures the call; until a sheet answers it, the jump is
+  borrowed, not measured, on every platform.
 - **Shape tags do not survive cut/paste on the web.** Say so in the docs; do
   not try to detect it.
 - **A custom XML part written at the package root is invisible to Office.js.**

@@ -360,3 +360,107 @@ describe("a selection read that does not come back", () => {
     expect(BUDGET.glance).toBeGreaterThan(1000);
   });
 });
+
+/**
+ * The one selection WRITE this add-in makes, and the read-back it never trusts
+ * the call without.
+ *
+ * `src/host/jump.ts` says why the call may be made at all; what this file holds
+ * is the office layer's half of the contract: the id asked for reaches the
+ * host unchanged, the selection is read back in the same batch, a host below
+ * 1.5 is never asked, and a host that raises or goes silent comes back as
+ * "did not answer" rather than as a jump.
+ */
+describe("selecting a slide and reading the selection back", () => {
+  afterEach(() => {
+    delete (globalThis as unknown as { PowerPoint?: unknown }).PowerPoint;
+  });
+
+  /** A host whose selection answers whatever the last write asked for, or a fixed list. */
+  function selecting(options: { answers?: string[]; supports?: boolean; throws?: string }) {
+    const written: string[][] = [];
+    let current: string[] = ["256#1"];
+    const chosen = {
+      items: [] as { id: string }[],
+      load() {
+        return chosen;
+      },
+    };
+    const context = {
+      presentation: {
+        setSelectedSlides: (ids: string[]) => {
+          if (options.throws !== undefined) throw new Error(options.throws);
+          written.push(ids);
+          current = options.answers ?? ids;
+        },
+        getSelectedSlides: () => chosen,
+      },
+      sync: () => {
+        // On the response, where a real host fills a collection.
+        chosen.items = current.map((id) => ({ id }));
+        return Promise.resolve();
+      },
+    };
+    (globalThis as unknown as { Office: unknown }).Office = {
+      context: { requirements: { isSetSupported: () => options.supports !== false } },
+    };
+    (globalThis as unknown as { PowerPoint: unknown }).PowerPoint = {
+      run: async (cb: (c: typeof context) => unknown) => await cb(context),
+    };
+    return written;
+  }
+
+  it("asks for exactly the id it was given and answers what the host selected afterwards", async () => {
+    vi.resetModules();
+    const written = selecting({});
+    const mod = await import("../src/office/powerpoint.js");
+    expect(await mod.selectSlide("260#77")).toEqual({ supported: true, selected: ["260#77"] });
+    expect(written).toEqual([["260#77"]]);
+  });
+
+  it("reports the host's answer even when it is not the slide asked for, and decides nothing", async () => {
+    // The judgement lives in src/host/jump.ts; this only carries the answer.
+    vi.resetModules();
+    selecting({ answers: ["259#1"] });
+    const mod = await import("../src/office/powerpoint.js");
+    expect((await mod.selectSlide("260#77")).selected).toEqual(["259#1"]);
+  });
+
+  it("never asks a host below PowerPointApi 1.5", async () => {
+    vi.resetModules();
+    const written = selecting({ supports: false });
+    const mod = await import("../src/office/powerpoint.js");
+    expect(await mod.selectSlide("260#77")).toEqual({ supported: false, selected: null });
+    expect(written).toEqual([]);
+  });
+
+  it("answers the reason, not a jump, when the host raises", async () => {
+    // office-js#3552: desktop throws while the notes pane has focus.
+    vi.resetModules();
+    selecting({ throws: "GeneralException" });
+    const mod = await import("../src/office/powerpoint.js");
+    const seen = await mod.selectSlide("260#77");
+    expect(seen.supported).toBe(true);
+    expect(seen.selected).toBeNull();
+    expect(seen.error).toContain("GeneralException");
+  });
+
+  it("answers null, inside the read budget, when the host goes silent", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.resetModules();
+      (globalThis as unknown as { Office: unknown }).Office = {
+        context: { requirements: { isSetSupported: () => true } },
+      };
+      (globalThis as unknown as { PowerPoint: unknown }).PowerPoint = { run: () => new Promise(() => undefined) };
+      const mod = await import("../src/office/powerpoint.js");
+      const pending = mod.selectSlide("260#77");
+      await vi.advanceTimersByTimeAsync(BUDGET.read + 1);
+      const seen = await pending;
+      expect(seen.selected).toBeNull();
+      expect(seen.error).toContain("moving to a slide");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

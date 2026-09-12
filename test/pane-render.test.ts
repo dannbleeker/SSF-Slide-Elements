@@ -735,3 +735,44 @@ describe("an element drawn in more than one place at once", () => {
     expect(asked?.querySelector<HTMLElement>('[data-action="tile"]')?.dataset["where"]).toBe("stamps");
   });
 });
+
+describe("the slide numbers in Used in this deck", () => {
+  const read: PaneState = {
+    ...browsing,
+    used: [
+      { element: "one-box", slides: [2] },
+      { element: "two-boxes", slides: [11, 3, 5] },
+    ],
+  };
+
+  it("are links when the host can go to a slide, one per number, with the words kept as words", () => {
+    render(root, { ...read, canJump: true }, "browse");
+    const rows = [...root.querySelectorAll(".used-row")];
+    const buttons = rows[1]?.querySelectorAll<HTMLButtonElement>('[data-action="jump"]') ?? [];
+    expect([...buttons].map((b) => b.dataset["value"])).toEqual(["3", "5", "11"]);
+    expect([...buttons].map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Go to slide 3",
+      "Go to slide 5",
+      "Go to slide 11",
+    ]);
+    // The sentence still reads as one: "slides 3, 5 and 11".
+    expect(rows[1]?.querySelector(".used-where")?.textContent).toBe("slides 3, 5 and 11");
+    expect(rows[0]?.querySelector(".used-where")?.textContent).toBe("slide 2");
+    for (const b of buttons) expect(b.disabled).toBe(false);
+  });
+
+  it("stay text on a host that cannot go to a slide", () => {
+    // A control that might do nothing is worse than a sentence that says where
+    // the element is (docs/DESIGN.md section 4).
+    render(root, read, "browse");
+    expect(root.querySelector('[data-action="jump"]')).toBeNull();
+    expect(root.querySelectorAll(".used-row")[1]?.querySelector(".used-where")?.textContent).toBe("slides 3, 5 and 11");
+  });
+
+  it("wait while an insert or a read is running", () => {
+    render(root, { ...read, canJump: true, busy: true }, "browse");
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-action="jump"]')];
+    expect(buttons.length).toBe(4);
+    for (const b of buttons) expect(b.disabled).toBe(true);
+  });
+});

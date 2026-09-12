@@ -271,8 +271,9 @@ const STATES = [
         { element: "two-boxes", slides: [3, 5, 11] },
         { element: "gone-from-the-library", slides: [7] },
       ],
+      canJump: true,
     },
-    shows: ["used"],
+    shows: ["used", "jump"],
   },
   {
     name: "browse-searched",

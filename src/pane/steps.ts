@@ -147,6 +147,15 @@ export interface PaneState {
   /** True while that read is running. */
   reading?: boolean;
   /**
+   * Whether a slide number in that list can be a link.
+   *
+   * Set once at boot from the host: `setSelectedSlides` is PowerPointApi 1.5.
+   * Below it the numbers stay text, because a control that might do nothing is
+   * worse than a sentence that says where the element is (`docs/DESIGN.md`
+   * section 4).
+   */
+  canJump?: boolean;
+  /**
    * The tile whose right-click menu is open, as `tileKey` spells it.
    *
    * Not the element id alone: one element is drawn up to three times — in
@@ -593,13 +602,31 @@ export interface UsedRow {
   where: string;
 }
 
-/** "slide 2", "slides 2 and 5", "slides 2, 5 and 9" — a list a person would read aloud. */
-export function slideList(slides: number[]): string {
+/** One piece of "slides 2, 5 and 9": a word to print, or a slide number that can be a link. */
+export type SlidePart = { text: string } | { slide: number };
+
+/**
+ * "slide 2", "slides 2 and 5", "slides 2, 5 and 9" — a list a person would read
+ * aloud, in pieces, so the renderer can make each number a control and keep
+ * the words as words. Sorted and deduplicated, because the same element twice
+ * on one slide is one place to look.
+ */
+export function slideParts(slides: number[]): SlidePart[] {
   const sorted = [...new Set(slides)].sort((a, b) => a - b);
-  if (sorted.length === 0) return "";
-  if (sorted.length === 1) return `slide ${sorted[0] as number}`;
-  const last = sorted[sorted.length - 1] as number;
-  return `slides ${sorted.slice(0, -1).join(", ")} and ${last}`;
+  if (sorted.length === 0) return [];
+  const out: SlidePart[] = [{ text: sorted.length === 1 ? "slide " : "slides " }];
+  sorted.forEach((slide, i) => {
+    if (i > 0) out.push({ text: i === sorted.length - 1 ? " and " : ", " });
+    out.push({ slide });
+  });
+  return out;
+}
+
+/** The same list as one string, for a sentence. */
+export function slideList(slides: number[]): string {
+  return slideParts(slides)
+    .map((part) => ("text" in part ? part.text : String(part.slide)))
+    .join("");
 }
 
 /**

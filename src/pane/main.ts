@@ -19,11 +19,14 @@ import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
 import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
+import { jumpOutcome } from "../host/jump.js";
 import { catalogueUrl, reportUrl, siteFrom } from "../host/links.js";
 import { BUDGET } from "../host/timeout.js";
 import {
   currentSlide,
   hostStamp,
+  hostSupports,
+  selectSlide,
   insertPackage,
   onSlideChange,
   openExternal,
@@ -322,6 +325,37 @@ async function follow(): Promise<void> {
   followed = await onSlideChange(followSelection);
 }
 let followed = false;
+
+/**
+ * Go to a slide named in "Used in this deck".
+ *
+ * The number is turned into an id positionally, at the last moment
+ * (`slideIdAt`, the same read the insert aims with), the host is asked to
+ * select it, and the selection is read straight back. `jumpOutcome` decides
+ * what that read means: the pane says "Slide N" only when the host was seen
+ * there, and otherwise says which slide to click. Nothing about the deck
+ * changes either way, so there is nothing to confirm by counting.
+ */
+async function jumpTo(slide: number): Promise<void> {
+  if (state.busy === true || state.reading === true) return;
+  if (!Number.isInteger(slide) || slide < 1) return;
+  set({ notice: undefined });
+  const wanted = await slideIdAt(slide - 1);
+  if (wanted === undefined) {
+    set({ notice: `PowerPoint would not name slide ${slide}. Click it in the strip.` });
+    return;
+  }
+  const seen = await selectSlide(wanted);
+  const outcome = jumpOutcome({ slide, wanted, ...seen });
+  if (!outcome.ok) {
+    set({ notice: outcome.detail });
+    return;
+  }
+  // Seen there, so the line under the header may say so now; the selection
+  // event, where the host raises one, will agree with it.
+  set({ slide });
+  announce(outcome.detail);
+}
 
 // ---------------------------------------------------------------------------
 // Inserting.
@@ -812,6 +846,10 @@ function onClick(event: MouseEvent): void {
     case "used":
       void readUsed();
       break;
+    // Section 4: a slide number in "Used in this deck" goes to that slide.
+    case "jump":
+      if (value !== undefined) void jumpTo(Number(value));
+      break;
     // Sections 4 and 6: a part already in the deck, off every slide it is on —
     // asked first, because the pane cannot put it back.
     case "remove":
@@ -1045,7 +1083,9 @@ void Office.onReady(() => {
     node.append(p);
     return;
   }
-  state = { ...state, ...remembered() };
+  // Whether a slide number can be a link, decided once: the call behind it is
+  // PowerPointApi 1.5, and `src/host/jump.ts` says why it may be made at all.
+  state = { ...state, ...remembered(), canJump: hostSupports("1.5") };
   document.addEventListener("click", onClick);
   document.addEventListener("contextmenu", onContextMenu);
   // Long-press for touch, and every way a press can end without becoming one.

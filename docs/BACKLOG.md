@@ -11,20 +11,15 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### The rest of section 4
+### The round that exercises Remove from N slides
 
-Built: search, tags, categories, tiles with the element's own picture on them,
-the stepper, favourites, recent, the gear, the footer with the measured delta,
-Undo, Again, the keyboard, the live region, high contrast, the pane reopening
-where you left it, the preview card, "Did you mean …" for a query with no hits,
-the category chips a search shows, the stepper greying the sizes a search did
-not ask for, the first-run coach marks, the gear's two external links, and
-**Used in this deck**. Still to come, all of it from `docs/DESIGN.md` sections
-4, 6 and 8: **the jump** from a slide number in "Used in this deck", which needs
-a host call no round has made. **Remove from N slides** is built, and is the one
+Everything in `docs/DESIGN.md` sections 4, 6 and 8 is built, the jump from a
+slide number in "Used in this deck" included (2026-09-12, on the sibling's
+measurement, read back on every click). **Remove from N slides** is the one
 feature whose mechanism — a sequence of insert-then-remove cycles — no round has
 exercised; the next round on any platform should put a stamp on three slides and
-take it off again.
+take it off again. The same round should click a slide number in "Used in this
+deck" and read probe question 7, which is the jump measured directly.
 
 ### The rest of the host round
 
@@ -35,7 +30,8 @@ inserts and undos from the pane the same day, both read in `docs/DESIGN.md`
 section 15. Mac and iPad are not, and `docs/DESIGN.md` section 9 says how the
 first iPad measurement will be taken. So what is left is a round on each of
 those two, which is what turns the last of the design's "assumed" column into
-"measured".
+"measured" — and, on every platform, probe question 7 (`setSelectedSlides`,
+the jump's call), which no sheet of this repo's has answered yet.
 
 ### Release and AppSource
 

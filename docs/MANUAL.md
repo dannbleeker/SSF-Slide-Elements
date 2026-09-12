@@ -42,7 +42,8 @@ small file that says where that page is.
 | Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
 | What your slide already has | The preview card shows the shapes already on your slide, in grey, behind where the element would land | built |
 | Remove from N slides | Taking a stamp off every slide it is on, in one click, after asking | built — not yet run against a real PowerPoint |
-| Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | planned |
+| Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | built — PowerPoint's answer is checked on every click, and no round has measured the call yet |
+| Installing from AppSource | Finding the add-in under Insert → Add-ins instead of sideloading a manifest | planned |
 
 ## The pane
 
@@ -113,7 +114,14 @@ fetched only when you insert it.
   keeps the mark, so it stays listed and can still be removed — and a removal
   takes only the element out of that group, leaving your own shape where it
   was. Ungrouping one keeps it too: the shapes inside carry the mark as well, so
-  an element you have taken apart is still listed and can still be taken off;
+  an element you have taken apart is still listed and can still be taken off.
+  **Each slide number is a link**: click it and PowerPoint moves to that slide.
+  The pane says "Slide 4" only once PowerPoint reports being there; if it does
+  not, the pane says so and asks you to click the slide in the strip instead.
+  Nothing in your deck changes either way. On Windows and Mac the jump can be
+  refused while the notes pane has the focus — click the slide canvas first.
+  On a PowerPoint too old for the call (below PowerPointApi 1.5) the numbers
+  stay plain text;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
 - the **categories**, collapsed until you open one. Searching or picking a tag

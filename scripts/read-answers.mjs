@@ -23,6 +23,7 @@ import {
   exportPartsVerdict,
   floorLine,
   insertVerdict,
+  jumpProbeVerdict,
   insertionBlame,
   leftBehind,
   masterVerdict,
@@ -115,6 +116,17 @@ console.log("\n3. Does getSelectedSlides name the slide you were on, at the file
   if (s.apiIdsHead) line("API ids, head", s.apiIdsHead.join(", "));
   if (s.sldIdLstHead) line("file sldIdLst, head", s.sldIdLstHead.join(", "));
   if (s.apiIdsHaveHash === false) line("note", "the API's ids carry no '#', so the file comparison used the whole id");
+}
+
+console.log("\n7. Does setSelectedSlides move the view, and does the host still answer afterwards?");
+{
+  const j = sheet.jump ?? {};
+  const v = jumpProbeVerdict(j);
+  line("verdict", `${v.verdict} — ${v.detail}`);
+  if (j.before) line("selected before", j.before.join(", ") || "nothing");
+  if (j.restored !== undefined)
+    line("selection put back", j.restored ? "yes" : `no — ${j.restoreError ?? "no reason"}`);
+  if (j.readBackError) line("read-back error", j.readBackError);
 }
 
 console.log("\n4. Which read of the deck, and what does each drop?");

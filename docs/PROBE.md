@@ -1,7 +1,8 @@
 # The host probe
 
 The six questions in [the design record](DESIGN.md#13-open-questions-for-the-host)
-that only a real PowerPoint can answer, asked directly. Nothing in the splice or
+that only a real PowerPoint can answer, asked directly, and a seventh added on
+2026-09-12 for the one selection write the pane makes. Nothing in the splice or
 the picker should be built on a guess about any of them.
 
 Running it takes a few minutes and leaves your deck as it found it, apart from
@@ -104,6 +105,7 @@ a read that had fallen on a slide the probe never wrote.
 | 4 | Which read of the deck, `getFileAsync` or `exportAsBase64Presentation`, and what does each **drop**? | Which read the engine builds on; a dropped comment part is a comment the user loses |
 | 5 | Does PowerPoint's own **Ctrl+Z** revert an insert? | Whether the pane's Undo must stay out of the way of the host's |
 | 6 | How long does a read take on a big deck, and is the **floor** met? | The two-second budget in the design, and the floor message on hosts below 1.2 |
+| 7 | Does `setSelectedSlides` **move the view**, and does the host still answer afterwards? | The jump from "Used in this deck", built on SSF-Charts' web measurement and read back on every click; this arm measures it directly, on every platform |
 
 ### 1. The pruned package
 
@@ -194,6 +196,20 @@ rate; a number from a round carries the date of its sheet. The requirement
 sets the host reports are printed against the floor in `src/host/capability.ts`
 and against each call the probe needs, so a host that lacks `getSelectedSlides`
 or the export is named rather than inferred.
+
+### 7. Moving to a slide
+
+The jump in "Used in this deck" calls `setSelectedSlides([id])`, the one
+selection WRITE this add-in makes. SSF-Charts ships the same call and measured
+it in every archived round on the web (2,429 rungs between 2026-08-13 and
+2026-09-04, none silent); the wedge that family designed around was
+`setSelectedShapes([id])`, which shows as the write being TAKEN and the next
+selection read going silent. So this arm selects the user's first slide, reads
+the selection back in the same batch, puts the selection back to what it was,
+and then reads the selection once more on its own, timed. "Yes" needs both: the
+read-back named the slide, and the read after it answered. `setSelectedShapes`
+is never called. Below PowerPointApi 1.5 the arm says NOT ASKED and the pane
+keeps its numbers as text.
 
 ## What it does to your deck
 
