@@ -59,6 +59,7 @@ vi.mock("../src/office/powerpoint.js", () => ({
     return Promise.resolve(host.refuseRemoval ? "the host refused" : undefined);
   },
   hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
+  deckUrl: () => host.url,
   openExternal: (url: string) => {
     opened.push(url);
     return externalOpens;
@@ -133,6 +134,8 @@ const host = {
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
   refuseRemoval: false,
+  /** The URL the host gives for the open deck; undefined is an unsaved one. */
+  url: undefined as string | undefined,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -237,8 +240,22 @@ document.addEventListener = ((type: string, fn: EventListener, options?: AddEven
   addToDocument(type, fn, options);
 }) as typeof document.addEventListener;
 
-afterEach(() => {
+/**
+ * Detach every pane opened so far, so the NEXT `openPane` starts alone.
+ *
+ * `afterEach` does this between cases. A case that reopens the pane several
+ * times — which is what "remembers per deck" has to do — needs it between the
+ * opens too: a stale pane's handlers are still on `document`, still hold the
+ * previous deck's bucket, and would write the new deck's search into the old
+ * deck's storage. Which is the bug this file's own comment above warns about,
+ * found again the first time a case reopened the pane twice.
+ */
+function detachPanes(): void {
   for (const [type, fn] of bound.splice(0)) document.removeEventListener(type, fn);
+}
+
+afterEach(() => {
+  detachPanes();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("data-theme");
   readiness = { ok: true, detail: "fine" };
@@ -257,6 +274,7 @@ afterEach(() => {
   host.held = 0;
   host.removed.length = 0;
   host.refuseRemoval = false;
+  host.url = undefined;
   spliced.length = 0;
   window.localStorage.clear();
 });
@@ -664,6 +682,162 @@ describe("what the menu actually inserts", () => {
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await ran();
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+  });
+});
+
+describe("what the pane remembers, and where", () => {
+  /**
+   * `docs/DESIGN.md` section 4. Two buckets: favourites and the first-run flag
+   * per machine, everything about how you were reading the library per DECK.
+   * Driven through the real `localStorage` jsdom gives, because what is under
+   * test is which key each half lands under.
+   */
+  const A = "https://contoso-my.sharepoint.com/personal/me/Documents/Q4.pptx";
+  const B = "https://contoso-my.sharepoint.com/personal/me/Documents/Q3.pptx";
+
+  /** Open the pane on a deck and answer what the search box came back holding. */
+  async function reopen(url: string | undefined): Promise<{ pane: HTMLElement; query: string }> {
+    detachPanes();
+    host.url = url;
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    return { pane, query: pane.querySelector<HTMLInputElement>('[data-action="search"]')?.value ?? "" };
+  }
+
+  /** Type into the open pane's search box. */
+  async function search(pane: HTMLElement, query: string): Promise<void> {
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = query;
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+  }
+
+  it("gives each deck its own search back, and gives a new deck none", async () => {
+    // Section 4 asks for the search back, which nothing did before 2026-09-12.
+    await search((await reopen(A)).pane, "boxes");
+    expect((await reopen(A)).query).toBe("boxes");
+    // A different deck is a different question, so it opens with a clear box.
+    expect((await reopen(B)).query).toBe("");
+    await search((await reopen(B)).pane, "stamp");
+    // And neither has taken the other's.
+    expect((await reopen(A)).query).toBe("boxes");
+    expect((await reopen(B)).query).toBe("stamp");
+  });
+
+  it("gives each deck its own tags back", async () => {
+    detachPanes();
+    host.url = A;
+    indexMode = "ok";
+    let pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="tag"]') as HTMLElement).click();
+    await settle();
+    const picked = (p: HTMLElement): number => p.querySelectorAll('[data-action="tag"][aria-pressed="true"]').length;
+    expect(picked(pane)).toBe(1);
+
+    detachPanes();
+    host.url = B;
+    pane = await openPane();
+    await settle();
+    expect(picked(pane)).toBe(0);
+
+    detachPanes();
+    host.url = A;
+    pane = await openPane();
+    await settle();
+    expect(picked(pane)).toBe(1);
+  });
+
+  it("keeps one deck's open categories out of another's", async () => {
+    detachPanes();
+    host.url = A;
+    indexMode = "ok";
+    let pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="open-all"]') as HTMLElement).click();
+    await settle();
+
+    // A different deck opens closed, whatever the first one did.
+    detachPanes();
+    host.url = B;
+    pane = await openPane();
+    await settle();
+    const openIn = (p: HTMLElement): number =>
+      [...p.querySelectorAll('[data-action="category"]')].filter((h) => h.getAttribute("aria-expanded") === "true")
+        .length;
+    expect(openIn(pane)).toBe(0);
+
+    // And the first deck still has its own.
+    detachPanes();
+    host.url = A;
+    pane = await openPane();
+    await settle();
+    expect(openIn(pane)).toBe(2);
+  });
+
+  it("keeps favourites and the first-run flag per machine, across decks", async () => {
+    detachPanes();
+    host.url = A;
+    indexMode = "ok";
+    let pane = await openPane();
+    await settle();
+    // Dismiss the coach marks and star one element, both on deck A.
+    (pane.querySelector('[data-action="coached"]') as HTMLElement).click();
+    await settle();
+    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="star"]') as HTMLElement).click();
+    await settle();
+
+    detachPanes();
+    host.url = B;
+    pane = await openPane();
+    await settle();
+    // A statement about the library and about the person, not about a deck.
+    expect(pane.querySelector(".coach")).toBeNull();
+    expect(pane.textContent).toContain("Favourites");
+  });
+
+  it("writes the deck's half under a key of its own, and never the URL", async () => {
+    host.url = A;
+    indexMode = "ok";
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="open-all"]') as HTMLElement).click();
+    await settle();
+    const keys = Object.keys(localStorage);
+    expect(keys).toContain("ssf-slide-elements");
+    const deckKeys = keys.filter((k) => k !== "ssf-slide-elements");
+    expect(deckKeys).toHaveLength(1);
+    // A SharePoint path can name a client, a project or a person.
+    expect(deckKeys[0]).toMatch(/^ssf-slide-elements:[0-9a-f]{8}$/);
+    expect(localStorage.getItem(deckKeys[0] ?? "")).not.toContain("sharepoint");
+    // The per-machine half holds no browsing state, and the deck's holds no
+    // favourites: the split is real rather than two copies of everything.
+    const machine = JSON.parse(localStorage.getItem("ssf-slide-elements") ?? "{}") as Record<string, unknown>;
+    expect(Object.keys(machine).sort()).toEqual(["coached", "favourites"]);
+    const deck = JSON.parse(localStorage.getItem(deckKeys[0] ?? "") ?? "{}") as { open?: string[] };
+    expect(deck.open?.sort()).toEqual(["boxes", "stamps"]);
+  });
+
+  it("falls back to the one bucket when the host will not name a deck, and still remembers", async () => {
+    // An unsaved deck. Everything in one place rather than nothing remembered.
+    detachPanes();
+    host.url = undefined;
+    indexMode = "ok";
+    let pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="open-all"]') as HTMLElement).click();
+    await settle();
+    expect(Object.keys(localStorage)).toEqual(["ssf-slide-elements"]);
+
+    detachPanes();
+    pane = await openPane();
+    await settle();
+    expect(
+      [...pane.querySelectorAll('[data-action="category"]')].filter((h) => h.getAttribute("aria-expanded") === "true")
+        .length,
+    ).toBe(2);
   });
 });
 

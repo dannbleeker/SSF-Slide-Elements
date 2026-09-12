@@ -337,6 +337,30 @@ PowerPoint would settle.
   scroll position, picked counts and settings are kept per deck across pane
   closes and reloads, in the browser's storage on the user's machine.
 
+  Built 2026-09-12, with four things decided in the building:
+
+  - **Two buckets, and which half goes where.** Favourites and the first-run
+    flag are per MACHINE — a star is a statement about the library and the coach
+    marks are "dismissed once", not once per deck — and everything about how the
+    library was being READ is per deck. Recent went per deck too, which this
+    record did not say either way: it exists so the thing just used is easy to
+    reach again, and "just used" is a fact about a deck.
+  - **The deck is told apart by a HASH of its URL, not by the URL.** Only
+    equality is ever asked, and a SharePoint path can name a client, a project
+    or a person, so there is no reason for one to sit in storage where anything
+    else on the origin could read it back. The query string and the fragment are
+    dropped first: a OneDrive URL for one file is not one string across
+    sessions, and a key that moved with `?web=1` would remember nothing.
+  - **No URL means the per-machine bucket**, which is the case for a deck that
+    has not been saved. Two unsaved decks then share one memory. Forgetting
+    outright was the alternative, and losing a search on every close is the
+    behaviour this feature exists to remove.
+  - **"Picked counts" is `chosen`**, which the pane also uses for the keyboard
+    cursor. It is written only by the operations that already persist, so what
+    comes back is the step last INSERTED rather than wherever the keyboard was
+    left. **Scroll position is NOT built** — it is the one item of this bullet
+    still open, and `docs/BACKLOG.md` carries it.
+
 ## 5. Where an element lands
 
 The landing is decided per collection slide, so the deck decides it, with one
@@ -1009,3 +1033,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | An insert stamps the shapes INSIDE any group that lands, as well as the group, because ungrouping is one gesture and it destroys the group and its tag together — measured: a five-shape element ungrouped went from one use to not in the deck at all. The reader stops at a tagged shape, so while it is a group the answer is unchanged; a shape with no `<p:nvPr>` is skipped rather than refused, since failing an insert that works today is the worse trade. About 250 bytes a shape The first version of it asked whether THIS code had made the group, which left the 23 elements that are drawn as a group already — the stamps among them — behaving the old way; a sweep over every element in both libraries is what found that. | decided in the build, 2026-09-11 |
 | The tag sweep goes into the user's own groups rather than reading the top level of the slide only: grouping an element with a shape of your own is one gesture, and it made "Used in this deck" answer that the element was not in the deck while it sat on the slide. A removal takes the tagged shape out of that group, leaves the user's own shape beside it, and takes the group too only when the removal is what emptied it | fixed in the build, 2026-09-11 |
 | "Move to a new slide" is an undo followed by a second insert rather than a third operation, so it inherits the positional count-checked undo and the delta-proving insert and adds no new failure of its own; it stops at a failed undo rather than leaving a second copy; and "a slide that already had content" is `contentCount`, which does not count the slide's own title or an empty placeholder the insert removes — reported by the splice out of bytes it already holds, so the offer costs no second deck read | decided in the build, 2026-09-12 |
+| The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |

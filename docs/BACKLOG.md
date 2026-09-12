@@ -16,12 +16,15 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 Almost everything in `docs/DESIGN.md` sections 4, 6 and 8 is built: the jump
 from a slide number in "Used in this deck" (2026-09-12, on the sibling's
 measurement, read back on every click), "Open all" beside the category count
-(2026-09-12) and "Move to a new slide" in the footer (2026-09-12). One
-approved behaviour is still missing, found by reading the record against the
-code on 2026-09-12 rather than by anyone noticing it absent: the pane
-remembering **search, tags, scroll position and picked counts** and doing it
-**per deck** — it remembers five things today and keys them per
-machine (section 4). **Remove from N slides** is the one
+(2026-09-12), "Move to a new slide" in the footer (2026-09-12) and the pane
+remembering itself **per deck** — the search, the tags and the picked count
+included (2026-09-12, keyed on a hash of the deck's URL). One line of section 4
+is still not built: **the scroll position**. It is the only item of that bullet
+that is not a field of the pane's state — it is a measurement of the rendered
+list, so restoring it means reading the offset as the user scrolls and putting
+it back after the first draw, with the tiles' pictures still arriving. Small,
+and a different kind of change from the rest, which is why it was left rather
+than half-done. **Remove from N slides** is the one
 feature whose mechanism — a sequence of insert-then-remove cycles — no round has
 exercised; the next round on any platform should put a stamp on three slides and
 take it off again. The same round should click a slide number in "Used in this

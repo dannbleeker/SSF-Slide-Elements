@@ -100,15 +100,24 @@
     could not identify you, or a presentation you have used it on, if we were asked to.</p>
 
   <h2>What is stored on your device</h2>
-  <p>Five things, so the pane opens where you left it. In your browser's local storage, under the key
-    <code>ssf-slide-elements</code>: the three settings behind the gear — where an element lands,
-    whether its shapes arrive grouped, and whether its colours follow your deck or the library —
-    which elements you have starred, the last six you inserted, which categories you left open, and
-    whether you have dismissed the getting-started note.</p>
-  <p>That is a list of our own element names and three settings. It holds nothing from your
-    presentation, nothing about you, and it never leaves the device it was written on — there is
-    nowhere for it to go, because the add-in sends nothing anywhere. Clearing the site's data in your
-    browser removes it, and the pane opens perfectly well without it.</p>
+  <p>Enough for the pane to open where you left it, in your browser's local storage, in two places.</p>
+  <p><strong>Two things</strong> under <code>ssf-slide-elements</code>, the same wherever you are:
+    which elements you have starred, and whether you have dismissed the getting-started note.</p>
+  <p><strong>Six things</strong> under <code>ssf-slide-elements:</code> and eight characters, once for
+    each presentation you have used the add-in on: the three settings behind the gear — where an
+    element lands, whether its shapes arrive grouped, and whether its colours follow your deck or the
+    library — the last six you inserted, which categories you left open, what you last typed in the
+    search box, which tags you picked, and which size you picked on an element that comes in
+    several.</p>
+  <p>Those eight characters are a number worked out from the presentation's address, and the address
+    itself is not stored — the add-in only ever needs to tell one presentation from another, so there
+    is no reason to write down where yours lives. If PowerPoint will not give an address, which is
+    the case for a presentation you have not saved yet, everything goes in the first place instead.</p>
+  <p>All of it is a list of our own element names and three settings, plus whatever you typed in our
+    search box. It holds nothing else from your presentation, nothing about you, and it never leaves
+    the device it was written on — there is nowhere for it to go, because the add-in sends nothing
+    anywhere. Clearing the site's data in your browser removes it, and the pane opens perfectly well
+    without it.</p>
   <p>This section was wrong until 11 September 2026: it said nothing was stored, and had said so since
     before the picker was built. The claim is now checked by a test that reads this page against the
     code, so it cannot go stale again without the build failing.</p>

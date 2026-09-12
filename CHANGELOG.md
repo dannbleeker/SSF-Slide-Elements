@@ -7,6 +7,20 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — the pane now remembers each presentation separately
+
+- **What you were doing is remembered per presentation**, not per machine. The
+  search you typed, the tags you picked, the categories you left open, the size
+  you picked on an element that comes in several, the last six you inserted and
+  the three settings behind the gear all come back when you reopen that deck —
+  and none of them follow you into the next one. Your starred elements still do,
+  because a star is about the library rather than about a deck.
+- **The search box and the tags are remembered at all**, which they were not
+  before. That was the half of this the pane had never had.
+- One presentation is told from another by a number worked out from its address.
+  The address itself is not written down. A presentation you have not saved yet
+  has no address, so unsaved decks share one memory between them.
+
 ### Added — put an element on a slide of its own after all
 
 - **"Move to a new slide"** in the footer, when you have just dropped a

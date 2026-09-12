@@ -157,6 +157,51 @@ async function host(fake: Fake) {
   return await import("../src/office/powerpoint.js");
 }
 
+describe("asking the host to name the open deck", () => {
+  /**
+   * The other single-expression read over `Office.context`, and the same
+   * question about it: what it does when the object is not what it expects.
+   * `docs/DESIGN.md` section 4 keys the pane's per-deck memory on this, and
+   * `deckKey` in `src/host/memory.ts` decides what an absent answer means — so
+   * everything this has to get right is answering `undefined` rather than
+   * raising, and never handing back an empty string as if it were a deck.
+   */
+  async function urlWith(context: unknown): Promise<string | undefined> {
+    vi.resetModules();
+    (globalThis as unknown as { Office: unknown }).Office = { context };
+    const mod = await import("../src/office/powerpoint.js");
+    return mod.deckUrl();
+  }
+
+  it("answers the URL when the host gives one", async () => {
+    expect(await urlWith({ document: { url: "https://example.sharepoint.com/a.pptx" } })).toBe(
+      "https://example.sharepoint.com/a.pptx",
+    );
+  });
+
+  it("answers nothing for an unsaved deck, whether that is an empty string or no property", async () => {
+    // Both shapes have been seen: the property can be present and empty.
+    expect(await urlWith({ document: { url: "" } })).toBeUndefined();
+    expect(await urlWith({ document: {} })).toBeUndefined();
+    expect(await urlWith({})).toBeUndefined();
+    expect(await urlWith(undefined)).toBeUndefined();
+  });
+
+  it("answers nothing rather than throwing when the host raises", async () => {
+    expect(
+      await urlWith({
+        get document(): never {
+          throw new Error("no");
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("answers nothing for something that is not a string", async () => {
+    expect(await urlWith({ document: { url: 7 } })).toBeUndefined();
+  });
+});
+
 describe("a deck read that came back short", () => {
   afterEach(() => {
     delete (globalThis as unknown as { PowerPoint?: unknown }).PowerPoint;
