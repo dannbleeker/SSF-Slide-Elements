@@ -61,7 +61,11 @@ export function restored(machine: Stored, deck: Stored): Partial<PaneState> {
   return {
     favourites: machine.favourites ?? [],
     coached: machine.coached === true,
-    settings: { ...DEFAULT_SETTINGS, ...(deck.settings ?? {}) },
+    // No fallback on this one: a missing `settings` spreads to nothing, which
+    // is exactly what a `?? {}` would have contributed. The `??`s around it are
+    // not the same thing — those fill a VALUE, and without one the field comes
+    // back `undefined` rather than empty.
+    settings: { ...DEFAULT_SETTINGS, ...deck.settings },
     recent: deck.recent ?? [],
     open: deck.open ?? [],
     // Section 4 asks for the search and the tags back too, and for the size

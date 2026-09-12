@@ -44,6 +44,29 @@ describe("light or dark, from the host's own chrome", () => {
     expect(paneTheme("#909090")).toBe("light");
   });
 
+  it("puts a colour that lands exactly on 128 on the LIGHT side", () => {
+    // The grey pair above pins a true claim and still cannot see the threshold
+    // MOVE. Found by the mutation sweep on 2026-09-12: both `value <= 128` and
+    // `value < 129` leave `#808080` dark and `#818181` light, because no grey
+    // sits between them — grey 128 computes to 127.99999999999998 and grey 129
+    // to exactly 129.0, so the whole of `[128, 129)` is a gap the greys skip.
+    //
+    // `docs/DESIGN.md` section 9: "below half of 255 is dark". Half of 255 is
+    // 128 and BELOW is strict, so a colour whose brightness is 128 on the nose
+    // is LIGHT. Only such a colour can tell `<` from `<=`, and it has to be
+    // computed rather than guessed: `#14aac3` is 20 * 0.299 + 170 * 0.587 +
+    // 195 * 0.114, which is exactly 128 in IEEE-754 in the order
+    // `src/host/theme.ts` adds the three terms.
+    expect(paneTheme("#14aac3")).toBe("light");
+    // The other side of that same step. `#808080`'s 127.99999999999998 is the
+    // HIGHEST brightness any of the 16.7 million colours reads as dark, so
+    // these two are the boundary itself and nothing lies between them.
+    expect(paneTheme("#808080")).toBe("dark");
+    // Past 128 but short of 129, which is what says the number is 128 rather
+    // than any larger one: 170 * 0.587 + 255 * 0.114 is 128.86.
+    expect(paneTheme("#00aaff")).toBe("light");
+  });
+
   it("weighs green far above blue, which is the point of using luminance at all", () => {
     // Full green and full blue are the same distance from black by any
     // channel-blind measure, and nothing like it to a person. A mean of the

@@ -89,6 +89,22 @@ describe("what the list shows", () => {
     // worth having.
     expect(tagsOf(LIBRARY)[0]).toBe("boxes");
   });
+
+  it("orders the whole line by count, and a tie by name", () => {
+    // The pane slices this line to the first few tags (`TAGS_SHOWN` in
+    // `render.ts`), so the order decides which tags a reader ever sees. Count
+    // first — `zebra` is on three elements and last in the alphabet — and the
+    // name only where the counts are equal.
+    const library: Library = {
+      ...LIBRARY,
+      elements: [
+        element({ id: "a", tags: ["zebra", "beta"] }),
+        element({ id: "b", tags: ["zebra", "alpha"] }),
+        element({ id: "c", tags: ["zebra"] }),
+      ],
+    };
+    expect(tagsOf(library)).toEqual(["zebra", "alpha", "beta"]);
+  });
 });
 
 describe("which categories are open", () => {
@@ -175,6 +191,48 @@ describe("what the user might have meant", () => {
       elements: [element({ id: "blank", name: "" }), element({ id: "box", name: "Box" })],
     };
     expect(didYouMean(nameless, "bax")).toEqual(["Box"]);
+  });
+
+  it("counts one edit per character, whichever direction the typo went", () => {
+    const typos: Library = {
+      ...LIBRARY,
+      elements: [element({ id: "a", name: "Stamp" }), element({ id: "b", name: "Box" })],
+    };
+    // A letter missing: "stam" is one INSERTION short of "Stamp". A letter too
+    // many: "boxs" is one DELETION from "Box". Both are one edit, and a
+    // four-character query is allowed exactly one — so an edit charged at two
+    // would put each of these out of reach in turn.
+    expect(didYouMean(typos, "stam")).toEqual(["Stamp"]);
+    expect(didYouMean(typos, "boxs")).toEqual(["Box"]);
+  });
+
+  it("puts the nearest name first, ahead of the alphabet", () => {
+    // "Arrow" sorts before "Arrows" and is one edit further away, so a list
+    // that came back in name order would look right in every other respect.
+    // The exact match costs nothing and has to lead.
+    const arrows: Library = {
+      ...LIBRARY,
+      elements: [element({ id: "a", name: "Arrow" }), element({ id: "b", name: "Arrows" })],
+    };
+    expect(didYouMean(arrows, "arrows")).toEqual(["Arrows", "Arrow"]);
+  });
+
+  it("allows one edit per three characters of the query, and no more", () => {
+    // `Math.max(1, Math.floor(q.length / 3))`. The floor of one is what keeps a
+    // three-letter typo from reaching half the library; the third of the length
+    // is what lets a longer one reach further.
+    const arrows: Library = {
+      ...LIBRARY,
+      elements: [element({ id: "a", name: "Arrow" }), element({ id: "b", name: "Arrows" })],
+    };
+    // Four characters, one edit: "Arrow" is one away and "Arrows" two.
+    expect(didYouMean(arrows, "arow")).toEqual(["Arrow"]);
+    const triangles: Library = {
+      ...LIBRARY,
+      elements: [element({ id: "a", name: "Triangle" }), element({ id: "b", name: "Triangles" })],
+    };
+    // Six characters, two edits: "Triangle" is two away and "Triangles" three.
+    expect(didYouMean(triangles, "triang")).toEqual(["Triangle"]);
   });
 
   it("holds a short query to a tighter threshold than a long one", () => {

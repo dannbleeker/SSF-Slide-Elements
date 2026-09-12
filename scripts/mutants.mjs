@@ -364,9 +364,12 @@ function workspace() {
 function main() {
   const argv = process.argv.slice(2);
   const onlyAt = argv.indexOf("--only");
-  const only = onlyAt === -1 ? "" : (argv[onlyAt + 1] ?? "");
+  // A comma-separated list, not one substring: re-checking the files a round of
+  // fixes touched is the ordinary use, and eight separate runs would each copy
+  // the tree again and each re-report the same equivalent mutants.
+  const only = (onlyAt === -1 ? "" : (argv[onlyAt + 1] ?? "")).split(",").filter(Boolean);
   const listing = argv.includes("--list");
-  const files = TARGETS.filter((f) => f.includes(only));
+  const files = TARGETS.filter((f) => only.length === 0 || only.some((part) => f.includes(part)));
 
   if (!listing) {
     const dir = workspace();

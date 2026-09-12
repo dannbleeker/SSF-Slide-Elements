@@ -9,13 +9,21 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
-- The add-in's own tests are now checked by deliberately breaking the code and
-  seeing whether they notice. Two of them did not, and both are fixed. One was
-  the limit on how much of a PowerPoint error message gets shown to you — the
-  limit exists so that a failure cannot dump an entire presentation into the
-  panel as text, and nothing was holding it in place. The other was what the
-  panel tells you when PowerPoint hands back more slides than it was asked for:
-  at exactly two, it said the wrong thing and pointed at a slide to delete.
+- The add-in's own tests are now checked by deliberately breaking the code, one
+  change at a time, and seeing whether they notice. Out of 349 such changes, 56
+  went unnoticed. Forty of those are now caught, eleven turned out to be changes
+  that alter nothing at all no matter what you do, and one was a line of code
+  that could be deleted.
+
+  Nothing you can see changes, because nothing was broken — but several things
+  that keep the add-in honest were being held by nobody. Among them: the limit on
+  how much of a PowerPoint error message is shown to you, which exists so that a
+  failure cannot dump an entire presentation into the panel as text; what the
+  panel says when PowerPoint hands back more slides than it was asked for; how
+  long the add-in keeps re-checking a slide count that PowerPoint is slow to
+  update; how it decides your theme is dark rather than light; and how it reads
+  the answer sheets that every measured claim about PowerPoint's behaviour is
+  built on.
 
 ### Changed — nothing you can see
 

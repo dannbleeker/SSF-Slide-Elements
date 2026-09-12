@@ -459,6 +459,24 @@ describe("masterVerdict", () => {
       verdict: "unknown",
     });
   });
+
+  it("cannot say when the sheet carries one master count and not the other", () => {
+    // A sheet is copied out of the host by hand, so half an arm is a real
+    // shape. Either half missing is NOT ASKED, never a count against nothing.
+    expect(masterVerdict({ mastersBefore: 1, landed: 3, formatting: "x" }).detail).toContain("NOT ASKED");
+    expect(masterVerdict({ mastersAfter: 2, landed: 3, formatting: "x" }).detail).toContain("NOT ASKED");
+  });
+
+  it("reads a ONE-slide insert, which is the smallest that can add a master", () => {
+    // The bar is "landed nothing", not "landed little": one slide is an insert
+    // that happened and its master count is evidence.
+    expect(masterVerdict({ mastersBefore: 1, mastersAfter: 2, landed: 1, formatting: "x" })).toMatchObject({
+      verdict: "yes",
+    });
+    expect(masterVerdict({ mastersBefore: 1, mastersAfter: 2, landed: 0, formatting: "x" }).detail).toContain(
+      "landed nothing",
+    );
+  });
 });
 
 describe("orderVerdict", () => {
@@ -508,6 +526,15 @@ describe("orderVerdict", () => {
       verdict: "no",
     });
   });
+
+  it("counts all three reads, and says NOT ASKED when any one of them is short", () => {
+    // Each position count is checked on its own: a sheet with the right number
+    // of ids in two of the three reads has still not asked the question.
+    expect(orderVerdict({}).detail).toContain("(0, 0, 0 ids)");
+    const shortMiddle = orderVerdict({ afterFirst: [P1, P2], afterSecond: [P1, S], afterDelete: [S, P2] });
+    expect(shortMiddle).toMatchObject({ verdict: "unknown" });
+    expect(shortMiddle.detail).toContain("(2, 2, 2 ids)");
+  });
 });
 
 describe("targetAddedVerdict", () => {
@@ -553,6 +580,13 @@ describe("selectionVerdict", () => {
       "could not be compared",
     );
   });
+
+  it("reads a sheet a hand copy left a field short rather than throwing on it", () => {
+    // Sheets are pasted out of the pane by hand (blob downloads are blocked in
+    // WebView2), so a missing field is an input this reader meets, not a bug.
+    expect(selectionVerdict({ supported: true }).detail).toContain("answered nothing");
+    expect(selectionVerdict({ supported: true, selectedIds: ["a"] }).detail).toContain("1 slide(s) selected");
+  });
 });
 
 describe("exportPartsVerdict", () => {
@@ -593,6 +627,22 @@ describe("exportPartsVerdict", () => {
       verdict: "no",
     });
   });
+
+  it("cannot say when the sheet carries one part list and not the other", () => {
+    expect(exportPartsVerdict({ supported: true, source: parts(4, true) }).detail).toContain("no part lists");
+    expect(exportPartsVerdict({ supported: true, exported: parts(4, true) }).detail).toContain("no part lists");
+  });
+
+  it("names a single loss on its own, without the other half of the sentence", () => {
+    // office-js#6867 names two casualties; a host that drops one of them is
+    // still a host that drops. Each is read alone as well as together.
+    const authorsOnly = exportPartsVerdict({ supported: true, source: parts(0, true), exported: parts(0, false) });
+    expect(authorsOnly.verdict).toBe("yes");
+    expect(authorsOnly.detail).toContain("DROPS ppt/authors.xml —");
+    const commentsOnly = exportPartsVerdict({ supported: true, source: parts(4, false), exported: parts(0, false) });
+    expect(commentsOnly.verdict).toBe("yes");
+    expect(commentsOnly.detail).toContain("DROPS 4 comment part(s) —");
+  });
 });
 
 describe("timingLine", () => {
@@ -601,6 +651,20 @@ describe("timingLine", () => {
     expect(timingLine("x", { error: "boom" })).toBe("x: threw — boom");
     expect(timingLine("x", { ms: 5 })).toBe("x: not measured");
     expect(timingLine("x", { ms: 500, bytes: 1048576 })).toBe("x: 1.00 MB in 500 ms (2.0 MB/s)");
+    expect(timingLine("x", { ms: 0, bytes: 1048576 })).toBe("x: 1.00 MB in 0 ms");
+  });
+
+  it("counts a megabyte as 1024 x 1024 bytes", () => {
+    // The MB/s figures in docs/DESIGN.md section 15 (a 14.13 MB deck in 2816
+    // ms, 4.6 to 5.0 MB/s) came off this line, so the divisor is part of the
+    // measurement. 131072 bytes is exactly an eighth of a MiB: 0.13 against
+    // 1048576, and 0.12 against any larger divisor.
+    expect(timingLine("x", { ms: 125, bytes: 131072 })).toBe("x: 0.13 MB in 125 ms (1.0 MB/s)");
+  });
+
+  it("prints a rate for every measured time, and skips it only at zero", () => {
+    // The guard is division by zero and nothing else: 1 ms is a rate.
+    expect(timingLine("x", { ms: 1, bytes: 1048576 })).toBe("x: 1.00 MB in 1 ms (1000.0 MB/s)");
     expect(timingLine("x", { ms: 0, bytes: 1048576 })).toBe("x: 1.00 MB in 0 ms");
   });
 });
@@ -621,6 +685,13 @@ describe("undoVerdict", () => {
     expect(undoVerdict({ foundAtStart: "unsupported", deckAtStart: 2, previousDeckAtEnd: 4 })).toMatchObject({
       verdict: "unknown",
     });
+  });
+
+  it("will not compare counts with one end of the pair missing", () => {
+    // Both ends or nothing: a delta against an absent number is arithmetic on
+    // undefined, and this file says NOT ASKED rather than grading nothing.
+    expect(undoVerdict({ foundAtStart: "unsupported", deckAtStart: 3 }).detail).toContain("NOT ASKED");
+    expect(undoVerdict({ foundAtStart: "unsupported", previousDeckAtEnd: 4 }).detail).toContain("NOT ASKED");
   });
 
   it("reads the tagged slide's presence on the second run", () => {
@@ -723,5 +794,12 @@ describe("jumpProbeVerdict", () => {
     const silent = jumpProbeVerdict({ ...asked, selected: null, afterwards: { answered: false } });
     expect(silent.verdict).toBe("no");
     expect(silent.detail).toContain("wedge");
+  });
+
+  it("says NOT ASKED when the sheet carries only half the jump arm", () => {
+    // The id asked for and the id answered are one question; either alone is
+    // no reading at all.
+    expect(jumpProbeVerdict(asked).detail).toContain("NOT ASKED");
+    expect(jumpProbeVerdict({ supported: true, selected: ["256#1"] }).detail).toContain("NOT ASKED");
   });
 });
