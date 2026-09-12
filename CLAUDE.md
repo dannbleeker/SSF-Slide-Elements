@@ -57,9 +57,10 @@ one number that hides both.
 
 **The pane is the one surface the suite cannot judge.** `pane-render.test.ts`
 pins its behaviour in jsdom, which has no layout and no colour. `npm run
-pane-shots` renders every state at 320 and 512 in both themes and MEASURES
-overflow, contrast, focus rings, hit areas and axe; a weekly job runs it and
-looking at the output is part of done for any change to the pane. The layout
+pane-shots` renders every state at 320 and 512 in both themes, and once more
+at 320 in FORCED COLOURS, and MEASURES overflow, contrast, focus rings, hit
+areas, decorations that vanish when colours are forced, and axe; a weekly job
+runs it and looking at the output is part of done for any change to the pane. The layout
 rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered

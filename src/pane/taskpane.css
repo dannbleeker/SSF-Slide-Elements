@@ -1023,4 +1023,14 @@ input:focus-visible,
   .outcome.by-hand {
     border: 1px solid;
   }
+
+  /* The tick is a 26x3 block whose only visual is its background, so forcing
+     that background to Canvas erases it — and `docs/DESIGN.md` section 9
+     promises it stays visible. `CanvasText` keeps it, in the user's own
+     palette rather than in SSF orange, which is what asking for forced colours
+     means. Found on 2026-09-12 by the forced-colours pass in `pane-shots`, the
+     first run of which rendered a pane with no tick in it. */
+  .tick {
+    background: CanvasText;
+  }
 }
