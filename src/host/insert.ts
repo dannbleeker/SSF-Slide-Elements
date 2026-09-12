@@ -181,6 +181,27 @@ export function undoPlan(entry: { target: Target; index: number }): UndoPlan {
 }
 
 /**
+ * Which slide the element ended up on, counting from ONE.
+ *
+ * `undoPlan` from the other end, and the reason it lives beside it: the two are
+ * the same arithmetic read in opposite directions, and the bug `undoPlan`'s
+ * docstring records — a success reported over a slide that had not moved — was
+ * an off-by-one between exactly these two. Keeping them apart is how they drift.
+ *
+ * "Onto this slide" rebuilt the slide the user was on and took the original
+ * away, so the element is on that slide: `index + 1`. "As a new slide" put one
+ * after it: `index + 2`.
+ *
+ * `index` counts from zero, like `undoPlan`'s and unlike `Attempt.slide`. The
+ * answer counts from one because everything downstream of it — the "Used in
+ * this deck" row, the card's grey boxes, the undo entry — is a slide number a
+ * user reads.
+ */
+export function landedOn(entry: { target: Target; index: number }): number {
+  return entry.index + (entry.target === "new" ? 2 : 1);
+}
+
+/**
  * What the pane announces while an insert runs.
  *
  * `docs/DESIGN.md` section 6: one insert at a time, the pane locks, and the

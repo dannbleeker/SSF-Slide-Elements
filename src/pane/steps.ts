@@ -500,6 +500,72 @@ export function otherTargetLabel(settings: Settings): string {
 }
 
 /**
+ * Whether this element goes AROUND the selected shape rather than on top of it.
+ *
+ * `docs/DESIGN.md` section 5: with a shape selected, a marker wraps it — sized
+ * to the shape with a little air — while a stamp, a flowchart shape or an icon
+ * lands at the cursor without resizing. The splice takes it as `wraps`
+ * (`src/core/splice/landing.ts`), and this is the only place that decides which
+ * elements set it.
+ *
+ * The library says which are markers by the CATEGORY, because nothing else in
+ * an element distinguishes them: `landing` is `cursor` for markers, flowchart
+ * shapes and icons alike, and `kind` is `part` for all three.
+ *
+ * **Matched at the START of the name, not anywhere in it**, and the tightening
+ * is the point of this function existing. Until 2026-09-12 the rule was
+ * `key.toLowerCase().includes("mark")` inline in `main.ts` — untested, because
+ * that file is the one the coverage floor exempts. The committed library's
+ * Danish category key is `Markeringer`, so the substring test is right on the
+ * library as it stands today and wrong on plausible additions to it:
+ * `Danmarkskort` (a map of Denmark) contains "mark", and every element in such
+ * a category would have started resizing itself around whatever the user had
+ * selected. Both the Danish key and the English name are tried, so a deck the
+ * owner renames keeps working.
+ *
+ * The tightening changes nothing on the library as it stands: measured over the
+ * committed catalogue on 2026-09-12, the two rules agree on all 234 elements,
+ * of which 6 wrap. So this is a latent bug closed, not a behaviour changed.
+ */
+export function wrapsSelection(element: Element): boolean {
+  return isMarkers(element.category.key) || isMarkers(element.category.name);
+}
+
+/** "Markeringer", "Markers", "Markers and labels" — but not "Danmarkskort" or "Markedsandel". */
+function isMarkers(name: string): boolean {
+  return name.trim().toLowerCase().startsWith("marker");
+}
+
+/**
+ * Whether the insert that just happened can be offered "Move to a new slide".
+ *
+ * `docs/DESIGN.md` section 6. Four conditions, and each one removes an offer
+ * that could not be honoured:
+ *
+ * - **The insert worked.** There is nothing to move otherwise, and the move is
+ *   an undo followed by a second insert.
+ * - **It went ONTO a slide.** An element already on a slide of its own is where
+ *   the offer would put it.
+ * - **It is a whole-slide element.** A part ignores the target switch entirely
+ *   (`offersOtherTarget` above), so "as a new slide" is not a thing the engine
+ *   would do differently.
+ * - **The slide already held something.** `held` is what the splice counted in
+ *   the bytes it was handed, so the offer costs no second read and no host
+ *   call. On an empty slide the element covers nothing and the offer is noise.
+ *
+ * Answers the element's ID rather than a flag, which is what `moveable` stores:
+ * the second insert must place the element the user actually placed, not
+ * whatever tile the pointer has wandered onto since.
+ */
+export function moveableAfter(
+  attempt: { ok: boolean; target: Settings["target"]; held: number },
+  element: Element,
+): string | undefined {
+  const offer = attempt.ok && attempt.target === "onto" && element.kind === "slide" && attempt.held > 0;
+  return offer ? element.id : undefined;
+}
+
+/**
  * The boxes the preview card should draw in grey behind the landing.
  *
  * Only when the snapshot is of the slide the user is ON. A card showing slide

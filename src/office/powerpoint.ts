@@ -535,3 +535,25 @@ export function deckUrl(): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * The background colour of PowerPoint's own chrome, or nothing when it will not say.
+ *
+ * `Office.context.officeTheme` is Common API and needs no requirement set. It
+ * is absent outside a host — every time this pane is opened in a browser to
+ * look at it — and the property access itself can throw on a host that
+ * provides `Office.context` without a theme, so both answer `undefined` and
+ * `paneTheme` in `src/host` is where the colour becomes a theme.
+ *
+ * Read once, on ready. There is no theme-change event for a PowerPoint pane:
+ * the typings put `OfficeThemeChanged` on Outlook's `Mailbox` and nowhere else,
+ * so switching PowerPoint's theme mid-session needs the pane reopened.
+ */
+export function themeBackground(): string | undefined {
+  try {
+    const body = Office.context?.officeTheme?.bodyBackgroundColor;
+    return typeof body === "string" && body !== "" ? body : undefined;
+  } catch {
+    return undefined;
+  }
+}
