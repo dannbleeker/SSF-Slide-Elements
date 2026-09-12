@@ -56,6 +56,7 @@ import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmS
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { isMain } from "./is-main.mjs";
+import { failedNames } from "./test-count.mjs";
 
 /** The pure decision code. Everything here is covered by the fast tier. */
 export const TARGETS = [
@@ -299,40 +300,75 @@ export function lineOf(text, at) {
 }
 
 /**
- * Run some of the suite, or all of it. True when it passed — which, for a
- * mutant, means it SURVIVED.
+ * What a run said about a mutant: it lived, a test killed it, or the run failed
+ * for a reason that was not the mutation.
+ *
+ * This answered a plain boolean at first — a non-zero exit meant killed — and
+ * that is wrong in the direction that matters. A run can exit non-zero without a
+ * single test failing: a worker the kernel killed, a transform error, a machine
+ * under load. Counting those as kills makes the sweep UNDER-report, and a
+ * mutation tool that quietly misses survivors is worse than none, because the
+ * clean part of the report is the whole product.
+ *
+ * Measured 2026-09-12, which is why this exists. The first full sweep reported
+ * `src/host/probe.ts:657` killed. Re-running that file after a round of fixes —
+ * which can only ever kill MORE mutants, never fewer — reported it alive, and by
+ * hand it is alive: the second `&&` on that line, which lets the reader subtract
+ * against a count the sheet does not carry. The kill was a run that failed for
+ * its own reasons while several other things shared the same four cores.
+ *
+ * So the JSON report is read back, exactly as `test-count.mjs` learned to do,
+ * and a kill counts only when the report NAMES a failed test.
  *
  * @param {string[]|null} files null for the whole suite
- * @returns {boolean}
+ * @param {string} out where the JSON report goes
+ * @returns {"survived"|"killed"|"inconclusive"}
  */
-function suitePasses(files) {
-  const args = [join("node_modules", "vitest", "vitest.mjs"), "run", "--reporter=dot", "--bail=1"];
+export function verdictOf(files, out) {
+  const args = [
+    join("node_modules", "vitest", "vitest.mjs"),
+    "run",
+    "--reporter=json",
+    `--outputFile=${out}`,
+    "--bail=1",
+  ];
   if (files) args.push(...files);
   try {
     execFileSync(process.execPath, args, { stdio: "ignore" });
-    return true;
+    return "survived";
   } catch {
-    return false;
+    try {
+      return failedNames(JSON.parse(readFileSync(out, "utf8"))).length > 0 ? "killed" : "inconclusive";
+    } catch {
+      return "inconclusive";
+    }
   }
 }
 
 /**
  * Put the mutation in place, run the tests, and ALWAYS put the original back.
  *
- * The restore is in a `finally` because a half-written file left behind by an
- * interrupted sweep is the one way this script can do damage, and a `git
- * checkout` to recover it would take the reader's own work with it.
+ * The restore is in a `finally` because a half-written file is the one way this
+ * script can do damage. The sweep works in a copy now, but that copy is what
+ * every later mutant is applied to, so a botched restore would poison the rest
+ * of the run rather than the reader's tree.
+ *
+ * An inconclusive run is tried once more before it is believed, and once is the
+ * limit: a mutant that cannot get a straight answer out of two runs is reported
+ * as inconclusive rather than guessed at in either direction.
  *
  * @param {string} file
  * @param {string} text the original
  * @param {string} mutated
  * @param {string[]|null} tests null for the whole suite
- * @returns {boolean} true when the suite passed, which for a mutant is survival
+ * @param {string} out
+ * @returns {"survived"|"killed"|"inconclusive"}
  */
-function tryMutation(file, text, mutated, tests) {
+function tryMutation(file, text, mutated, tests, out) {
   writeFileSync(file, mutated);
   try {
-    return suitePasses(tests);
+    const first = verdictOf(tests, out);
+    return first === "inconclusive" ? verdictOf(tests, out) : first;
   } finally {
     writeFileSync(file, text);
   }
@@ -413,21 +449,29 @@ function main() {
 
   /** @type {string[]} */
   const survivors = [];
+  /** Mutants no run would give a straight answer about. Never counted as killed. */
+  const unclear = [];
+  const out = join(tmpdir(), "ssf-mutants-report.json");
   let done = 0;
   for (const { file, text, mutations, tests } of plan) {
     if (!tests.length) console.log(`\nmutants: NOTHING IMPORTS ${file} — every mutation of it will survive`);
     for (const m of mutations) {
       const mutated = text.slice(0, m.at) + m.now + text.slice(endOf(m));
-      const lived = tryMutation(file, text, mutated, tests);
+      const verdict = tryMutation(file, text, mutated, tests, out);
       done += 1;
       const where = `${file}:${lineOf(text, m.at)}  ${m.what}  ${JSON.stringify(m.was)} -> ${JSON.stringify(m.now)}`;
-      if (!lived) {
+      if (verdict === "inconclusive") {
+        unclear.push(where);
+        console.log(`mutants: INCONCLUSIVE  ${where}`);
+        continue;
+      }
+      if (verdict === "killed") {
         if (done % 10 === 0) console.log(`mutants: ${done}/${total}, ${survivors.length} surviving so far`);
         continue;
       }
       // A survivor of the fast tier is not a survivor yet. Re-run it against
       // everything before it goes in the report.
-      if (tryMutation(file, text, mutated, null)) {
+      if (tryMutation(file, text, mutated, null, out) === "survived") {
         survivors.push(where);
         // Written and printed as it is found, not only in the summary. A sweep
         // of the whole set is over an hour, and a run that is interrupted
@@ -436,6 +480,11 @@ function main() {
         appendFileSync(report, `${where}\n`);
       }
     }
+  }
+  if (unclear.length) {
+    console.log(`\nmutants: ${unclear.length} INCONCLUSIVE — two runs each, neither naming a failed test:`);
+    for (const one of unclear) console.log(`  ${one}`);
+    console.log("These are NOT kills. Re-run them before believing anything about them.");
   }
   if (!survivors.length) {
     console.log("mutants: no survivors — every mutation the suite could see, it saw");

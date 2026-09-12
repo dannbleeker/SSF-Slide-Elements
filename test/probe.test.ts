@@ -709,6 +709,24 @@ describe("undoVerdict", () => {
     expect(undoVerdict({ foundAtStart: false, leftBehind: false }).detail).toContain("NOT ASKED");
   });
 
+  it("says NOT ASKED when the slide is gone and only ONE of the two counts is on the sheet", () => {
+    // The tag arm needs BOTH counts to subtract. Every case above carries both
+    // or neither, and neither is what the `&&` reads the same way as an `||` —
+    // so the second `&&` on that line survived the sweep, and survived it
+    // twice: the first full run reported it killed, which was the sweep's own
+    // whole-suite re-check failing for a reason that was not the mutation.
+    //
+    // What it costs: with `||` the arm is entered on one count alone and
+    // subtracts against `undefined`, so the sheet reads "the deck changed by
+    // NaN slide(s)" — a sentence that goes into `docs/host-answers/` as this
+    // add-in's answer to whether Ctrl+Z reverts an insert.
+    for (const half of [{ previousDeckAtEnd: 4 }, { deckAtStart: 3 }]) {
+      const out = undoVerdict({ foundAtStart: false, ...half });
+      expect(out.detail, `one count alone: ${JSON.stringify(half)}`).toContain("NOT ASKED");
+      expect(out.detail, "and it never subtracts against a missing count").not.toContain("NaN");
+    }
+  });
+
   it("answers a lone second sheet from the marker, and prefers the previous sheet when it has it", () => {
     // The marker holds the deck size BEFORE the slide was left; the previous
     // sheet holds the size after. One more than the marker is the same
