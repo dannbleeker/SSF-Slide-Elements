@@ -9,6 +9,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The add-in's own tests are now checked by deliberately breaking the code and
+  seeing whether they notice. Two of them did not, and both are fixed. One was
+  the limit on how much of a PowerPoint error message gets shown to you — the
+  limit exists so that a failure cannot dump an entire presentation into the
+  panel as text, and nothing was holding it in place. The other was what the
+  panel tells you when PowerPoint hands back more slides than it was asked for:
+  at exactly two, it said the wrong thing and pointed at a slide to delete.
+
+### Changed — nothing you can see
+
 - One of the build's own checks re-runs the whole test suite to count it, and it
   did that in a mode that writes every result to a file and nothing to the
   screen. So when it failed, the log showed a stack trace from the tool that

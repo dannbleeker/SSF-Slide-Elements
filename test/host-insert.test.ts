@@ -116,6 +116,28 @@ describe("an insert that landed and could not be tidied", () => {
     expect(out.detail).toContain("grew by 3 slides where one was expected");
     expect(out.detail).toContain("Nothing was removed");
   });
+
+  it("names TWO as more than one, which is the boundary of that rule", () => {
+    // The case above is a deck that grew by three, and it was the only one, so
+    // the boundary itself was untested. Found by the mutation sweep on
+    // 2026-09-12: `if (landed > 1)` changed to `if (landed > 2)` and the whole
+    // suite stayed green.
+    //
+    // What that costs, measured rather than guessed: a deck that grew by two
+    // then falls through to the removal branch and the pane says "The deck grew
+    // by ONE but the copy could not be removed: delete slide 2 by hand" — a
+    // sentence that is wrong about what happened and points the user at a
+    // specific slide to delete. `mayRemove` is a separate rule and still
+    // refuses, so nothing is deleted by the code; the damage is entirely in
+    // what the user is told, which is the half of this function that is design.
+    //
+    // Two is also the likeliest way this ever happens: an insert carrying one
+    // slide more than the package listed.
+    const out = outcomeOf({ ...base, inserted: 14, removed: undefined });
+    expect(out.ok).toBe(false);
+    expect(out.byHand, "and the deck is left alone, not swept").toBe(true);
+    expect(out.detail).toContain("grew by 2 slides where one was expected");
+  });
 });
 
 describe("whether the replaced slide may be removed at all", () => {

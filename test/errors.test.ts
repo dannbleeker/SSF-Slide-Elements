@@ -102,6 +102,23 @@ describe("error text that reaches a user is bounded", () => {
     const exact = "A".repeat(ERROR_CHARS);
     expect(short(exact)).toBe(exact);
   });
+
+  it("cuts at four hundred characters, and the number is written here as a number", () => {
+    // Every other assertion in this file is phrased in terms of `ERROR_CHARS`,
+    // so all of them move with it and none of them holds it. Measured by the
+    // mutation sweep on 2026-09-12: changing the constant to 401 left the
+    // entire suite green.
+    //
+    // The bound is not an implementation detail. It is what a user is shown of
+    // a host failure, and the reason it exists is that Office echoes the
+    // ARGUMENT back in `debugInfo` — and this add-in's argument is a whole deck
+    // as base64. A bound that drifted upward would put the package on the
+    // screen again, which is the defect the file's own docstring records twice.
+    // So the number is pinned once, as a literal, at the boundary either side.
+    expect(ERROR_CHARS, "what a user is shown of a raise").toBe(400);
+    expect(short("A".repeat(400))).toBe("A".repeat(400));
+    expect(short("A".repeat(401))).toBe(`${"A".repeat(400)}… (1 more characters)`);
+  });
 });
 
 /**
