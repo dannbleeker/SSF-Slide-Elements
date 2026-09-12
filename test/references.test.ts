@@ -148,41 +148,87 @@ describe("the controls the design record names", () => {
    * records that there is deliberately no "Close all" — and a raw sweep reads
    * that as built. Four guards in this family have gone red for exactly that
    * reason; this would have been the fifth.
+   *
+   * **Measured once, on 2026-09-12**: pointed at the repository as it stood at
+   * `e34b379`, the commit before "Open all" was built, the sweep reported
+   * exactly `"Open all"` and `"Move to a new slide"` and nothing else real. It
+   * is written down here rather than re-run on every build. The case that did
+   * re-run it rebuilt that tree with `git show`, which passes on a full clone
+   * and fails on `actions/checkout`'s one-commit-deep one — so it measured the
+   * checkout rather than the sweep. The two cases below take a fixture
+   * instead, and hold more than that one did: the second is the
+   * comment-stripping trap, which until now was only ever proven by hand.
    */
   it("draws every control the record quotes, or says why not", () => {
     expect(paneControlProblems()).toEqual([]);
   });
 
-  it("would have caught the two the record was ahead on, and did not cry wolf", async () => {
-    // The claim above, run rather than asserted. `e34b379` is the commit before
-    // "Open all" was built; the record at that commit already named it and
-    // "Move to a new slide", and the pane drew neither. If this sweep is worth
-    // having, it says so — and says nothing else real.
-    const { execFileSync } = await import("node:child_process");
-    const at = (path: string): string =>
-      execFileSync("git", ["show", `e34b379:${path}`], { encoding: "utf8", maxBuffer: 1 << 24 });
-    const files = execFileSync("git", ["ls-tree", "--name-only", "-r", "e34b379", "src/pane/", "src/host/"], {
-      encoding: "utf8",
-    })
-      .split("\n")
-      .filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"));
-    expect(files.length, "no pane source at e34b379 — this case is asserting about nothing").toBeGreaterThan(8);
+  /**
+   * A fixture the sweep is pointed at, rather than the repository itself.
+   *
+   * `paneControlProblems` takes a root for this. Two files are the whole of
+   * what it reads: a `docs/DESIGN.md` with sections 4 and 6, and the `.ts`
+   * under `src/pane` and `src/host`. Both source directories have to exist —
+   * `paneCode` calls `readdirSync` on each — and sections 4 and 6 have to carry
+   * at least six quoted labels between them, or the sweep's own vacuity guard
+   * fires and answers a complaint about itself instead of about the fixture.
+   */
+  function sweepOver(record: string, pane: string): string[] {
     const dir = mkdtempSync(join(tmpdir(), "ssf-slide-elements-record-"));
     try {
       mkdirSync(join(dir, "docs"), { recursive: true });
       mkdirSync(join(dir, "src/pane"), { recursive: true });
       mkdirSync(join(dir, "src/host"), { recursive: true });
-      writeFileSync(join(dir, "docs/DESIGN.md"), at("docs/DESIGN.md"));
-      for (const f of files) writeFileSync(join(dir, f), at(f));
-      const then = paneControlProblems(dir);
-      // "Borrowed" is section 4's word for a library the deck borrowed rather
-      // than a control, and it is on the not-drawn list today for that reason.
-      const real = then.filter((p) => !p.includes('"Borrowed"'));
-      expect(real).toHaveLength(2);
-      expect(real.join(" ")).toContain('"Open all"');
-      expect(real.join(" ")).toContain('"Move to a new slide"');
+      writeFileSync(join(dir, "docs/DESIGN.md"), record);
+      writeFileSync(join(dir, "src/pane/render.ts"), pane);
+      writeFileSync(join(dir, "src/host/nothing.ts"), "export const NOTHING = 0;\n");
+      return paneControlProblems(dir);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+
+  /** Sections 4 and 6 as the record writes them: control labels in quotes. */
+  const RECORD =
+    `## 4. The pane\n\n` +
+    `- **Categories** start collapsed, with "Spread them out" beside the count.\n` +
+    `- **Footer**: "Do it again", "Take it back" and "Put it somewhere else".\n` +
+    `- A slide number says "Slide N" once the host confirms it.\n\n` +
+    `## 5. Where an element lands\n\nNot swept.\n\n` +
+    `## 6. Inserting\n\n` +
+    `- The tile says "Working on it" while an insert runs.\n` +
+    `- A part already in the deck offers "Take it off N slides".\n\n` +
+    `## 7. Colours\n\nNot swept either.\n`;
+
+  /** A pane drawing all of them but one, with the odd one out named in prose. */
+  const PANE =
+    `const a = button("Spread them out");\n` +
+    `const b = button("Do it again");\n` +
+    `const c = button("Take it back");\n` +
+    `const d = \`Slide \${n}\`;\n` +
+    `const e = "Working on it";\n` +
+    `const f = \`Take it off \${n} slides\`;\n`;
+
+  it("names a control the record describes and the pane does not draw", () => {
+    // The sweep's whole job, on a fixture rather than on this repository — so
+    // it runs on a shallow checkout, in a fresh worktree, out of a tarball.
+    // The first version of this case rebuilt the real tree at `e34b379` with
+    // `git show`, passed here and failed in CI, where `actions/checkout` clones
+    // one commit deep. A gate that only works on the machine that wrote it is
+    // the thing this file exists to prevent.
+    const found = sweepOver(RECORD, PANE);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toContain('"Put it somewhere else"');
+  });
+
+  it("does not count a label the pane only mentions in a COMMENT", () => {
+    // The trap four guards in this family have fallen into, and the reason the
+    // sweep reads the pane through `withoutTsComments`. Section 4 really does
+    // carry a sentence saying there is deliberately no "Close all", and a raw
+    // read of the source counts that as the control being built.
+    const excused = `${PANE}// "Put it somewhere else" is deliberately not offered here.\n`;
+    const found = sweepOver(RECORD, excused);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toContain('"Put it somewhere else"');
   });
 });

@@ -224,10 +224,21 @@ a refactor, and a check that guessed would be noise.
   "Open all", "Move to a new slide", the pane's per-deck memory — sat described
   and unbuilt until they were found by reading the record against the pane on
   2026-09-12. `paneControlProblems` in `scripts/doc-refs.mjs` now holds every
-  control label the record QUOTES against what the pane draws. It is a floor,
-  not a proof: a behaviour the record describes without quoting a label for it
-  still slips through, so reading the two side by side after a pane increment
-  is still the practice.
+  control label the record QUOTES against what the pane draws. Measured once,
+  on 2026-09-12: pointed at the tree as it stood at `e34b379`, the commit
+  before "Open all" was built, it reported exactly "Open all" and "Move to a
+  new slide" and nothing else real. It is a floor, not a proof: a behaviour the
+  record describes without quoting a label for it still slips through, so
+  reading the two side by side after a pane increment is still the practice.
+
+- **A test that shells out to `git` for HISTORY passes here and fails in CI.**
+  `actions/checkout` clones one commit deep, in all four of this repo's
+  checkouts, so `git show <old-sha>:file` is a valid object on a developer's
+  clone and `fatal: Not a valid object name` on a runner. The case that proved
+  the paragraph above did exactly that and took PR #66 red. Breaking a guard to
+  watch it go red does not catch this: it is green both ways on the machine
+  doing the breaking. A guard about the PAST belongs in a fixture, with the
+  historical run written down as a dated measurement.
 
 - **A gate that cannot fail is not a gate.** Ask of each one "what would I
   break to make this go red?", then break it. Four of a sibling's could not.
