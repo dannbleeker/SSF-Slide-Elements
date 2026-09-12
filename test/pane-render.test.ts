@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Element } from "../src/core/catalogue/types.js";
 import { render } from "../src/pane/render.js";
-import { EMPTY, STEP_TITLE, blockedReason, primary, type Library, type PaneState } from "../src/pane/steps.js";
+import { blockedReason, EMPTY, primary, STEP_TITLE, type Library, type PaneState } from "../src/pane/steps.js";
 
 /**
  * The pane's DOM, in the one environment the suite has for it.

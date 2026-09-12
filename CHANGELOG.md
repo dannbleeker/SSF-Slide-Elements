@@ -9,6 +9,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see, again
 
+- The largest file behind the pane was one file doing six jobs, and finding
+  anything in it meant knowing where it happened to be. It is now four, each
+  named after the thing it decides: the picker's search, the preview card, the
+  "Used in this deck" list, and everything else. Nothing about the pane changed.
+
+### Changed — nothing you can see, again
+
 - The part of the engine that reads a .pptx now gets tested against files that
   are damaged in the ways real files are: a picture declared twice, a link with
   nothing on the end of it, a slide the presentation lists but cannot find. It

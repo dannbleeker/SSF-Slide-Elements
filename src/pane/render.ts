@@ -17,41 +17,39 @@
  */
 import type { Box, Element } from "../core/catalogue/types.js";
 import { previewUrl } from "./catalogue.js";
+import { landingLine, occupiedFor, slideLine } from "./card.js";
 import {
-  COACH,
-  STEP_TITLE,
-  blockedReason,
-  borrowedLine,
   categoryHits,
-  coaching,
   didYouMean,
   elementOf,
-  footerOf,
   groups,
   isOpen,
-  landingLine,
-  occupiedFor,
-  offersOtherTarget,
-  otherTargetLabel,
-  removableFrom,
-  removeLabel,
-  tileKey,
-  removeQuestion,
-  primary,
+  offersOpenAll,
   runOf,
-  settingsLine,
-  slideLine,
   stepMatches,
   tagsOf,
-  usedHeading,
-  usedRows,
   tileCount,
+} from "./search.js";
+import {
+  blockedReason,
+  borrowedLine,
+  COACH,
+  coaching,
+  footerOf,
+  offersOtherTarget,
+  otherTargetLabel,
+  primary,
+  removableFrom,
+  removeLabel,
+  removeQuestion,
+  settingsLine,
+  STEP_TITLE,
+  tileKey,
   type Library,
   type PaneState,
   type StepId,
-  slideParts,
-  offersOpenAll,
 } from "./steps.js";
+import { slideParts, usedHeading, usedRows } from "./used.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 

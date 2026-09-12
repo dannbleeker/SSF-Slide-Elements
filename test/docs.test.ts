@@ -37,7 +37,14 @@ describe("the manual keeps up with the pane", () => {
     // `steps.ts` and this test asks the manual to follow it.
     const labels = STEPS.map((id) => primary(EMPTY, id).label);
     expect(labels.length).toBeGreaterThan(0);
-    const source = readFileSync("src/pane/steps.ts", "utf8") + readFileSync("src/pane/render.ts", "utf8");
+    // The WHOLE pane, not two files named here. It used to concatenate
+    // `steps.ts` and `render.ts`, which was the list of files the pane happened
+    // to have when it was written; `steps.ts` split four ways on 2026-09-12,
+    // and a hand-kept list is exactly what goes stale across a move. Reading
+    // the directory means a label can live wherever it belongs.
+    const paneFiles = readdirSync("src/pane").filter((name) => name.endsWith(".ts") && !name.endsWith(".d.ts"));
+    expect(paneFiles.length, "no pane sources found — the sweep is broken, not the manual").toBeGreaterThan(3);
+    const source = paneFiles.map((name) => readFileSync(`src/pane/${name}`, "utf8")).join("\n");
     for (const label of labels) {
       expect(source, `the pane no longer has a "${label}" button`).toContain(label);
       expect(prose, `the manual does not mention "${label}"`).toContain(label);
