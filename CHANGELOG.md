@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see, again
+
+- The numbers the add-in works out while inserting — how many shapes it added,
+  how many empty boxes it cleared away, where exactly the element landed — are
+  now checked against the slide it actually produced. They drive what the pane
+  tells you and what it offers, and nothing had been holding them to the truth.
+  They were all correct.
+
 ### Fixed — an element could vanish from "Used in this deck" straight after you inserted it
 
 - **Reading the deck takes a while, and the pane deliberately stays usable while
