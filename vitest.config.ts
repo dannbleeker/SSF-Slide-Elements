@@ -58,10 +58,27 @@ export default defineConfig({
       // can put both ways. So the branch floor rises 85 → 88, which is three
       // points of headroom; the rest keep theirs, which they already had.
       //
+      // Measured again on 2026-09-12, after a pass over the five files with the
+      // thinnest branches: **98.4 statements, 93.5 branches, 100 functions,
+      // 99.6 lines**. Branches rose a point on tests rather than on code —
+      // `keepOnly` had no test of its own at all and was reached only through
+      // its three callers, so its refusal had never run; `coloursOf` had never
+      // been asked for a theme with no master, a master that is not in the
+      // package, or a colour map naming a slot the theme does not carry;
+      // `relatedOfType` had never met an external, dangling or targetless
+      // relationship. So statements rise 95 → 96 and branches 88 → 90.
+      //
+      // What is LEFT uncovered in those files is one kind of thing, and it is
+      // deliberately left: nullish guards TypeScript requires over DOM calls
+      // that never return null in `@xmldom/xmldom` — a matched regex group,
+      // `attributes.item(i)` inside its own length, an element's
+      // `ownerDocument`. Reaching them means faking a DOM that cannot exist,
+      // and a test that does that asserts about the fake.
+      //
       // Raise them the same way next time: measure, leave two or three points,
       // and say what you measured. A threshold that follows coverage upward on
       // its own only ever ratchets, and the first hard week gets it deleted.
-      thresholds: { statements: 95, branches: 88, functions: 97, lines: 97 },
+      thresholds: { statements: 96, branches: 90, functions: 97, lines: 97 },
     },
   },
 });

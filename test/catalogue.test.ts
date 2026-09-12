@@ -401,6 +401,38 @@ describe("names, runs and tags", () => {
     expect(countedNoun("Matrix, N rows, boxes with arrows")).toBe("rows");
     expect(countedNoun("Two vertical boxes".replace("Two", "N"))).toBe("boxes");
     expect(countedNoun("N things")).toBe("items");
+    // No `N` in the key at all, which is the other way in: the noun is then
+    // found by looking for one, rather than by reading the word after the
+    // count. `countKeys` always puts an `N` in, so this is the arm reached by
+    // a caller asking about a key it built itself. A key with two of them
+    // answers whichever comes first in `NOUNS`, not first in the key — which
+    // is arbitrary, and is written down here rather than left to be discovered
+    // by whoever adds a noun to that list.
+    expect(countedNoun("Matrix with rows and boxes")).toBe("boxes");
+    expect(countedNoun("Matrix with rows")).toBe("rows");
+    expect(countedNoun("Something with none of them")).toBe("items");
+  });
+
+  it("puts a name that fits two runs in the LARGER one", () => {
+    // A name carrying two counts belongs to two keys, and the pane draws one
+    // tile with one stepper — so it has to pick. The larger run is the better
+    // stepper: it offers more of the library from the same tile, and the
+    // smaller run's other member still gets its own tile under its own key.
+    const runs = sizeRuns([
+      "Grid, 2 rows and 2 columns",
+      "Grid, 3 rows and 2 columns",
+      "Grid, 4 rows and 2 columns",
+      "Grid, 2 rows and 3 columns",
+    ]);
+    // Four rows-runs members against two columns-runs members: rows wins.
+    expect(runs.get("Grid, 2 rows and 2 columns")).toEqual({
+      key: "Grid, N rows and 2 columns",
+      noun: "rows",
+      count: 2,
+    });
+    // And the loser's own other member keeps its own run, which is the half
+    // that would be lost by simply dropping every name that fits two.
+    expect(runs.get("Grid, 2 rows and 3 columns")?.key).toBe("Grid, 2 rows and N columns");
   });
 
   it("derives tags from the Danish words, and marks a part small", () => {
