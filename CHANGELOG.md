@@ -7,6 +7,23 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — a marker would have stopped being a marker
+
+- **A future category whose name merely contained the word "mark" would have had
+  every element in it resize itself around whatever shape you had selected.**
+  Only markers are supposed to do that. Nothing in today's library triggered it,
+  so there was nothing to see; the test for it was written the wrong way round
+  and lived in a part of the code the build does not check.
+
+### Changed — nothing you can see, again
+
+- More rules moved out of the one file the build does not measure and gained
+  tests: which elements wrap the selection, which slide an insert landed on,
+  when "Move to a new slide" is offered, and how the pane decides whether
+  PowerPoint's theme is light or dark. No behaviour changed.
+- Two explanations in the code described the wrong thing entirely, having come
+  loose from what they were written about.
+
 ### Changed — nothing you can see, again
 
 - Rules about what the pane remembers, what Escape shuts and where an arrow key

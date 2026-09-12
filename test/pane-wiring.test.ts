@@ -13,9 +13,13 @@ import { makeDeck } from "./fixtures/deck.js";
  * `pane-render.test.ts` calls `render` directly, so `main.ts` — the only file
  * in `src/pane` that touches Office.js, the other being `src/office/powerpoint.ts`,
  * which `office-host.test.ts` covers — would otherwise run nowhere in the suite. It runs
- * here with `Office` stubbed to the two things it reads, and with the host
- * calls and the catalogue fetch mocked, because neither a PowerPoint nor a site
- * to fetch from exists in a test runner.
+ * here with `Office` stubbed to the ONE thing it reads — `onReady` — and with
+ * the host calls and the catalogue fetch mocked, because neither a PowerPoint
+ * nor a site to fetch from exists in a test runner. The theme colour used to be
+ * read off `Office.context` here too; it moved behind `themeBackground` on
+ * 2026-09-12, so the stub below answers it and the global carries only
+ * `onReady`. Nothing in `main.ts` touching `Office.context` is exactly the
+ * claim that keeps this stub small.
  *
  * What this file is for is the WIRING, not the decisions: that the pane boots,
  * that it stops with a sentence on a host below the floor, that the live region
@@ -26,6 +30,8 @@ type Readiness = { ok: boolean; detail: string };
 let readiness: Readiness = { ok: true, detail: "fine" };
 type IndexMode = "fail" | "ok" | "hang";
 let indexMode: IndexMode = "fail";
+/** What PowerPoint answers for its own chrome colour, per case. */
+let themeColour: string | undefined;
 
 vi.mock("../src/office/powerpoint.js", () => ({
   ready: () => readiness,
@@ -60,6 +66,7 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
   deckUrl: () => host.url,
+  themeBackground: () => themeColour,
   openExternal: (url: string) => {
     opened.push(url);
     return externalOpens;
@@ -208,12 +215,14 @@ vi.mock("../src/pane/catalogue.js", async () => {
 
 async function openPane(theme?: string): Promise<HTMLElement> {
   document.body.innerHTML = '<header><b>SSF</b><span>Slide Elements</span></header><div id="pane"></div>';
+  themeColour = theme;
+  // `onReady` and nothing else. A `context` here would let a read of it slip
+  // back into `main.ts` unnoticed, and every host read belongs behind the stub.
   const office = {
     onReady: (cb: () => void) => {
       cb();
       return Promise.resolve();
     },
-    context: theme ? { officeTheme: { bodyBackgroundColor: theme } } : {},
   };
   vi.stubGlobal("Office", office);
   vi.resetModules();

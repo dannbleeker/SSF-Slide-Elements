@@ -17,10 +17,11 @@ import { usedInDeck } from "../core/pptx/tags.js";
 import { removeElement, slidesHolding } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
-import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
+import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
 import { GLOBAL_KEY, deckKey } from "../host/memory.js";
+import { paneTheme } from "../host/theme.js";
 import { catalogueUrl, reportUrl, siteFrom } from "../host/links.js";
 import { BUDGET } from "../host/timeout.js";
 import {
@@ -39,6 +40,7 @@ import {
   countReaching,
   slideCount,
   slideIdAt,
+  themeBackground,
 } from "../office/powerpoint.js";
 import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
 import { restored, shouldRestoreScroll, storedScroll, writes } from "./storage.js";
@@ -50,6 +52,7 @@ import {
   elementOf,
   escapeCloses,
   fractionOf,
+  moveableAfter,
   offersOtherTarget,
   otherTarget,
   remember,
@@ -61,6 +64,7 @@ import {
   withInsert,
   withLanded,
   withoutInsert,
+  wrapsSelection,
   type Library,
   type PaneState,
 } from "./steps.js";
@@ -446,7 +450,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
         kind: element.kind,
         box: element.box,
         landing: element.landing,
-        ...(element.category.key.toLowerCase().includes("mark") ? { wraps: true } : {}),
+        ...(wrapsSelection(element) ? { wraps: true } : {}),
         markup: { xml: markup.xml, rels: markup.rels },
       },
       options: { ...state.settings, target },
@@ -496,11 +500,9 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       ...(removed === undefined ? {} : { removed }),
       ...(error === undefined ? {} : { error }),
     });
-    // Where the element ended up, counting from one. "Onto this slide" rebuilt
-    // the slide the user was on and took the original away, so it is that
-    // slide; "as a new slide" put one after it. The same arithmetic `undoPlan`
-    // does, from the other end.
-    const landedOn = target === "new" ? at + 2 : at + 1;
+    // Where the element ended up, counting from one. `landedOn` is `undoPlan`
+    // read from the other end, and lives beside it for that reason.
+    const landed = landedOn({ target, index: at });
     undoable = outcome.ok
       ? {
           target,
@@ -508,7 +510,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
           before: deck.base64,
           name: element.name,
           id: element.id,
-          landedOn,
+          landedOn: landed,
           onSlide: state.onSlide,
         }
       : undefined;
@@ -517,10 +519,8 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       busy: false,
       // Section 6's "Move to a new slide". `report.held` is what the slide the
       // user was on already carried, counted by the splice out of the bytes it
-      // was already holding — so the offer costs no second read and no host
-      // call. A part never gets it: a part ignores the target switch, so there
-      // is no other target to move it to.
-      moveable: outcome.ok && target === "onto" && element.kind === "slide" && report.held > 0 ? element.id : undefined,
+      // was already holding, so the offer costs no second read and no host call.
+      moveable: moveableAfter({ ok: outcome.ok, target, held: report.held }, element),
       recent: outcome.ok ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
       undo: outcome.ok ? 1 : 0,
       outcome: { ...outcome, name: element.name },
@@ -528,7 +528,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // exactly what it just put where, and the read is the expensive half of
       // this feature. Untouched when nothing has been read — an insert is not a
       // reason to start claiming the deck has been looked at.
-      used: outcome.ok ? withInsert(state.used, element.id, landedOn) : state.used,
+      used: outcome.ok ? withInsert(state.used, element.id, landed) : state.used,
       // The card's grey boxes keep up the same way: the splice says where the
       // element landed, in EMU **on the user's slide**, so it is the USER's
       // slide size that turns it into a fraction. The library's size is a
@@ -536,7 +536,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // dividing by that one draws the right rectangle in the wrong place on
       // exactly the decks nobody tests on.
       onSlide: outcome.ok
-        ? withLanded(state.onSlide, landedOn, fractionOf(report.landed, state.deck), target === "new")
+        ? withLanded(state.onSlide, landed, fractionOf(report.landed, state.deck), target === "new")
         : state.onSlide,
     };
     delete state.notice;
@@ -740,15 +740,6 @@ async function readUsed(): Promise<void> {
 }
 
 /**
- * The right-click menu on a tile (`docs/DESIGN.md` section 6).
- *
- * Opened by the `contextmenu` event, which is the right mouse button AND the
- * keyboard's own menu key or Shift+F10 — so this is not a mouse-only feature by
- * accident. `preventDefault` only when a menu of ours actually opens: a user who
- * right-clicks the search box should still get the browser's own menu, with
- * paste in it.
- */
-/**
  * Take an element off every slide it is on (`docs/DESIGN.md` sections 4 and 6).
  *
  * The same insert-then-remove cycle as an insert, once per slide, because that
@@ -824,6 +815,15 @@ async function removeEverywhere(id: string): Promise<void> {
   announce(outcome.detail);
 }
 
+/**
+ * The right-click menu on a tile (`docs/DESIGN.md` section 6).
+ *
+ * Opened by the `contextmenu` event, which is the right mouse button AND the
+ * keyboard's own menu key or Shift+F10 — so this is not a mouse-only feature by
+ * accident. `preventDefault` only when a menu of ours actually opens: a user who
+ * right-clicks the search box should still get the browser's own menu, with
+ * paste in it.
+ */
 function onContextMenu(event: MouseEvent): void {
   const found = actionOf(event.target);
   const id = found?.el.dataset["id"];
@@ -1129,24 +1129,20 @@ function onFocus(event: FocusEvent): void {
 /**
  * Follow PowerPoint's theme, not the browser's.
  *
- * The pane lives inside PowerPoint, which can be dark while the OS is light, so
- * `prefers-color-scheme` is the wrong question. `officeTheme` answers the right
- * one. Outside a host it is undefined — which is the case every time this pane
- * is opened in a browser to look at it — and the stylesheet's media query
- * carries that fallback.
- *
- * Read ONCE, on ready. There is no theme-change event for a PowerPoint pane:
- * the typings put `OfficeThemeChanged` on Outlook's `Mailbox` and nowhere else,
- * so switching PowerPoint's theme mid-session needs the pane reopened.
+ * The read is `themeBackground` and the decision is `paneTheme`; this is the
+ * one line neither of them can be, which is stamping the answer on the
+ * document. An unreadable or absent colour leaves the attribute UNSET rather
+ * than guessing — `taskpane.css` carries a `prefers-color-scheme` fallback for
+ * exactly that case, and a guess would override it with a worse answer.
  */
 function applyTheme(): void {
-  const body = Office.context?.officeTheme?.bodyBackgroundColor;
-  if (!body) return;
-  const hex = body.replace("#", "");
-  const n = Number.parseInt(hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex, 16);
-  if (Number.isNaN(n)) return;
-  const luminance = ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114;
-  document.documentElement.setAttribute("data-theme", luminance < 128 ? "dark" : "light");
+  const theme = paneTheme(themeBackground());
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+}
+
+/** The commit this pane was built from, or undefined outside a build. */
+function buildStamp(): string | undefined {
+  return typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : undefined;
 }
 
 /**
@@ -1157,11 +1153,6 @@ function applyTheme(): void {
  * as a clean run of the wrong build. The sibling projects record whole rounds
  * lost to it. Seven characters in the header is how the two are told apart.
  */
-/** The commit this pane was built from, or undefined outside a build. */
-function buildStamp(): string | undefined {
-  return typeof __BUILD_STAMP__ === "string" ? __BUILD_STAMP__ : undefined;
-}
-
 function showBuild(): void {
   const build = buildStamp() ?? "unknown";
   const header = document.querySelector("header");

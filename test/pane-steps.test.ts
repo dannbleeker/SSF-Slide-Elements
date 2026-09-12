@@ -21,6 +21,7 @@ import {
   isOpen,
   landingLine,
   matches,
+  moveableAfter,
   occupiedFor,
   offersOtherTarget,
   otherTarget,
@@ -47,6 +48,7 @@ import {
   withInsert,
   withLanded,
   withoutInsert,
+  wrapsSelection,
   type Library,
   type PaneState,
 } from "../src/pane/steps.js";
@@ -616,6 +618,109 @@ describe("the other insert target, for one insert", () => {
     // `landingLine` refuses to say it.
     expect(offersOtherTarget(element({ id: "box", kind: "slide" }))).toBe(true);
     expect(offersOtherTarget(element({ id: "stamp", kind: "part", landing: "top-right" }))).toBe(false);
+  });
+});
+
+/**
+ * Which elements go AROUND the selected shape instead of on top of it.
+ *
+ * `docs/DESIGN.md` section 5 says markers wrap and the other cursor-landing
+ * parts do not, and the library says which are markers by the CATEGORY —
+ * nothing else in an element separates them, since `landing` is `cursor` and
+ * `kind` is `part` for markers, flowchart shapes and icons alike.
+ *
+ * Until 2026-09-12 the test was `key.toLowerCase().includes("mark")`, written
+ * inline in `insert()` in `src/pane/main.ts` and therefore never run by
+ * anything. The cases below are why moving it was worth doing rather than just
+ * tidy: the substring is right on the library as it stands and wrong on names
+ * the same library could plausibly grow.
+ */
+describe("whether an element wraps the selection", () => {
+  const inCategory = (key: string, name = key): Element =>
+    element({ id: "m", kind: "part", landing: "cursor", category: { key, name } });
+
+  it("wraps for the library's own markers category, by its Danish key", () => {
+    // The committed catalogue's key, in both slide sizes.
+    expect(wrapsSelection(inCategory("Markeringer", "Markers"))).toBe(true);
+  });
+
+  it("does not wrap for the other parts that also land at the cursor", () => {
+    // Same `kind` and same `landing` as a marker. Only the category differs,
+    // which is exactly why the category is what is asked.
+    expect(wrapsSelection(inCategory("Flowchart ikoner", "Flowchart shapes"))).toBe(false);
+    expect(wrapsSelection(inCategory("Stempler og lignende", "Stamps and labels"))).toBe(false);
+  });
+
+  it("does not wrap for a category that merely CONTAINS the word", () => {
+    // The reason this function exists. "Danmarkskort" is a map of Denmark and
+    // an entirely plausible category in a Danish slide library; the old
+    // substring test matched it, and every element in it would have started
+    // resizing itself around whatever the user had selected. "Markedsandel" is
+    // market share, and gets past a `startsWith("marked")` reading of the same
+    // idea. Both are near-misses by construction: change `startsWith` back to
+    // `includes` in `steps.ts` and this is the assertion that goes red.
+    expect(wrapsSelection(inCategory("Danmarkskort", "Map of Denmark"))).toBe(false);
+    expect(wrapsSelection(inCategory("Markedsandel", "Market share"))).toBe(false);
+  });
+
+  it("reads the English name too, so a renamed deck keeps working", () => {
+    // The key is the deck's own title and the owner may write it in either
+    // language. Either side answering is enough.
+    expect(wrapsSelection(inCategory("Cirkler", "Markers"))).toBe(true);
+    expect(wrapsSelection(inCategory("Markers", "Cirkler"))).toBe(true);
+  });
+
+  it("does not mind case or the space around it", () => {
+    expect(wrapsSelection(inCategory("  MARKERINGER  ", "  MARKERINGER  "))).toBe(true);
+  });
+});
+
+/**
+ * Whether the insert that just happened can be offered "Move to a new slide".
+ *
+ * `docs/DESIGN.md` section 6. Four conditions, and the offer is worth nothing
+ * unless every one of them is checked: the move is an undo followed by a second
+ * insert, so it can promise nothing an undo cannot deliver.
+ *
+ * Inline in `insert()` until 2026-09-12, in the file the coverage floor
+ * exempts. `test/pane-wiring.test.ts` has always covered the offer being made
+ * and withdrawn through the DOM; what it could not do is name each condition
+ * and show it alone deciding the answer.
+ */
+describe("whether the last insert can be moved to a new slide", () => {
+  const busy = { ok: true, target: "onto" as const, held: 2 };
+  const whole = element({ id: "one-box", kind: "slide" });
+
+  it("offers the element's id when all four conditions hold", () => {
+    // The id rather than a flag: the second insert must place the element the
+    // user actually placed, not whatever tile the pointer has wandered onto.
+    expect(moveableAfter(busy, whole)).toBe("one-box");
+  });
+
+  it("offers nothing when the insert did not work", () => {
+    expect(moveableAfter({ ...busy, ok: false }, whole)).toBeUndefined();
+  });
+
+  it("offers nothing when it already went onto a slide of its own", () => {
+    // "As a new slide" is where the offer would put it. It is already there.
+    expect(moveableAfter({ ...busy, target: "new" }, whole)).toBeUndefined();
+  });
+
+  it("offers nothing on a part, which ignores the target switch", () => {
+    expect(moveableAfter(busy, element({ id: "stamp", kind: "part", landing: "top-right" }))).toBeUndefined();
+  });
+
+  it("offers nothing when the slide was empty, because the element covers nothing", () => {
+    // `held` is what the splice counted in the bytes it was handed — no second
+    // read and no host call. Zero is the whole reason the offer is conditional:
+    // on an empty slide it is noise.
+    expect(moveableAfter({ ...busy, held: 0 }, whole)).toBeUndefined();
+  });
+
+  it("offers on a slide holding exactly one thing, because the rule is more-than-none", () => {
+    // The boundary. A `> 1` here would silently drop the commonest case there
+    // is: a title and nothing else.
+    expect(moveableAfter({ ...busy, held: 1 }, whole)).toBe("one-box");
   });
 });
 

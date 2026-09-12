@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { INSERTING, announcement, mayRemove, outcomeOf, undoPlan, type Attempt } from "../src/host/insert.js";
+import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, undoPlan, type Attempt } from "../src/host/insert.js";
 import { BUDGET, withTimeout } from "../src/host/timeout.js";
 
 /**
@@ -214,5 +214,43 @@ describe("what taking an insert back means, as indices", () => {
     expect(plan.remove).toBe(4);
     // The deck does not grow on the way: there is no insert half.
     expect(plan.grownTo(9)).toBe(9);
+  });
+});
+
+/**
+ * Where the element ended up, which is `undoPlan` read from the other end.
+ *
+ * These two are one piece of arithmetic and the reason they are tested together
+ * is the defect in `undoPlan`'s own docstring: an off-by-one BETWEEN them
+ * reported "Undone" over a slide that had not moved. Until 2026-09-12 this half
+ * was a ternary inside `insert()` in `src/pane/main.ts`, which the coverage
+ * floor exempts — so the pair that must agree had one half measured and one
+ * half not.
+ *
+ * Three things downstream read the answer as a slide number a user sees: the
+ * "Used in this deck" row, the preview card's grey boxes, and the undo entry
+ * that puts both back.
+ */
+describe("which slide the element landed on", () => {
+  it("names the slide the user was on when the insert went onto it", () => {
+    // Index 0 is the first slide, and "onto" rebuilt it in place.
+    expect(landedOn({ target: "onto", index: 0 })).toBe(1);
+    expect(landedOn({ target: "onto", index: 7 })).toBe(8);
+  });
+
+  it("names the slide after it when the insert made a new one", () => {
+    expect(landedOn({ target: "new", index: 0 })).toBe(2);
+    expect(landedOn({ target: "new", index: 7 })).toBe(9);
+  });
+
+  it("agrees with the plan that takes the same insert back", () => {
+    // The pair, held against each other at one index. `undoPlan` removes by
+    // ZERO-based index and this answers a ONE-based slide number, so the slide
+    // the undo removes is this answer: an insert onto slide 4 (index 3) put the
+    // element on slide 4 and the undo takes index 3 away.
+    const at = 3;
+    expect(landedOn({ target: "onto", index: at })).toBe(undoPlan({ target: "onto", index: at }).remove + 1);
+    // And for a new slide, the one removal is the slide the element is on.
+    expect(landedOn({ target: "new", index: at })).toBe(undoPlan({ target: "new", index: at }).remove + 1);
   });
 });

@@ -615,7 +615,15 @@ top hit.
   own palette rather than in SSF orange, which is what asking for forced
   colours means. The audit refuses any decoration that goes the same colour as
   the thing behind it.
-- **Office themes**: light and dark, from `Office.context.officeTheme`.
+- **Office themes**: light and dark, from `Office.context.officeTheme`. The host
+  hands over a COLOUR rather than a name, so the pane decides: BT.601 perceived
+  brightness of `bodyBackgroundColor`, and below half of 255 is dark
+  (`src/host/theme.ts`). A colour it cannot read leaves `data-theme` unset and
+  the stylesheet's `prefers-color-scheme` fallback in charge, which is the right
+  answer outside a host — every time the pane is opened in a browser to look at
+  it. Written down here on 2026-09-12, when the arithmetic moved out of
+  `main.ts`: the threshold had been a number in the one file the coverage floor
+  exempts, and the record said only that there were two themes.
 - **Pane sizes**: usable at 320 px, three columns from 400 px, docked preview
   from 512 px, and the list stays scrollable with the footer visible in a
   400 px tall pane. `pane-shots` measures these states.
