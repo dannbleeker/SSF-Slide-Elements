@@ -264,10 +264,15 @@ a refactor, and a check that guessed would be noise.
   or ADOPTED row was re-verdicted on 2026-09-11 **against the shipped insert**,
   and says so with that date — the sentence they used to carry, "re-triage when
   the insert lands", was written when there was no host code to hold them
-  against. What they have NOT been held against is the work that followed the
-  insert: the removal, which calls the same positional delete once per slide,
-  and the deck reads behind "Used in this deck" and the preview card. Re-verdict
-  a row when the code it is about changes, not when a calendar says so.
+  against. The removal was held against them in the same change, as a second
+  caller of the positional delete. What came after and has now been read
+  against them too, on 2026-09-12: the tag work of #48, #49 and #52, which made
+  two features depend on finding a tag the web loses on cut and paste, and the
+  shared-part carry of #54. That pass also found three rows asserting something
+  false about this add-in — that it never loads a shape collection, when
+  `selectedShape` does — and two that disagreed about how many tags an insert
+  writes. Re-verdict a row when the code it is about changes, not when a
+  calendar says so, and check the claim rather than the date.
 
 - **Values never leave the pane. All sample data is invented. The repo is
   public.**
