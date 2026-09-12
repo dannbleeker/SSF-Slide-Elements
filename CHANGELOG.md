@@ -7,6 +7,24 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed — the manual now warns you about the one thing that loses an element's mark
+
+- Cutting a shape out of one slide and pasting it onto another drops the mark
+  the add-in uses to recognise its own elements, on PowerPoint for the web. The
+  element is untouched and looks the same, but it stops appearing under **Used
+  in this deck** and *Remove from N slides* can no longer reach it. That was
+  known and written down for the people building the add-in, and nowhere a user
+  would look. It is in the manual now, with what to do about it.
+
+### Changed — nothing you can see
+
+- The hard-won rules about how PowerPoint behaves — the ones that each cost
+  somebody a day to find — were prose in a file for maintainers, and most of
+  them had nothing stopping a future change from quietly breaking one. Six of
+  them are now checks that fail the build, each one proven to fail by breaking
+  the code it protects. The three that no check could ever hold are written down
+  as exactly that, rather than left looking gated.
+
 ### Changed — nothing you can see, again
 
 - The numbers the add-in works out while inserting — how many shapes it added,

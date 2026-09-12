@@ -4,7 +4,7 @@ import { MEASURED, NOT_MEASURED } from "../scripts/coverage-scope.mjs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
-import { withoutTsProse } from "../scripts/without-prose.mjs";
+import { withoutTsComments, withoutTsProse } from "../scripts/without-prose.mjs";
 
 function filesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -28,6 +28,20 @@ function codeOf(file: string): string {
 /** The file as written, for a rule whose subject is a string literal. */
 function rawOf(file: string): string {
   return readFileSync(file, "utf8");
+}
+
+/**
+ * The file with its comments gone and its string literals INTACT.
+ *
+ * For a rule whose subject is an argument: `load("items/id")` is a literal that
+ * is a use rather than prose, so `codeOf` — which blanks every literal — reads
+ * it as `load("")` and cannot tell the named load from the bare one. Measured
+ * on 2026-09-12: the gate below was written against `codeOf`, passed, and then
+ * passed again with `load("items")` substituted into the source. A gate that
+ * cannot fail is not a gate.
+ */
+function argsOf(file: string): string {
+  return withoutTsComments(readFileSync(file, "utf8")) as string;
 }
 
 /**
@@ -180,4 +194,96 @@ describe("what a slide's relationships are called", () => {
       .filter((f) => /["'`][^"'`]*\/relationships\/[a-zA-Z]/.test(rawOf(f)));
     expect(offenders, "writes a relationship type out instead of naming it").toEqual([]);
   });
+});
+
+describe("the host rules that nothing was holding the code to", () => {
+  /**
+   * `CLAUDE.md`'s "Host rules, learned the expensive way" are recordings from
+   * real rounds against PowerPoint, and each one is a thing that cost somebody
+   * a day. They are prose. An audit on 2026-09-12 asked of each not "is it
+   * true" but "would anything stop a future change from breaking it", and
+   * several answered NO — a rule with no gate is a comment.
+   *
+   * These are the ones a source scan can hold. The prose is stripped first, for
+   * the reason `codeOf` gives: every one of these rules is discussed at length
+   * in the comments of the very file that honours it, so a raw match would go
+   * red on the explanation rather than on a violation.
+   */
+  const office = (): string => codeOf("src/office/powerpoint.ts");
+
+  it("adds slides through ONE insert, never a loop of adds", () => {
+    // Two `slides.add()` calls 0.4 s apart killed a sibling's tab. Nothing
+    // called it, and nothing said it must stay that way.
+    //
+    // Scoped to `src/office`, where Office.js calls are the only thing that
+    // lives — the first version swept all of `src` and went red on
+    // `src/core/pptx/tags.ts`, where `slides` is a `Set` and `.add()` is its
+    // own. A guard that goes red for the wrong reason teaches the next reader
+    // to widen it until it goes green, so it is narrowed instead. Nothing is
+    // lost: `src/core` cannot reach Office.js at all, and the case at the top
+    // of this file is what holds that.
+    const offenders = filesUnder("src/office").filter((f) => /\.slides\s*\.\s*add\s*\(/.test(codeOf(f)));
+    expect(offenders, "slides.add() is the call that killed the tab").toEqual([]);
+  });
+
+  it('names the properties it loads, because load("items") does not fetch them', () => {
+    // `load("items")` returns the collection with none of its fields, and the
+    // reader then works from undefined. The fake in `office-host.test.ts`
+    // ignores the argument entirely, so only a scan can hold this.
+    //
+    // `argsOf` rather than `codeOf`, because the subject of this rule is the
+    // literal itself. See its docstring for the measurement that forced it.
+    const bad = [...argsOf("src/office/powerpoint.ts").matchAll(/\.load\(\s*["'`]([^"'`]*)["'`]/g)]
+      .map((m) => m[1] ?? "")
+      .filter((names) => /(^|,)\s*items\s*($|,)/.test(names));
+    expect(bad, 'load("items") without naming a property').toEqual([]);
+  });
+
+  it("writes the selection from exactly one place", () => {
+    // `setSelectedShapes` wedges the web host's selection subsystem and is never
+    // called; `setSelectedSlides` is called by ONE thing, the jump, on a
+    // sibling's dated measurement. A second caller would be a second thing
+    // resting on evidence that was only ever collected for the first.
+    const code = filesUnder("src").map(codeOf).join("\n");
+    expect(code.includes("setSelectedShapes"), "the call that wedges the host").toBe(false);
+    expect(code.split("setSelectedSlides(").length - 1, "callers of setSelectedSlides").toBe(1);
+  });
+
+  it("reads the deck with getFileAsync, the route whose cost is known", () => {
+    // The two reads return DIFFERENT things: `exportAsBase64Presentation` hands
+    // back only the slides asked for and DROPS comments. Which one ships is a
+    // decision, and it was resting on a docstring.
+    expect(office()).toContain("getFileAsync");
+    expect(office(), "the 1.10 export drops comments; switching to it is a design change").not.toContain(
+      "exportAsBase64Presentation",
+    );
+  });
+
+  it("removes a slide by position, never by the id the host will not resolve", () => {
+    // A slide the run just added does not resolve by id, so the removal that
+    // runs next to one is positional. `getItemAt` is the positional call;
+    // `getItem` takes an id.
+    const code = office();
+    expect(code).toContain("getItemAt");
+    expect(code.includes("slides.getItem("), "getItem takes an id, and an id is what is not trusted here").toBe(false);
+  });
+
+  /*
+   * The rest of the audit, written down rather than left as a silence.
+   *
+   * Gated elsewhere, and checked rather than assumed on 2026-09-12: the front
+   * insert (`targetSlideId` is a required parameter of `insertPackage`, so the
+   * type system holds it), the requirement-set floor (`test/manifest.test.ts`
+   * holds the manifests to carrying no `<Requirements>` block), the lagging
+   * count (`countReaching`, in `test/host-timeout.test.ts`), the next free
+   * `tagN` (`test/pptx-tags.test.ts`), and the custom part related from
+   * `ppt/presentation.xml` rather than the package root (`test/pptx.test.ts`).
+   *
+   * Ungateable here, and each one a measurement rather than a rule about this
+   * source: that tags written into the package survive an insert, that shape
+   * tags do NOT survive cut and paste on the web, and that blob downloads are
+   * blocked in WebView2. Nothing in this repo can go red on any of the three —
+   * they are held by what the docs SAY, which is why the cut-and-paste one is a
+   * sentence in `docs/MANUAL.md` and not a test.
+   */
 });
