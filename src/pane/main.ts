@@ -98,6 +98,34 @@ interface Undoable {
 }
 let undoable: Undoable | undefined;
 
+/**
+ * How many times this pane has changed the deck.
+ *
+ * "Used in this deck" reads the WHOLE deck, which is section 13's sixth open
+ * question and unmeasured on a fifty-megabyte one — and the pane stays usable
+ * while it runs, deliberately (`render.ts`, and `docs/DESIGN.md` section 4).
+ * So an insert, an undo or a removal can finish DURING that read, and the read
+ * then lands with an answer from before it and overwrites `used` and
+ * `onSlide` — silently putting back a list that is missing the element the
+ * user just watched land.
+ *
+ * A counter rather than a lock, because a lock is the fix the record forbids:
+ * it would make the pane unusable for the length of an unmeasured read. The
+ * read notes this number before it starts and throws its own answer away if it
+ * has moved.
+ *
+ * Bumped when an operation BEGINS, not when it is confirmed to have worked,
+ * and the direction is the whole reason. `CLAUDE.md` records both halves of
+ * why a confirmation cannot be trusted here: a queued call that raises nothing
+ * has not necessarily happened, and a call can raise and still have done the
+ * work. An insert that threw halfway may have landed; a removal that broke at
+ * its third slide changed two. Counting from the start over-invalidates a read
+ * that overlapped an operation which turned out to do nothing, and the cost of
+ * that is one more click. Counting from success under-invalidates exactly the
+ * cases the host is documented to produce, and the cost of that is the bug.
+ */
+let deckEdits = 0;
+
 function root(): HTMLElement {
   const node = document.getElementById("pane");
   if (!node) throw new Error("the pane's root element is missing");
@@ -338,14 +366,6 @@ async function load(): Promise<void> {
 }
 
 /**
- * Whether a selection read is already in flight.
- *
- * PowerPoint fires the selection event for every shape a user touches, and each
- * read is a `PowerPoint.run`. One at a time, and none at all while an insert
- * is running: a read that overlaps the insert tells the user nothing they need
- * and costs the host a context it is already using.
- */
-/**
  * Keep the line under the header naming the slide the user is actually on.
  *
  * Coalesced rather than guarded by a flag: a flag DROPS the event that arrives
@@ -431,6 +451,9 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   const target = once ?? state.settings.target;
 
   set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
+  // Before the first await: from here on, any deck read running underneath this
+  // is reading a deck this pane is in the middle of changing.
+  deckEdits += 1;
   try {
     const markup = await store.markup(element);
     const deck = await readDeck();
@@ -566,6 +589,7 @@ async function undo(): Promise<boolean> {
   const entry = undoable;
   if (!entry || state.busy === true) return false;
   set({ busy: true, notice: "Undoing…" });
+  deckEdits += 1;
   const plan = undoPlan(entry);
   try {
     const before = await slideCount();
@@ -716,6 +740,7 @@ function leave(urlFor: (site: { origin: string }) => string, what: string): void
 async function readUsed(): Promise<void> {
   if (state.reading === true || state.busy === true) return;
   set({ reading: true, notice: undefined });
+  const started = deckEdits;
   try {
     const deck = await readDeck();
     const pkg = await Pkg.open(deck.base64);
@@ -724,6 +749,18 @@ async function readUsed(): Promise<void> {
     // boxes come back into step with the deck for free.
     const size = await slideSize(pkg);
     const held = await heldBy(pkg, size);
+    if (deckEdits !== started) {
+      // The pane changed the deck while this was running, so this answer is
+      // about a deck that no longer exists. Writing it would take the element
+      // the user just inserted back OUT of the list, and roll the card's grey
+      // boxes back to the slide as it was — both silently, both wrong.
+      //
+      // Thrown away rather than merged. What is held now came from the
+      // operation itself, which knew exactly what it did; merging a stale
+      // sweep into it would be guessing which half to believe.
+      set({ reading: false, notice: "The deck changed while it was being read. Ask again for an up-to-date list." });
+      return;
+    }
     set({
       reading: false,
       used: used.map((u) => ({ element: u.element, slides: u.slides })),
@@ -764,6 +801,7 @@ async function removeEverywhere(id: string): Promise<void> {
   const element = elementOf(state.library, id);
   if (!plan || !element || plan.id !== id || state.busy === true) return;
   set({ busy: true, notice: `Taking ${element.name} off ${plan.slides.length} slide(s)…`, outcome: undefined });
+  deckEdits += 1;
 
   let done = 0;
   let wanted = plan.slides;
