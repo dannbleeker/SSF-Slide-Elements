@@ -176,6 +176,19 @@ export class Pkg {
    * seconds and the platform's costs 27 milliseconds (`base64.ts` has the
    * table). It falls back to handing the string to JSZip when no route is
    * available, so the only thing that changes on such a platform is the clock.
+   *
+   * **That fallback arm is not covered, and it is the one branch in this file
+   * the suite cannot reach.** Measured 2026-09-12, trying: `routeFor` gives up
+   * only when `Uint8Array.fromBase64`, `Buffer` and `atob` are ALL absent, and
+   * stubbing those away in a test takes JSZip with them — it calls
+   * `Buffer.isBuffer` on the way in and raises before this line's other half
+   * can run. Which is the same reason the arm is unlikely to run in production:
+   * a browser has `atob`, Node has `Buffer`, and a runtime with neither is not
+   * one JSZip works in either. It stays because being slow is not a failure and
+   * a decoder that guessed would be, and because deleting a fallback on the
+   * strength of an environment survey is a different argument from deleting a
+   * line the code above makes unreachable. `toBase64` has the same arm, for the
+   * same reason.
    */
   static async open(input: Uint8Array | ArrayBuffer | string): Promise<Pkg> {
     if (typeof input !== "string") return new Pkg(await JSZip.loadAsync(input));

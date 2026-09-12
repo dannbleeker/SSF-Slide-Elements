@@ -68,6 +68,14 @@ export default defineConfig({
       // `relatedOfType` had never met an external, dangling or targetless
       // relationship. So statements rise 95 → 96 and branches 88 → 90.
       //
+      // Measured again on 2026-09-12, after `pkg.ts` — the biggest file in the
+      // engine and the one with the thinnest branches at **87.1** — was given
+      // the malformed packages its guards were written for: **98.6 statements,
+      // 95.0 branches, 100 functions, 99.6 lines**, with `pkg.ts` itself at
+      // 99.0 branches. Branches rose on tests again rather than on code. So
+      // branches rise 90 -> 92, three points of headroom; the other three
+      // already have theirs and stay.
+      //
       // What is LEFT uncovered in those files is one kind of thing, and it is
       // deliberately left: nullish guards TypeScript requires over DOM calls
       // that never return null in `@xmldom/xmldom` — a matched regex group,
@@ -78,7 +86,7 @@ export default defineConfig({
       // Raise them the same way next time: measure, leave two or three points,
       // and say what you measured. A threshold that follows coverage upward on
       // its own only ever ratchets, and the first hard week gets it deleted.
-      thresholds: { statements: 96, branches: 90, functions: 97, lines: 97 },
+      thresholds: { statements: 96, branches: 92, functions: 97, lines: 97 },
     },
   },
 });
