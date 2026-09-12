@@ -180,9 +180,14 @@ have seen the getting-started note.
 
 Everything else is remembered **per presentation** — the three settings behind
 the gear, the last six you inserted, which categories you left open, what you
-typed in the search box, which tags you picked, and which size you picked on an
-element that comes in several. So a search that found what you needed for one
-deck is not still in the box when you open the next.
+typed in the search box, which tags you picked, which size you picked on an
+element that comes in several, and how far down the list you had scrolled. So a
+search that found what you needed for one deck is not still in the box when you
+open the next.
+
+The list scrolls back to where you were as soon as it has drawn the tiles. If
+you start scrolling before it gets there, it leaves you where you are rather
+than pulling you back.
 
 It lives in your browser's storage, on your machine, and nothing about it is
 sent anywhere. One presentation is told from another by a number worked out from

@@ -358,8 +358,23 @@ PowerPoint would settle.
   - **"Picked counts" is `chosen`**, which the pane also uses for the keyboard
     cursor. It is written only by the operations that already persist, so what
     comes back is the step last INSERTED rather than wherever the keyboard was
-    left. **Scroll position is NOT built** — it is the one item of this bullet
-    still open, and `docs/BACKLOG.md` carries it.
+    left.
+  - **The scroll position** followed on 2026-09-12, and is the one item here
+    that is not a field of the state. It is deliberately kept out of it: an
+    offset in the state means a re-render per scroll event, and re-rendering the
+    whole list while it moves under the user's finger is the one thing this
+    must not cost. So it is a module variable, written to storage on a 250 ms
+    trailing timer — a pane torn down inside that window loses a few pixels of
+    where the user was, which is the only thing this stores — and put back once,
+    after the first draw that has TILES in it. Not merely a browse step: the
+    loading screen is one short paragraph, and scrolling that to 800 px leaves
+    the user looking at nothing. Once, too: a later draw is the user's own
+    doing, and re-scrolling them to where they were an hour ago is the pane
+    fighting them. A scroll of their own before the restore has happened stands
+    down the restore for the same reason. The tiles' pictures arriving later
+    move nothing, because `.tile-img` is absolutely positioned inside a box the
+    tile has already reserved — which is what makes one restore land where the
+    user left off rather than approximately.
 
 ## 5. Where an element lands
 
@@ -1034,3 +1049,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The tag sweep goes into the user's own groups rather than reading the top level of the slide only: grouping an element with a shape of your own is one gesture, and it made "Used in this deck" answer that the element was not in the deck while it sat on the slide. A removal takes the tagged shape out of that group, leaves the user's own shape beside it, and takes the group too only when the removal is what emptied it | fixed in the build, 2026-09-11 |
 | "Move to a new slide" is an undo followed by a second insert rather than a third operation, so it inherits the positional count-checked undo and the delta-proving insert and adds no new failure of its own; it stops at a failed undo rather than leaving a second copy; and "a slide that already had content" is `contentCount`, which does not count the slide's own title or an empty placeholder the insert removes — reported by the splice out of bytes it already holds, so the offer costs no second deck read | decided in the build, 2026-09-12 |
 | The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |
+| The scroll position is kept OUT of the pane's state — an offset in the state is a re-render per scroll event — and written on a 250 ms trailing timer; it is put back once, after the first draw that has tiles in it, and stood down by any scroll the user makes first | decided in the build, 2026-09-12 |
