@@ -25,6 +25,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   the answer sheets that every measured claim about PowerPoint's behaviour is
   built on.
 
+  The eleven that alter nothing are written down with the proof for each, so the
+  next person to run this does not spend an afternoon working out again what this
+  one worked out — and the tool now says when one of those notes has gone out of
+  date rather than staying quiet about it.
+
 ### Changed — nothing you can see
 
 - One of the build's own checks re-runs the whole test suite to count it, and it

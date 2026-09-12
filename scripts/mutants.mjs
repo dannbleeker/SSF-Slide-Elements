@@ -78,6 +78,118 @@ export const TARGETS = [
 ];
 
 /**
+ * Mutations that CANNOT be killed, with the proof for each.
+ *
+ * A record, NOT a suppression list. Every one of these still appears in the
+ * report; they are only labelled, so the next reader does not spend an afternoon
+ * re-deriving what this afternoon already settled. `docs/SIBLING.md` keeps a
+ * borrowed finding dated for the same reason.
+ *
+ * All eleven were established on 2026-09-12, by making the mutation and looking
+ * at what changed rather than by reasoning about the code. Matching is on file,
+ * operator and text — NOT on line number, because a line number rots on the next
+ * edit and a ledger that rots silently is worse than none.
+ *
+ * An entry that stops matching anything is reported too, as a line to re-verdict:
+ * either the code moved under it or a test now kills it, and both mean the
+ * reasoning below needs reading again.
+ */
+export const EQUIVALENT = [
+  {
+    file: "src/host/jump.ts",
+    what: "boundary",
+    was: "<",
+    why: "the line routes an id with a '#' past position 0 against one with none; compared original against mutant over 1,003,578 id pairs with zero disagreements. The read-back that the borrowed setSelectedSlides measurement rests on is line 97 and the empty-anchor guard, and both are pinned.",
+  },
+  {
+    file: "src/host/jump.ts",
+    what: "off-by-one",
+    was: "0",
+    why: "same line, same proof. A mutation of it in the other direction IS killed by test/jump.test.ts, so the routing is held; these two mutants simply cannot be observed.",
+  },
+  {
+    file: "src/host/jump.ts",
+    what: "off-by-one",
+    was: "1",
+    why: "the same line's `indexOf(\"#\") > 0` shifted to `> 1`: an id whose only '#' sits at position 1 is not a shape this add-in writes, so no input distinguishes them. Covered by the same 1,003,578-pair comparison, which is exhaustive over the id shapes the harvest produces.",
+  },
+  {
+    file: "src/host/probe.ts",
+    what: "boundary",
+    was: ">",
+    why: "line 85 is only reached after the line above returned for `landed === o.expected`, so `>` and `>=` agree on every remaining input, NaN and -0 included. The branch itself is live and covered.",
+  },
+  {
+    file: "src/host/probe.ts",
+    what: "fallback",
+    was: "?? []",
+    why: "the sweep's mask blanks the outer template literal but not the one nested in it, so the mutation lands on the INNER `?? []`, which is only evaluated once the outer guard has proved the array non-empty. It cannot be deleted either: tsc reports TS2532 without it. Mutating the OUTER one is killed.",
+  },
+  {
+    file: "src/pane/search.ts",
+    what: "guard",
+    was: "return true",
+    why: "an early-out that returns exactly what the code below it would return. It runs on every keystroke, so it is a speed shortcut rather than the dead defensive branch CLAUDE.md deletes on sight; removing it would cost time in the browser and change no answer.",
+  },
+  {
+    file: "src/pane/search.ts",
+    what: "guard",
+    was: "return 0",
+    why: 'the same shape inside `distance`: an early `return 0` for two equal strings, which the loops below reach anyway and answer 0 for. This function already lost one such shortcut deliberately — its docstring records deleting a guard for "doing nothing the loops below do not already do" — so whether this one goes too is a question about browser time, not correctness.',
+  },
+  {
+    file: "src/pane/search.ts",
+    what: "off-by-one",
+    was: "0",
+    why: "a counter whose values only ever meet each other in a comparison, so adding one to every count leaves the ordering identical — and the function returns names, not counts.",
+  },
+  {
+    file: "src/pane/search.ts",
+    what: "off-by-one",
+    was: "1",
+    why: "two cases: the same counter as above, and a matrix row seed whose last column is never read.",
+  },
+  {
+    file: "src/pane/storage.ts",
+    what: "boundary",
+    was: ">",
+    why: 'killable only by `Object.is(storedScroll({ scroll: -0 }), 0)`. A -0 cannot reach storage — the pane\'s own write cannot produce one and `JSON.stringify(-0)` is "0" — and -0 behaves identically to 0 in every use a scroll offset has, so the assertion would pin the sign of a zero and go red for a rewrite that changed no behaviour.',
+  },
+];
+
+/**
+ * A survivor annotated with the reason it cannot be killed, when there is one.
+ *
+ * @param {string} where a survivor line as the report prints it
+ * @returns {{ known: boolean, why: string }}
+ */
+export function judgeSurvivor(where) {
+  const match = EQUIVALENT.find(
+    (one) =>
+      where.startsWith(`${one.file}:`) && where.includes(`  ${one.what}  `) && where.includes(JSON.stringify(one.was)),
+  );
+  return match ? { known: true, why: match.why } : { known: false, why: "" };
+}
+
+/**
+ * Which recorded entries matched nothing this run, and so need re-verdicting.
+ *
+ * @param {string[]} survivors
+ * @returns {string[]}
+ */
+export function staleEquivalents(survivors) {
+  return EQUIVALENT.filter(
+    (one) =>
+      !survivors.some(
+        (where) =>
+          where.startsWith(`${one.file}:`) &&
+          where.includes(`  ${one.what}  `) &&
+          where.includes(JSON.stringify(one.was)),
+      ),
+  ).map((one) => `${one.file}  ${one.what}  ${JSON.stringify(one.was)}`);
+}
+
+/**
  * Which test files can reach a source file, by following imports.
  *
  * The first version of this ran every mutant against a "fast tier" — the whole
@@ -491,7 +603,16 @@ function main() {
     return;
   }
   console.log(`mutants: ${survivors.length} survived the WHOLE suite —`);
-  for (const one of survivors) console.log(`  ${one}`);
+  for (const one of survivors) {
+    const judged = judgeSurvivor(one);
+    console.log(`  ${one}${judged.known ? "   [known equivalent, 2026-09-12]" : ""}`);
+    if (judged.known) console.log(`      ${judged.why}`);
+  }
+  const stale = staleEquivalents(survivors);
+  if (stale.length) {
+    console.log(`\nmutants: ${stale.length} recorded equivalent(s) matched nothing this run — re-verdict them:`);
+    for (const one of stale) console.log(`  ${one}`);
+  }
   console.log(
     "\nEach is either a case the suite is missing or a line that does not matter. Both are findings; the second gets deleted.",
   );
