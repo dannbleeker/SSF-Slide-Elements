@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see
+
+- Tests for parts of the engine that had none: leaving one slide listed in a
+  package, and reading a deck's theme colours when the deck is not the tidy
+  case. No behaviour changed. The build's own coverage floors went up to match.
+
 ### Changed — the pane now remembers each presentation separately
 
 - **What you were doing is remembered per presentation**, not per machine. The
