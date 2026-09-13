@@ -42,12 +42,22 @@
  *
  * ## Two tiers, and the reason
  *
- * Measured 2026-09-12: the whole suite is 166 s, and `test/splice.test.ts`
- * alone is 82 of them, because it harvests both 1.5 MB library decks and sweeps
- * 117 elements. The files a mutation of `src/host` can possibly affect are all
- * in the fast half. So each mutant runs against the fast tier, and then every
- * SURVIVOR is re-run against the whole suite before it is reported — because a
- * survivor of a partial run is not a survivor, it is an untested guess.
+ * Measured 2026-09-13 on an idle machine: the whole suite is 57.6 s, and
+ * `test/splice.test.ts` alone is 50.7 of them, because it harvests both 1.5 MB
+ * library decks and sweeps 117 elements. That one file IS the suite's
+ * wall-clock; everything else fits in its shadow across four workers.
+ *
+ * These figures replace the ones this file carried until today — 166 s and 82 s,
+ * dated 2026-09-12 — which are about 2.9x too high. They were taken while the
+ * sweep, a coverage run and CI polling shared the same four cores, and were
+ * written down as if they were a property of the suite. A number copied from a
+ * live counter carries the date it was taken; it also has to be taken on a
+ * machine that is doing nothing else, or the date does not save it.
+ *
+ * The files a mutation of `src/host` can possibly affect are all in the fast
+ * half. So each mutant runs against the fast tier, and then every SURVIVOR is
+ * re-run against the whole suite before it is reported — because a survivor of a
+ * partial run is not a survivor, it is an untested guess.
  *
  * Usage: `node scripts/mutants.mjs [--only <substring>] [--list]`
  */
@@ -85,7 +95,7 @@ export const TARGETS = [
  * re-deriving what this afternoon already settled. `docs/SIBLING.md` keeps a
  * borrowed finding dated for the same reason.
  *
- * All eleven were established on 2026-09-12, by making the mutation and looking
+ * Established on 2026-09-12, by making the mutation and looking
  * at what changed rather than by reasoning about the code. Matching is on file,
  * operator and text — NOT on line number, because a line number rots on the next
  * edit and a ledger that rots silently is worse than none.
@@ -99,19 +109,13 @@ export const EQUIVALENT = [
     file: "src/host/jump.ts",
     what: "boundary",
     was: "<",
-    why: "the line routes an id with a '#' past position 0 against one with none; compared original against mutant over 1,003,578 id pairs with zero disagreements. The read-back that the borrowed setSelectedSlides measurement rests on is line 97 and the empty-anchor guard, and both are pinned.",
+    why: "`split`'s `at < 0`, which routes an id carrying a '#' against one with none. Re-verdicted 2026-09-13: the earlier note described the line as `indexOf(\"#\") > 0`, which this file has never contained — the measurement stood, the description did not. First established over 1,003,578 id pairs against the original `split`, then re-checked over 5,476 pairs built from every id shape the harvest produces after `split` was given a `[string, boolean]` signature. Zero disagreements both times, and the second number is the one that describes the code as it stands. The read-back that the borrowed setSelectedSlides measurement rests on is line 97 and the empty-anchor guard, and both are pinned.",
   },
   {
     file: "src/host/jump.ts",
     what: "off-by-one",
     was: "0",
-    why: "same line, same proof. A mutation of it in the other direction IS killed by test/jump.test.ts, so the routing is held; these two mutants simply cannot be observed.",
-  },
-  {
-    file: "src/host/jump.ts",
-    what: "off-by-one",
-    was: "1",
-    why: "the same line's `indexOf(\"#\") > 0` shifted to `> 1`: an id whose only '#' sits at position 1 is not a shape this add-in writes, so no input distinguishes them. Covered by the same 1,003,578-pair comparison, which is exhaustive over the id shapes the harvest produces.",
+    why: "the `0` in that same `at < 0`, shifted to `at < 1`: an id whose only '#' sits at position 0 has an empty prefix, and the `ap === \"\"` guard on the line below rejects it either way. A mutation of the comparison in the other direction IS killed by test/jump.test.ts, so the routing is held; this one cannot be observed.",
   },
   {
     file: "src/host/probe.ts",
@@ -120,22 +124,10 @@ export const EQUIVALENT = [
     why: "line 85 is only reached after the line above returned for `landed === o.expected`, so `>` and `>=` agree on every remaining input, NaN and -0 included. The branch itself is live and covered.",
   },
   {
-    file: "src/host/probe.ts",
-    what: "fallback",
-    was: "?? []",
-    why: "the sweep's mask blanks the outer template literal but not the one nested in it, so the mutation lands on the INNER `?? []`, which is only evaluated once the outer guard has proved the array non-empty. It cannot be deleted either: tsc reports TS2532 without it. Mutating the OUTER one is killed.",
-  },
-  {
     file: "src/pane/search.ts",
     what: "guard",
     was: "return true",
-    why: "an early-out that returns exactly what the code below it would return. It runs on every keystroke, so it is a speed shortcut rather than the dead defensive branch CLAUDE.md deletes on sight; removing it would cost time in the browser and change no answer.",
-  },
-  {
-    file: "src/pane/search.ts",
-    what: "guard",
-    was: "return 0",
-    why: 'the same shape inside `distance`: an early `return 0` for two equal strings, which the loops below reach anyway and answer 0 for. This function already lost one such shortcut deliberately — its docstring records deleting a guard for "doing nothing the loops below do not already do" — so whether this one goes too is a question about browser time, not correctness.',
+    why: 'an early-out that returns exactly what the code below it would return: with an empty query `"".split(/\\s+/)` is `[""]` and every string includes `""`. Corrected 2026-09-13 — the earlier note said it runs on every keystroke, which is backwards. It is TAKEN only when the box is EMPTY; while a user types, the comparison falls straight through. What it saves is building the haystack for all 117 elements on every render in the pane\'s default browsing state, measured at ~31 microseconds. That is a real fast path on a real state, not the dead defensive branch CLAUDE.md deletes on sight, so the line stays.',
   },
   {
     file: "src/pane/search.ts",
@@ -174,12 +166,24 @@ export function judgeSurvivor(where) {
 /**
  * Which recorded entries matched nothing this run, and so need re-verdicting.
  *
+ * `swept` is the files the run actually covered, and leaving it out was a defect
+ * in this gate rather than a nicety. `--only host/jump,host/probe,pane/search`
+ * on 2026-09-13 reported `src/pane/storage.ts` as an entry gone stale, which was
+ * nonsense: storage.ts was not swept, so of course nothing of its matched. A
+ * gate that cries wolf on every partial run teaches the reader to skim past it,
+ * which is the same failure as a gate that cannot fail at all.
+ *
+ * An entry for a file outside the run is not evidence either way, so it is
+ * simply not judged.
+ *
  * @param {string[]} survivors
+ * @param {string[]} swept the source files this run mutated
  * @returns {string[]}
  */
-export function staleEquivalents(survivors) {
+export function staleEquivalents(survivors, swept) {
   return EQUIVALENT.filter(
     (one) =>
+      swept.includes(one.file) &&
       !survivors.some(
         (where) =>
           where.startsWith(`${one.file}:`) &&
@@ -194,15 +198,24 @@ export function staleEquivalents(survivors) {
  *
  * The first version of this ran every mutant against a "fast tier" — the whole
  * suite minus the nine files that harvest a real library deck. Measured
- * 2026-09-12: that tier is 22 seconds, and 349 mutations of it is over two
- * hours. Running only the tests that can actually SEE the mutated file is 1 to
+ * 2026-09-13: that tier is 15.4 seconds, and 348 mutations of it is an hour and
+ * a half. Running only the tests that can actually SEE the mutated file is 1 to
  * 3 seconds, and it is also the more honest question: a mutation of
  * `src/host/insert.ts` that `test/splice.test.ts` fails to notice tells nobody
  * anything.
  *
- * The safety is not in this map. It is in the whole suite being re-run against
- * every survivor before it is reported, so an import this misses can cost a
- * wasted minute and cannot produce a false survivor.
+ * The safety is not in this map, and that is not a formality. SIX test files
+ * read source as TEXT rather than importing it, so this function cannot see
+ * them: `docs.test.ts` and `security.test.ts` both read `src/pane/main.ts`,
+ * `security.test.ts` also reads `links.ts`, `memory.ts`, `steps.ts` and
+ * `storage.ts`, `dead-exports.test.ts` reads `src/pane/catalogue.ts`, and
+ * `sibling.test.ts` reads `src/office/powerpoint.ts`. Any of them can fail on a
+ * mutation this map says is invisible to them.
+ *
+ * The safety is in the whole suite being re-run against every survivor before it
+ * is reported, so an import this misses costs a wasted minute and cannot produce
+ * a false survivor. Those six files are the receipt for why that re-check is not
+ * an optimisation waiting to be removed.
  *
  * @param {string} from a file path, relative to the repository root
  * @returns {string[]} the source paths it imports, resolved and relative
@@ -605,10 +618,10 @@ function main() {
   console.log(`mutants: ${survivors.length} survived the WHOLE suite —`);
   for (const one of survivors) {
     const judged = judgeSurvivor(one);
-    console.log(`  ${one}${judged.known ? "   [known equivalent, 2026-09-12]" : ""}`);
+    console.log(`  ${one}${judged.known ? "   [known equivalent, see EQUIVALENT]" : ""}`);
     if (judged.known) console.log(`      ${judged.why}`);
   }
-  const stale = staleEquivalents(survivors);
+  const stale = staleEquivalents(survivors, files);
   if (stale.length) {
     console.log(`\nmutants: ${stale.length} recorded equivalent(s) matched nothing this run — re-verdict them:`);
     for (const one of stale) console.log(`  ${one}`);

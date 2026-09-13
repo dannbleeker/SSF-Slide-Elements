@@ -178,17 +178,25 @@ export function elementOf(library: Library | undefined, id: string | undefined):
  * The ordinary Levenshtein distance, one row at a time so a 117-element library
  * costs a few thousand numbers rather than a matrix per name.
  *
- * No empty-string shortcuts. It had `if (a.length === 0) return b.length` and
- * its mirror, and both went on 2026-09-12: the first cannot run at all, because
+ * No shortcuts at all, and all three went for the same reason. Two on
+ * 2026-09-12: `if (a.length === 0) return b.length` cannot run at all, because
  * `didYouMean` gives up on a query under three characters before it gets here,
- * and the second was doing nothing the loops below do not already do — with `b`
+ * and its mirror was doing nothing the loops below do not already do — with `b`
  * empty the row starts and ends at `[0]` and the answer is `a.length` anyway.
+ *
+ * The third, `if (a === b) return 0`, went on 2026-09-13, found by the mutation
+ * sweep: it could be changed to anything without a test noticing, because the
+ * loops answer 0 for two equal strings by themselves. It was very nearly
+ * unreachable as well. `didYouMean` only runs when the result list is EMPTY
+ * (`render.ts`, `if (count === 0)`), and a query equal to a whole name or one of
+ * its words would have matched — so the only way in is a query that matches a
+ * name while a picked tag or category excludes it.
+ *
  * A shortcut nothing can take is a line that rots; an element with no name is
  * the case in `pane-search.test.ts` that holds the general path to the same
  * answer.
  */
 function distance(a: string, b: string): number {
-  if (a === b) return 0;
   let row = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
     const next = [i];

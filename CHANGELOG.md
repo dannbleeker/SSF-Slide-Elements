@@ -9,6 +9,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- Three small pieces of code the tests could not tell apart from any other
+  version of themselves: one that shortened a message, one that compared two
+  words, and one that read a slide's name. All three do exactly what they did
+  before; two are now simpler, and one is checked where it was not.
+
+### Changed — nothing you can see
+
 - The add-in's own tests are now checked by deliberately breaking the code, one
   change at a time, and seeing whether they notice. Out of 349 such changes, 56
   went unnoticed. Forty-five of those are now caught — one of them by deleting a

@@ -5,7 +5,7 @@ import * as tool from "../scripts/mutants.mjs";
 const codeMask = tool.codeMask as (text: string) => string;
 const mutationsOf = tool.mutationsOf as (text: string) => { at: number; was: string; now: string; what: string }[];
 const judgeSurvivor = tool.judgeSurvivor as (where: string) => { known: boolean; why: string };
-const staleEquivalents = tool.staleEquivalents as (survivors: string[]) => string[];
+const staleEquivalents = tool.staleEquivalents as (survivors: string[], swept: string[]) => string[];
 const EQUIVALENT = tool.EQUIVALENT as { file: string; what: string; was: string; why: string }[];
 
 /**
@@ -81,8 +81,24 @@ describe("the record of mutations that cannot be killed", () => {
     // The ledger's own guard. An entry that stops matching means the code moved
     // or a test now kills it, and either way the reasoning needs reading again —
     // which nobody will do if the report stays quiet about it.
-    expect(staleEquivalents([]), "every entry is stale against an empty run").toHaveLength(EQUIVALENT.length);
-    expect(staleEquivalents(['src/pane/storage.ts:40  boundary  ">" -> ">="'])).toHaveLength(EQUIVALENT.length - 1);
+    const all = [...new Set(EQUIVALENT.map((one) => one.file))];
+    expect(staleEquivalents([], all), "every entry is stale against an empty run").toHaveLength(EQUIVALENT.length);
+    expect(staleEquivalents(['src/pane/storage.ts:40  boundary  ">" -> ">="'], all)).toHaveLength(
+      EQUIVALENT.length - 1,
+    );
+  });
+
+  it("says nothing about a file the run did not sweep", () => {
+    // Found by using it. `--only host/jump,host/probe,pane/search` on 2026-09-13
+    // reported `src/pane/storage.ts` as gone stale — nonsense, because storage
+    // was never swept, so of course nothing of its matched. A gate that cries
+    // wolf on every partial run teaches the reader to skim past it, which is the
+    // same failure as a gate that cannot fail at all.
+    const swept = ["src/host/jump.ts"];
+    for (const one of staleEquivalents([], swept)) {
+      expect(one, "only a swept file may be judged").toContain("src/host/jump.ts");
+    }
+    expect(staleEquivalents([], []), "a run that swept nothing judges nothing").toEqual([]);
   });
 
   it("gives every entry a reason long enough to be one", () => {

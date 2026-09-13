@@ -554,9 +554,18 @@ export function exportPartsVerdict(o: ExportPartsObservation): Reading {
       detail: `the export DROPS ${lost} — office-js#6867 reaches the presentation-level call here too. A package rebuilt from the export loses them; getFileAsync keeps them. ${s.total} parts in, ${e.total} out.`,
     };
   }
+  // Hoisted rather than written `?? []` twice inline, and the reason is about
+  // the mutation sweep rather than about style. Inline, the second fallback sat
+  // inside a NESTED template literal, which `codeMask` blanks up to the nested
+  // backtick and no further — so the sweep could mutate a fallback that can
+  // never fire, because the outer one has already proved the array non-empty.
+  // It reported that as a survivor it could not kill, twice. Hoisted, there is
+  // one fallback, it sits in plain code, and deleting it takes the no-`missing`
+  // case red. Measured 2026-09-13: an equivalent mutant became a killed one.
+  const missing = o.missing ?? [];
   return {
     verdict: "no",
-    detail: `the export kept the comments and the authors part this deck carries (${s.total} parts in, ${e.total} out${(o.missing ?? []).length > 0 ? `, ${(o.missing ?? []).length} other part(s) not carried over` : ""}).`,
+    detail: `the export kept the comments and the authors part this deck carries (${s.total} parts in, ${e.total} out${missing.length > 0 ? `, ${missing.length} other part(s) not carried over` : ""}).`,
   };
 }
 
