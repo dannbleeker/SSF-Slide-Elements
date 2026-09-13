@@ -533,8 +533,22 @@ export class Pkg {
   /**
    * Declare a part's content type. Without this the file opens as damaged, and
    * PowerPoint does not say which part it could not classify.
+   *
+   * `partName` is ABSOLUTE, and that is enforced rather than assumed. A
+   * relative one is what ECMA-376 part 2 forbids and what
+   * `System.IO.Packaging` refuses the whole package for — measured on both
+   * library decks on 2026-09-11, where two notes-slide Overrides had no leading
+   * slash, desktop PowerPoint declined to open either deck, and PowerPoint for
+   * the web opened both without a word. Every caller here already passes
+   * `/${path}`; this makes the next one that forgets fail where it is written
+   * rather than in somebody's PowerPoint.
    */
   async addContentTypeOverride(partName: string, contentType: string): Promise<void> {
+    if (!partName.startsWith("/")) {
+      throw new Error(
+        `ssf-slide-elements: a content-type Override needs an absolute part name, and "${partName}" is relative`,
+      );
+    }
     const doc = await this.doc(CONTENT_TYPES);
     const index = await this.overrideIndex();
     if (index.has(partName)) return;
