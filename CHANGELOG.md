@@ -382,8 +382,9 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   carries none of its marks, and neither does another add-in's.
 - If a step cannot be confirmed the run stops there, leaves the rest of the deck
   alone, and the footer says how far it got.
-- **This one has not been run against a real PowerPoint yet.** The mechanism is
-  the insert's, which has; a sequence of them has not.
+- **Run against a real PowerPoint on 2026-09-13**, on the web: a stamp onto
+  three slides, listed as being on all three, and taken off all three, with the
+  deck read back afterwards to check rather than taking the pane's word for it.
 
 ### Added — see what is already on your slide
 

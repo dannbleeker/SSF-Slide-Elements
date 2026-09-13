@@ -41,8 +41,8 @@ small file that says where that page is.
 | Colours | An element takes the theme of the deck you put it in, or keeps the library's own — one setting behind the gear | built |
 | Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
 | What your slide already has | The preview card shows the shapes already on your slide, in grey, behind where the element would land | built |
-| Remove from N slides | Taking a stamp off every slide it is on, in one click, after asking | built — not yet run against a real PowerPoint |
-| Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | built — PowerPoint's answer is checked on every click, and no round has measured the call yet |
+| Remove from N slides | Taking a stamp off every slide it is on, in one click, after asking | built, and run on PowerPoint for the web on 2026-09-13 |
+| Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | built, and run on the web on 2026-09-13; PowerPoint's answer is checked on every click |
 | Installing from AppSource | Finding the add-in under Insert → Add-ins instead of sideloading a manifest | planned |
 
 ## The pane
