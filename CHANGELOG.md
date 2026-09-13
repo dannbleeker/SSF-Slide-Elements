@@ -9,6 +9,40 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The check that deliberately breaks the add-in's own code, one change at a
+  time, to see whether the tests notice now covers the part that READS the
+  library decks — turning a PowerPoint file into the elements the panel offers
+  you. Seventy-three changes to it went unnoticed. Sixty-two are now caught, by
+  47 new cases; ten alter nothing at all and are written down with the proof for
+  each; and one was a line of code that could never run, which is gone.
+
+  Nothing you can see changes. What was being held by nobody, and now is not:
+  which shapes on a slide count as content rather than the layout's own
+  furniture, so a placeholder holding a single character is not mistaken for an
+  empty one; how a picture or a chart placeholder is told apart from an empty
+  one; which parts of the file an element drags along with it, and what happens
+  when the deck points at one that is not there; how an element's box, its
+  rotation and its table columns are read; how a name spelled "one row" or "six
+  rows" becomes the count behind it; and where an element's picture is cut from
+  the printed deck.
+
+- The tool doing that breaking was wrong about a quarter of its own work, and
+  said nothing. Of the 373 comparisons it thought it was flipping, 272 were not
+  comparisons at all — they were type annotations, which the test runner throws
+  away before anything runs, and shifts, which are a different operator wearing
+  the same characters. Every one was a run that could only ever report "not
+  noticed", and every one of one file's ten findings was exactly that. The tool
+  now requires a real comparison, which is checked by tests of its own.
+
+- The same tool could also stop dead without saying so. One of its test runs
+  wedged, and because nothing set a time limit the whole sweep sat waiting on it
+  for three hours and forty minutes while the report simply stopped growing — a
+  stalled run is indistinguishable from a slow one to anyone reading the output.
+  Runs now have a ten-minute limit, more than ten times the slowest honest one,
+  and a run that hits it counts as no answer rather than as a pass.
+
+### Changed — nothing you can see
+
 - Three small pieces of code the tests could not tell apart from any other
   version of themselves: one that shortened a message, one that compared two
   words, and one that read a slide's name. All three do exactly what they did

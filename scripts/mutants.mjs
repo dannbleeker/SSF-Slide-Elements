@@ -87,16 +87,21 @@ export const TARGETS = [
   "src/pane/used.ts",
 
   // The engine. Added 2026-09-13, once `FAST` made it affordable: without a
-  // first-tier map these 998 mutations cost about seventeen hours, because every
+  // first-tier map these mutations cost about seventeen hours, because every
   // core file except `catalogue/cut.ts` is imported into `test/splice.test.ts`.
   // `cut.ts` has no `FAST` row because it needs none — one test reaches it.
+  //
+  // `src/core/catalogue/types.ts` was here and is not: it declares interfaces
+  // and holds no executable line, so once the boundary operator stopped
+  // matching type arguments it offered nothing to mutate. Its ten "survivors"
+  // were all the tool changing `Record<string, string>` into
+  // `Record<=string, string>`, which vitest erases before anything runs.
   "src/core/catalogue/boxes.ts",
   "src/core/catalogue/cut.ts",
   "src/core/catalogue/harvest.ts",
   "src/core/catalogue/runs.ts",
   "src/core/catalogue/tags.ts",
   "src/core/catalogue/text.ts",
-  "src/core/catalogue/types.ts",
   "src/core/pptx/base64.ts",
   "src/core/pptx/clone.ts",
   "src/core/pptx/layout.ts",
@@ -173,7 +178,65 @@ export const EQUIVALENT = [
     was: ">",
     why: 'killable only by `Object.is(storedScroll({ scroll: -0 }), 0)`. A -0 cannot reach storage — the pane\'s own write cannot produce one and `JSON.stringify(-0)` is "0" — and -0 behaves identically to 0 in every use a scroll offset has, so the assertion would pin the sign of a zero and go red for a rewrite that changed no behaviour.',
   },
+  {
+    file: "src/core/catalogue/harvest.ts",
+    what: "boundary",
+    was: "<",
+    why: "both index loops in `relIdsIn`, over `node.attributes` and over `node.childNodes`. Widened to `<=`, each runs one extra turn at `i === length`, and @xmldom/xmldom answers `null` for an index past the end of either collection — measured directly on 2026-09-13, `attributes.item(length)` and `childNodes.item(length)` are both `null`. The `if (attr && …)` and `if (child && …)` guards on the next line absorb it, so nothing is read and nothing is added. Killing it would mean asserting on a DOM read that never happens.",
+  },
+  {
+    file: "src/core/catalogue/cut.ts",
+    what: "boundary",
+    was: "<",
+    why: "`clamp01`'s `n < 0 ? 0 : …`. The two comparisons disagree on exactly one input, `n === 0`, which is true of +0 and -0: at +0 both give +0, and at -0 the original returns -0 where the mutant returns the literal +0 — the same number to every operator except `Object.is`. Measured 2026-09-13 over 3,020,012 values (11 specials: ±0, ±1, ±Infinity, NaN, ±Number.MIN_VALUE, 1±EPSILON; 3,000,000 uniform randoms in [-2, 2]; 20,001 exact twenty-thousandths of a page): zero disagreements under `===`, one under `Object.is`, at -0. It is unreachable as well as unobservable — `withAir` cannot make a -0, the committed catalogue's boxes hold none, and `JSON.stringify(-0)` is \"0\" — so the assertion would pin the sign of a zero, which the `storage.ts` entry above rejects for the same reason.",
+  },
+  {
+    file: "src/core/catalogue/cut.ts",
+    what: "boundary",
+    was: ">",
+    why: "`clamp01`'s `n > 1 ? 1 : n`. They disagree only at `n === 1`, where the original returns `n` — which IS 1 — and the mutant returns the literal 1. Unlike the `<` above there is no -0 caveat, because 1 has one representation: over the same 3,020,012 values on 2026-09-13, zero disagreements under `===` AND zero under `Object.is`. Nothing can observe it.",
+  },
+  {
+    file: "src/core/catalogue/harvest.ts",
+    what: "fallback",
+    was: "?? 0",
+    why: 'the slide size: `Number(sldSz?.getAttribute("cx") ?? 0)` and the `cy` beside it. The fallback has exactly two inputs that reach it. With no `<p:sldSz>` at all the optional chain gives undefined, so the mutant computes `Number(undefined)` = NaN where the original computes 0; with a `<p:sldSz>` carrying no `cx`, `getAttribute` returns null and `Number(null)` is 0, which is the fallback\'s own value, so there the two are identical. NaN and 0 both fail `if (!(width > 0 && height > 0))` on the very next line, which throws `HarvestError("the deck states no slide size")` before either number is read anywhere else — same throw, same message, same problem list. Verified 2026-09-13. Every OTHER mutation of those three lines is killed by test/catalogue.test.ts "the size the deck states".',
+  },
+  {
+    file: "src/core/catalogue/harvest.ts",
+    what: "fallback",
+    was: "?? key",
+    why: 'the two English-name fallbacks, `name: name ?? key` in `category` and `return name ?? key` in `nameOf`. Each is taken exactly when `options.names` has no English name for that key — which is the same condition as the line above it, where a problem is pushed onto `problems`, and a non-empty `problems` throws `HarvestError` before the catalogue is returned (twice: after the slide loop and again after the carried parts). So on every input where the fallback and the mutant differ, there is nothing to observe: the harvest fails either way with the same list. They stay because they keep the type honest — the catalogue\'s `name` fields are `string`, not `string | undefined`, and the mutant only runs at all because vitest strips types rather than checking them. The problems themselves are pinned by test/catalogue.test.ts "fails naming every key and category without an English name, and a key used twice".',
+  },
+  {
+    file: "src/core/catalogue/boxes.ts",
+    what: "boolean",
+    was: "||",
+    why: "`topLevelShapes`' `if (!node || node.nodeType !== 1) continue`. `node` is never falsy inside the loop — the bound is `i < tree.childNodes.length` and @xmldom/xmldom answers null only outside 0..length-1 — so `&&` makes the whole condition permanently false, which is the guard deleted. See the `guard`/`continue` entry below for why deleting it changes nothing. Both measured 2026-09-13. This entry is keyed on file and operator, so it would also label a future `||` survivor elsewhere in boxes.ts; the other two `||`s in the file, on the rotation clamp and the table-column read, are killed by test/boxes.test.ts.",
+  },
+  {
+    file: "src/core/catalogue/boxes.ts",
+    what: "guard",
+    was: "continue",
+    why: "the same early exit in `topLevelShapes`, dropped. Everything after it is a cast and a test of `el.localName` against six element names. Measured 2026-09-13 against @xmldom/xmldom by parsing a `<p:spTree>` holding a text node, a comment, a CDATA section and a processing instruction beside a `<p:sp>`: `localName` is null on all four non-elements, `Array.prototype.includes(null)` is false, so a fallen-through node is not pushed and no property access throws. A declared entity expands to a text node rather than an EntityReference, so those four and Element are the whole domain. The line is NOT deleted: it is what makes the `as Element` cast below it honest, and removing it would rest the walk on an implementation detail of a foreign DOM.",
+  },
 ];
+
+/**
+ * Whether a ledger entry is about a given survivor line.
+ *
+ * `judgeSurvivor` and `staleEquivalents` are the two readings of the same
+ * question — "is this recorded?" and "is anything still recording this?" — and
+ * they were written out separately, so a fix to one silently left the other
+ * matching a different set. One function now, called by both.
+ *
+ * @param {{ file: string, what: string, was: string }} one
+ * @param {string} where a survivor line as the report prints it
+ * @returns {boolean}
+ */
+function matchesEntry(one, where) {
+  return where.startsWith(`${one.file}:`) && where.includes(`  ${one.what}  ${JSON.stringify(one.was)} -> `);
+}
 
 /**
  * A survivor annotated with the reason it cannot be killed, when there is one.
@@ -182,10 +245,14 @@ export const EQUIVALENT = [
  * @returns {{ known: boolean, why: string }}
  */
 export function judgeSurvivor(where) {
-  const match = EQUIVALENT.find(
-    (one) =>
-      where.startsWith(`${one.file}:`) && where.includes(`  ${one.what}  `) && where.includes(JSON.stringify(one.was)),
-  );
+  // The operator and the ORIGINAL text together, as one segment ending in the
+  // arrow — not two separate `includes`. A report line reads
+  // `file:12  boundary  "<=" -> "<"`, and `includes('"<"')` matches that line
+  // as well as the one it is about, so an entry recorded for `<` would have
+  // labelled a future `<=` survivor a known equivalent. Nothing was mislabelled
+  // when this was found on 2026-09-13 — `cut.ts`'s `"<=" -> "<"` is killed —
+  // but a ledger that can quietly annotate the wrong line is worse than none.
+  const match = EQUIVALENT.find((one) => matchesEntry(one, where));
   return match ? { known: true, why: match.why } : { known: false, why: "" };
 }
 
@@ -208,14 +275,7 @@ export function judgeSurvivor(where) {
  */
 export function staleEquivalents(survivors, swept) {
   return EQUIVALENT.filter(
-    (one) =>
-      swept.includes(one.file) &&
-      !survivors.some(
-        (where) =>
-          where.startsWith(`${one.file}:`) &&
-          where.includes(`  ${one.what}  `) &&
-          where.includes(JSON.stringify(one.was)),
-      ),
+    (one) => swept.includes(one.file) && !survivors.some((where) => matchesEntry(one, where)),
   ).map((one) => `${one.file}  ${one.what}  ${JSON.stringify(one.was)}`);
 }
 
@@ -320,7 +380,7 @@ export function testsReaching(target) {
  * unchanged. Then time what survives with no coverage instrumentation, which is
  * what a tier run actually costs. Both numbers are on every row.
  *
- * Seventeen of the twenty rows are LOSSLESS — identical coverage to the whole
+ * Sixteen of the nineteen rows are LOSSLESS — identical coverage to the whole
  * suite. Three are not, and are here anyway: `splice/carry.ts` (92.45 branches
  * against 96.22), `splice/colours.ts` (83.33 against 87.5) and
  * `splice/splice.ts` (89.7 against 97.05). Falling back to their sound sets
@@ -330,34 +390,23 @@ export function testsReaching(target) {
  * not fifty. The re-check is what makes that trade safe; without it the loss
  * would be false survivors in the report rather than wasted minutes.
  *
- * Measured total for all 998 engine mutations: about 66 minutes of first tier,
- * plus one 57.6 s re-check per survivor.
+ * Measured total for the engine's mutations: about 66 minutes of first tier,
+ * plus one 57.6 s re-check per survivor. That figure was taken when the boundary
+ * operator still matched type arguments, over 998 engine mutations; dropping
+ * that noise on 2026-09-13 took the engine to 757 and the whole set to 1073, so
+ * the real cost is lower and has not been re-timed.
  */
 export const FAST = {
   // 80 mutations, 5.9 s a mutant, 100/100 statements/branches
-  "src/core/catalogue/boxes.ts": ["test/catalogue.test.ts", "test/splice-malformed.test.ts"],
+  "src/core/catalogue/boxes.ts": ["test/boxes.test.ts", "test/catalogue.test.ts", "test/splice-malformed.test.ts"],
   // 110 mutations, 6.2 s a mutant, 96.92/90.51 statements/branches
   "src/core/catalogue/harvest.ts": ["test/catalogue.test.ts", "test/colours.test.ts"],
   // 31 mutations, 6.1 s a mutant, 100/91.66 statements/branches
-  "src/core/catalogue/runs.ts": ["test/catalogue.test.ts"],
+  "src/core/catalogue/runs.ts": ["test/catalogue.test.ts", "test/runs.test.ts"],
   // 4 mutations, 2.9 s a mutant, 100/100 statements/branches
   "src/core/catalogue/tags.ts": ["test/validators-deck.test.ts"],
   // 21 mutations, 5.8 s a mutant, 100/90 statements/branches
-  "src/core/catalogue/text.ts": ["test/catalogue.test.ts", "test/splice-malformed.test.ts"],
-  // 10 mutations, 2.4 s a mutant, 100/100 statements/branches
-  "src/core/catalogue/types.ts": [
-    "test/cut.test.ts",
-    "test/docs.test.ts",
-    "test/pane-card.test.ts",
-    "test/pane-catalogue.test.ts",
-    "test/pane-combinations.test.ts",
-    "test/pane-render.test.ts",
-    "test/pane-search.test.ts",
-    "test/pane-steps.test.ts",
-    "test/pane-storage.test.ts",
-    "test/pane-used.test.ts",
-    "test/splice-malformed.test.ts",
-  ],
+  "src/core/catalogue/text.ts": ["test/catalogue.test.ts", "test/splice-malformed.test.ts", "test/text.test.ts"],
   // 10 mutations, 2.3 s a mutant, 100/100 statements/branches
   "src/core/pptx/base64.ts": [
     "test/base64.test.ts",
@@ -536,11 +585,25 @@ export function mutationsOf(text) {
     found.push({ at, was: text.slice(at, at + was.length), now, what });
   };
 
-  // A comparison boundary. `=>`, `<=`/`>=` as part of `<<=`, and the arrow of a
-  // generic are all left alone by matching the operator with what is around it.
+  // A comparison boundary, and ONLY a comparison. The operator must have
+  // whitespace on both sides, which is what separates `a < b` from the `<` of
+  // `Record<string, string>`, the `>` of `Promise<T>` and the shifts in
+  // `hash >>> 0` and `n >> 16`. Prettier puts spaces around every binary
+  // operator and `npm run format:check` is a CI step, so in THIS repo the rule
+  // is exact rather than a heuristic.
+  //
+  // Measured 2026-09-13, over the 36 files of `TARGETS`: 373 sites matched the
+  // operator, and 272 of them — 73% — were type arguments or shifts. Every one
+  // was a wasted run, and every one of the type-argument ones was guaranteed to
+  // be reported ALIVE, because vitest strips types without checking them, so
+  // `Record<=string, string>` is erased before anything executes. That is where
+  // all ten of `src/core/catalogue/types.ts`'s survivors came from. Checked
+  // against the sweep's own report: of the 34 boundary survivors it had found
+  // at that point, this rule drops exactly those ten and keeps the other 24.
   for (const m of mask.matchAll(/(^|[^=<>!])(<=|>=|<|>)(?!=)/g)) {
     const at = (m.index ?? 0) + (m[1] ?? "").length;
     const op = m[2] ?? "";
+    if (!/\s/.test(mask[at - 1] ?? "") || !/\s/.test(mask[at + op.length] ?? "")) continue;
     /** @type {Record<string, string>} */
     const flip = { "<": "<=", ">": ">=", "<=": "<", ">=": ">" };
     add(at, op, flip[op] ?? op, "boundary");
@@ -611,10 +674,26 @@ export function lineOf(text, at) {
  * So the JSON report is read back, exactly as `test-count.mjs` learned to do,
  * and a kill counts only when the report NAMES a failed test.
  *
+ * A run also gets a WALL-CLOCK LIMIT, and that is the second thing measured the
+ * hard way. On 2026-09-13 a first-tier run of the twelve files that reach
+ * `pkg.ts` stopped responding: the vitest process and three workers sat blocked
+ * with one second of CPU between them for three hours and forty minutes, and
+ * because `execFileSync` has no timeout by default the sweep waited with them.
+ * Nothing said so — the survivor file simply stopped growing at 910 of 1345, and
+ * a reader coming back to it would have read a stalled run as a slow one.
+ *
+ * The limit is deliberately far above any honest run: the whole suite is 57.6 s
+ * and the slowest first tier is about 13 s, so ten minutes is more than ten
+ * times the worst case and cannot cut a real run short. A run that hits it is
+ * INCONCLUSIVE, never a kill — the same direction as every other unclear
+ * answer, and `tryMutation` will give it one more go.
+ *
  * @param {string[]|null} files null for the whole suite
  * @param {string} out where the JSON report goes
  * @returns {"survived"|"killed"|"inconclusive"}
  */
+export const RUN_LIMIT_MS = 10 * 60 * 1000;
+
 export function verdictOf(files, out) {
   const args = [
     join("node_modules", "vitest", "vitest.mjs"),
@@ -625,14 +704,33 @@ export function verdictOf(files, out) {
   ];
   if (files) args.push(...files);
   try {
-    execFileSync(process.execPath, args, { stdio: "ignore" });
+    execFileSync(process.execPath, args, { stdio: "ignore", timeout: RUN_LIMIT_MS, killSignal: "SIGKILL" });
     return "survived";
+  } catch (error) {
+    return verdictOfFailure(error, out);
+  }
+}
+
+/**
+ * What a FAILED run means. Its own function so the two ways a run can fail
+ * without answering — a timeout, and a report that names nothing — can be held
+ * by a test without waiting ten minutes for a real one.
+ *
+ * A timeout must not read the report: the file on disk is whatever the PREVIOUS
+ * run left there, so reading it would answer this mutant with the last one's
+ * result. That is the same shape of mistake as counting a non-zero exit a kill,
+ * and it fails in the same bad direction.
+ *
+ * @param {unknown} error what `execFileSync` threw
+ * @param {string} out where the JSON report goes
+ * @returns {"killed"|"inconclusive"}
+ */
+export function verdictOfFailure(error, out) {
+  if (/** @type {NodeJS.ErrnoException} */ (error)?.code === "ETIMEDOUT") return "inconclusive";
+  try {
+    return failedNames(JSON.parse(readFileSync(out, "utf8"))).length > 0 ? "killed" : "inconclusive";
   } catch {
-    try {
-      return failedNames(JSON.parse(readFileSync(out, "utf8"))).length > 0 ? "killed" : "inconclusive";
-    } catch {
-      return "inconclusive";
-    }
+    return "inconclusive";
   }
 }
 

@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
 // @ts-expect-error — a plain .mjs tool with no types, shared with the scripts.
 import * as tool from "../scripts/mutants.mjs";
 
@@ -11,6 +14,7 @@ const FAST = tool.FAST as Record<string, string[]>;
 const TARGETS = tool.TARGETS as string[];
 const fastTests = tool.fastTests as (file: string) => string[];
 const testsReaching = tool.testsReaching as (file: string) => string[];
+const verdictOfFailure = tool.verdictOfFailure as (error: unknown, out: string) => "killed" | "inconclusive";
 
 /**
  * The mutation sweep, which is a tool rather than a gate and therefore has to be
@@ -58,6 +62,29 @@ describe("which mutations it finds", () => {
     expect(found.filter((m) => m.what === "boundary")).toEqual([]);
   });
 
+  // The case above says "generic" and contains none: `=> n` has no angle
+  // bracket at all, so it passed while the sweep was reporting ten survivors in
+  // a file of nothing but `Record<string, string>`. These are the generics.
+  it("leaves a type argument alone, however many angle brackets it has", () => {
+    const source = [
+      "const m = new Map<string, number>();\n",
+      "type Held = Record<string, Promise<Uint8Array | string>>;\n",
+      "function f<T>(x: Promise<T>): Promise<T[]> {\n  return x.then((v) => [v]);\n}\n",
+    ].join("");
+    expect(mutationsOf(source).filter((m) => m.what === "boundary")).toEqual([]);
+  });
+
+  it("leaves a shift alone, which is not a comparison either", () => {
+    const source = "const a = (hash >>> 0).toString(16);\nconst b = (n >> 16) & 255;\n";
+    expect(mutationsOf(source).filter((m) => m.what === "boundary")).toEqual([]);
+  });
+
+  it("still finds the comparison standing next to a generic", () => {
+    const source = 'const seen = new Set<string>();\nif (seen.size > 0) return "some";\n';
+    const boundaries = mutationsOf(source).filter((m) => m.what === "boundary");
+    expect(boundaries.map((m) => `${m.was} -> ${m.now}`)).toEqual(["> -> >="]);
+  });
+
   it("finds a number to move, a boolean to flip and a fallback to delete", () => {
     const kinds = new Set(mutationsOf("const a = b ?? 0;\nif (c && d) return 7;\n").map((m) => m.what));
     expect(kinds).toContain("off-by-one");
@@ -79,6 +106,13 @@ describe("the record of mutations that cannot be killed", () => {
 
   it("does not label a survivor in a different file with the same operator", () => {
     expect(judgeSurvivor('src/host/insert.ts:94  boundary  "<" -> "<="').known).toBe(false);
+  });
+
+  // The entry recorded for `<` is about widening it to `<=`. A report line for
+  // the opposite mutation, `"<=" -> "<"`, CONTAINS the text `"<"`, and matching
+  // on that substring labelled it as the same known-unkillable line.
+  it("does not label the opposite mutation, whose report line contains the same text", () => {
+    expect(judgeSurvivor('src/host/jump.ts:49  boundary  "<=" -> "<"').known).toBe(false);
   });
 
   it("names a recorded entry that matched nothing, rather than letting it rot", () => {
@@ -109,6 +143,37 @@ describe("the record of mutations that cannot be killed", () => {
     for (const one of EQUIVALENT) {
       expect(one.why.length, `${one.file} ${one.what} ${one.was}`).toBeGreaterThan(80);
     }
+  });
+});
+
+describe("what a run that failed is allowed to mean", () => {
+  const report = join(tmpdir(), "ssf-mutants-test-report.json");
+
+  // A real kill: the report on disk names a test that failed.
+  beforeEach(() => {
+    writeFileSync(
+      report,
+      JSON.stringify({
+        testResults: [{ name: "test/x.test.ts", assertionResults: [{ status: "failed", fullName: "x" }] }],
+      }),
+    );
+  });
+
+  it("reads a named failure as a kill", () => {
+    expect(verdictOfFailure(new Error("exit 1"), report)).toBe("killed");
+  });
+
+  // A run that never finished says nothing about the mutant, and the report
+  // beside it belongs to the PREVIOUS mutant — so reading it would answer this
+  // one with the last one's result.
+  it("reads a timed-out run as inconclusive, whatever the stale report says", () => {
+    const timedOut = Object.assign(new Error("ETIMEDOUT"), { code: "ETIMEDOUT" });
+    expect(verdictOfFailure(timedOut, report)).toBe("inconclusive");
+  });
+
+  it("reads a report naming no failure as inconclusive rather than a kill", () => {
+    writeFileSync(report, JSON.stringify({ testResults: [] }));
+    expect(verdictOfFailure(new Error("exit 1"), report)).toBe("inconclusive");
   });
 });
 
