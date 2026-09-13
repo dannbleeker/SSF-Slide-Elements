@@ -7,6 +7,10 @@ const mutationsOf = tool.mutationsOf as (text: string) => { at: number; was: str
 const judgeSurvivor = tool.judgeSurvivor as (where: string) => { known: boolean; why: string };
 const staleEquivalents = tool.staleEquivalents as (survivors: string[], swept: string[]) => string[];
 const EQUIVALENT = tool.EQUIVALENT as { file: string; what: string; was: string; why: string }[];
+const FAST = tool.FAST as Record<string, string[]>;
+const TARGETS = tool.TARGETS as string[];
+const fastTests = tool.fastTests as (file: string) => string[];
+const testsReaching = tool.testsReaching as (file: string) => string[];
 
 /**
  * The mutation sweep, which is a tool rather than a gate and therefore has to be
@@ -105,5 +109,39 @@ describe("the record of mutations that cannot be killed", () => {
     for (const one of EQUIVALENT) {
       expect(one.why.length, `${one.file} ${one.what} ${one.was}`).toBeGreaterThan(80);
     }
+  });
+});
+
+describe("the first-tier test map", () => {
+  /**
+   * `FAST` is an optimisation, and the only thing that makes it safe is the
+   * whole-suite re-check every survivor still gets. So these cases hold the two
+   * things that would make an entry USELESS rather than unsafe: naming a test
+   * that cannot see the file, and naming a file that is not swept at all.
+   */
+  it("names only files the sweep actually mutates", () => {
+    for (const file of Object.keys(FAST)) {
+      expect(TARGETS, `${file} has a FAST entry but is not a target`).toContain(file);
+    }
+  });
+
+  it("names only tests that can actually reach the file", () => {
+    // A test outside the reaching set cannot observe a mutation of this file, so
+    // an entry naming one is dead weight in every run. It is not a safety
+    // problem — the whole-suite re-check catches what a narrow tier misses — but
+    // a map nobody can trust to mean something stops being read.
+    for (const [file, tests] of Object.entries(FAST)) {
+      const reaching = testsReaching(file);
+      expect(tests, `${file} has an empty FAST entry`).not.toHaveLength(0);
+      for (const one of tests) {
+        expect(reaching, `${one} does not reach ${file}`).toContain(one);
+      }
+    }
+  });
+
+  it("falls back to the whole reaching set for a file with no entry", () => {
+    const without = TARGETS.find((f) => !(f in FAST));
+    expect(without, "this case needs at least one file without an entry").toBeDefined();
+    if (without !== undefined) expect(fastTests(without)).toEqual(testsReaching(without));
   });
 });

@@ -270,6 +270,43 @@ export function testsReaching(target) {
 }
 
 /**
+ * The tests a mutant of a given file runs against in the FIRST tier, where that
+ * is cheaper than everything the import map reaches.
+ *
+ * `testsReaching` keeps its job: it defines the SOUND set, and it is the
+ * fallback for any file with no entry here. This map is an optimisation and
+ * nothing more, and it is safe for exactly one reason — every survivor is still
+ * re-run against the WHOLE suite before it is reported. A file whose entry here
+ * is too narrow costs a wasted minute on a false first-tier survivor; it cannot
+ * put a survivor in the report that is not one.
+ *
+ * The reason it exists: `test/splice.test.ts` is 50.7 s of a 57.6 s suite,
+ * because it harvests both 1.5 MB library decks and sweeps 117 elements. Every
+ * file in `src/core` except `catalogue/cut.ts` is imported into it, so the
+ * "reaching set" of a core file is the whole suite in all but name — `pkg.ts`
+ * pulls 23 test files at 62.2 s, which is SLOWER than simply running everything.
+ * Measured 2026-09-13: extending the sweep to `src/core` without this map costs
+ * about 17 hours of first tier. With it, about an hour.
+ *
+ * Every row was measured rather than guessed: the file's own statement and
+ * branch coverage under the subset, against the same numbers under its full
+ * reaching set. A row is only here if that comparison was run, and the delta is
+ * recorded beside it.
+ */
+export const FAST = {};
+
+/**
+ * The first tier for a file: its measured subset, or everything that reaches it.
+ *
+ * @param {string} file
+ * @returns {string[]}
+ */
+export function fastTests(file) {
+  const named = /** @type {Record<string, string[]>} */ (FAST)[file];
+  return named ?? testsReaching(file);
+}
+
+/**
  * A copy of `text` in which every comment and string literal is a space, and
  * every code character is itself, at the SAME offset.
  *
@@ -551,7 +588,7 @@ function main() {
 
   const plan = files.map((file) => {
     const text = readFileSync(file, "utf8");
-    return { file, text, mutations: mutationsOf(text), tests: testsReaching(file) };
+    return { file, text, mutations: mutationsOf(text), tests: fastTests(file) };
   });
   const total = plan.reduce((sum, one) => sum + one.mutations.length, 0);
   console.log(`mutants: ${total} mutations across ${plan.length} files`);
