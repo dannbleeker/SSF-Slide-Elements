@@ -45,7 +45,7 @@ what is still open.
 | Move to a new slide — a whole-slide element that landed on a slide with something already on it, put on a slide of its own instead | done — an undo and a second insert, so it can offer nothing the undo cannot deliver |
 | The pane reopens where you left it, per presentation — search, tags, open categories, picked count, scroll position, Recent and the settings; favourites stay per machine | done — keyed on a hash of the deck's address, never the address |
 | The preview card's grey boxes — what the destination slide already holds, read from the deck | done |
-| Remove from N slides — a stamp off every slide it is on, asked first, one confirmed cycle per slide | done — built, and the one feature no round has exercised |
+| Remove from N slides — a stamp off every slide it is on, asked first, one confirmed cycle per slide | done — run on PowerPoint for the web on 2026-09-13: a stamp onto three slides, listed as being on all three, and taken off all three |
 | The colour switch — an element takes the destination deck's theme, or keeps the library's own colours, shapes and carried charts alike | done |
 | Host handshake, and the first round against a real PowerPoint | done — PowerPoint for the web and PowerPoint on Windows, both 2026-09-11; Mac and iPad unmeasured, and disclosed as such to the store's reviewers rather than assumed |
 | Element pictures — each tile shows PowerPoint's own rendering, cut out of a committed PDF print of the library deck; the landing diagram stays as the fallback | done |

@@ -745,8 +745,10 @@ Each is written so a single round settles it. The probe that asks them is a
 Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
 is put, and the sheets are filed under `docs/host-answers/`. Questions 1 to 6
 were asked before the splice and the picker were built, and answered on the web
-and on Windows; question 7 arrived after them, with the jump, and no round has
-answered it yet. Mac and iPad have had no round at all.
+and on Windows; question 7 arrived after them, with the jump, and no SHEET
+answers it yet — the product half was measured on the web on 2026-09-13 and is
+in section 15, but a probe run is a different thing and has not been done. Mac
+and iPad have had no round at all.
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted?
@@ -954,6 +956,41 @@ whether they cost the user anything turns entirely on this.
   tag parts in, four out, with the shapes still carrying their `<p:tags>`. The
   web measurement above says the tags survive `insertSlidesFromBase64`; this
   says they also survive an ordinary save on the desktop.
+
+**The whole product was run from the pane on PowerPoint for the WEB on
+2026-09-13**, build `931bc1d` — the code the pane itself prints under its
+header — with `manifest-prod.xml` sideloaded into `template/validators.pptx` on
+OneDrive. This is the round the backlog had been asking for, and it settles
+three separate things.
+
+- **"Remove from N slides", end to end, which no round had exercised.** The
+  Confidential stamp onto all three slides (`3 → 4 → 3 slides, slide N
+  replaced`, once per slide); "See what this deck already uses" answering
+  *Confidential stamp — slides 1, 2 and 3*; the question *Take Confidential
+  stamp off slides 1, 2 and 3? The pane cannot undo this.*; and then **`Removed
+  from 3 slides.`** Checked by READING THE DECK AGAIN rather than by believing
+  the footer: no rows, no Remove buttons, "nothing from the library is in this
+  deck yet", and the deck still three slides. The read behind it settled in 12
+  seconds; the three confirmed cycles finished inside 4.
+- **The jump moves the deck, and does NOT wedge the host.** From `Slide 1 of 3`,
+  clicking the `2` in "Used in this deck" left PowerPoint on `Slide 2 of 3`, and
+  an insert straight afterwards ran normally (`3 → 4 → 3 slides, slide 3
+  replaced`). Read this at its scope: it is the PRODUCT's behaviour on one
+  build, not an answer sheet — probe question 7 still has no sheet on any
+  platform, and `CLAUDE.md`'s rule about `setSelectedSlides` wedging the web
+  host's selection subsystem is a sibling's recording that this one round did
+  not reproduce.
+- **"Move to a new slide"** took a white box that had landed on slide 2 and made
+  it its own slide: `3 → 4 slides.`
+- **The element stamped was `confidential`**, one of the 23 that arrive as a
+  group the owner drew — the class the ungroup fix had missed — so that fix is
+  host-verified rather than engine-verified.
+- **One refusal, and it was the right one.** A second insert fired immediately
+  after the first answered *PowerPoint would not say which slide you are on, so
+  nothing was inserted. Click a slide and try again.*, and nothing landed. A
+  keypress to move slide and a retry worked. The selection is not always
+  readable in the moment after an insert has replaced a slide; the pane neither
+  guessed at it nor dropped the insert silently.
 
 The rest of this section is about the DECKS and the print rather than Office.js.
 

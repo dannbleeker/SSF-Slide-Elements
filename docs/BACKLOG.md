@@ -11,22 +11,6 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### The round that exercises Remove from N slides
-
-`docs/DESIGN.md` sections 4, 6 and 8 are built in full, the last four of them
-on 2026-09-12: the jump from a slide number in "Used in this deck" (on the
-sibling's measurement, read back on every click), "Open all" beside the
-category count, "Move to a new slide" in the footer, and the pane remembering
-itself **per deck** — the search, the tags, the picked count and the scroll
-position included, keyed on a hash of the deck's URL. So what is left in those
-sections is not code. **Remove from N slides** is the one
-feature whose mechanism — a sequence of insert-then-remove cycles — no round has
-exercised; the next round on any platform should put a stamp on three slides and
-take it off again. The same round should click a slide number in "Used in this
-deck" and read probe question 7, which is the jump measured directly, and use
-"Move to a new slide" once — it is an undo and an insert back to back, which no
-round has done either.
-
 ### Probe question 7, and whatever Mac and iPad turn out to do
 
 PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
@@ -46,10 +30,12 @@ measurement could still arrive — cheapest being a borrowed device running the
 
 What is genuinely still open and needs no new hardware: **probe question 7**
 (`setSelectedSlides`, the jump's call), which no sheet of this repo's has
-answered on ANY platform. Until one does, the jump is borrowed from
-SSF-Charts' dated web measurement rather than measured here. The next round on
-the web or on Windows settles it, and the same round should exercise
-"Remove from N slides" and "Move to a new slide" — see the item above.
+answered on ANY platform. The PRODUCT half of it was measured on the web on
+2026-09-13 — the jump moved the deck from slide 1 to slide 2 and the host took
+an insert straight afterwards, so it did not wedge the selection subsystem
+(`docs/DESIGN.md` section 15). That is one build behaving, not an answer sheet:
+until a probe run carries question 7, the number a sheet would give is still
+borrowed from SSF-Charts' dated web measurement.
 
 ### Release and AppSource
 
