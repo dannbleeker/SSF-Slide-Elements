@@ -166,12 +166,24 @@ export function judgeSurvivor(where) {
 /**
  * Which recorded entries matched nothing this run, and so need re-verdicting.
  *
+ * `swept` is the files the run actually covered, and leaving it out was a defect
+ * in this gate rather than a nicety. `--only host/jump,host/probe,pane/search`
+ * on 2026-09-13 reported `src/pane/storage.ts` as an entry gone stale, which was
+ * nonsense: storage.ts was not swept, so of course nothing of its matched. A
+ * gate that cries wolf on every partial run teaches the reader to skim past it,
+ * which is the same failure as a gate that cannot fail at all.
+ *
+ * An entry for a file outside the run is not evidence either way, so it is
+ * simply not judged.
+ *
  * @param {string[]} survivors
+ * @param {string[]} swept the source files this run mutated
  * @returns {string[]}
  */
-export function staleEquivalents(survivors) {
+export function staleEquivalents(survivors, swept) {
   return EQUIVALENT.filter(
     (one) =>
+      swept.includes(one.file) &&
       !survivors.some(
         (where) =>
           where.startsWith(`${one.file}:`) &&
@@ -609,7 +621,7 @@ function main() {
     console.log(`  ${one}${judged.known ? "   [known equivalent, see EQUIVALENT]" : ""}`);
     if (judged.known) console.log(`      ${judged.why}`);
   }
-  const stale = staleEquivalents(survivors);
+  const stale = staleEquivalents(survivors, files);
   if (stale.length) {
     console.log(`\nmutants: ${stale.length} recorded equivalent(s) matched nothing this run — re-verdict them:`);
     for (const one of stale) console.log(`  ${one}`);
