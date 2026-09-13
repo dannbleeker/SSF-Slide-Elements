@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { AIR, cutFor, cutsFor, intersect, rotatedCorners, withAir } from "../src/core/catalogue/cut.js";
+import { AIR, cutFor, cutsFor, intersect, type Point, rotatedCorners, withAir } from "../src/core/catalogue/cut.js";
 import type { Box, Element } from "../src/core/catalogue/types.js";
 
 const el = (over: Partial<Element>): Element => ({
@@ -78,6 +78,17 @@ describe("painting out the neighbours", () => {
     const cut = cutFor(a, [a, a]);
     expect(cut.whiteOut).toEqual([]);
   });
+
+  it("never paints out a SEPARATE object carrying the element's own id", () => {
+    // `cutFor` is called with an element and a list, and nothing makes the two
+    // the same object: a caller that re-read the catalogue holds a copy. Identity
+    // alone would let that copy paint the element out with its own box, which is
+    // the whole tile. The id is what keeps the two apart.
+    const copy = { ...a };
+    expect(copy).not.toBe(a);
+    const cut = cutFor(a, [copy]);
+    expect(cut.whiteOut).toEqual([]);
+  });
 });
 
 describe("masking a rotated part", () => {
@@ -90,6 +101,19 @@ describe("masking a rotated part", () => {
       expect(p.x).toBeLessThanOrEqual(0.75 + 1e-6);
     }
     expect(turned).toHaveLength(4);
+  });
+
+  it("at rest gives the frame's own four corners, top-left first and clockwise", () => {
+    // Every corner, not just the first: three of the four are otherwise free to
+    // be built from the wrong half of the frame and no picture would say so.
+    const frame = { x: 0.2, y: 0.3, w: 0.4, h: 0.2 };
+    const at = (p: Point) => [Math.round(p.x * 1e6) / 1e6, Math.round(p.y * 1e6) / 1e6];
+    expect(rotatedCorners(frame, 0).map(at)).toEqual([
+      [0.2, 0.3],
+      [0.6, 0.3],
+      [0.6, 0.5],
+      [0.2, 0.5],
+    ]);
   });
 
   it("turns clockwise, the direction PowerPoint's rot counts in", () => {
@@ -133,6 +157,12 @@ describe("masking a rotated part", () => {
 describe("intersect", () => {
   it("is undefined for boxes that only touch at an edge", () => {
     expect(intersect({ x: 0, y: 0, w: 0.5, h: 1 }, { x: 0.5, y: 0, w: 0.5, h: 1 })).toBeUndefined();
+  });
+
+  it("is undefined for boxes that only touch along the horizontal edge too", () => {
+    // The same rule on the other axis. Without it a part sitting exactly under
+    // this one paints out a strip of no height, which is not a neighbour.
+    expect(intersect({ x: 0, y: 0, w: 1, h: 0.5 }, { x: 0, y: 0.5, w: 1, h: 0.5 })).toBeUndefined();
   });
 });
 

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import {
   HarvestError,
@@ -92,6 +93,8 @@ const NAMES: Names = {
     "Figurer 1": "Shape 1",
     "Stempler 1": "Scales",
     Billede: "Picture",
+    "Halv bredde": "Half the slide wide",
+    "Over halv bredde": "Wider than half",
   },
 };
 
@@ -303,6 +306,269 @@ describe("markup and carried parts", () => {
     expect(el?.markup.parts.some((p) => p.startsWith("ppt/charts/"))).toBe(true);
     expect(el?.markup.parts.some((p) => p.startsWith("ppt/embeddings/"))).toBe(true);
     expect(parts.has("ppt/charts/_rels/chart2.xml.rels")).toBe(true);
+  });
+});
+
+describe("what a placeholder has to hold to be content", () => {
+  // `isChrome` answers "is this shape layout furniture". A title, a footer, a
+  // slide number and a date always are. Any OTHER placeholder is furniture
+  // only while it is EMPTY, and there are three separate ways it can stop
+  // being empty — text, a graphic, a picture. Each of the three shapes below
+  // holds exactly one of them and nothing else, so a reading that stopped
+  // seeing one of the three would drop that shape out of the element.
+
+  /** A body placeholder holding `inner`, named so a shape that gets dropped names itself in the failure. */
+  const bodyPlaceholder = (id: number, name: string, inner: string): string =>
+    `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${name}"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="${id}"/></p:nvPr></p:nvSpPr>` +
+    `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr>${inner}</p:sp>`;
+
+  /** One character of text, which is the least a placeholder can hold and still be content. */
+  const oneCharacter = bodyPlaceholder(
+    51,
+    "One character",
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="da-DK"/><a:t>x</a:t></a:r></a:p></p:txBody>`,
+  );
+  const emptyPlaceholder = bodyPlaceholder(
+    52,
+    "Empty placeholder",
+    `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>`,
+  );
+  /** A picture in a content placeholder: one `<a:blip>` and no text at all. The relationship it names is beside the point here. */
+  const picturePlaceholder =
+    `<p:pic><p:nvPicPr><p:cNvPr id="53" name="Picture placeholder"/><p:cNvPicPr/><p:nvPr><p:ph type="pic" idx="53"/></p:nvPr></p:nvPicPr>` +
+    `<p:blipFill><a:blip r:embed="rId40"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>` +
+    `<p:spPr><a:xfrm><a:off x="3000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`;
+  /** A chart in a content placeholder: one `<a:graphic>`, no blip and no text. */
+  const graphicPlaceholder =
+    `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="54" name="Graphic placeholder"/><p:cNvGraphicFramePr/>` +
+    `<p:nvPr><p:ph type="tbl" idx="54"/></p:nvPr></p:nvGraphicFramePr>` +
+    `<p:xfrm><a:off x="5000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></p:xfrm>` +
+    `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"/></a:graphic></p:graphicFrame>`;
+
+  it("keeps a placeholder holding one character, a picture or a graphic, and drops the one holding nothing", async () => {
+    // The plain rectangle is here so the slide keeps an element whatever the
+    // reading of the other four does: a shape that is no placeholder at all is
+    // content without being asked what it holds, so the assertions below stay
+    // about the placeholders.
+    const plain = rect(7000000, 1000000, 500000, 500000, { name: "No placeholder at all", id: 55 });
+    const { catalogue } = await harvested([
+      heading("Kasser"),
+      {
+        paragraphs: [],
+        noBody: true,
+        title: "Tabel",
+        shapes: [plain, oneCharacter, picturePlaceholder, graphicPlaceholder, emptyPlaceholder],
+      },
+    ]);
+    const [el] = catalogue.elements;
+    expect(el?.markup.xml).toContain("No placeholder at all");
+    expect(el?.markup.xml).toContain("One character");
+    expect(el?.markup.xml).toContain("Picture placeholder");
+    expect(el?.markup.xml).toContain("Graphic placeholder");
+    expect(el?.markup.xml).not.toContain("Empty placeholder");
+    expect(el?.shapes).toBe(4);
+  });
+});
+
+describe("the relationships an element's markup names", () => {
+  const REL_NS = `xmlns="http://schemas.openxmlformats.org/package/2006/relationships"`;
+  const LAYOUT = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout";
+  const IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+  /** The layout relationship every slide needs, since the theme — and so the catalogue's colour map — is read through it. */
+  const layoutRel = `<Relationship Id="rId1" Type="${LAYOUT}" Target="../slideLayouts/slideLayout1.xml"/>`;
+  const relsFile = (rows: string): string =>
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships ${REL_NS}>${layoutRel}${rows}</Relationships>`;
+
+  /** The fixture's bytes with parts rewritten or removed, the way `test/pptx-clone.test.ts` edits one. */
+  const editedDeck = async (slides: SlideSpec[], edit: (zip: JSZip) => void): Promise<Pkg> => {
+    const zip = await JSZip.loadAsync(await makeDeck(slides));
+    edit(zip);
+    return Pkg.open(await zip.generateAsync({ type: "uint8array" }));
+  };
+
+  /** A heading, one ordinary element slide, and a second element slide the test edits. */
+  const twoElements = (shapes: string[]): SlideSpec[] => [
+    heading("Kasser"),
+    { paragraphs: [["a"]], title: "Kasse, 2 vertikale" },
+    { paragraphs: [], noBody: true, title: "Billede", shapes },
+  ];
+  const secondElement = async (pkg: Pkg) =>
+    (await harvest(pkg, { size: "16:9", names: NAMES })).catalogue.elements.find((e) => e.slide === 3);
+
+  it("answers no relationships for a slide with no rels part at all", async () => {
+    // OPC permits a part with no relationships file; PowerPoint would not write
+    // one for a slide, since it would name no layout. The slide before it keeps
+    // its layout, so the deck still answers with exactly one theme and the
+    // harvest still finishes.
+    const pkg = await editedDeck(twoElements([picture("rId20")]), (zip) =>
+      zip.remove("ppt/slides/_rels/slide3.xml.rels"),
+    );
+    const el = await secondElement(pkg);
+    expect(el?.markup.rels).toEqual([]);
+    expect(el?.markup.parts).toEqual([]);
+  });
+
+  it("ignores a relationship missing its Id or its Type", async () => {
+    // A relationship row that does not say all three things says nothing this
+    // engine can act on: the id is what the markup names it by, the target is
+    // what it points at, and the type is what the splice re-declares it as in
+    // the user's package.
+    const pkg = await editedDeck(twoElements([picture("rId20")]), (zip) => {
+      zip.file("ppt/media/loose.png", new Uint8Array([137, 80, 78, 71]));
+      zip.file(
+        "ppt/slides/_rels/slide3.xml.rels",
+        relsFile(
+          `<Relationship Id="rId20" Target="../media/loose.png"/>` +
+            `<Relationship Type="${IMAGE}" Target="../media/loose.png"/>`,
+        ),
+      );
+    });
+    const el = await secondElement(pkg);
+    expect(el?.markup.rels).toEqual([]);
+    expect(el?.markup.parts).toEqual([]);
+  });
+
+  it("ignores a relationship missing its Target", async () => {
+    // The third of the three, on its own because it is the one that cannot be
+    // half-handled: a row with no target has nothing to resolve against the
+    // package, and reading one costs the whole harvest.
+    const pkg = await editedDeck(twoElements([picture("rId20")]), (zip) =>
+      zip.file("ppt/slides/_rels/slide3.xml.rels", relsFile(`<Relationship Id="rId20" Type="${IMAGE}"/>`)),
+    );
+    const el = await secondElement(pkg);
+    expect(el?.markup.rels).toEqual([]);
+    expect(el?.markup.parts).toEqual([]);
+  });
+
+  it("names a relationship whose target is not in the package, and carries nothing for it", async () => {
+    const pkg = await editedDeck(twoElements([picture("rId20")]), (zip) =>
+      zip.file(
+        "ppt/slides/_rels/slide3.xml.rels",
+        relsFile(`<Relationship Id="rId20" Type="${IMAGE}" Target="../media/missing.png"/>`),
+      ),
+    );
+    const el = await secondElement(pkg);
+    expect(el?.markup.rels.map((r) => r.id)).toEqual(["rId20"]);
+    expect(el?.markup.parts).toEqual([]);
+  });
+
+  it("reads relationship ids out of `r:` attributes only, never out of a shape's own name", async () => {
+    // A shape's name is the author's to choose, and the owner's decks are full
+    // of hand-typed ones. A shape named after a relationship id must not pull
+    // that relationship — here the slide's own layout — into the element.
+    const named = rect(1000000, 1000000, 500000, 500000, { name: "rId1", text: "Billede" });
+    const pkg = await editedDeck(twoElements([named]), () => {});
+    const el = await secondElement(pkg);
+    expect(el?.markup.rels).toEqual([]);
+  });
+});
+
+describe("where a part lands, and how big it is", () => {
+  const marker = "SSF: ét element pr. figur";
+
+  it("lands a part wider than half the slide as authored, and one exactly half at the cursor", async () => {
+    // `docs/DESIGN.md` section 4: "A part wider than half the slide (the
+    // breadcrumb bar, the kicker box) lands where it sits in the library."
+    // WIDER than half, so half itself is a cursor landing — the two shapes
+    // here sit either side of that line, one rounded box apart.
+    const { catalogue } = await harvested([
+      heading("Samling", marker),
+      {
+        paragraphs: [],
+        noBody: true,
+        title: "Figurer",
+        shapes: [
+          rect(0, 1000000, W / 2, 500000, { text: "Halv bredde", id: 71 }),
+          rect(0, 3000000, 6097220, 500000, { text: "Over halv bredde", id: 72 }),
+        ],
+      },
+    ]);
+    expect(catalogue.elements.map((e) => [e.key, e.box.w, e.landing])).toEqual([
+      ["Halv bredde", 0.5, "cursor"],
+      ["Over halv bredde", 0.5001, "as-authored"],
+    ]);
+  });
+
+  it("boxes a part with no frame of its own as the whole slide", async () => {
+    // A shape inheriting its geometry from the layout says nothing about where
+    // it is, and `boxOf` answers undefined rather than guessing. The part is
+    // then boxed as the whole slide — which also puts it past the half-slide
+    // line, so it lands where the library has it.
+    const bare =
+      `<p:sp><p:nvSpPr><p:cNvPr id="73" name="Rektangel 9"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="da-DK"/><a:t>Dokument</a:t></a:r></a:p></p:txBody></p:sp>`;
+    const { catalogue } = await harvested([
+      heading("Samling", marker),
+      { paragraphs: [], noBody: true, title: "Figurer", shapes: [bare] },
+    ]);
+    expect(catalogue.elements[0]?.box).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(catalogue.elements[0]?.landing).toBe("as-authored");
+  });
+
+  it("gives a run to the slide elements it was built from, never to a part that shares a name", async () => {
+    // `sizeRuns` reads the names of the SLIDE elements, and the stepper it
+    // feeds steps between whole slides. A part whose English name happens to
+    // be one of theirs is not a member of that run: stepping it would swap a
+    // stamp for a slide.
+    const names: Names = {
+      categories: NAMES.categories,
+      names: { ...NAMES.names, Halvdel: "Boxes, 2 vertical" },
+    };
+    const { catalogue } = await harvested(
+      [
+        heading("Kasser"),
+        { paragraphs: [["a"]], title: "Kasse, 2 vertikale" },
+        { paragraphs: [["b"]], title: "Kasse, 3 vertikale" },
+        heading("Samling", marker),
+        {
+          paragraphs: [],
+          noBody: true,
+          title: "Figurer",
+          shapes: [rect(0, 0, 500000, 500000, { text: "Halvdel", id: 74 })],
+        },
+      ],
+      names,
+    );
+    const part = catalogue.elements.find((e) => e.kind === "part");
+    expect(part?.name).toBe("Boxes, 2 vertical");
+    expect(part?.run).toBeUndefined();
+    expect(catalogue.elements.filter((e) => e.run).map((e) => e.key)).toEqual([
+      "Kasse, 2 vertikale",
+      "Kasse, 3 vertikale",
+    ]);
+  });
+});
+
+describe("the size the deck states", () => {
+  const sized = async (edit: (sldSz: Element) => void) => {
+    const pkg = await Pkg.open(
+      await makeDeck([heading("Kasser"), { paragraphs: [["a"]], title: "Kasse, 2 vertikale" }]),
+    );
+    const sldSz = element(await pkg.doc("ppt/presentation.xml"), P_NS, "sldSz");
+    edit(sldSz as Element);
+    return harvest(pkg, { size: "16:9", names: NAMES });
+  };
+
+  it("refuses a deck that states a width but no height, or a height but no width", async () => {
+    // Both halves are required and each is checked: a deck answering 0 for
+    // either has no slide to measure an element against, and every box in the
+    // catalogue would be a fraction of nothing.
+    await expect(sized((sz) => sz.removeAttribute("cx"))).rejects.toThrow(/no slide size/);
+    await expect(sized((sz) => sz.removeAttribute("cy"))).rejects.toThrow(/no slide size/);
+    await expect(sized((sz) => sz.setAttribute("cx", "0"))).rejects.toThrow(/no slide size/);
+    await expect(sized((sz) => sz.setAttribute("cy", "0"))).rejects.toThrow(/no slide size/);
+  });
+
+  it("accepts any POSITIVE size, one EMU included", async () => {
+    // The other side of the same boundary. One EMU is not a slide anybody
+    // would author, and the harvest's business is that the deck stated a size
+    // at all — a deck with an absurd one is the owner's to fix, not a deck the
+    // harvest can improve by guessing.
+    const { catalogue } = await sized((sz) => {
+      sz.setAttribute("cx", "1");
+      sz.setAttribute("cy", "1");
+    });
+    expect([catalogue.width, catalogue.height]).toEqual([1, 1]);
   });
 });
 

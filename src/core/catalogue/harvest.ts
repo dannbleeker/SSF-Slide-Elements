@@ -155,8 +155,13 @@ async function markupFor(
   return { xml, rels, parts };
 }
 
-function landingFor(kind: "slide" | "part", collectionTitle: string, box: Box): Landing {
-  if (kind === "slide") return "layout";
+/**
+ * Where a PART lands (`docs/DESIGN.md` section 4). A whole-slide element always
+ * lands "layout", and says so at the one place it is built, so this is not
+ * asked about one: a second spelling of that answer here was unreachable, and
+ * a mutation sweep on 2026-09-13 found it by changing it and killing nothing.
+ */
+function landingFor(collectionTitle: string, box: Box): Landing {
   if (box.w > 0.5) return "as-authored";
   return /stempl/i.test(collectionTitle) ? "top-right" : "cursor";
 }
@@ -263,7 +268,7 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
           kind: "part",
           box: b,
           ...(rot ? { rotation: { deg: rot.deg, frame: rounded(rot.frame) } } : {}),
-          landing: landingFor("part", title, b),
+          landing: landingFor(title, b),
           shapes: 1,
           tags: tagsFor(key, title, true),
           markup: await markupFor(pkg, slidePath, [shape], seen, parts),
