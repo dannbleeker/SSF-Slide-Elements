@@ -9,6 +9,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The check that deliberately breaks the add-in's code now double-checks the
+  changes it believes were CAUGHT, not only the ones it believes slipped
+  through. It always re-ran a change nothing noticed, slowly and against
+  everything, before reporting it — and took a change something noticed at its
+  word on the first try. That is the wrong way round: a change wrongly reported
+  as slipping through wastes a reader's afternoon and says so out loud, while a
+  change wrongly reported as caught is a gap in the tests that the report stays
+  silent about. One was found exactly that way. A change is now put back to the
+  one test file that objected, and only a second objection counts.
+
+### Changed — nothing you can see
+
 - The check that deliberately breaks the add-in's own code, one change at a
   time, to see whether the tests notice now covers the part that READS the
   library decks — turning a PowerPoint file into the elements the panel offers

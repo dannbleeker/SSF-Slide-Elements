@@ -15,6 +15,11 @@ const TARGETS = tool.TARGETS as string[];
 const fastTests = tool.fastTests as (file: string) => string[];
 const testsReaching = tool.testsReaching as (file: string) => string[];
 const verdictOfFailure = tool.verdictOfFailure as (error: unknown, out: string) => "killed" | "inconclusive";
+const failedFilesOf = tool.failedFilesOf as (out: string) => string[];
+const confirmedKill = tool.confirmedKill as (
+  blamed: string[],
+  rerun: (files: string[]) => "survived" | "killed" | "inconclusive",
+) => "survived" | "killed";
 
 /**
  * The mutation sweep, which is a tool rather than a gate and therefore has to be
@@ -174,6 +179,61 @@ describe("what a run that failed is allowed to mean", () => {
   it("reads a report naming no failure as inconclusive rather than a kill", () => {
     writeFileSync(report, JSON.stringify({ testResults: [] }));
     expect(verdictOfFailure(new Error("exit 1"), report)).toBe("inconclusive");
+  });
+});
+
+describe("a kill asked a second time", () => {
+  const report = join(tmpdir(), "ssf-mutants-test-blame.json");
+  const here = (name: string) => join(process.cwd(), name);
+
+  it("names the test files a failed run blamed, and only those", () => {
+    writeFileSync(
+      report,
+      JSON.stringify({
+        testResults: [
+          { name: here("test/passed.test.ts"), status: "passed", assertionResults: [{ status: "passed" }] },
+          { name: here("test/blamed.test.ts"), status: "failed", assertionResults: [{ status: "failed" }] },
+        ],
+      }),
+    );
+    expect(failedFilesOf(report)).toEqual(["test/blamed.test.ts"]);
+  });
+
+  // A file the runner could not even start reports no assertions at all. It is
+  // still the file to re-run.
+  it("names a file that failed without running a test", () => {
+    writeFileSync(
+      report,
+      JSON.stringify({ testResults: [{ name: here("test/broken.test.ts"), status: "failed", assertionResults: [] }] }),
+    );
+    expect(failedFilesOf(report)).toEqual(["test/broken.test.ts"]);
+  });
+
+  it("names nothing when the report cannot be read", () => {
+    expect(failedFilesOf(join(tmpdir(), "ssf-mutants-no-such-report.json"))).toEqual([]);
+  });
+
+  it("keeps a kill the blamed file reports again", () => {
+    expect(confirmedKill(["test/blamed.test.ts"], () => "killed")).toBe("killed");
+  });
+
+  // The whole point. A first run that failed for its own reasons — a flake on a
+  // loaded machine — passes on its own, and the mutant goes back to being a
+  // survivor so the whole-suite re-check gets the last word.
+  it("turns a kill the blamed file does not repeat back into a survivor", () => {
+    expect(confirmedKill(["test/blamed.test.ts"], () => "survived")).toBe("survived");
+  });
+
+  it("treats an unclear second answer as a survivor too, because that answer gets re-checked", () => {
+    expect(confirmedKill(["test/blamed.test.ts"], () => "inconclusive")).toBe("survived");
+  });
+
+  it("keeps a kill that blamed no file, having nothing to re-run", () => {
+    expect(
+      confirmedKill([], () => {
+        throw new Error("must not re-run when no file was named");
+      }),
+    ).toBe("killed");
   });
 });
 
