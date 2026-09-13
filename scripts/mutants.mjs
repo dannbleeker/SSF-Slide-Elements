@@ -85,6 +85,32 @@ export const TARGETS = [
   "src/pane/steps.ts",
   "src/pane/storage.ts",
   "src/pane/used.ts",
+
+  // The engine. Added 2026-09-13, once `FAST` made it affordable: without a
+  // first-tier map these 998 mutations cost about seventeen hours, because every
+  // core file except `catalogue/cut.ts` is imported into `test/splice.test.ts`.
+  // `cut.ts` has no `FAST` row because it needs none — one test reaches it.
+  "src/core/catalogue/boxes.ts",
+  "src/core/catalogue/cut.ts",
+  "src/core/catalogue/harvest.ts",
+  "src/core/catalogue/runs.ts",
+  "src/core/catalogue/tags.ts",
+  "src/core/catalogue/text.ts",
+  "src/core/catalogue/types.ts",
+  "src/core/pptx/base64.ts",
+  "src/core/pptx/clone.ts",
+  "src/core/pptx/layout.ts",
+  "src/core/pptx/pkg.ts",
+  "src/core/pptx/tags.ts",
+  "src/core/pptx/theme.ts",
+  "src/core/pptx/xml.ts",
+  "src/core/splice/carry.ts",
+  "src/core/splice/colours.ts",
+  "src/core/splice/landing.ts",
+  "src/core/splice/listing.ts",
+  "src/core/splice/remove.ts",
+  "src/core/splice/shapes.ts",
+  "src/core/splice/splice.ts",
 ];
 
 /**
@@ -288,12 +314,115 @@ export function testsReaching(target) {
  * Measured 2026-09-13: extending the sweep to `src/core` without this map costs
  * about 17 hours of first tier. With it, about an hour.
  *
- * Every row was measured rather than guessed: the file's own statement and
- * branch coverage under the subset, against the same numbers under its full
- * reaching set. A row is only here if that comparison was run, and the delta is
- * recorded beside it.
+ * Every row was measured rather than guessed, on 2026-09-13. The method: start
+ * from the file's full reaching set, drop each expensive test file in turn, and
+ * KEEP the drop only when that file's own statement and branch coverage is
+ * unchanged. Then time what survives with no coverage instrumentation, which is
+ * what a tier run actually costs. Both numbers are on every row.
+ *
+ * Seventeen of the twenty rows are LOSSLESS — identical coverage to the whole
+ * suite. Three are not, and are here anyway: `splice/carry.ts` (92.45 branches
+ * against 96.22), `splice/colours.ts` (83.33 against 87.5) and
+ * `splice/splice.ts` (89.7 against 97.05). Falling back to their sound sets
+ * would cost 57.6 s a mutant — 106 minutes for their 112 mutations, more than
+ * the other seventeen files put together. A lossy tier costs one 57.6 s
+ * whole-suite re-check per mutant it fails to kill, and there will be a handful,
+ * not fifty. The re-check is what makes that trade safe; without it the loss
+ * would be false survivors in the report rather than wasted minutes.
+ *
+ * Measured total for all 998 engine mutations: about 66 minutes of first tier,
+ * plus one 57.6 s re-check per survivor.
  */
-export const FAST = {};
+export const FAST = {
+  // 80 mutations, 5.9 s a mutant, 100/100 statements/branches
+  "src/core/catalogue/boxes.ts": ["test/catalogue.test.ts", "test/splice-malformed.test.ts"],
+  // 110 mutations, 6.2 s a mutant, 96.92/90.51 statements/branches
+  "src/core/catalogue/harvest.ts": ["test/catalogue.test.ts", "test/colours.test.ts"],
+  // 31 mutations, 6.1 s a mutant, 100/91.66 statements/branches
+  "src/core/catalogue/runs.ts": ["test/catalogue.test.ts"],
+  // 4 mutations, 2.9 s a mutant, 100/100 statements/branches
+  "src/core/catalogue/tags.ts": ["test/validators-deck.test.ts"],
+  // 21 mutations, 5.8 s a mutant, 100/90 statements/branches
+  "src/core/catalogue/text.ts": ["test/catalogue.test.ts", "test/splice-malformed.test.ts"],
+  // 10 mutations, 2.4 s a mutant, 100/100 statements/branches
+  "src/core/catalogue/types.ts": [
+    "test/cut.test.ts",
+    "test/docs.test.ts",
+    "test/pane-card.test.ts",
+    "test/pane-catalogue.test.ts",
+    "test/pane-combinations.test.ts",
+    "test/pane-render.test.ts",
+    "test/pane-search.test.ts",
+    "test/pane-steps.test.ts",
+    "test/pane-storage.test.ts",
+    "test/pane-used.test.ts",
+    "test/splice-malformed.test.ts",
+  ],
+  // 10 mutations, 2.3 s a mutant, 100/100 statements/branches
+  "src/core/pptx/base64.ts": [
+    "test/base64.test.ts",
+    "test/integrity.test.ts",
+    "test/package-surface.test.ts",
+    "test/package-valid.test.ts",
+    "test/pptx-clone.test.ts",
+    "test/pptx-layout.test.ts",
+    "test/pptx-malformed.test.ts",
+    "test/pptx-tags.test.ts",
+    "test/pptx.test.ts",
+    "test/slide-listing.test.ts",
+    "test/splice-malformed.test.ts",
+  ],
+  // 52 mutations, 1.1 s a mutant, 100/97.01 statements/branches
+  "src/core/pptx/clone.ts": ["test/pptx-clone.test.ts", "test/splice-malformed.test.ts"],
+  // 71 mutations, 1.1 s a mutant, 100/100 statements/branches
+  "src/core/pptx/layout.ts": ["test/pptx-layout.test.ts", "test/splice-malformed.test.ts"],
+  // 187 mutations, 3.7 s a mutant, 99.15/98.96 statements/branches
+  "src/core/pptx/pkg.ts": [
+    "test/integrity.test.ts",
+    "test/package-surface.test.ts",
+    "test/package-valid.test.ts",
+    "test/pptx-clone.test.ts",
+    "test/pptx-layout.test.ts",
+    "test/pptx-malformed.test.ts",
+    "test/pptx-tags.test.ts",
+    "test/pptx.test.ts",
+    "test/security.test.ts",
+    "test/slide-listing.test.ts",
+    "test/splice-carry.test.ts",
+    "test/splice-malformed.test.ts",
+  ],
+  // 65 mutations, 1.1 s a mutant, 100/97.5 statements/branches
+  "src/core/pptx/tags.ts": ["test/pptx-tags.test.ts", "test/splice-malformed.test.ts"],
+  // 38 mutations, 1.1 s a mutant, 96.66/95.83 statements/branches
+  "src/core/pptx/theme.ts": ["test/colours.test.ts", "test/splice-malformed.test.ts"],
+  // 17 mutations, 2.1 s a mutant, 97.56/84.21 statements/branches
+  "src/core/pptx/xml.ts": [
+    "test/integrity.test.ts",
+    "test/package-surface.test.ts",
+    "test/package-valid.test.ts",
+    "test/pptx-clone.test.ts",
+    "test/pptx-layout.test.ts",
+    "test/pptx-malformed.test.ts",
+    "test/pptx-tags.test.ts",
+    "test/pptx.test.ts",
+    "test/slide-listing.test.ts",
+    "test/splice-malformed.test.ts",
+  ],
+  // 46 mutations, 2.7 s a mutant, 100/92.45 statements/branches — LOSSY, see below
+  "src/core/splice/carry.ts": ["test/splice-carry.test.ts", "test/splice-malformed.test.ts"],
+  // 15 mutations, 1.1 s a mutant, 94.59/83.33 statements/branches — LOSSY, see below
+  "src/core/splice/colours.ts": ["test/colours.test.ts", "test/splice-malformed.test.ts"],
+  // 55 mutations, 1.2 s a mutant, 100/100 statements/branches
+  "src/core/splice/landing.ts": ["test/splice-landing.test.ts", "test/splice-malformed.test.ts"],
+  // 8 mutations, 1.1 s a mutant, 100/100 statements/branches
+  "src/core/splice/listing.ts": ["test/slide-listing.test.ts", "test/splice-malformed.test.ts"],
+  // 27 mutations, 3.3 s a mutant, 98.24/93.1 statements/branches
+  "src/core/splice/remove.ts": ["test/splice-malformed.test.ts", "test/splice-remove.test.ts"],
+  // 75 mutations, 13.0 s a mutant, 99.5/97.52 statements/branches
+  "src/core/splice/shapes.ts": ["test/splice-malformed.test.ts", "test/splice-shapes.test.ts"],
+  // 51 mutations, 3.1 s a mutant, 91.07/89.7 statements/branches — LOSSY, see below
+  "src/core/splice/splice.ts": ["test/splice-malformed.test.ts", "test/validators-deck.test.ts"],
+};
 
 /**
  * The first tier for a file: its measured subset, or everything that reaches it.
