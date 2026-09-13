@@ -32,6 +32,16 @@
  *   catches an id reused after a delete, which the two checks above both pass.
  * - **undeclared part** — a part no content type covers, and an Override naming
  *   a part that is not there. PowerPoint refuses a package with either.
+ * - **a RELATIVE Override part name** — ECMA-376 part 2 wants an absolute one,
+ *   and `System.IO.Packaging` refuses the whole package with "Part URI must
+ *   start with a forward slash". This check exists because both library decks
+ *   under `template/` carried it and nothing here noticed: two
+ *   `ppt/notesSlides/notesSlideN.xml` Overrides had no leading slash, desktop
+ *   PowerPoint refused both decks outright, and PowerPoint for the WEB opened
+ *   them without complaint — so no round on the web could ever have found it.
+ *   The old check collected only `PartName="/..."`, so a relative one fell out
+ *   of the set entirely, and the deck's `Default Extension="xml"` then covered
+ *   the part anyway. Silence, from a guard whose whole job was that part.
  * - **a character XML cannot carry** — a C0 control, an unpaired surrogate or
  *   `FFFE`/`FFFF` in the markup. The one problem that makes every check above
  *   moot, because a conforming parser refuses the part before it can disagree
@@ -365,7 +375,17 @@ export function packageProblems(parts) {
 
   const types = text("[Content_Types].xml") ?? "";
   const defaults = new Set([...types.matchAll(/Default Extension="([^"]*)"/g)].map((m) => (m[1] ?? "").toLowerCase()));
-  const overrides = new Set([...types.matchAll(/PartName="\/([^"]*)"/g)].map((m) => m[1] ?? ""));
+  // EVERY Override, then the absolute ones — not a pattern that requires the
+  // leading slash, which is how the defect below hid. See `RELATIVE OVERRIDE`.
+  const declared = [...types.matchAll(/PartName="([^"]*)"/g)].map((m) => m[1] ?? "");
+  for (const partName of declared) {
+    if (!partName.startsWith("/")) {
+      problems.push(
+        `[Content_Types].xml: Override PartName="${partName}" is relative; a part name must start with "/"`,
+      );
+    }
+  }
+  const overrides = new Set(declared.filter((p) => p.startsWith("/")).map((p) => p.slice(1)));
   for (const part of overrides) {
     if (!names.has(part)) problems.push(`[Content_Types].xml: declares /${part}, which is not in the package`);
   }
