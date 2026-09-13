@@ -64,7 +64,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { isMain } from "./is-main.mjs";
 import { failedNames } from "./test-count.mjs";
 
@@ -741,6 +741,83 @@ export function verdictOfFailure(error, out) {
 }
 
 /**
+ * The per-file results of the report on disk, or nothing if it cannot be read.
+ *
+ * @param {string} out where the JSON report goes
+ * @returns {{ name?: string, status?: string, assertionResults?: { status?: string }[] }[]}
+ */
+function readReport(out) {
+  try {
+    return /** @type {{ testResults?: unknown }} */ (JSON.parse(readFileSync(out, "utf8"))).testResults ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Which TEST FILES a failed run blamed, relative to the tree being swept.
+ *
+ * `verdictOf` reads the report to learn WHETHER a test failed and throws away
+ * WHICH, and that is the whole of what a kill is checked against. Naming the
+ * file is what lets a kill be confirmed cheaply.
+ *
+ * Vitest writes an absolute path, and the sweep runs in a throwaway copy, so
+ * the path is relativised — a run that is handed the copy's own absolute path
+ * works, but the report and the console then disagree about what is being
+ * talked about.
+ *
+ * @param {string} out where the JSON report goes
+ * @returns {string[]} distinct test files, in the order the report lists them
+ */
+export function failedFilesOf(out) {
+  const files = readReport(out);
+  const blamed = files
+    .filter((one) => one.status === "failed" || (one.assertionResults ?? []).some((test) => test.status === "failed"))
+    .map((one) => relative(process.cwd(), one.name ?? ""))
+    .filter(Boolean);
+  return [...new Set(blamed)];
+}
+
+/**
+ * Whether a kill survives being asked a second time, against the file that
+ * reported the failure and nothing else.
+ *
+ * WHY A KILL NEEDS ASKING TWICE. Every SURVIVOR is re-run against the whole
+ * suite before it is reported, and until now every KILL was believed on one
+ * run. That asymmetry is backwards. A survivor wrongly reported costs a reader
+ * an afternoon and says so out loud; a kill wrongly reported is a hole in the
+ * suite that the report is SILENT about, which is the failure this whole script
+ * exists to prevent.
+ *
+ * It is not hypothetical. On 2026-09-13 `src/core/catalogue/boxes.ts:148` was
+ * reported killed by one sweep and alive by the next, on a suite that had only
+ * grown and a line nothing about which had changed. The mutant is provably
+ * behaviour-identical, so the kill was false: a test that failed for its own
+ * reasons in a run sharing four cores with four other agents, and `verdictOf`
+ * counts any named failure as a kill.
+ *
+ * The check is cheap because it is narrow. `--bail=1` means a killing run stops
+ * at the first failure, and the confirmation re-runs ONE test file rather than
+ * the tier. A real kill fails again; a flake does not.
+ *
+ * Anything short of a second failure resolves to "survived", including an
+ * unclear answer — not because a survivor is the likelier truth, but because
+ * "survived" costs one whole-suite re-check, which is the authoritative answer,
+ * and "killed" costs silence. A test that only fails alongside others also
+ * lands here and is then correctly killed by that re-check.
+ *
+ * @param {string[]} blamed the test files the first run reported failing
+ * @param {(files: string[]) => "survived"|"killed"|"inconclusive"} rerun
+ * @returns {"survived"|"killed"}
+ */
+export function confirmedKill(blamed, rerun) {
+  // No file named is not evidence of a flake: a report can say a run failed
+  // without attributing it. Nothing to re-run means nothing to re-check.
+  if (!blamed.length) return "killed";
+  return rerun(blamed) === "killed" ? "killed" : "survived";
+}
+
+/**
  * Put the mutation in place, run the tests, and ALWAYS put the original back.
  *
  * The restore is in a `finally` because a half-written file is the one way this
@@ -763,7 +840,11 @@ function tryMutation(file, text, mutated, tests, out) {
   writeFileSync(file, mutated);
   try {
     const first = verdictOf(tests, out);
-    return first === "inconclusive" ? verdictOf(tests, out) : first;
+    const verdict = first === "inconclusive" ? verdictOf(tests, out) : first;
+    if (verdict !== "killed") return verdict;
+    // The mutation is still in place — the restore is in the `finally` below —
+    // so the confirmation asks the same question of the same code.
+    return confirmedKill(failedFilesOf(out), (files) => verdictOf(files, out));
   } finally {
     writeFileSync(file, text);
   }
