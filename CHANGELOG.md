@@ -34,6 +34,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   noticed", and every one of one file's ten findings was exactly that. The tool
   now requires a real comparison, which is checked by tests of its own.
 
+- And it could record a change as NOTICED when nothing had noticed it. It gave
+  every unnoticed change a second, slower check before believing it, and gave
+  the noticed ones no check at all — so a test that failed for its own reasons,
+  on a machine with too much else running, counted as the change being caught.
+  One was found this way: a change to the engine reported as caught by the first
+  run and, on a re-run against a larger set of tests, not caught at all. It
+  alters nothing observable and is now written down as such. The asymmetry that
+  hid it is recorded next to it; closing it is the next piece of work.
+
 - The same tool could also stop dead without saying so. One of its test runs
   wedged, and because nothing set a time limit the whole sweep sat waiting on it
   for three hours and forty minutes while the report simply stopped growing — a

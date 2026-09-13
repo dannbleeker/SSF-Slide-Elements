@@ -210,6 +210,12 @@ export const EQUIVALENT = [
   },
   {
     file: "src/core/catalogue/boxes.ts",
+    what: "boundary",
+    was: "<",
+    why: "`topLevelShapes`' loop bound, `i < tree.childNodes.length`, widened to `<=`. The same shape as the `harvest.ts` entry above: one extra turn at `i === length`, `childNodes.item(length)` is null, and the `if (!node || …) continue` on the next line absorbs it. Worth reading beside its own history — the first engine sweep reported this mutant KILLED, and the re-sweep of 2026-09-13 reported it alive on a suite that had only grown. Nothing about the line got weaker, and the mutant is provably behaviour-identical, so the kill was false: a test that failed under load for its own reasons, in a run sharing four cores with four other agents. `verdictOf` re-checks every SURVIVOR against the whole suite and re-checks no KILL at all, which is the asymmetry that let it through.",
+  },
+  {
+    file: "src/core/catalogue/boxes.ts",
     what: "boolean",
     was: "||",
     why: "`topLevelShapes`' `if (!node || node.nodeType !== 1) continue`. `node` is never falsy inside the loop — the bound is `i < tree.childNodes.length` and @xmldom/xmldom answers null only outside 0..length-1 — so `&&` makes the whole condition permanently false, which is the guard deleted. See the `guard`/`continue` entry below for why deleting it changes nothing. Both measured 2026-09-13. This entry is keyed on file and operator, so it would also label a future `||` survivor elsewhere in boxes.ts; the other two `||`s in the file, on the rotation clamp and the table-column read, are killed by test/boxes.test.ts.",
