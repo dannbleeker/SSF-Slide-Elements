@@ -11,9 +11,9 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 - The add-in's own tests are now checked by deliberately breaking the code, one
   change at a time, and seeing whether they notice. Out of 349 such changes, 56
-  went unnoticed. Forty of those are now caught, eleven turned out to be changes
-  that alter nothing at all no matter what you do, and one was a line of code
-  that could be deleted.
+  went unnoticed. Forty-five of those are now caught — one of them by deleting a
+  line of code that turned out to do nothing — and the remaining eleven are
+  changes that alter nothing at all, no matter what you do.
 
   Nothing you can see changes, because nothing was broken — but several things
   that keep the add-in honest were being held by nobody. Among them: the limit on
