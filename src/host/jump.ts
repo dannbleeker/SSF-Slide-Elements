@@ -38,15 +38,26 @@
  */
 export function sameSlideId(a: string, b: string): boolean {
   if (a === b) return true;
-  const [ap, as] = split(a);
-  const [bp, bs] = split(b);
+  const [ap, aSuffixed] = split(a);
+  const [bp, bSuffixed] = split(b);
   if (ap !== bp || ap === "") return false;
-  return as === undefined || bs === undefined;
+  return !aSuffixed || !bSuffixed;
 }
 
-function split(id: string): [string, string | undefined] {
+/**
+ * An id's prefix, and whether it carried a suffix at all.
+ *
+ * The suffix VALUE is deliberately not returned, because nothing could use it:
+ * `a === b` has already returned above, so two ids that both carry a suffix and
+ * share a prefix must have different suffixes, and comparing them would add
+ * nothing. Returning `string | undefined` said otherwise and invited a reader
+ * to use a value that is dead — found on 2026-09-13 while reading the mutation
+ * sweep's report on this line, and checked over every id shape the harvest
+ * produces before it was changed.
+ */
+function split(id: string): [string, boolean] {
   const at = id.indexOf("#");
-  return at < 0 ? [id, undefined] : [id.slice(0, at), id.slice(at + 1)];
+  return at < 0 ? [id, false] : [id.slice(0, at), true];
 }
 
 export interface JumpObservation {
