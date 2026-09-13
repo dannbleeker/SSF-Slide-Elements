@@ -12,6 +12,7 @@
  * `scripts/package-integrity.mjs` holds the rules, so a script and this file
  * cannot read different ones.
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 // @ts-expect-error — a plain .mjs tool with no types. The rules live THERE so
@@ -364,5 +365,46 @@ describe("removing one of two slides that share a chart", () => {
     const parts = await partsOf(await pkg.toBytes());
     expect(problems(parts)).toEqual([]);
     expect([...parts.keys()].filter((n) => n.includes("chart") || n.includes("embeddings"))).toEqual([]);
+  });
+});
+
+const DECKS = ["template/library-16x9.pptx", "template/library-4x3.pptx"];
+
+describe("the library decks the product ships from", () => {
+  /**
+   * The two decks under `template/` are committed SOURCE, and nothing had ever
+   * put them through the oracle every package this engine PRODUCES goes
+   * through. Every `packageProblems` call in this suite was pointed at an
+   * output.
+   *
+   * They were broken the whole time. Two `<Override>` entries per deck named a
+   * notes slide with no leading slash, which ECMA-376 part 2 forbids;
+   * `System.IO.Packaging` refused both decks with "Part URI must start with a
+   * forward slash", and desktop PowerPoint declined to open either, offering
+   * Repair. PowerPoint for the WEB opened both without a word — so every round
+   * this project had run, all of them on the web, ran against a package the
+   * desktop host rejects. Fixed in the four-slashes change; guarded here.
+   *
+   * The checker could not have caught it either, for a reason worth keeping:
+   * it collected content-type Overrides with a pattern that REQUIRED the
+   * leading slash, so a relative one fell out of the set entirely, and the
+   * deck's own `Default Extension="xml"` then covered the part anyway. A guard
+   * that can only see the well-formed case reports silence on the broken one.
+   */
+  it.each(DECKS)("is a package PowerPoint will open: %s", async (deck) => {
+    const parts = await partsOf(new Uint8Array(readFileSync(deck)));
+    expect(parts.size, `${deck} has no parts — it is not a .pptx`).toBeGreaterThan(100);
+    expect(problems(parts)).toEqual([]);
+  });
+
+  it.each(DECKS)("names every content-type Override absolutely: %s", async (deck) => {
+    // The specific defect, said out loud as well as caught by the oracle, so a
+    // failure names the thing rather than making a reader infer it.
+    const parts = await partsOf(new Uint8Array(readFileSync(deck)));
+    const types = parts.get("[Content_Types].xml");
+    expect(typeof types, `${deck} has no [Content_Types].xml`).toBe("string");
+    const declared = [...String(types).matchAll(/<Override[^>]*PartName="([^"]*)"/g)].map((m) => m[1] ?? "");
+    expect(declared.length, "no Override entries found — the pattern has stopped matching").toBeGreaterThan(10);
+    expect(declared.filter((p) => !p.startsWith("/"))).toEqual([]);
   });
 });
