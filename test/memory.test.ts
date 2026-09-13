@@ -65,12 +65,43 @@ describe("the bucket one deck remembers itself in", () => {
 
   it("still answers a well-formed key for a very long path, and reads its tail", () => {
     // A deeply nested SharePoint path is a thousand characters, and the two
-    // decks in it differ in the last one. What this does NOT prove is that
-    // `Math.imul` was needed: swapping it for a plain `*` leaves every case in
-    // this file green, so the reason for `imul` is that it is the exact 32-bit
-    // multiply FNV-1a specifies, not a measurement taken here.
+    // decks in it differ in the last one.
     const long = `${ONEDRIVE}/${"deep/".repeat(200)}`;
     expect(deckKey(`${long}a.pptx`)).not.toBe(deckKey(`${long}b.pptx`));
     expect(deckKey(`${long}a.pptx`)).toMatch(new RegExp(`^${GLOBAL_KEY}:[0-9a-f]{8}$`));
+  });
+
+  it("is FNV-1a over the normalized URL, and the digits are the published ones", () => {
+    // The only case here that says what the hash IS, and it exists because
+    // nothing else in this file can hold the loop that produces it. A hash
+    // that reads one character too few, one character too many, or throws the
+    // top bit away still answers eight hex digits, still answers the same
+    // digits for the same deck, and still tells two decks apart — so every
+    // case above stays green while the digest is wrong.
+    //
+    // `src/host/memory.ts` says FNV-1a, 32 bits, in hex (`docs/DESIGN.md`
+    // section 4, "the deck is told apart by a HASH of its URL"), so the
+    // numbers pinned are FNV-1a's own published 32-bit vectors: "a" is
+    // 0xe40c292c and "foobar" is 0xbf9cf968. Both pass through `normalize`
+    // unchanged, so what is hashed is exactly the vector. `bf9cf968` has its
+    // top bit set, which is what makes the unsigned `>>> 0` visible: a signed
+    // read or a shift of one would not answer these digits.
+    //
+    // Unlike every other case here, this one is sensitive to the multiply.
+    // Measured 2026-09-12, by swapping `Math.imul` for a plain `*`: the
+    // one-character vector below stays green — a double still holds that
+    // product's low 32 bits — and "foobar" goes red at 0ee3c7f0, because by the
+    // sixth character the exact-integer range is long gone. So the `imul` is
+    // load-bearing from here, and the note in `src/host/memory.ts` saying this
+    // file stays green with `*` is now out of date by one case.
+    expect(deckKey("a")).toBe(`${GLOBAL_KEY}:e40c292c`);
+    expect(deckKey("foobar")).toBe(`${GLOBAL_KEY}:bf9cf968`);
+  });
+
+  it("reads the URL from its first character, not from its second", () => {
+    // The other side of the same loop: the same deck path on two drives is one
+    // character apart, at index 0, and a hash that started at index 1 would
+    // hand both decks the same bucket and each the other's search.
+    expect(deckKey("C:\\Users\\me\\Desktop\\deck.pptx")).not.toBe(deckKey("D:\\Users\\me\\Desktop\\deck.pptx"));
   });
 });

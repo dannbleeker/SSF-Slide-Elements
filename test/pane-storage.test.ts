@@ -79,6 +79,9 @@ describe("how far down the list", () => {
     expect(storedScroll({ scroll: 640 })).toBe(640);
     expect(storedScroll({})).toBe(0);
     expect(storedScroll({ scroll: 0 })).toBe(0);
+    // The cut-off is zero and nothing else. One pixel is a scroll, and comes
+    // back as one: "never scrolled" is the only value that reads as no value.
+    expect(storedScroll({ scroll: 1 })).toBe(1);
     // Negative, not-a-number and infinite all mean "no usable value", because
     // the alternative is scrolling somebody to NaN on open.
     expect(storedScroll({ scroll: -20 })).toBe(0);
@@ -121,6 +124,13 @@ describe("what gets written, and to how many keys", () => {
     expect(deck).not.toHaveProperty("chosen");
   });
 
+  it("writes the smallest scroll there is, because the cut-off is zero", () => {
+    // The pair of the case above: a scroll is left out for "never scrolled"
+    // and for nothing else, so one pixel is written rather than rounded away.
+    const deck = writes("ssf-slide-elements:deadbeef", state, 1)[1]?.[1] as Record<string, unknown>;
+    expect(deck["scroll"]).toBe(1);
+  });
+
   it("round-trips: what it writes is what `restored` reads back", () => {
     // The two halves are written by one function and read by another, and a
     // field renamed in one of them would go quiet rather than fail. This is the
@@ -150,5 +160,8 @@ describe("whether to put the scroll back on this draw", () => {
     expect(shouldRestoreScroll({ restored: false, kept: 640, hasTiles: false })).toBe(false);
     // Never scrolled.
     expect(shouldRestoreScroll({ restored: false, kept: 0, hasTiles: true })).toBe(false);
+    // One pixel is somewhere to go: the cut-off sits at zero, the same place
+    // `storedScroll` and `writes` put it.
+    expect(shouldRestoreScroll({ restored: false, kept: 1, hasTiles: true })).toBe(true);
   });
 });

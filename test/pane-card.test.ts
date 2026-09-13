@@ -127,6 +127,26 @@ describe("a landed rectangle, in fractions of the right slide", () => {
     expect(fractionOf(landed, { width: 0, height: 0 })).toBeUndefined();
   });
 
+  it("refuses a size with EITHER side missing, not only both", () => {
+    // Each half of the guard stands on its own. A read that came back with one
+    // dimension and not the other is still a size nobody read, and dividing by
+    // the zero half draws the rectangle at Infinity rather than not at all.
+    expect(fractionOf(landed, { width: 0, height: 6858000 })).toBeUndefined();
+    expect(fractionOf(landed, { width: 12192000, height: 0 })).toBeUndefined();
+  });
+
+  it("draws against any size above zero, because zero is the only thing wrong with it", () => {
+    // The guard is `> 0` on each side, not a plausibility check on the size:
+    // one EMU is a size the pane was told, so it is divided by. Whether the
+    // rectangle that falls out is sensible is the deck's business.
+    expect(fractionOf(landed, { width: 1, height: 1 })).toEqual({
+      x: landed.x,
+      y: landed.y,
+      w: landed.cx,
+      h: landed.cy,
+    });
+  });
+
   it("drops the snapshot when the size is unknown, rather than keeping a stale one", () => {
     const onSlide = { slide: 2, boxes: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.2 }] };
     expect(withLanded(onSlide, 2, undefined, false)).toBeUndefined();

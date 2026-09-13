@@ -348,6 +348,40 @@ describe("confirming that the deck changed size", () => {
     const total = CONFIRM.reduce((a, b) => a + b, 0);
     expect(total, "the whole backoff has to fit inside one read's budget").toBeLessThan(BUDGET.read);
   });
+
+  it("keeps reading past the 2.8 seconds the count was measured lagging", () => {
+    // The measurement the backoff exists for, and the one thing it has to
+    // satisfy: on PowerPoint for the web on 2026-09-11, polling
+    // `slides.getCount()` every 300 ms through a real insert, the count stayed
+    // at its old value for 2.8 SECONDS and then went up (`docs/DESIGN.md`
+    // section 15, `CLAUDE.md`, `src/host/timeout.ts`). A backoff that runs out
+    // before then reads the stale number every time it is asked, which is the
+    // defect it was written for: an undo that read the count once, got the old
+    // one and stopped half done.
+    const LAGGED_MS = 2800;
+    // `countReaching` reads once immediately and then again after each pause,
+    // so the reads land at the running totals of CONFIRM.
+    const readsAt = CONFIRM.reduce<number[]>((at, pause) => [...at, (at.at(-1) ?? 0) + pause], [0]);
+    expect(readsAt.at(-1), "the backoff must outlast the measured lag").toBeGreaterThan(LAGGED_MS);
+    expect(
+      readsAt.filter((ms) => ms > LAGGED_MS).length,
+      "and by more than one read, so a session slower than the measured one still gets an answer",
+    ).toBeGreaterThan(1);
+    // The other side of the same span: a host that does not lag at all —
+    // Windows returned the new count 240 ms BEFORE the insert resolved,
+    // measured 2026-09-11 — must not be made to wait out the slow host's
+    // schedule before its second read.
+    expect(readsAt[1], "the first re-read is what a host that never lags pays").toBeLessThan(LAGGED_MS);
+  });
+
+  it("pins the four pauses, because moving one is a design decision", () => {
+    // The property above holds for a whole range of schedules; these are the
+    // numbers actually shipped — five reads over six and a half seconds
+    // (`src/host/timeout.ts`) — and each is a trade between catching the
+    // 2.8 second lag above and the full presentation save the web performs on
+    // every one of these reads. Changing one is a decision, not a tidy-up.
+    expect(CONFIRM).toEqual([500, 1000, 2000, 3000]);
+  });
 });
 
 /**

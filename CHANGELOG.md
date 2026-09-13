@@ -9,6 +9,29 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The add-in's own tests are now checked by deliberately breaking the code, one
+  change at a time, and seeing whether they notice. Out of 349 such changes, 56
+  went unnoticed. Forty-five of those are now caught — one of them by deleting a
+  line of code that turned out to do nothing — and the remaining eleven are
+  changes that alter nothing at all, no matter what you do.
+
+  Nothing you can see changes, because nothing was broken — but several things
+  that keep the add-in honest were being held by nobody. Among them: the limit on
+  how much of a PowerPoint error message is shown to you, which exists so that a
+  failure cannot dump an entire presentation into the panel as text; what the
+  panel says when PowerPoint hands back more slides than it was asked for; how
+  long the add-in keeps re-checking a slide count that PowerPoint is slow to
+  update; how it decides your theme is dark rather than light; and how it reads
+  the answer sheets that every measured claim about PowerPoint's behaviour is
+  built on.
+
+  The eleven that alter nothing are written down with the proof for each, so the
+  next person to run this does not spend an afternoon working out again what this
+  one worked out — and the tool now says when one of those notes has gone out of
+  date rather than staying quiet about it.
+
+### Changed — nothing you can see
+
 - One of the build's own checks re-runs the whole test suite to count it, and it
   did that in a mode that writes every result to a file and nothing to the
   screen. So when it failed, the log showed a stack trace from the tool that

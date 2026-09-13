@@ -58,8 +58,15 @@ function fnv1a(text: string): string {
     hash ^= text.charCodeAt(i);
     // The FNV prime. `Math.imul` because it is the exact 32-bit multiply the
     // algorithm specifies — a plain `*` leaves a double's exact-integer range
-    // within a few characters and silently drops low bits. NOT a measured
-    // difference here: `test/memory.test.ts` stays green with `*`, and says so.
+    // within a few characters and silently drops low bits.
+    //
+    // This note used to say the difference was NOT measured, because the suite
+    // stayed green with a plain `*`. It no longer does. Measured 2026-09-12,
+    // after the mutation sweep forced a known-answer case onto this function:
+    // with `*`, `deckKey("a")` still answers `e40c292c` — one product's low 32
+    // bits do survive in a double — and `deckKey("foobar")` answers `0ee3c7f0`
+    // instead of `bf9cf968`. So the `imul` is held by the suite from six
+    // characters on, and `test/memory.test.ts` says which case holds it.
     hash = Math.imul(hash, 0x01000193);
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
