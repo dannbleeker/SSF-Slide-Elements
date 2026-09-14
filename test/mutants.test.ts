@@ -99,6 +99,102 @@ describe("which mutations it finds", () => {
   });
 });
 
+describe("a comparison read backwards", () => {
+  /**
+   * The operator that moves a comparison's SENSE rather than its edge.
+   *
+   * The boundary operator above cannot stand in for it: `<` to `<=` moves where
+   * the edge falls, and a test that pins the edge kills it. Swapping the
+   * operands asks a different question — whether anything distinguishes "the
+   * element fits in the room" from "the room fits in the element" — and in this
+   * family that is the question five overlap defects in SSF-Charts turned out to
+   * be.
+   */
+  const swaps = (source: string) =>
+    mutationsOf(source)
+      .filter((m) => m.what === "operands")
+      .map((m) => `${m.was} -> ${m.now}`);
+
+  it("swaps a comparison of two names", () => {
+    expect(swaps("if (rect.cx <= room.x) return true;\n")).toEqual(["rect.cx <= room.x -> room.x <= rect.cx"]);
+  });
+
+  it("swaps a loop bound, where the swap stops the loop running at all", () => {
+    expect(swaps("for (let i = 0; i < paths.length; i++) {\n}\n")).toEqual(["i < paths.length -> paths.length < i"]);
+  });
+
+  it("swaps a name against a number, which is a sense flip and not a boundary", () => {
+    expect(swaps("if (slide < 1) return;\n")).toEqual(["slide < 1 -> 1 < slide"]);
+  });
+
+  it("leaves a generic, an arrow and a shift alone, like the boundary operator", () => {
+    const source = [
+      "const m = new Map<string, number>();\n",
+      "type Held = Record<string, Promise<Uint8Array>>;\n",
+      "const f = (n: number) => n;\n",
+      "const a = (hash >>> 0).toString(16);\n",
+      "const b = (n >> 16) & 255;\n",
+    ].join("");
+    expect(swaps(source)).toEqual([]);
+  });
+
+  it("leaves an operand it cannot read alone rather than rearranging it wrongly", () => {
+    // A call, an index and an expression each need a parser to move safely. The
+    // cost of skipping one is a mutant nobody tried; the cost of moving it
+    // wrongly is a mutant that means something else, reported as a survivor.
+    const source = ["if (widthOf(a) < b) return;\n", "if (a.slides[0] < b) return;\n", "if (a + 1 < b) return;\n"].join(
+      "",
+    );
+    expect(swaps(source)).toEqual([]);
+  });
+
+  it("skips a comparison straight after a keyword, which is the price of the rule above", () => {
+    // `return a < b`: the character before the left operand is the `n` of
+    // `return`, and admitting word characters there is exactly what would let a
+    // match start inside a name and swap a fragment. So this site is skipped,
+    // knowingly. It is recorded here so the next reader finds a decision rather
+    // than a hole — and so that widening the rule has to change a test.
+    expect(swaps("return a < b;\n")).toEqual([]);
+    // The same comparison inside an `if` IS swept, which is how it is written
+    // nearly everywhere in this repository.
+    expect(swaps("if (a < b) return;\n")).toEqual(["a < b -> b < a"]);
+  });
+
+  it("says nothing about a comparison of one thing with itself", () => {
+    // `n > n` swapped is `n > n`. A mutant identical to its original cannot be
+    // killed by any test ever written, so emitting it would put a permanent
+    // survivor in the report — the one failure mode that makes a sweep's clean
+    // section worthless.
+    expect(swaps("if (n > n) return;\n")).toEqual([]);
+  });
+
+  it("ignores the same characters in prose, as every operator here must", () => {
+    expect(swaps('// a < b here\nconst s = "x < y";\n')).toEqual([]);
+  });
+
+  it("is a different mutation from the boundary at the same place", () => {
+    // Both operators fire on one comparison, and they must stay distinguishable:
+    // the equivalence ledger is keyed on the operator and the text, so two
+    // operators reporting the same `was` under the same name would let one
+    // entry silently excuse the other.
+    const found = mutationsOf("if (shared < to.length) return;\n");
+    const kinds = found.filter((m) => m.what === "boundary" || m.what === "operands");
+    expect(kinds.map((m) => m.what).sort()).toEqual(["boundary", "operands"]);
+    expect(kinds.find((m) => m.what === "boundary")?.was).toBe("<");
+    expect(kinds.find((m) => m.what === "operands")?.was).toBe("shared < to.length");
+  });
+
+  it("produces source that still parses, because a swap is a rewrite and not a substitution", () => {
+    // Every other operator replaces one token. This one moves two spans, so the
+    // text it writes is worth checking rather than assuming.
+    const source = "if (rect.cy <= into.cy) return true;\n";
+    const one = mutationsOf(source).find((m) => m.what === "operands");
+    if (!one) throw new Error("no swap found");
+    const mutated = source.slice(0, one.at) + one.now + source.slice(one.at + one.was.length);
+    expect(mutated).toBe("if (into.cy <= rect.cy) return true;\n");
+  });
+});
+
 describe("the record of mutations that cannot be killed", () => {
   it("labels a survivor it has a reason for", () => {
     const judged = judgeSurvivor('src/host/jump.ts:49  boundary  "<" -> "<="');

@@ -916,6 +916,56 @@ export function mutationsOf(text) {
     add(at, op, flip[op] ?? op, "boundary");
   }
 
+  // A comparison with its OPERANDS SWAPPED. This is a different defect from the
+  // boundary above and the boundary cannot stand in for it: boundary moves the
+  // EDGE (`<` to `<=`), this moves the SENSE (`rect.cx <= room.x` becomes
+  // `room.x <= rect.cx`). A test that pins only the edge case cannot see it, and
+  // the sites it lands on are the ones this family gets wrong — the preview
+  // card's geometry, where "the element fits in the room" and "the room fits in
+  // the element" are the same characters in a different order, and the sort
+  // comparators, where the order of the operands IS the answer.
+  //
+  // Both operands must be a plain name, a dotted name or a number, so the swap
+  // needs no parser and cannot rearrange something it has misread: `f(x) < y`,
+  // `a.slides[0] < b`, and anything with an operator inside it are left alone
+  // rather than swapped wrongly. A conservative operator that skips a site
+  // costs one unexplored mutant; a careless one writes code that means
+  // something else and reports the difference as a survivor.
+  //
+  // The spacing is required and is what keeps generics and arrows out, exactly
+  // as it does above: prettier puts single spaces around a binary operator and
+  // none inside `Record<string, string>`, and `npm run format:check` is a CI
+  // step, so the rule is exact here rather than a heuristic.
+  // The character before the left operand carries the whole correctness
+  // argument, and it is not obvious. It must exclude word characters and `.`,
+  // or the match can START INSIDE a name — `paths.length < i` would match from
+  // `aths.length` and swap a fragment. It must exclude `)` and `]`, so a call's
+  // or an index's result is not read as a bare name. It must exclude the
+  // arithmetic operators, or `a + 1 < b` matches `1 < b` and swaps to
+  // `a + b < 1`, which is a different expression rather than a reversed one —
+  // caught by this file's own case rather than by reasoning. And it must
+  // exclude WHITESPACE, because a class that admits a space lets the match
+  // slide one character right and pick the space instead of the `+` it was
+  // meant to refuse; the spaces are captured separately for that reason.
+  //
+  // The cost is `return a < b`, whose preceding character is the `n` of
+  // `return`: skipped, deliberately, because admitting word characters is what
+  // lets a match start inside a name.
+  for (const m of mask.matchAll(
+    /(^|[^\w$.)\]\s+*/%^~-])( *)([A-Za-z_$][\w$.]*|\d+)( +)(<=|>=|<|>)( +)([A-Za-z_$][\w$.]*|\d+)(?![\w$.([])/g,
+  )) {
+    const at = (m.index ?? 0) + (m[1] ?? "").length + (m[2] ?? "").length;
+    const left = m[3] ?? "";
+    const gapBefore = m[4] ?? "";
+    const op = m[5] ?? "";
+    const gapAfter = m[6] ?? "";
+    const right = m[7] ?? "";
+    // `n > n` would mutate to itself: a mutant identical to the original can
+    // never be killed, so it would be reported as a survivor for ever.
+    if (left === right) continue;
+    add(at, `${left}${gapBefore}${op}${gapAfter}${right}`, `${right}${gapBefore}${op}${gapAfter}${left}`, "operands");
+  }
+
   // A boolean operator, and a dropped negation.
   for (const m of mask.matchAll(/&&|\|\|/g)) {
     add(m.index ?? 0, m[0], m[0] === "&&" ? "||" : "&&", "boolean");
@@ -1301,12 +1351,40 @@ function main() {
   // the tree again and each re-report the same equivalent mutants.
   const only = (onlyAt === -1 ? "" : (argv[onlyAt + 1] ?? "")).split(",").filter(Boolean);
   const listing = argv.includes("--list");
+  // `--what boundary,operands` sweeps one operator. A new operator is added to
+  // a suite the existing six have already cleared, so the run that matters is
+  // the new operator's alone; without this it costs a whole sweep to see it.
+  const whatAt = argv.indexOf("--what");
+  const what = (whatAt === -1 ? "" : (argv[whatAt + 1] ?? "")).split(",").filter(Boolean);
   const files = TARGETS.filter((f) => only.length === 0 || only.some((part) => f.includes(part)));
 
   if (!listing) {
     const dir = workspace();
     console.log(`mutants: working in ${dir}, the tree you are in is untouched`);
-    const sweep = () => rmSync(dir, { recursive: true, force: true });
+    // Where we came from, because the clean-up below cannot run from inside the
+    // directory it is deleting.
+    const home = process.cwd();
+    const sweep = () => {
+      // **Windows refuses to remove the current working directory**, and this
+      // process has `chdir`ed into the workspace. Measured 2026-09-14 at the end
+      // of the first `--what operands` sweep: the run printed its result, then
+      // `EPERM, Permission denied` on the temp directory, and left **295 MB**
+      // behind — every sweep, silently, since the workspace was introduced.
+      // Stepping out first is the whole fix; the retries are for the virus
+      // scanner still holding a file it has just seen written.
+      try {
+        process.chdir(home);
+      } catch {
+        /* the tree we started in has gone; the remove below will say so */
+      }
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      } catch (error) {
+        // A workspace left behind is worth one line, never a stack trace over
+        // a result the reader is trying to read.
+        console.log(`mutants: could not remove ${dir} (${error instanceof Error ? error.message : String(error)})`);
+      }
+    };
     process.on("exit", sweep);
     // A killed sweep is the normal way this ends when a reader has seen enough,
     // and `exit` does not run on a signal. Both of the first two attempts were
@@ -1322,7 +1400,8 @@ function main() {
 
   const plan = files.map((file) => {
     const text = readFileSync(file, "utf8");
-    return { file, text, mutations: mutationsOf(text), tests: fastTests(file) };
+    const mutations = mutationsOf(text).filter((m) => what.length === 0 || what.includes(m.what));
+    return { file, text, mutations, tests: fastTests(file) };
   });
   const total = plan.reduce((sum, one) => sum + one.mutations.length, 0);
   console.log(`mutants: ${total} mutations across ${plan.length} files`);
