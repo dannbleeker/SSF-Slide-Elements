@@ -28,9 +28,10 @@ print of the deck it came from (`template/library-*.pdf`, with the geometry in
 `*.print.json`); the landing diagram is the fallback for an element the cut
 could not reach. What is NOT built is in `docs/BACKLOG.md`, whose open section is
 in the order to pick it up: the release (a screenshot, the listing name, the
-Partner Center submission), probe question 4 on a deck that has comments in it,
-and widening what the mutation sweep changes — the last of those being the one
-open item this repo can finish on its own. Everything that section used to list
+Partner Center submission), probe question 4 — whose deck now exists
+(`template/probe-comments.pptx`) and which waits only on one signed-in round —
+and widening what the mutation sweep changes, the one open item this repo can
+finish on its own. Everything that section used to list
 as pending and is now settled sits under its settled section with the
 measurement that closed it, so a round is not asked for twice.
 
@@ -46,7 +47,7 @@ measurement that closed it, so a round is not asked for twice.
 | `probe/` | `probe-snippet.ts`, GENERATED for Script Lab and committed; CI rebuilds and diffs it. Pasted into PowerPoint by the owner, never imported here |
 | `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
-| `template/` | the owner's library: the two decks (one per slide size), the PDF print of each and the `*.print.json` saying where every element sits on it, `names.en.json` (the English name of every element keyed by the deck's Danish title), and `validators.pptx`, the deck AppSource's reviewers are given |
+| `template/` | the owner's library: the two decks (one per slide size), the PDF print of each and the `*.print.json` saying where every element sits on it, `names.en.json` (the English name of every element keyed by the deck's Danish title), `validators.pptx`, the deck AppSource's reviewers are given, and `probe-comments.pptx`, the throwaway the host probe's question 4 needs because it carries a comment |
 | `docs/DESIGN.md` | the design record: every decision, dated, and the seven host questions the probe asks |
 
 **`src/host` decides, `src/office` calls, and the architecture test holds both

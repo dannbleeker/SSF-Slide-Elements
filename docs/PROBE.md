@@ -30,6 +30,17 @@ would expect: PowerPoint for the web has AutoSave permanently on, so every step
 is written to OneDrive as it happens. Any deck with at least two slides will do;
 for question 4 it should carry a comment, and for question 6 it should be big.
 
+**[`template/probe-comments.pptx`](../template/probe-comments.pptx) is the deck
+for question 4**, and the reason it exists is that the round of 2026-09-14 was
+run on the validators' deck, which carries no comment — so the one question the
+round was for came back NOT ASKED. PowerPoint authored it over COM, windowless,
+on 2026-09-14: three slides, and a modern comment on slide 3 with
+`ppt/authors.xml` beside it. It is scrubbed of the account PowerPoint stamps
+into any deck it saves (`node scripts/deck-identity.mjs <deck> [out]` reports or
+rewrites that), because this repository is public;
+`test/probe-deck.test.ts` holds it to both — the comment being there, and
+nobody real being named. Upload it to OneDrive and open it in the editor.
+
 Before you press Run, **click slide 2 in the strip** so one slide is selected.
 Question 3 reads what is selected, never sets it, and the reader tells you which
 slide number it found so you can compare.
@@ -155,7 +166,9 @@ SSF-Merge's sixth sheet found it **drops comment parts and `ppt/authors.xml`**
 on the web. This arm exports every slide in the deck and compares part NAMES
 against the same deck read through `getFileAsync`. Names only, never content,
 because the sheet is written to be pasted into an issue. **It needs a deck with
-a comment on it**; without one there is nothing to drop and the reader says so.
+a comment on it**; without one there is nothing to drop and the reader says so —
+which is exactly what the 2026-09-14 round produced, and why
+`template/probe-comments.pptx` now exists.
 
 ### 5. Does PowerPoint's own Ctrl+Z revert the insert?
 
