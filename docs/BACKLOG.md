@@ -31,8 +31,14 @@ description by `test/validators-deck.test.ts`).
 
 Left, and every one of them needs the owner rather than this repo:
 
-1. **A 1366×768 screenshot** of the pane beside a real presentation. Needs a
-   screen.
+1. **A 1366×768 screenshot** of the pane beside a real presentation. **The
+   capture is no longer the blocker** — one was taken unattended on 2026-09-14,
+   PowerPoint sized to the pixel and the pane loaded from the live site, nothing
+   composited. What is needed is the DECISION about what it shows: which deck
+   (not the validators' one, whose slides read as test fixtures), and whether
+   the frame may carry the owner's account avatar, Microsoft's "Upgrade your
+   plan" button and two sibling add-ins' ribbon entries. `docs/LISTING.md` has
+   the detail. Say what it should show and this repo takes it.
 2. **The listing name**, which waits on the same naming-policy answer SSF Merge
    waits on. Needs a decision, not a measurement.
 3. **The Partner Center submission** of `manifest-prod.xml`, after 1 and 2.
