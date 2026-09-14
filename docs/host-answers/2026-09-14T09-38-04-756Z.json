@@ -1,0 +1,223 @@
+{
+  "probe": "ssf-slide-elements",
+  "takenAt": "2026-09-14T09:38:04.756Z",
+  "platform": "OfficeOnline",
+  "host": "0.0.0.0",
+  "requirementSets": [
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "1.5",
+    "1.6",
+    "1.7",
+    "1.8",
+    "1.9",
+    "1.10"
+  ],
+  "floor": "1.2",
+  "undoAtStart": {
+    "found": false
+  },
+  "undoMarker": {
+    "found": true,
+    "value": {
+      "takenAt": "2026-09-14T09:26:03.063Z",
+      "deckBeforeLeave": 4
+    },
+    "cleared": "saved"
+  },
+  "deckAtStart": 4,
+  "ownRead": {
+    "ms": 31755,
+    "bytes": 49678
+  },
+  "partsAtStart": {
+    "total": 67,
+    "slides": 4,
+    "masters": 2,
+    "layouts": 13,
+    "themes": 2,
+    "comments": 0,
+    "authors": false,
+    "media": 0
+  },
+  "insertOwn": {
+    "before": 4,
+    "after": 8,
+    "ms": 827,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepOwn": "removed 4 slide(s) from index 4",
+  "insertOwnDestTheme": {
+    "before": 4,
+    "after": 8,
+    "ms": 801,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepOwnDestTheme": "removed 4 slide(s) from index 4",
+  "insertListed": {
+    "before": 4,
+    "after": 6,
+    "ms": 553,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "insertPruned": {
+    "before": 6,
+    "after": 7,
+    "ms": 504,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "insertUnlisted": {
+    "before": 7,
+    "after": 8,
+    "ms": 480,
+    "mastersBefore": 2,
+    "mastersAfter": 2
+  },
+  "sweepPruning": "removed 4 slide(s) from index 4",
+  "order": {
+    "n": 4,
+    "first": {
+      "before": 4,
+      "after": 6,
+      "ms": 401,
+      "mastersBefore": 2,
+      "mastersAfter": 2
+    },
+    "afterFirst": [
+      "256#424201",
+      "257#424202"
+    ],
+    "targetAdded": {
+      "ok": true
+    },
+    "second": {
+      "before": 6,
+      "after": 7,
+      "ms": 472,
+      "mastersBefore": 2,
+      "mastersAfter": 2
+    },
+    "afterSecond": [
+      "256#424201",
+      "268#424203",
+      "257#424202"
+    ],
+    "deletedIndex": 4,
+    "afterDelete": [
+      "268#424203",
+      "257#424202"
+    ],
+    "sweep": "removed 2 slide(s) from index 4"
+  },
+  "selection": {
+    "supported": true,
+    "selectedIds": [
+      "262#4133236060"
+    ],
+    "deckSize": 4,
+    "positionalRead": 4,
+    "selectedIndexes": [
+      0
+    ],
+    "sldIdLstEntries": 4,
+    "apiIdsHaveHash": true,
+    "sldIdLstMatches": true,
+    "sldIdLstHead": [
+      "262",
+      "265",
+      "267",
+      "266"
+    ],
+    "apiIdsHead": [
+      "262#4133236060",
+      "265#2057159065",
+      "267#2600436181",
+      "266#1105603411"
+    ]
+  },
+  "jump": {
+    "supported": true,
+    "before": [
+      "262#4133236060"
+    ],
+    "wanted": "262#4133236060",
+    "selected": [
+      "262#4133236060"
+    ],
+    "ms": 1146,
+    "restored": true,
+    "afterwards": {
+      "answered": true,
+      "ms": 567
+    }
+  },
+  "exportParts": {
+    "supported": true,
+    "ms": 550,
+    "bytes": 43025,
+    "source": {
+      "total": 67,
+      "slides": 4,
+      "masters": 2,
+      "layouts": 13,
+      "themes": 2,
+      "comments": 0,
+      "authors": false,
+      "media": 0
+    },
+    "exported": {
+      "total": 56,
+      "slides": 4,
+      "masters": 1,
+      "layouts": 12,
+      "themes": 1,
+      "comments": 0,
+      "authors": false,
+      "media": 0
+    },
+    "missing": [
+      "ppt/slideMasters/slideMaster2.xml",
+      "ppt/slideLayouts/_rels/slideLayout13.xml.rels",
+      "ppt/slideLayouts/slideLayout13.xml",
+      "ppt/slideMasters/_rels/slideMaster2.xml.rels",
+      "ppt/webextensions/webextension1.xml",
+      "ppt/webextensions/webextension2.xml",
+      "ppt/webextensions/taskpanes.xml",
+      "ppt/theme/theme2.xml",
+      "ppt/webextensions/_rels/taskpanes.xml.rels",
+      "ppt/changesInfos/changesInfo1.xml",
+      "ppt/revisionInfo.xml"
+    ],
+    "addedByExport": []
+  },
+  "sweep": "left everything alone (start 4, now 4)",
+  "undo": {
+    "leftBehind": false,
+    "previous": {
+      "takenAt": "2026-09-14T09:26:03.063Z",
+      "deckBeforeLeave": 4
+    }
+  },
+  "ownReadAtEnd": {
+    "ms": 14523,
+    "bytes": 49916
+  },
+  "partsAtEnd": {
+    "total": 67,
+    "slides": 4,
+    "masters": 2,
+    "layouts": 13,
+    "themes": 2,
+    "comments": 0,
+    "authors": false,
+    "media": 0
+  },
+  "deckAtEnd": 4,
+  "totalMs": 55155
+}

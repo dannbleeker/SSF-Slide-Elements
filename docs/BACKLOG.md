@@ -11,10 +11,11 @@ one pull request, ported from SSF-Merge's code where the same code exists there.
 
 ## Open
 
-### Probe question 7, and whatever Mac and iPad turn out to do
+### Whatever Mac and iPad turn out to do
 
-PowerPoint for the web is measured, twice: `docs/host-answers/` carries two
-pairs of sheets from 2026-09-10 and `docs/PROBE.md` reads them. **Windows is
+PowerPoint for the web is measured three times over: `docs/host-answers/`
+carries two pairs of sheets from 2026-09-10, a pair from 2026-09-14 that
+answers question 7, and `docs/PROBE.md` reads them. **Windows is
 measured too** — one pair of sheets from 2026-09-11 and a product round of four
 inserts and undos from the pane the same day, both read in `docs/DESIGN.md`
 section 15.
@@ -28,14 +29,19 @@ measured neither, and the validators' report is the first measurement.
 measurement could still arrive — cheapest being a borrowed device running the
 **Script Lab probe**, which needs no sideload of this add-in at all.
 
-What is genuinely still open and needs no new hardware: **probe question 7**
-(`setSelectedSlides`, the jump's call), which no sheet of this repo's has
-answered on ANY platform. The PRODUCT half of it was measured on the web on
-2026-09-13 — the jump moved the deck from slide 1 to slide 2 and the host took
-an insert straight afterwards, so it did not wedge the selection subsystem
-(`docs/DESIGN.md` section 15). That is one build behaving, not an answer sheet:
-until a probe run carries question 7, the number a sheet would give is still
-borrowed from SSF-Charts' dated web measurement.
+**Probe question 7 is answered**, on the web on 2026-09-14: two sheets under
+`docs/host-answers/` say `setSelectedSlides` moves the view to the slide asked
+for, puts the previous selection back, and leaves the host answering afterwards
+— 1,146 ms and 567 ms, measured twice twelve minutes apart. The jump stops being
+borrowed from SSF-Charts on this platform; Windows and Mac are still the
+sibling's, and `docs/DESIGN.md` section 15 reads the rest of the pair.
+
+One thing those sheets could NOT answer, and it needs no hardware either:
+**question 4 on a deck with comments in it.** The validators' deck carries none,
+so the export had nothing to drop and the sheet says "not asked" rather than
+passing. The 2026-09-10 and 2026-09-11 sheets still carry that answer; a re-run
+on a deck with a comment and an `ppt/authors.xml` would confirm it on this
+build.
 
 ### Release and AppSource
 
