@@ -745,10 +745,9 @@ Each is written so a single round settles it. The probe that asks them is a
 Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
 is put, and the sheets are filed under `docs/host-answers/`. Questions 1 to 6
 were asked before the splice and the picker were built, and answered on the web
-and on Windows; question 7 arrived after them, with the jump, and no SHEET
-answers it yet — the product half was measured on the web on 2026-09-13 and is
-in section 15, but a probe run is a different thing and has not been done. Mac
-and iPad have had no round at all.
+and on Windows; question 7 arrived after them, with the jump, and was answered
+on the web on 2026-09-14 — two sheets under `docs/host-answers/`, read in
+section 15. Mac and iPad have had no round at all.
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted?
@@ -975,11 +974,10 @@ three separate things.
 - **The jump moves the deck, and does NOT wedge the host.** From `Slide 1 of 3`,
   clicking the `2` in "Used in this deck" left PowerPoint on `Slide 2 of 3`, and
   an insert straight afterwards ran normally (`3 → 4 → 3 slides, slide 3
-  replaced`). Read this at its scope: it is the PRODUCT's behaviour on one
-  build, not an answer sheet — probe question 7 still has no sheet on any
-  platform, and `CLAUDE.md`'s rule about `setSelectedSlides` wedging the web
-  host's selection subsystem is a sibling's recording that this one round did
-  not reproduce.
+  replaced`). That was the PRODUCT's behaviour rather than an answer sheet; the
+  sheet arrived the next day and agrees with it (below). `CLAUDE.md`'s rule
+  about `setSelectedSlides` wedging the web host's selection subsystem is a
+  sibling's recording that neither the round nor the probe reproduced.
 - **"Move to a new slide"** took a white box that had landed on slide 2 and made
   it its own slide: `3 → 4 slides.`
 - **The element stamped was `confidential`**, one of the 23 that arrive as a
@@ -991,6 +989,39 @@ three separate things.
   keypress to move slide and a retry worked. The selection is not always
   readable in the moment after an insert has replaced a slide; the pane neither
   guessed at it nor dropped the insert silently.
+
+**Measured, on PowerPoint for the web, 2026-09-14 — the probe's own sheets, and
+the one that closes question 7.** A pair under `docs/host-answers/`
+(`…T09-26-03-063Z.json` and `…T09-38-04-756Z.json`), run from Script Lab against
+`template/validators.pptx` and read by `scripts/read-answers.mjs`.
+
+- **Question 7, answered here for the first time on any platform.**
+  `setSelectedSlides` moved the view to the slide asked for in **1,146 ms**, put
+  the previous selection back, and **the next selection read answered in 567
+  ms** — the host keeps working afterwards. Measured twice, 12 minutes apart
+  (998 ms / 590 ms on the first sheet), which is what makes it a measurement
+  rather than an anecdote. Section 13's paragraph on the jump stops being
+  borrowed from SSF-Charts for the web.
+- **Question 5 the same day.** The slide the first run left behind was gone at
+  the second run's start, with its marker still in place — so PowerPoint's own
+  Ctrl+Z reverts an insert, and the pane's Undo must not fight it. This is the
+  desktop answer confirmed on the web by the instrument rather than by eye.
+- Questions 1, 2 and 3 answered as before: both prunings land exactly one slide,
+  insert-then-positional-delete keeps the order, a just-added slide is accepted
+  as `targetSlideId`, and the API's order is the file's `<p:sldIdLst>` order.
+- **Question 4 was NOT asked**, and the sheet says so rather than passing: the
+  validators' deck carries no comments and no `ppt/authors.xml`, so the export
+  had nothing to drop. The 2026-09-10 and 2026-09-11 sheets are still the
+  answer, and a deck with comments is what a re-run needs.
+- **Question 6 is the uncomfortable one.** `getFileAsync` took **31,755 ms for
+  0.05 MB**, and 14,523 ms at the end of the same run, against
+  `exportAsBase64Presentation` at 550 ms for the same deck. That is not a size
+  cost — it is a 50 KB deck — so section 13's sixth question cannot be answered
+  by extrapolating from megabytes, and the read the pane pays for "Used in this
+  deck" is bounded by something other than bytes. The product round the day
+  before saw 12 seconds for the same work, so the number moves a lot between
+  runs. **Nothing here is a reason to change the engine yet; it is a reason not
+  to trust a single timing.**
 
 The rest of this section is about the DECKS and the print rather than Office.js.
 
@@ -1048,8 +1079,12 @@ finding is `setSelectedShapes([id])` on build `55011a3`, and `setSelectedSlides`
 went silent only downstream of that. Windows and Mac: no sibling has measured
 the call; the tracker has office-js#3552 (desktop throws while the notes pane
 has focus). The pane therefore reads the selection back after every jump and
-claims nothing it did not see, and probe question 7 is the arm that turns this
-paragraph into a measured one on the next round.
+claims nothing it did not see. Probe question 7 was the arm that would turn this
+paragraph into a measured one, and it did, on the web on 2026-09-14: the call
+moved the view to the slide asked for in 1,146 ms, put the previous selection
+back, and the next selection read answered in 567 ms. **On the web this is now
+measured here rather than borrowed.** Windows and Mac are still the sibling's
+and the tracker's.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
