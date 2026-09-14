@@ -38,30 +38,6 @@ Left, and every one of them needs the owner rather than this repo:
 3. **The Partner Center submission** of `manifest-prod.xml`, after 1 and 2.
 4. **v0.1.0** on the releases page. `npm run release:check` is the pre-flight.
 
-### Probe question 4, on a deck that has comments in it
-
-The 2026-09-14 sheets could **not** answer it: the validators' deck carries no
-comments and no `ppt/authors.xml`, so `exportAsBase64Presentation` had nothing
-to drop and the sheet says "not asked" rather than passing. The 2026-09-10 and
-2026-09-11 sheets are still the answer; this would confirm it on this build.
-
-It was two halves. The first is **done**: `template/probe-comments.pptx` is a
-deck PowerPoint authored over COM on 2026-09-14, windowless, carrying a modern
-comment on slide 3 and the `ppt/authors.xml` that comes with one, scrubbed of
-the account PowerPoint stamps into a saved deck and held to both by
-`test/probe-deck.test.ts`.
-
-What is left needs the owner, and only because of the sign-in:
-
-- **One Script Lab round on the web** with that deck open. `docs/PROBE.md` says
-  how; the 2026-09-14 round is the worked example. The deck is already uploaded
-  to OneDrive; the round stopped on 2026-09-14 because the browser holding the
-  signed-in session was closed and signing in again is the owner's alone.
-
-Low cost, low urgency: it confirms an answer two older sheets already give,
-rather than filling a hole. It is listed above the sweep only because it is the
-last of the seven host questions not measured on this build.
-
 ### Widen what the mutation sweep changes
 
 The one open item **this repo can finish on its own**, and the only one that is
@@ -100,6 +76,25 @@ filed.
 
 This is a decision, not a pending task. Nothing is waiting on it.
 
+### Probe question 4 is answered
+
+On **PowerPoint for Windows, 2026-09-14**, on `template/probe-comments.pptx` —
+the deck authored for it, carrying a modern comment and `ppt/authors.xml`.
+`exportAsBase64Presentation` handed back **43 parts where `getFileAsync` gave
+48**, dropping the comment part, `ppt/authors.xml` and the three
+`ppt/webextensions/` parts. Both runs of the pair agreed, ten minutes apart.
+
+That is the last of the seven questions to be measured by this repository's own
+instrument. The engine reading with `getFileAsync` is no longer borrowed from
+SSF-Merge's sixth sheet. `docs/DESIGN.md` section 15 carries the pair, together
+with the two instrument rules it cost — an imported snippet must be TRUSTED
+before Script Lab will run it, and the failure is invisible in the runner's
+console.
+
+The web has not been re-asked on this build and does not need to be: the drop is
+the same defect (office-js#6867) the siblings measured there, and nothing in the
+engine turns on the platform.
+
 ### The host rounds that were being asked for have been run
 
 - **The web** is measured three times over: two pairs of sheets from
@@ -127,6 +122,11 @@ work. That is not a size cost, so section 13's sixth question cannot be answered
 by extrapolating from megabytes. **Nothing there is a reason to change the
 engine; it is a reason not to trust a single timing.** `docs/DESIGN.md` section
 15 carries it.
+
+The Windows pair of the same day is the second reason. `getFileAsync` read a
+0.04 MB deck in **62, 76 and 61 ms** there, and `exportAsBase64Presentation` in
+28 and 30 ms. Whatever the web's 31,755 ms was, it is not a property of the
+call.
 
 ## Rejected — do not re-propose
 
