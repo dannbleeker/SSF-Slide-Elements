@@ -90,10 +90,10 @@ vi.mock("../src/office/powerpoint.js", () => ({
  * already covers.
  */
 /**
- * Ticks a busy-wait may spend before it gives up, at 5 ms each.
+ * Ticks `waitFor` may spend before it gives up, at 5 ms each.
  *
- * These loops wait on REAL work — opening a package, splicing an element —
- * and the budget was 200 ticks, one second. On a loaded CI runner that is not
+ * It waits on REAL work — opening a package, splicing an element — and the
+ * budget was 200 ticks, one second. On a loaded CI runner that is not
  * enough: the wait fell through, the case carried on before the insert had
  * landed, and the failure surfaced as `expected +0 to be 1` in an assertion
  * about something else entirely. It went red on two separate pull requests,
@@ -106,6 +106,30 @@ vi.mock("../src/office/powerpoint.js", () => ({
  * hanging the suite.
  */
 const WAIT_TICKS = 6000;
+
+/**
+ * Wait for the pane to finish something, and SAY SO when it does not.
+ *
+ * Every wait in this file used to be its own loop, and every one of them fell
+ * through silently: the budget ran out, the case carried on, and whatever
+ * assertion came next reported the timeout as its own failure. One of them was
+ * worse than that — it returned `""` on timeout, so a wait that never finished
+ * arrived at the assertion as `expected '' to contain ...`, which reads as the
+ * pane having said the wrong thing rather than the pane never having spoken.
+ *
+ * A guard that goes red for the wrong reason is worse than no guard, so this
+ * one names what it was waiting for and how long it waited. The budget stays
+ * `WAIT_TICKS` for every caller: the loops that carried a shorter one were the
+ * likeliest to flake on a loaded runner, and nothing here is waiting on work
+ * that should take a second.
+ */
+async function waitFor(what: string, done: () => unknown, ticks = WAIT_TICKS): Promise<void> {
+  for (let i = 0; i < ticks; i++) {
+    if (done()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error(`waited ${(ticks * 5) / 1000}s for ${what}, and it never happened`);
+}
 const spliced: { target: string }[] = [];
 vi.mock("../src/core/splice/splice.js", () => ({
   splice: (request: { options: { target: string } }) => {
@@ -362,10 +386,10 @@ describe("what this deck already uses", () => {
     const pane = await openPane();
     await settle();
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
-    for (let i = 0; i < WAIT_TICKS; i++) {
-      if (pane.querySelector(".used-head") ?? pane.querySelector(".notice")) break;
-      await new Promise((resolve) => setTimeout(resolve, 5));
-    }
+    await waitFor(
+      '"Used in this deck" to answer, either way',
+      () => pane.querySelector(".used-head") ?? pane.querySelector(".notice"),
+    );
     return pane;
   }
 
@@ -613,7 +637,7 @@ describe("pressing a tile", () => {
     expect(ghost).not.toBeInstanceOf(HTMLElement);
 
     ghost?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    for (let i = 0; i < 20 && !pane.querySelector(".outcome"); i++) await settle();
+    await waitFor("the insert to reach a footer", () => pane.querySelector(".outcome"));
 
     expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
   });
@@ -624,7 +648,7 @@ describe("pressing a tile", () => {
     await settle();
     pane.querySelector<HTMLElement>('[data-action="category"]')?.click();
     pane.querySelector<HTMLElement>('[data-action="tile"]')?.click();
-    for (let i = 0; i < 20 && !pane.querySelector(".outcome"); i++) await settle();
+    await waitFor("the insert to reach a footer", () => pane.querySelector(".outcome"));
     expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
   });
 });
@@ -719,7 +743,7 @@ describe("what the menu actually inserts", () => {
 
   /** Let the insert run as far as it can with no host to talk to. */
   async function ran(): Promise<void> {
-    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
   }
 
   it("uses the OTHER target for that one insert, and leaves the setting alone", async () => {
@@ -1052,7 +1076,7 @@ describe("moving the last insert to a new slide", () => {
     await settle();
     (pane.querySelector('[data-action="category"]') as HTMLElement).click();
     (pane.querySelector(`[data-tile="${id}"], [data-action="tile"]`) as HTMLElement).click();
-    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
     await settle();
     return pane;
   }
@@ -1066,7 +1090,7 @@ describe("moving the last insert to a new slide", () => {
     const pane = await inserted(1);
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
     pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
-    for (let i = 0; i < WAIT_TICKS && spliced.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    await waitFor("the move to ask for a second splice", () => spliced.length >= 2);
     await settle();
     // The second splice is the same element with the other target — an undo
     // and a fresh insert, not a second copy beside the first.
@@ -1093,7 +1117,7 @@ describe("moving the last insert to a new slide", () => {
     // end-to-end half of the steps case that says the same thing.
     const pane = await inserted(1);
     pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
-    for (let i = 0; i < WAIT_TICKS && host.removed.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    await waitFor("the undo to reach a positional delete", () => host.removed.length >= 2);
     await settle();
     expect(pane.querySelector('[data-action="move"]')).toBeNull();
   });
@@ -1151,10 +1175,7 @@ describe("removing a part from every slide it is on", () => {
     const pane = await openPane();
     await settle();
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
-    for (let i = 0; i < 300; i++) {
-      if (pane.querySelector(".used-list")) break;
-      await new Promise((r) => setTimeout(r, 5));
-    }
+    await waitFor('"Used in this deck" to list where the part is', () => pane.querySelector(".used-list"));
     // The part's category, so its tile is on screen to carry the button.
     const stamps = [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].find(
       (c) => c.dataset["key"] === "stamps",
@@ -1166,12 +1187,8 @@ describe("removing a part from every slide it is on", () => {
 
   /** Wait for a run to finish: the footer is what says it did. */
   async function ran(pane: HTMLElement): Promise<string> {
-    for (let i = 0; i < 300; i++) {
-      const said = pane.querySelector(".outcome")?.textContent;
-      if (said) return said;
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    return "";
+    await waitFor("the removal to report a footer", () => pane.querySelector(".outcome")?.textContent);
+    return pane.querySelector(".outcome")?.textContent ?? "";
   }
 
   it("asks first, and removes nothing while the question is up", async () => {
@@ -1246,10 +1263,7 @@ describe("a removal asks the deck it is about to change", () => {
     const pane = await openPane();
     await settle();
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
-    for (let i = 0; i < 300; i++) {
-      if (pane.querySelector(".used-list")) break;
-      await new Promise((r) => setTimeout(r, 5));
-    }
+    await waitFor('"Used in this deck" to list where the part is', () => pane.querySelector(".used-list"));
     expect(pane.querySelector(".used-where")?.textContent).toBe("slides 1 and 2");
 
     // The deck moves on under the pane.
@@ -1262,12 +1276,8 @@ describe("a removal asks the deck it is about to change", () => {
     expect(pane.querySelector('[data-action="remove"]')?.textContent).toBe("Remove from 2 slides");
     (pane.querySelector('[data-action="remove"]') as HTMLElement).click();
     (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
-    let said = "";
-    for (let i = 0; i < 300; i++) {
-      said = pane.querySelector(".outcome")?.textContent ?? "";
-      if (said) break;
-      await new Promise((r) => setTimeout(r, 5));
-    }
+    await waitFor("the removal to report a footer", () => pane.querySelector(".outcome")?.textContent);
+    const said = pane.querySelector(".outcome")?.textContent ?? "";
     // One slide carries it now, so one cycle runs and the footer counts what
     // the DECK said. Trusting the list gives "Removed from 1 of 2 slides" and
     // an attempt against a slide that holds nothing of ours.
@@ -1306,29 +1316,60 @@ describe("a deck read that the deck outran", () => {
     host.current = { index: 0, id: "256" };
     host.held = 1;
     deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+
+    const pane = await openPane();
+    await settle();
+
+    // Armed AFTER the pane has booted, which is the whole of what makes this
+    // case deterministic.
+    //
+    // The stub holds the FIRST `readDeck` call, and the pane already makes one
+    // of its own while it starts up — so a hold armed before `openPane` was
+    // taken by THAT read, and the read this case is about ran unheld. Measured
+    // here on 2026-09-14 by counting the calls: the hold landed on read 1, and
+    // "Used in this deck" was read 2. The case still passed most of the time,
+    // for a reason that had nothing to do with the hold — the read's zip work
+    // is slower than the insert, usually. When it was not, the read finished
+    // before the insert had bumped `deckEdits`, there was nothing stale to
+    // throw away, and the case went red about a notice it had never given the
+    // pane a reason to draw. One run in four on a loaded box, and it went red
+    // twice in CI before that.
     let release = (): void => {};
     host.holdRead = new Promise<void>((resolve) => {
       release = resolve;
     });
 
-    const pane = await openPane();
-    await settle();
     // The read starts and stops at its first await, holding `reading`.
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
     await settle();
 
     // The insert runs all the way through underneath it — which the pane allows
     // on purpose, and which is the whole point of the case.
+    //
+    // Waited on its FOOTER, not on the splice being asked for. The splice is the
+    // insert's first step, not its last, and a `settle()` after it is a guess
+    // that the rest fits in one turn of the event loop. On a loaded box it does
+    // not: the read was released mid-insert, landed first, and the notice this
+    // case is about was never drawn — measured here on 2026-09-14, one run in
+    // four with the whole suite running beside it. The insert's own `readDeck`
+    // is the SECOND call and is not the one being held, so it can reach its
+    // footer while the read is still stopped.
     (pane.querySelector('[data-action="category"]') as HTMLElement).click();
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
-    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
-    await settle();
+    await waitFor("the insert to finish while the read is held", () => pane.querySelector(".outcome"));
 
     release();
-    for (let i = 0; i < WAIT_TICKS; i++) {
-      if (pane.querySelector(".notice") ?? pane.querySelector(".used-head")) break;
-      await new Promise((r) => setTimeout(r, 5));
-    }
+    // Waited on the READ ending, not on a `.notice` appearing. `.notice` is also
+    // where the insert says "Inserting…", so the old wait could be satisfied by
+    // the insert's own notice and return before the read had resumed at all —
+    // after which a single `settle()` decided the case. Nothing but `readUsed`
+    // touches `reading`, so the ask button's label is the one signal here that
+    // the insert cannot forge.
+    const asking = (): HTMLElement | null => pane.querySelector('[data-action="used"]');
+    await waitFor(
+      "the held read to end once it is released",
+      () => asking() !== null && asking()?.textContent?.includes("Reading") === false,
+    );
     await settle();
     return pane;
   }
