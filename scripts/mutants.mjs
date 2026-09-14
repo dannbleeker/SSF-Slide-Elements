@@ -87,7 +87,7 @@ export const TARGETS = [
   "src/pane/used.ts",
 
   // The engine. Added 2026-09-13, once `FAST` made it affordable: without a
-  // first-tier map these mutations cost about seventeen hours, because every
+  // first-tier map these mutations cost about thirteen hours, because every
   // core file except `catalogue/cut.ts` is imported into `test/splice.test.ts`.
   // `cut.ts` has no `FAST` row because it needs none — one test reaches it.
   //
@@ -378,7 +378,10 @@ export function testsReaching(target) {
  * "reaching set" of a core file is the whole suite in all but name — `pkg.ts`
  * pulls 23 test files at 62.2 s, which is SLOWER than simply running everything.
  * Measured 2026-09-13: extending the sweep to `src/core` without this map costs
- * about 17 hours of first tier. With it, about an hour.
+ * about thirteen hours of first tier, at 62.2 s for each of the engine's 757
+ * mutations. With it, the whole set of 1073 came in at 6 h 20 m — see the
+ * measured total at the end of this comment, which replaced a much rosier
+ * projection.
  *
  * Every row was measured rather than guessed, on 2026-09-13. The method: start
  * from the file's full reaching set, drop each expensive test file in turn, and
@@ -396,11 +399,24 @@ export function testsReaching(target) {
  * not fifty. The re-check is what makes that trade safe; without it the loss
  * would be false survivors in the report rather than wasted minutes.
  *
- * Measured total for the engine's mutations: about 66 minutes of first tier,
- * plus one 57.6 s re-check per survivor. That figure was taken when the boundary
- * operator still matched type arguments, over 998 engine mutations; dropping
- * that noise on 2026-09-13 took the engine to 757 and the whole set to 1073, so
- * the real cost is lower and has not been re-timed.
+ * WHAT A WHOLE SWEEP ACTUALLY COSTS, measured rather than projected. On
+ * 2026-09-13, on an idle machine, with the corrected operator and with kill
+ * confirmation in place: 1020 mutations in 6 h 20 m, or about 22 s each. It was
+ * cut short by a restart 53 short of the full 1073, so that is the figure for
+ * 1020 and not for all of them.
+ *
+ * The paragraph above used to say "about an hour", from a projection of
+ * 66 minutes of first tier over 998 mutations. It was wrong by roughly six
+ * times, and it was wrong in the way this file keeps warning about: a number
+ * derived once and then left standing as though it were a property of the tool.
+ * Two things it left out. Of the 22 s, roughly 8 s per mutant is the survivor
+ * re-check amortised — 144 survivors at 57.6 s each is 2 h 18 m of the 6 h 20 m,
+ * and that is a DERIVED split, not a second measurement. And the projection
+ * only ever covered `src/core`; `src/host` and `src/pane` have no rows in this
+ * map at all, so their 316 mutations run against reaching sets that include
+ * `test/pane-wiring.test.ts` at 15.2 s and `test/office-host.test.ts` at 15.7 s.
+ * 227 of those 316 pay a ~15 s tier for what their own unit test answers in
+ * ~1 s. Rows for them are the obvious next saving and are not written yet.
  */
 export const FAST = {
   // 80 mutations, 5.9 s a mutant, 100/100 statements/branches
