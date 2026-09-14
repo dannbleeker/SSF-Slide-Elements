@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HarvestError, Pkg, harvest, parseXml, serializeXml } from "../src/core/index.js";
 import type { Names } from "../src/core/index.js";
-import { coloursOf, themeColoursFor, themeOf } from "../src/core/pptx/theme.js";
+import { coloursOf, themeChain, themeColoursFor, themeOf } from "../src/core/pptx/theme.js";
 import { pinColoursInXml, pinSchemeColours } from "../src/core/splice/colours.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -173,6 +173,25 @@ describe("a theme read with no master, or a broken one", () => {
     expect(alone["dk1"]).toBe("000000");
     expect(alone["tx1"]).toBeUndefined();
     expect(alone["bg1"]).toBeUndefined();
+  });
+
+  it("reads the theme's own slots when the part handed as a master carries no colour map", async () => {
+    // A LAYOUT is how a caller reaches this: `themeChain` answers one beside
+    // the master, and a layout states `<p:clrMapOvr>` — "use the master's map"
+    // — never a `<p:clrMap>` of its own. So does a slide, and so does a notes
+    // master. Measured 2026-09-14 across the three committed decks: 699 of the
+    // 712 parts a theme could be read against have no `<p:clrMap>` in them at
+    // all. The four mapped names are left out, exactly as for a master that is
+    // not in the package; reading on regardless is a TypeError thrown out of
+    // the colour switch on a deck PowerPoint opens without a murmur.
+    const pkg = await Pkg.open(await makeDeck([{ paragraphs: [["One"]] }], { scheme: OFFICE }));
+    const chain = await themeChain(pkg, "ppt/slides/slide1.xml");
+    expect(chain.layout).toBe("ppt/slideLayouts/slideLayout1.xml");
+    const mapless = await coloursOf(pkg, "ppt/theme/theme1.xml", chain.layout);
+    expect(mapless["accent1"]).toBe("5B9BD5");
+    expect(mapless["dk1"]).toBe("000000");
+    expect(mapless["tx1"]).toBeUndefined();
+    expect(mapless["bg1"]).toBeUndefined();
   });
 
   it("does the same for a master path that is not in the package", async () => {
@@ -369,15 +388,37 @@ describe("pinning an element's scheme colours", () => {
     // is copied byte for byte or round-tripped through a serialiser. It HAS
     // `schemeClr`, so the cheap early exit does not fire; nothing is pinned, so
     // the part must still come back as itself rather than as xmldom's idea of
-    // itself — which differs in attribute order and self-closing tags, and
-    // would rewrite every chart in the library on a setting that changed
-    // nothing.
+    // itself.
+    //
+    // The fixture carries a PROLOGUE, and that is the whole point of it. The
+    // version of this case written before 2026-09-14 had none, and xmldom
+    // happens to reproduce that markup byte for byte — so the assertion below
+    // held whether the part was round-tripped or not, and said nothing. Every
+    // part PowerPoint writes opens `<?xml …?>\r\n`, and the serialiser answers
+    // `\n`: measured 2026-09-14 over the committed catalogue, the two carried
+    // chart parts and a tag part all differ from their own round trip at
+    // character 55, which is that CR. Round-tripping them would rewrite every
+    // carried part in the library on a setting that changed nothing in it.
     const xml =
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n` +
       `<c:chartSpace xmlns:c="urn:x" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
       `<c:ser><a:solidFill><a:schemeClr val="accent6"/></a:solidFill></c:ser></c:chartSpace>`;
     const done = pinColoursInXml(xml, theme);
     expect(done.result).toEqual({ pinned: 0, left: 1 });
     expect(done.xml).toBe(xml);
+  });
+
+  it("hands back a part with no scheme colour in it without parsing it at all", () => {
+    // The early exit is a fast path AND the reason this pass cannot fail an
+    // insert over a part it has no business reading. `carry` hands the pin
+    // every carried part whose name ends in `.xml` and which arrived as text,
+    // including ones the engine never parses for itself, and `parseXml` THROWS
+    // on anything that is not well formed — measured 2026-09-14 against
+    // @xmldom/xmldom 0.9.12: `ParseError: missing root element` for text with
+    // no element in it. A pass that has nothing to pin must hand the bytes
+    // straight back rather than become the validator for the whole package.
+    const xml = "not xml at all, and no scheme colour in it either";
+    expect(pinColoursInXml(xml, theme)).toEqual({ xml, result: { pinned: 0, left: 0 } });
   });
 
   it("counts a scheme colour with no val at all as one it cannot resolve", () => {

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import JSZip from "jszip";
-import { Pkg } from "../src/core/pptx/pkg.js";
-import { P_NS, elements, xmlSafe } from "../src/core/pptx/xml.js";
+import { Pkg, extensionOf } from "../src/core/pptx/pkg.js";
+import { REL_TYPE } from "../src/core/pptx/parts.js";
+import { P_NS, element, elements, xmlSafe } from "../src/core/pptx/xml.js";
 import { makeDeck } from "./fixtures/deck.js";
 
 /**
@@ -19,6 +20,44 @@ async function deck(...args: Parameters<typeof makeDeck>): Promise<Pkg> {
 }
 
 const ONE = [{ paragraphs: [["Hello {{Name}}"]], creationId: 111 }];
+const TWO = [{ paragraphs: [["a"]] }, { paragraphs: [["b"]] }];
+const PRESENTATION = "ppt/presentation.xml";
+const SLIDE1 = "ppt/slides/slide1.xml";
+const SLIDE1_RELS = "ppt/slides/_rels/slide1.xml.rels";
+const CONTENT_TYPES = "[Content_Types].xml";
+const RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
+const CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types";
+
+/** A `.rels` part holding exactly these entries. */
+function rels(...entries: string[]): string {
+  return `<?xml version="1.0"?><Relationships xmlns="${RELS_NS}">${entries.join("")}</Relationships>`;
+}
+
+/** A `[Content_Types].xml` holding exactly these entries. */
+function types(...entries: string[]): string {
+  return `<?xml version="1.0"?><Types xmlns="${CT_NS}">${entries.join("")}</Types>`;
+}
+
+/**
+ * A real fixture deck with named parts replaced, or removed with `null`.
+ *
+ * Rebuilt as a zip and reopened rather than edited through `setText`, so a part
+ * genuinely ABSENT is reachable — which `Pkg` deliberately offers no way to do
+ * from the outside. The same helper, for the same reason, is in
+ * `pptx-malformed.test.ts`; these cases are about the package layer's own
+ * counters and sweeps rather than about reading somebody else's XML, so they
+ * live beside the rest of `Pkg`.
+ */
+async function craft(edits: Record<string, string | null>): Promise<Pkg> {
+  const source = await JSZip.loadAsync(await makeDeck(TWO));
+  const out = new JSZip();
+  for (const name of Object.keys(source.files).filter((n) => !source.files[n]?.dir)) {
+    if (name in edits) continue;
+    out.file(name, await (source.file(name) as JSZip.JSZipObject).async("uint8array"));
+  }
+  for (const [name, body] of Object.entries(edits)) if (body !== null) out.file(name, body);
+  return Pkg.open(await out.generateAsync({ type: "uint8array" }));
+}
 describe("Pkg", () => {
   it("lists slides in presentation order, not zip order", async () => {
     const pkg = await deck([{ paragraphs: [["a"]] }, { paragraphs: [["b"]] }]);
@@ -147,6 +186,19 @@ describe("where a part's relationships live", () => {
   it("puts them beside the part", () => {
     expect(Pkg.relsPathFor("ppt/slides/slide1.xml")).toBe("ppt/slides/_rels/slide1.xml.rels");
     expect(Pkg.relsPathFor("ppt/presentation.xml")).toBe("ppt/_rels/presentation.xml.rels");
+  });
+
+  it("keeps an absolute part name absolute", () => {
+    // The other spelling a part name comes in. A content-type Override names
+    // its part the way ECMA-376 does, with the leading slash
+    // (`addContentTypeOverride` refuses anything else), and the answer for one
+    // has to stay in that spelling rather than turn into a third thing. The
+    // root case below is the ZIP spelling of the same question, and the two
+    // branches of this function are exactly those two spellings: the `< 0`
+    // arm is for a ZIP name with no directory at all, and everything else —
+    // absolute names included — goes through the slice.
+    expect(Pkg.relsPathFor("/ppt/slides/slide1.xml")).toBe("/ppt/slides/_rels/slide1.xml.rels");
+    expect(Pkg.relsPathFor("/[Content_Types].xml")).toBe("/_rels/[Content_Types].xml.rels");
   });
 
   it("handles a part at the package root", () => {
@@ -386,5 +438,319 @@ describe("text carrying a character XML cannot hold", () => {
 
   it("leaves the whitespace XML allows alone", () => {
     expect(xmlSafe("a\tb\nc\rd")).toBe("a\tb\nc\rd");
+  });
+});
+
+describe("a part whose file name begins with a dot", () => {
+  it("reads the extension of a dotfile, which is the whole name after the dot", () => {
+    /**
+     * `_rels/.rels` is in every package there is, and its content type comes
+     * from the `<Default Extension="rels">` every package declares — so "what
+     * is the extension of `.rels`" is a question `contentTypeOf` asks about a
+     * real part, and the answer is `rels`.
+     *
+     * Two ways to get it wrong, and both answer the empty string, which reads
+     * as "nothing covers this part": taking the segment from one character
+     * past the slash drops the dot, and treating a dot at position 0 as no dot
+     * at all refuses the name outright.
+     */
+    expect(extensionOf("_rels/.rels")).toBe("rels");
+    expect(extensionOf(".rels")).toBe("rels");
+    expect(extensionOf("ppt/slides/.hidden")).toBe("hidden");
+    // And the neighbouring case stays where it was: a dot that is the whole
+    // name has nothing after it.
+    expect(extensionOf(".")).toBe("");
+  });
+});
+
+describe("counters that must not drift", () => {
+  it("does not lower a part number when the package loses a part", async () => {
+    /**
+     * The counters are a HIGH-WATER MARK for this `Pkg`, not a fact about the
+     * package: `usedNumbers` scans the zip once and `noteWritten` keeps the set
+     * current, but `removePart` deliberately never takes a number back out. A
+     * re-scan instead of the memo would answer 3 here — the number of the slide
+     * that has just been deleted — and the next write would land on a part
+     * another slide may still relate to.
+     *
+     * The memo has to be PRIMED before the removal for this to say anything:
+     * asked for the first time afterwards, both readings agree.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]] }, { paragraphs: [["b"]] }, { paragraphs: [["c"]] }]);
+    expect(pkg.nextSlideNumber(), "the counter is read here, before the deck changes").toBe(4);
+    await pkg.removeSlide("ppt/slides/slide3.xml");
+    expect(pkg.nextSlideNumber(), "a removal lowered the counter, so the next write reuses a name").toBe(4);
+  });
+
+  it("does not let a part of one family advance another family's counter", async () => {
+    // Every counter is filled by the SAME scan of every path in the package,
+    // and a path that does not match the family's pattern has to contribute
+    // nothing to it. Contributing a number instead — any number — costs the
+    // family its first name for the life of the `Pkg`, and the part it skips
+    // is one nothing in the package has ever held.
+    const pkg = await deck(ONE);
+    expect(pkg.nextNumber("ppt/charts/chart"), "the deck holds no chart, so the first is chart1").toBe(1);
+    pkg.setText("ppt/notesSlides/notesSlide7.xml", "<notes/>");
+    expect(pkg.nextNumber("ppt/charts/chart"), "a notes page advanced the chart counter").toBe(1);
+  });
+});
+
+describe("the slide id list at its edges", () => {
+  it("gives the first slide in an empty list PowerPoint's own starting id", async () => {
+    // `<p:sldIdLst>` with nothing in it is what a deck with no slides has, and
+    // it is the one case where the floor decides the answer rather than the
+    // ids already there. The format reserves everything below 256, so the
+    // first id handed out is 256 exactly — one lower is a value PowerPoint
+    // will not take, one higher is a number wasted for no reason.
+    const pkg = await deck(ONE);
+    const list = element(await pkg.doc(PRESENTATION), P_NS, "sldIdLst");
+    if (!list) throw new Error("the fixture changed shape");
+    for (const sldId of elements(list, P_NS, "sldId")) list.removeChild(sldId);
+    expect(await pkg.appendSldId("rId2")).toBe(256);
+    expect(await pkg.appendSldId("rId2")).toBe(257);
+  });
+
+  it("uses the highest id the format allows rather than refusing it", async () => {
+    // The range is closed at the top: 2147483647 is the largest value
+    // `<p:sldId id="…">` takes, so a deck whose highest is one below still has
+    // exactly one id left. Refusing at the boundary instead would lose a slide
+    // the format has room for, and the refusal reads as a deck problem.
+    const pkg = await deck(ONE);
+    const sldId = element(await pkg.doc(PRESENTATION), P_NS, "sldId");
+    if (!sldId) throw new Error("the fixture changed shape");
+    sldId.setAttribute("id", "2147483646");
+    expect(await pkg.appendSldId("rId2")).toBe(2147483647);
+    // And the one after it is the one there is no room for.
+    await expect(pkg.appendSldId("rId3")).rejects.toThrow(/run out of slide ids/);
+  });
+});
+
+describe("numbering relationships in a part whose ids are not rIdN", () => {
+  it("starts at rId1 and goes up one at a time", async () => {
+    /**
+     * `addRel` answers "the highest `rIdN` in the part, plus one", and a part
+     * whose entries are not in that family has no highest — so the first id it
+     * hands out is `rId1`. An unreadable id that contributes a number instead
+     * skips `rId1` for good, and a high-water mark left one past the id just
+     * issued puts a gap between every pair.
+     *
+     * Neither is a collision, which is why they are invisible until counted:
+     * the ids stay unique and ascending either way. `pptx-malformed.test.ts`
+     * pins the same function against a part that DOES carry an `rIdN`.
+     */
+    const pkg = await craft({
+      [SLIDE1_RELS]: rels(
+        `<Relationship Type="${REL_TYPE.slideLayout}" Target="../slideLayouts/slideLayout1.xml"/>`,
+        `<Relationship Id="docRel" Type="http://example/t" Target="a.xml"/>`,
+      ),
+    });
+    expect(await pkg.addRel(SLIDE1, "http://example/t", "b.xml"), "an unreadable id consumed a number").toBe("rId1");
+    expect(await pkg.addRel(SLIDE1, "http://example/t", "c.xml"), "the ids have a gap in them").toBe("rId2");
+  });
+});
+
+describe("a relationship that names no target at all", () => {
+  it("resolves the rest of the slide list past it rather than raising", async () => {
+    /**
+     * `relTargets` walks a `.rels` and resolves every entry in it. An entry
+     * with an `Id` and no `Target` is the shape that matters: it looks usable
+     * up to the point where the target is read, and the resolver is handed the
+     * DOM's null. Reading the deck is the very first thing an insert does, so
+     * a raise here is a deck the pane cannot open at all.
+     */
+    const pkg = await craft({
+      "ppt/_rels/presentation.xml.rels": rels(
+        `<Relationship Id="rId1" Type="${REL_TYPE.slideMaster}" Target="slideMasters/slideMaster1.xml"/>`,
+        `<Relationship Id="rId2" Type="${REL_TYPE.slide}"/>`,
+        `<Relationship Id="rId3" Type="${REL_TYPE.slide}" Target="slides/slide2.xml"/>`,
+      ),
+    });
+    // `rId2` is slide 1 in the fixture and now names nothing, so the list is
+    // the one slide that still resolves.
+    expect(await pkg.slidePaths()).toEqual(["ppt/slides/slide2.xml"]);
+    await pkg.removeSlide("ppt/slides/slide2.xml");
+    expect(await pkg.slidePaths()).toEqual([]);
+  });
+});
+
+describe("what the orphan sweep is allowed to destroy", () => {
+  it("leaves a part the package never held, and everything named after it, alone", async () => {
+    /**
+     * A chart owns its embedded workbook, so the sweep follows one hop out of
+     * the chart and takes what it finds. A DANGLING target — a workbook the
+     * package does not hold — must not reach that list, and "it is not there,
+     * so removing it does nothing" is not the reason: `removePart` also
+     * deletes the target's own `.rels` and its content-type declaration, and
+     * neither of those is checked against the part existing.
+     *
+     * So a package that kept a workbook's relationships after losing the
+     * workbook loses those too, silently, on a removal that had nothing to do
+     * with them. Measured on 2026-09-14 — `pptx-malformed.test.ts` calls the
+     * same check belt and braces, which is true of the deck it uses and not of
+     * this one.
+     */
+    const pkg = await craft({
+      [SLIDE1_RELS]: rels(`<Relationship Id="rId1" Type="${REL_TYPE.chart}" Target="../charts/chart1.xml"/>`),
+      "ppt/charts/chart1.xml": '<?xml version="1.0"?><c/>',
+      "ppt/charts/_rels/chart1.xml.rels": rels(
+        `<Relationship Id="rId1" Type="${REL_TYPE.package}" Target="../embeddings/wb.xlsx"/>`,
+      ),
+      "ppt/embeddings/_rels/wb.xlsx.rels": rels(
+        `<Relationship Id="rId1" Type="${REL_TYPE.image}" Target="../media/nothing.png"/>`,
+      ),
+    });
+    await pkg.addContentTypeOverride("/ppt/embeddings/wb.xlsx", "application/x-absent");
+    await pkg.removeSlide(SLIDE1);
+    // The chart is the slide's own and goes, which is what makes the sweep run.
+    expect(pkg.has("ppt/charts/chart1.xml")).toBe(false);
+    expect(
+      pkg.has("ppt/embeddings/_rels/wb.xlsx.rels"),
+      "the sweep took the relationships of a part it never found",
+    ).toBe(true);
+    expect(await pkg.text(CONTENT_TYPES)).toContain("/ppt/embeddings/wb.xlsx");
+  });
+
+  it("does not read every relationships part in the deck for a slide that owns nothing", async () => {
+    /**
+     * The referrer scan reads every `.rels` in the package to decide whether a
+     * chart, a tag or a picture is still spoken for. A slide that owns none of
+     * those has nothing to decide, and most slides own none — so the scan is
+     * skipped rather than run and thrown away.
+     *
+     * Asserted as WORK, like the id-list sweep above, because the alternative
+     * is a clock on a shared runner. It is the same shape of defect the rest of
+     * this file records: the sweep runs once per slide removed, so scanning the
+     * deck inside it costs `removed x deck`.
+     */
+    const pkg = await Pkg.open(await makeDeck(Array.from({ length: 12 }, () => ({ paragraphs: [["a"]] }))));
+    const seen = vi.spyOn(pkg, "relatedParts");
+    await pkg.removeSlide("ppt/slides/slide1.xml");
+    expect(
+      seen.mock.calls.length,
+      "every .rels in the deck is being read for a slide that owns nothing",
+    ).toBeLessThanOrEqual(2);
+    seen.mockRestore();
+  });
+
+  it("does not end up holding the whole deck's relationships either", async () => {
+    // The other half of the same skip, and its own case because the first
+    // assertion of a case is the only one a failure reaches. Every part the
+    // referrer scan reads is PARSED, and a parsed part stays parsed — which is
+    // the cost `release` and `peek` exist to keep off a task-pane WebView.
+    const pkg = await Pkg.open(await makeDeck(Array.from({ length: 12 }, () => ({ paragraphs: [["a"]] }))));
+    const held = pkg.cachedParts();
+    await pkg.removeSlide("ppt/slides/slide1.xml");
+    expect(pkg.cachedParts() - held, "the sweep parsed and kept the whole deck's relationships").toBeLessThanOrEqual(3);
+  });
+});
+
+describe("content types that nothing really covers", () => {
+  it("does not cover a part that has no extension with a Default that names none", async () => {
+    /**
+     * `ppt/embeddings/workbook` is a real shape — an OLE embedding whose
+     * producer gave it no extension — and a `<Default>` with no `Extension`
+     * attribute is another, from a writer that left it out. Reading the second
+     * as the answer for the first declares a part as something nobody said it
+     * was, and the package is then handed to PowerPoint claiming it.
+     *
+     * Both halves are the empty string once `getAttribute` has answered null,
+     * which is why they match: the part's missing extension is not a key to
+     * look anything up by.
+     */
+    const pkg = await craft({
+      [CONTENT_TYPES]: types(
+        `<Default ContentType="application/x-mystery"/>`,
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`,
+        `<Default Extension="xml" ContentType="application/xml"/>`,
+      ),
+      "ppt/embeddings/workbook": "no extension at all",
+    });
+    expect(await pkg.contentTypeOf("ppt/embeddings/workbook")).toBeUndefined();
+    // The Defaults that DO name an extension still answer.
+    expect(await pkg.contentTypeOf("_rels/.rels")).toBe("application/vnd.openxmlformats-package.relationships+xml");
+  });
+
+  it("says nothing for a Default that names no content type, rather than answering null", async () => {
+    // The same distinction `pptx-malformed.test.ts` draws for an Override, on
+    // the other arm of the same function. `getAttribute` answers null and the
+    // signature promises `string | undefined`; a null reaching a caller that
+    // has already checked for undefined is the shape of bug that survives
+    // typechecking.
+    const pkg = await craft({
+      [CONTENT_TYPES]: types(
+        `<Default Extension="png"/>`,
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`,
+        `<Default Extension="xml" ContentType="application/xml"/>`,
+      ),
+      "ppt/media/image1.png": "not really a png",
+    });
+    expect(await pkg.contentTypeOf("ppt/media/image1.png")).toBeUndefined();
+  });
+});
+
+describe("reading a part the package is already holding", () => {
+  it("hands peek the parsed copy rather than a second parse of it", async () => {
+    /**
+     * `peek` exists so that a reader does not pay to hold a part for the rest
+     * of the run: on the file route the deck is the user's WHOLE presentation,
+     * and a pass over it parsed three hundred documents before it had done
+     * anything. Reading a part that is ALREADY parsed through the same door —
+     * serialising the held copy and parsing the text again — gives that reader
+     * a second copy of the biggest part in the deck while the first is still
+     * held, which is the cost `peek` was written to avoid, and hands back
+     * something that is not the document the package will write out.
+     */
+    const pkg = await deck(TWO);
+    const held = await pkg.doc(SLIDE1);
+    expect(await pkg.peek(SLIDE1, (doc) => doc === held), "peek parsed the part a second time").toBe(true);
+    // And the other half of the contract, which is what the identity above is
+    // for: a part peek brought in itself is not kept.
+    const before = pkg.cachedParts();
+    await pkg.peek("ppt/slides/slide2.xml", (doc) => doc.documentElement.localName);
+    expect(pkg.cachedParts(), "peek retained the part").toBe(before);
+  });
+});
+
+describe("the two places base64 is converted", () => {
+  it("hands bytes straight to the zip rather than through the base64 decoder", async () => {
+    /**
+     * `open` takes bytes or the base64 a host hands over, and only the second
+     * needs decoding. Sending bytes through the decoder as well is not wrong —
+     * `Buffer.from` copies a Uint8Array and hands back the same bytes — it is
+     * a whole extra copy of the deck, which on the file route is the user's
+     * entire presentation and is measured in tens of megabytes.
+     *
+     * Asserted on WHICH object reaches JSZip, because that is the difference:
+     * the caller's own bytes, or a copy of them.
+     */
+    const bytes = await makeDeck(ONE);
+    const loading = vi.spyOn(JSZip, "loadAsync");
+    const pkg = await Pkg.open(bytes);
+    expect(await pkg.slidePaths()).toHaveLength(1);
+    expect(loading.mock.calls[0]?.[0], "the deck was copied on the way in").toBe(bytes);
+    loading.mockRestore();
+  });
+
+  it("encodes the base64 itself rather than asking the zip to generate it again", async () => {
+    /**
+     * The measured half of the same decision, the other way round: on 45 MB,
+     * JSZip's own encoder costs 2.5 seconds of character shuffling and the
+     * platform's costs 24 (`base64.ts` has the table). `toBase64` builds the
+     * bytes once and encodes them; falling back to `generateAsync` when the
+     * platform HAS a route means zipping the whole package twice for one
+     * insert.
+     *
+     * The fallback arm itself stays uncovered on purpose — see `open`'s
+     * comment. This pins that it is a fallback.
+     */
+    const pkg = await deck(ONE);
+    const generating = vi.spyOn(JSZip.prototype, "generateAsync");
+    const base64 = await pkg.toBase64();
+    expect(base64.startsWith("UEsDB"), "not a zip").toBe(true);
+    expect(
+      generating.mock.calls.map((call) => (call[0] as { type?: string }).type),
+      "the package was generated twice for one base64 string",
+    ).toEqual(["uint8array"]);
+    generating.mockRestore();
   });
 });

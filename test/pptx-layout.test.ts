@@ -588,10 +588,29 @@ describe("the deck's slide size", () => {
       `<p:sldSz cx="12192000" cy="tall"/>`,
       // No `cx` attribute at all, which reads as zero rather than as missing.
       `<p:sldSz cy="6858000"/>`,
+      // And no `cy`, which needs its own case: the width and the height are
+      // two separate lines with a fallback each, and a mutation sweep found
+      // that only the width's was ever put to a deck that omitted it.
+      `<p:sldSz cx="12192000"/>`,
     ]) {
       const pkg = await deck({ [PRESENTATION]: presentationPart(sz) });
       expect(await slideSize(pkg), sz).toEqual(DEFAULT_4_3);
     }
+  });
+
+  it("keeps a declared size that is positive, however small, because the test is zero and not plausibility", async () => {
+    // One EMU is the first width a deck can declare that the fallback must NOT
+    // take over — 1/914400 of an inch, and no deck a human made says it. It is
+    // here as the BOUNDARY and for nothing else: the rule the module states is
+    // "not a number, or not positive", and without a case sitting exactly one
+    // step above zero that rule can quietly widen into "not more than one"
+    // while every other case in this block stays green. Both halves are
+    // checked, because the width and the height are two comparisons.
+    const short = await deck({ [PRESENTATION]: presentationPart(`<p:sldSz cx="1" cy="6858000"/>`) });
+    expect(await slideSize(short)).toEqual({ width: 1, height: 6858000 });
+
+    const flat = await deck({ [PRESENTATION]: presentationPart(`<p:sldSz cx="12192000" cy="1"/>`) });
+    expect(await slideSize(flat)).toEqual({ width: 12192000, height: 1 });
   });
 });
 
