@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import JSZip from "jszip";
 import { Pkg } from "../src/core/pptx/pkg.js";
 import { cloneSlide, creationIdOf, notesPathFor, setCreationId } from "../src/core/pptx/clone.js";
@@ -189,6 +189,31 @@ describe("the creation id a copy is given", () => {
     expect(id).not.toBe(111);
   });
 
+  it("draws inside the format's range even at the very top of Math.random's own", async () => {
+    /**
+     * `<p14:creationId val>` is an `ST_UnsignedInt`, so 4294967295 is the last
+     * value that fits and 4294967296 is a package PowerPoint refuses without
+     * saying which part was wrong. The draw is
+     * `Math.floor(Math.random() * 0xffff_ffff) + 1`, and that `+ 1` is the
+     * whole of what puts the range at 1..0xffff_ffff rather than
+     * 0..0xffff_fffe — one more and the top of it leaves the type.
+     *
+     * The case above draws once from the real generator, so it meets that
+     * bound by odds rather than holding it: 4294967295 values out of 4294967295
+     * pass. This one pins `Math.random` at its own maximum, 1 - 2^-53, which is
+     * the only input that can reach the top at all.
+     */
+    const pkg = await deck([{ paragraphs: [["Hello"]], creationId: 111 }]);
+    const random = vi.spyOn(Math, "random").mockReturnValue(1 - Number.EPSILON / 2);
+    try {
+      const target = await cloneSlide(pkg, "ppt/slides/slide1.xml");
+      expect(random, "the module's own draw is what this case is about").toHaveBeenCalled();
+      expect(await creationIdOf(pkg, target), "the top of the draw left ST_UnsignedInt").toBe(0xffff_ffff);
+    } finally {
+      random.mockRestore();
+    }
+  });
+
   it("redraws a candidate the deck is already using rather than honouring it", async () => {
     // The freshness rule applies to an INJECTED generator too, which is what
     // makes it checkable at all: hand over a value the deck already holds and
@@ -208,10 +233,11 @@ describe("the creation id a copy is given", () => {
      * answering the same number is a caller being deliberate, and spinning for
      * ever on it would be worse than honouring it.
      *
-     * The upper bound is loose on purpose: the property is "this terminates",
-     * not "this draws exactly eight times", and pinning the constant would make
-     * an ordinary tuning change look like a regression. The lower bound is the
-     * half that carries the meaning — it refused at least once before giving in.
+     * The bounds here are the PROPERTY — it refused at least once, and it
+     * stopped — and they are deliberately loose about how many times. The
+     * constant itself is pinned in the case below instead, because a mutation
+     * sweep on 2026-09-14 moved it three separate ways and nothing anywhere
+     * noticed.
      */
     const pkg = await deck([{ paragraphs: [["Hello"]], creationId: 111 }]);
     const generator = draws(111);
@@ -220,6 +246,29 @@ describe("the creation id a copy is given", () => {
     expect(generator.count()).toBeGreaterThan(1);
     expect(generator.count(), "a bounded redraw, not a loop").toBeLessThan(64);
     expect(await creationIdOf(pkg, target), "honoured rather than spun on").toBe(111);
+  });
+
+  it("asks a generator that never moves exactly the bound's worth of times", async () => {
+    /**
+     * What the looser case above leaves unheld. `DRAW_TRIES` is 8 and the loop
+     * that spends it is seeded at one, so a generator answering the same number
+     * for ever is asked eight times: the first draw, then seven refusals.
+     *
+     * All three halves of that arithmetic are silent on their own. A seed of
+     * two, a `<=` in place of the `<`, or a different constant each still
+     * terminates, still refuses at least once, and still returns the same id —
+     * the count is the only thing that moves, so the count is what holds them.
+     * Measured on 2026-09-14 by making each change in turn: 7, 9 and 9 draws
+     * against this case's 8, and the whole suite green for all three.
+     *
+     * This number is therefore a decision rather than an accident. Retuning the
+     * bound changes it, and that is the point.
+     */
+    const pkg = await deck([{ paragraphs: [["Hello"]], creationId: 111 }]);
+    const generator = draws(111);
+    await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: generator.next });
+
+    expect(generator.count(), "the bound on the redraw moved").toBe(8);
   });
 
   it("does not hand a second copy the id the first one took", async () => {
@@ -236,6 +285,33 @@ describe("the creation id a copy is given", () => {
 
     expect(await creationIdOf(pkg, first)).toBe(900);
     expect(await creationIdOf(pkg, second), "the second copy reused the first copy's id").toBe(901);
+  });
+
+  it("gathers the ids in use once per package rather than per copy", async () => {
+    /**
+     * The mechanism the case above rests on, asserted directly. Reading every
+     * slide's `extLst` for every clone is O(N²) parses inside a task-pane
+     * WebView — a 240-row merge into a 60-slide deck walks the deck 240 times —
+     * and the only thing that adds a creation id during a run is `clone.ts`
+     * itself, so the set is gathered once and each drawn id is put into it as it
+     * is drawn.
+     *
+     * `slidePaths` is the walk, and inside `cloneSlide` nothing else calls it,
+     * so counting the calls counts the gathers. Kept honest in the other
+     * direction by the assertion that it happened at all: a memo that is never
+     * filled would also answer one.
+     */
+    const pkg = await deck([{ paragraphs: [["Hello"]], creationId: 111 }]);
+    const walks = vi.spyOn(pkg, "slidePaths");
+    try {
+      const generator = draws(900, 901);
+      await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: generator.next });
+      await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: generator.next });
+
+      expect(walks.mock.calls.length, "the deck was walked again for the second copy").toBe(1);
+    } finally {
+      walks.mockRestore();
+    }
   });
 
   it("gives a slide that carried no creation id one of its own", async () => {
@@ -634,6 +710,42 @@ describe("what a copy does not inherit", () => {
     expect(custData, "the whole list went with the tag reference").toBeTruthy();
     expect(child(custData!, P_NS, "tags")).toBeUndefined();
     expect(child(custData!, P_NS, "custData")).toBeTruthy();
+  });
+
+  it("leaves a custom data list that never held a tag reference at all exactly where it was", async () => {
+    /**
+     * `<p:custDataLst>` is legal holding nothing but `<p:custData>`, and then
+     * there is no inherited tag reference to take off the copy.
+     *
+     * The pair is read TOGETHER — the list and the tag element inside it — and
+     * that is not belt and braces. Asking @xmldom/xmldom to remove a child that
+     * was never found reads `parentNode` off `undefined` and throws
+     * `TypeError: Cannot read properties of undefined`, measured 2026-09-14, so
+     * reading either half on its own turns an ordinary slide into a clone that
+     * never returns.
+     */
+    const pkg = await editedDeck([{ paragraphs: [["Hello"]] }], async (zip) => {
+      await spliceInto(
+        zip,
+        "ppt/slides/slide1.xml",
+        "</p:cSld>",
+        `<p:custDataLst><p:custData r:id="rId1"/></p:custDataLst>`,
+      );
+    });
+    const source = await shipped(pkg, "ppt/slides/slide1.xml");
+    const sourceCSld = element(source, P_NS, "cSld");
+    expect(
+      sourceCSld ? child(sourceCSld, P_NS, "custDataLst") : undefined,
+      "the fixture edit did not land",
+    ).toBeTruthy();
+
+    const target = await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: () => 222 });
+    const doc = await shipped(pkg, target);
+    const cSld = element(doc, P_NS, "cSld");
+    const custData = cSld ? child(cSld, P_NS, "custDataLst") : undefined;
+    expect(custData, "a list holding no tag reference is not this add-in's to touch").toBeTruthy();
+    expect(child(custData!, P_NS, "custData"), "the list came back emptied").toBeTruthy();
+    expect(child(custData!, P_NS, "tags")).toBeUndefined();
   });
 
   it("drops a comment the template carried, rather than sharing it or copying it", async () => {

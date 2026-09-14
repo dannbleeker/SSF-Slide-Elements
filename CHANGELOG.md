@@ -9,6 +9,31 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The check that deliberately breaks the add-in's code now covers the part that
+  READS AND WRITES the PowerPoint file itself — the zip of XML parts every
+  insert opens, edits and hands back. Seventy-seven changes to it went
+  unnoticed. Thirty-eight are now caught, by 28 new cases; the other
+  thirty-nine alter nothing at all and are written down with the measurement
+  behind each.
+
+  Nothing you can see changes, because nothing was broken. What was being held
+  by nobody, and now is: the id the first slide of an empty deck gets, which the
+  format fixes at 256; the counter that stops a new part from reusing a name a
+  deleted part had, and which must not let one kind of part advance another
+  kind's numbering; relationship ids starting at 1 and going up one at a time
+  with no gaps; a part name written the absolute way staying absolute; a part
+  with no file extension not being handed the content type of a rule that names
+  none; and the deck's bytes going to the zip reader without being copied first,
+  which on the file route means a copy of your entire presentation.
+
+  Most of the thirty-nine that alter nothing are guards around a foreign XML
+  library, checked against what it actually returns rather than what it is
+  assumed to: 1,080 real parts from the two library decks holding 469,288
+  elements and 571,356 attributes, plus 20,000 synthetic ones. They stay,
+  because each is what makes the line under it honest.
+
+### Changed — nothing you can see
+
 - The check that deliberately breaks the add-in's code now double-checks the
   changes it believes were CAUGHT, not only the ones it believes slipped
   through. It always re-ran a change nothing noticed, slowly and against

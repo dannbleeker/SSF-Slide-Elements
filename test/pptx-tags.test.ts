@@ -189,6 +189,21 @@ const REFERENCE_TO_NOTHING =
   `<p:sp><p:nvSpPr><p:cNvPr id="93" name="Uden relation"/><p:cNvSpPr/>` +
   `<p:nvPr><p:custDataLst><p:tags r:id="rId404"/></p:custDataLst></p:nvPr></p:nvSpPr><p:spPr/></p:sp>`;
 
+/**
+ * A shape nested inside another shape: markup PowerPoint does not write either,
+ * because `CT_Shape` has no shape child at all.
+ *
+ * It is here for one reason — it is the cheapest slide that tells "descend into
+ * GROUPS" apart from "descend into anything in the PresentationML namespace".
+ * Measured 2026-09-14: over both committed library decks and every fixture in
+ * this file, the two rules answer identically, so a valid slide cannot say
+ * which one the reader follows.
+ */
+const SHAPE_INSIDE_A_SHAPE =
+  `<p:sp><p:nvSpPr><p:cNvPr id="95" name="Yderst"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>` +
+  `<p:sp><p:nvSpPr><p:cNvPr id="96" name="Inderst"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp>` +
+  `</p:sp>`;
+
 /** Two shapes no PowerPoint wrote: one whose `<p:cNvPr>` states no id, one carrying none at all. */
 const WITHOUT_SHAPE_ID = `<p:sp><p:nvSpPr><p:cNvPr name="Uden id"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp>`;
 const WITHOUT_SHAPE_PROPS = `<p:sp><p:nvSpPr><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp>`;
@@ -743,6 +758,33 @@ describe("reading a deck back", () => {
     await expect(writeShapeTags(pkg, SLIDE, shape, OURS)).resolves.toBeUndefined();
   });
 
+  it("says nothing for a reference with no `r:id`, beside a relationship that states no `Id`", async () => {
+    /**
+     * `relTarget` finds a relationship by comparing its `Id` to the id it was
+     * given, and `getAttribute` answers null on both sides of that comparison —
+     * so a relationship written without an `Id`, which is invalid OPC and what
+     * a generator that forgot it leaves behind, MATCHES a reference that names
+     * no relationship at all. The empty-id guard is what keeps the two apart.
+     *
+     * Without it the reader attributes whatever that relationship points at to
+     * this add-in: a shape carrying no tag of ours, reported as an element, on
+     * a deck where somebody else's tag part happens to use our key. Reporting
+     * another add-in's bookkeeping as our own is the failure this whole module
+     * is written around.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]], shapes: [REFERENCE_WITHOUT_ID] }]);
+    pkg.setText("ppt/tags/tag42.xml", tagPartXml([[TAG_ELEMENT, "en-fremmed-kasse"]]));
+    const rels = await pkg.text(Pkg.relsPathFor(SLIDE));
+    pkg.setText(
+      Pkg.relsPathFor(SLIDE),
+      rels.replace(
+        "</Relationships>",
+        `<Relationship Type="${REL_TYPE.tags}" Target="../tags/tag42.xml"/></Relationships>`,
+      ),
+    );
+    expect(await readShapeTags(pkg, SLIDE)).toEqual([]);
+  });
+
   it("skips a shape with no tag reference at all, which is most of a real slide", async () => {
     const pkg = await deck([{ paragraphs: [["a"]], noBody: true, shapes: [GROUP, PICTURE, FRAME, CONNECTOR] }]);
     expect(await readShapeTags(pkg, SLIDE)).toEqual([]);
@@ -863,6 +905,31 @@ describe("what the whole deck already uses", () => {
     ]);
   });
 
+  it("orders an element by the FIRST slide it is on, not by a later one", async () => {
+    /**
+     * "Used in this deck" is in the order somebody scrolling the deck would
+     * meet the elements in, and an element is met once — at the earliest slide
+     * it sits on. Sorting on any other slide in its list reorders the list the
+     * moment the same element is inserted twice, which is the ordinary case
+     * rather than a corner.
+     *
+     * The tiebreak cannot stand in for this: `bred-bjaelke` sorts BEFORE
+     * `hvid-kasse-2x1-vertikale` alphabetically, so a comparison that lost the
+     * first-appearance key would answer in the other order too.
+     */
+    const pkg = await three();
+    await writeShapeTags(pkg, SLIDE, await shapeNamed(pkg, "Body"), OURS);
+    await writeShapeTags(pkg, SLIDE3, await shapeNamed(pkg, "Body", SLIDE3), OURS);
+    await writeShapeTags(pkg, SLIDE2, await shapeNamed(pkg, "Body", SLIDE2), [
+      [TAG_ELEMENT, "bred-bjaelke"],
+      [TAG_CATALOGUE, "2026-09-10"],
+    ]);
+    expect((await usedInDeck(pkg)).map((u) => [u.element, u.slides])).toEqual([
+      ["hvid-kasse-2x1-vertikale", [1, 3]],
+      ["bred-bjaelke", [2]],
+    ]);
+  });
+
   it("ignores another add-in's tags, on a deck that carries them on every slide", async () => {
     // The fixture's third slide carries a vendor tag part, which is what a deck
     // that has been through think-cell looks like. A sweep that read
@@ -935,6 +1002,28 @@ describe("a tag the user has since grouped away", () => {
     await writeShapeTags(pkg, SLIDE, inner, OURS);
 
     expect((await readShapeTags(pkg, SLIDE)).map((t) => t.shapeId)).toEqual(["51"]);
+  });
+
+  it("is not read from inside a shape that is not a group", async () => {
+    /**
+     * The walk descends into `<p:grpSp>` and nothing else. Every other shape
+     * kind is a leaf, so a tag one level down inside one is markup this add-in
+     * did not write and cannot claim: the shape the pane would then offer to
+     * remove is not the shape the element is.
+     *
+     * The fixture is synthetic because it has to be — see
+     * `SHAPE_INSIDE_A_SHAPE`. The rule it separates is real: a reader that
+     * descended into anything in the PresentationML namespace would walk a
+     * shape's own `<p:nvSpPr>` and `<p:nvPr>` on every slide in every deck.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]], noBody: true, shapes: [SHAPE_INSIDE_A_SHAPE] }]);
+    const outer = await shapeNamed(pkg, "Yderst");
+    const inner = children(outer, P_NS, "sp")[0];
+    expect(inner, "the fixture stopped nesting a shape inside the shape").toBeDefined();
+    await writeShapeTags(pkg, SLIDE, inner as Element, OURS);
+
+    expect(await readShapeTags(pkg, SLIDE)).toEqual([]);
+    expect(await usedInDeck(pkg)).toEqual([]);
   });
 
   it("counts a tagged group once, rather than once per shape inside it", async () => {

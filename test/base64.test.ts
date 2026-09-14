@@ -17,29 +17,34 @@ const ORIGINAL_STANDARD =
   typeof (Uint8Array as unknown as { fromBase64?: unknown }).fromBase64 === "function" &&
   typeof (Uint8Array.prototype as unknown as { toBase64?: unknown }).toBase64 === "function";
 
+/**
+ * `Uint8Array` with each half of the standard pair shadowed by what is passed
+ * for it, and nothing else changed.
+ */
+function uint8ArrayWith(fromBase64: unknown, toBase64: unknown): Uint8ArrayConstructor {
+  const stripped = function StrippedUint8Array(...args: unknown[]) {
+    return new (Uint8Array as unknown as new (...a: unknown[]) => Uint8Array)(...args);
+  } as unknown as Uint8ArrayConstructor;
+  Object.setPrototypeOf(stripped, Uint8Array);
+  // `prototype` is read-only on a function type, so it is defined rather than
+  // assigned: a fresh object inheriting from the real one, with the standard
+  // pair deleted off the copy and the original left alone.
+  Object.defineProperty(stripped, "prototype", { value: Object.create(Uint8Array.prototype) });
+  // Shadowed with `undefined`, not DELETED. Both the copy and its prototype
+  // INHERIT from the real ones, and deleting a property a thing does not own
+  // does nothing at all — so on any platform that really has the standard
+  // pair, a fake built to have it taken away still had it, and every case
+  // below that asks for a slower route would have been handed the fastest.
+  // It reads as correct here only because this Node has neither.
+  Object.defineProperty(stripped, "fromBase64", { value: fromBase64 });
+  Object.defineProperty(stripped.prototype, "toBase64", { value: toBase64 });
+  return stripped;
+}
+
 /** A global object offering only the routes named. */
 function only(...routes: ("standard" | "buffer" | "browser")[]): typeof globalThis {
   const fake = Object.create(globalThis) as Record<string, unknown> & typeof globalThis;
-  if (!routes.includes("standard")) {
-    // `Uint8Array` with the standard pair removed, and nothing else changed.
-    const stripped = function StrippedUint8Array(...args: unknown[]) {
-      return new (Uint8Array as unknown as new (...a: unknown[]) => Uint8Array)(...args);
-    } as unknown as Uint8ArrayConstructor;
-    Object.setPrototypeOf(stripped, Uint8Array);
-    // `prototype` is read-only on a function type, so it is defined rather than
-    // assigned: a fresh object inheriting from the real one, with the standard
-    // pair deleted off the copy and the original left alone.
-    Object.defineProperty(stripped, "prototype", { value: Object.create(Uint8Array.prototype) });
-    // Shadowed with `undefined`, not DELETED. Both the copy and its prototype
-    // INHERIT from the real ones, and deleting a property a thing does not own
-    // does nothing at all — so on any platform that really has the standard
-    // pair, a fake built to have it taken away still had it, and every case
-    // below that asks for a slower route would have been handed the fastest.
-    // It reads as correct here only because this Node has neither.
-    Object.defineProperty(stripped, "fromBase64", { value: undefined });
-    Object.defineProperty(stripped.prototype, "toBase64", { value: undefined });
-    fake.Uint8Array = stripped;
-  }
+  if (!routes.includes("standard")) fake.Uint8Array = uint8ArrayWith(undefined, undefined);
   // Injected rather than inherited: under the test runner `Buffer` is not an
   // own property of `globalThis`, so a fake built on it offers no Buffer route
   // at all and this file would compare the browser route with itself.
@@ -48,6 +53,34 @@ function only(...routes: ("standard" | "buffer" | "browser")[]): typeof globalTh
     fake.atob = undefined as never;
     fake.btoa = undefined as never;
   }
+  return fake;
+}
+
+/**
+ * A global offering exactly ONE half of a two-part route, and nothing else.
+ *
+ * Two of the three routes are pairs — a decoder and an encoder — and `only()`
+ * cannot tell a route guarded on BOTH halves apart from one guarded on either,
+ * because every platform it builds has a pair wholly present or wholly absent.
+ * A half-shipped pair is not hypothetical in the direction that matters: these
+ * are two separate globals on the browser route and two separate properties on
+ * the standard one, and taking the route on half of them chooses a decoder with
+ * no encoder behind it, which fails inside `base64From` with a deck in hand
+ * rather than here with a `undefined` to fall back on.
+ */
+function half(which: "fromBase64" | "toBase64" | "atob" | "btoa"): typeof globalThis {
+  const fake = Object.create(globalThis) as Record<string, unknown> & typeof globalThis;
+  fake.Uint8Array = uint8ArrayWith(
+    which === "fromBase64" ? (text: string) => new Uint8Array(NodeBuffer.from(text, "base64")) : undefined,
+    which === "toBase64"
+      ? function toBase64(this: Uint8Array) {
+          return NodeBuffer.from(this).toString("base64");
+        }
+      : undefined,
+  );
+  fake.Buffer = undefined as never;
+  fake.atob = (which === "atob" ? globalThis.atob : undefined) as never;
+  fake.btoa = (which === "btoa" ? globalThis.btoa : undefined) as never;
   return fake;
 }
 
@@ -152,6 +185,26 @@ describe("the base64 routes", () => {
       ORIGINAL_STANDARD ? "function" : "undefined",
     );
   });
+
+  for (const [route, halves] of [
+    ["standard", ["fromBase64", "toBase64"]],
+    ["browser", ["atob", "btoa"]],
+  ] as const) {
+    it(`will not take the ${route} route on half of a pair`, () => {
+      for (const which of halves) {
+        const platform = half(which);
+        // The route needs BOTH halves, so half of one is no route at all and
+        // the answer is the same as a barren platform's: nothing.
+        expect(routeFor(platform), `${which} alone was taken as a whole route`).toBeUndefined();
+        // Which is what makes it safe: the caller is handed undefined and goes
+        // back to JSZip, instead of reaching a missing half mid-conversion.
+        expect(() => bytesFrom("AAECAwQ=", platform), `${which}: decoding raised`).not.toThrow();
+        expect(bytesFrom("AAECAwQ=", platform), `${which}: decoded on half a pair`).toBeUndefined();
+        expect(() => base64From(new Uint8Array([1, 2, 3]), platform), `${which}: encoding raised`).not.toThrow();
+        expect(base64From(new Uint8Array([1, 2, 3]), platform), `${which}: encoded on half a pair`).toBeUndefined();
+      }
+    });
+  }
 
   it("answers undefined when the platform offers nothing, rather than guessing", () => {
     const barren = only();
