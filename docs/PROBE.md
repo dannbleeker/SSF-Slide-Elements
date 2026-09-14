@@ -39,7 +39,9 @@ on 2026-09-14: three slides, and a modern comment on slide 3 with
 into any deck it saves (`node scripts/deck-identity.mjs <deck> [out]` reports or
 rewrites that), because this repository is public;
 `test/probe-deck.test.ts` holds it to both — the comment being there, and
-nobody real being named. Upload it to OneDrive and open it in the editor.
+nobody real being named. Open a COPY of it: on the web, upload the copy to
+OneDrive; on Windows, open the copy from disk. The pair of 2026-09-14 was run
+on Windows, from disk, and is what answered question 4.
 
 Before you press Run, **click slide 2 in the strip** so one slide is selected.
 Question 3 reads what is selected, never sets it, and the reader tells you which
@@ -62,16 +64,23 @@ slide number it found so you can compare.
    is the easiest thing to select-all and copy. Leave the other three tabs
    alone; the snippet needs no libraries beyond the Office.js a blank snippet
    already carries.
-6. Click slide 2 in the strip. **Script Lab → Run**. The pane switches to the
+6. **If the editor shows "Would you like to trust this snippet?", press
+   Trust.** A snippet that arrived by Import rather than by typing will not run
+   until you do, and **nothing says so where you will be looking**: the runner
+   comes up, its console says "There are no logs to display", and the deck never
+   changes. The reason is inside the runner's own sandboxed frame, where it
+   reads "Untrusted Snippet". Measured on 2026-09-14 on the web and on Windows;
+   it cost about fifty minutes and was first misread as a wedged runner.
+7. Click slide 2 in the strip. **Script Lab → Run**. The pane switches to the
    runner. You will see slides appear at the end of the deck and disappear
    again; on a large deck the first arm inserts a copy of every slide, so give
    it a minute.
-7. Expand the **console** strip at the bottom of the runner pane.
-8. Copy everything between `=== SSF SLIDE ELEMENTS ANSWER SHEET ===` and
+8. Expand the **console** strip at the bottom of the runner pane.
+9. Copy everything between `=== SSF SLIDE ELEMENTS ANSWER SHEET ===` and
    `=== END ===` into a file, `first.json`.
-9. The deck now has **one extra slide at the end**, left on purpose. Click the
+10. The deck now has **one extra slide at the end**, left on purpose. Click the
    slide canvas, press **Ctrl+Z once**, and look at whether the slide went away.
-10. **Run** the snippet again, and copy the second sheet into `second.json`.
+11. **Run** the snippet again, and copy the second sheet into `second.json`.
     The second run removes the extra slide if Ctrl+Z did not, and leaves none
     of its own: it knows it is the second of the pair from a marker the first
     run wrote into the document's settings before it left the slide. In Script

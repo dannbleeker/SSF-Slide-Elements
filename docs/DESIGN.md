@@ -1011,8 +1011,9 @@ the one that closes question 7.** A pair under `docs/host-answers/`
   as `targetSlideId`, and the API's order is the file's `<p:sldIdLst>` order.
 - **Question 4 was NOT asked**, and the sheet says so rather than passing: the
   validators' deck carries no comments and no `ppt/authors.xml`, so the export
-  had nothing to drop. The 2026-09-10 and 2026-09-11 sheets are still the
-  answer, and a deck with comments is what a re-run needs.
+  had nothing to drop. The 2026-09-10 and 2026-09-11 sheets were still the
+  answer, and a deck with comments is what a re-run needed — which is what the
+  pair below was run on.
 - **Question 6 is the uncomfortable one.** `getFileAsync` took **31,755 ms for
   0.05 MB**, and 14,523 ms at the end of the same run, against
   `exportAsBase64Presentation` at 550 ms for the same deck. That is not a size
@@ -1022,6 +1023,56 @@ the one that closes question 7.** A pair under `docs/host-answers/`
   before saw 12 seconds for the same work, so the number moves a lot between
   runs. **Nothing here is a reason to change the engine yet; it is a reason not
   to trust a single timing.**
+
+**A pair on PowerPoint for Windows, 2026-09-14** — host `16.0.20326.20144`,
+`PowerPointApi` through 1.10 — run on `template/probe-comments.pptx`, the deck
+authored for exactly this: three slides, a modern comment on slide 3 and the
+`ppt/authors.xml` that comes with one. Sheets
+`2026-09-14T13-58-44-243Z.json` and `2026-09-14T14-08-57-305Z.json`.
+
+- **Question 4 is answered, for the first time on any platform by this
+  repository's own instrument on a deck that could answer it.**
+  `exportAsBase64Presentation` handed back **43 parts where `getFileAsync` gave
+  48**, and the five it did not carry over were
+  `ppt/comments/modernComment_102_A61DA0E.xml`, `ppt/authors.xml`, and the three
+  `ppt/webextensions/` parts. So the drop SSF-Merge's sixth sheet found on the
+  web reaches the presentation-level call on Windows too, and the engine reading
+  with `getFileAsync` is measured here rather than borrowed. Both runs agreed,
+  ten minutes apart.
+- **Question 6, against the web's anomaly of the same day.** `getFileAsync` read
+  the 0.04 MB deck in **62, 76 and 61 ms** across the pair, and
+  `exportAsBase64Presentation` in **28 and 30 ms**. The web had taken 31,755 ms
+  for a deck of the same size hours earlier. Whatever that was, it is not a
+  property of the call, which is the second reason not to answer question 6 by
+  extrapolating.
+- **Question 5 on Windows, with the keystroke measured on both sides.** The
+  first run left its tagged slide (3 → 4, confirmed through COM), one Ctrl+Z
+  took the deck back to 3, and the second run found its own marker from the
+  first and the tagged slide gone. Ctrl+Z reverts an insert here as it does on
+  the web.
+- **Question 7 on Windows**: `setSelectedSlides` moved the view in **7 ms**, put
+  the previous selection back, and the next selection read answered in 58 ms.
+  The jump is now measured on both platforms this project ships to and borrowed
+  on neither.
+- Questions 1, 2 and 3 as everywhere else: both prunings land exactly one slide,
+  insert-then-positional-delete keeps the order, a just-added slide is accepted
+  as `targetSlideId`, and the API's order is the file's `<p:sldIdLst>` order.
+  Inserting a slide on the deck's own master added **no** master, under
+  `KeepSourceFormatting` and `UseDestinationTheme` alike.
+
+**Two rules about the INSTRUMENT, both paid for on 2026-09-14.**
+
+- **An imported Script Lab snippet does not run until it is TRUSTED, and the
+  failure is silent where you are looking.** The runner's console says "There
+  are no logs to display" and the deck does not change; the reason sits inside
+  the runner's sandboxed `user-snippet` iframe, reading "Untrusted Snippet — in
+  order to run … you must first trust it in the editor". The editor shows a
+  "Would you like to trust this snippet?" bar with a **Trust** button. This cost
+  about fifty minutes across the web and Windows, and on the web it was
+  misdiagnosed as a wedged runner. **Read the iframe, not the console strip.**
+- **The ribbon's Run does nothing once the runner is open**, on Windows as on
+  the web. The runner's own "Last updated … ago" label is a BUTTON and is the
+  re-run, which is what the second of a pair needs.
 
 The rest of this section is about the DECKS and the print rather than Office.js.
 

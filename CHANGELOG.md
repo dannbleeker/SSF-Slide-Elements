@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed — nothing you can see
+
+- We asked PowerPoint the last of the seven questions we had never been able to
+  put to it, and it answered. There are two ways for an add-in to read the deck
+  you have open, and one of them quietly leaves your **comments** behind — and
+  the people who wrote your comments with them. This add-in uses the other one.
+  That was believed on the strength of a sister project's measurement; it is now
+  measured here, on PowerPoint for Windows, against a presentation with a real
+  comment in it.
+
 ### Added — nothing you can see
 
 - A small presentation for testing the add-in against a real PowerPoint, kept

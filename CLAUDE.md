@@ -69,10 +69,16 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-**PowerPoint for the web and PowerPoint on Windows.** Six answer sheets under
+**PowerPoint for the web and PowerPoint on Windows.** Ten answer sheets under
 `docs/host-answers/` — four from the web on 2026-09-10, a Windows pair on
-2026-09-11; `docs/DESIGN.md` section 15 reads them and is the one place to
-change when a sheet is filed. The splice ran against the web on 2026-09-10, and
+2026-09-11, a web pair and a Windows pair on 2026-09-14; `docs/DESIGN.md`
+section 15 reads them and is the one place to change when a sheet is filed.
+**All seven questions are now measured by this repository's own instrument**,
+question 4 last, on the Windows pair of 2026-09-14 run against
+`template/probe-comments.pptx`: `exportAsBase64Presentation` gave back 43 parts
+where `getFileAsync` gave 48, dropping the comment part and `ppt/authors.xml`.
+Section 13 is borrowed from a sibling on neither platform this project has a
+sheet for; Mac and iPad, having none, are borrowed on everything. The splice ran against the web on 2026-09-10, and
 the whole product — pane, insert and Undo — against the web and then against
 Windows on 2026-09-11. **Mac and iPad have had no round, and none is planned
 before release** — the owner has neither device (2026-09-12), so the
@@ -161,8 +167,10 @@ counter dated.
   (`src/host/jump.ts`), on SSF-Charts' dated web measurement (2,429 rungs,
   2026-08-13 to 2026-09-04, none silent), never on desktop evidence — so the
   pane reads the selection back after every call and claims only what it saw.
-  Probe question 7 measures the call; until a sheet answers it, the jump is
-  borrowed, not measured, on every platform.
+  Probe question 7 measures the call, and it is answered on both platforms with
+  sheets: the web on 2026-09-14 (1,146 ms and 567 ms, twelve minutes apart) and
+  Windows the same day (7 ms, selection put back, the next read answering in 58
+  ms). On Mac and iPad the jump is still borrowed, and must say so.
 - **Shape tags do not survive cut/paste on the web.** Say so in the docs; do
   not try to detect it.
 - **A custom XML part written at the package root is invisible to Office.js.**
