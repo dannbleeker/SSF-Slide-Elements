@@ -26,10 +26,13 @@ hands it back in one insert and removes the original by position. Every tile
 carries PowerPoint's own rendering of its element, cut from the committed PDF
 print of the deck it came from (`template/library-*.pdf`, with the geometry in
 `*.print.json`); the landing diagram is the fallback for an element the cut
-could not reach. What is NOT built is in `docs/BACKLOG.md`, and none of it is
-code this repo can write on its own: a round that exercises "Remove from N
-slides", rounds on Mac and iPad, and the release — a screenshot, the listing
-name and the Partner Center submission.
+could not reach. What is NOT built is in `docs/BACKLOG.md`, whose open section is
+in the order to pick it up: the release (a screenshot, the listing name, the
+Partner Center submission), probe question 4 on a deck that has comments in it,
+and widening what the mutation sweep changes — the last of those being the one
+open item this repo can finish on its own. Everything that section used to list
+as pending and is now settled sits under its settled section with the
+measurement that closed it, so a round is not asked for twice.
 
 ## Where things live
 
