@@ -89,6 +89,23 @@ vi.mock("../src/office/powerpoint.js", () => ({
  * accord because `currentSlide` names no slide, which is a path this file
  * already covers.
  */
+/**
+ * Ticks a busy-wait may spend before it gives up, at 5 ms each.
+ *
+ * These loops wait on REAL work — opening a package, splicing an element —
+ * and the budget was 200 ticks, one second. On a loaded CI runner that is not
+ * enough: the wait fell through, the case carried on before the insert had
+ * landed, and the failure surfaced as `expected +0 to be 1` in an assertion
+ * about something else entirely. It went red on two separate pull requests,
+ * once on a re-run of the same commit, always on
+ * "a deck read that the deck outran" — the slowest of them, because it holds
+ * a read open while the insert runs underneath.
+ *
+ * Thirty seconds is far past any honest run here (the slowest takes about a
+ * second) and still bounded, so a genuinely stuck wait fails rather than
+ * hanging the suite.
+ */
+const WAIT_TICKS = 6000;
 const spliced: { target: string }[] = [];
 vi.mock("../src/core/splice/splice.js", () => ({
   splice: (request: { options: { target: string } }) => {
@@ -345,7 +362,7 @@ describe("what this deck already uses", () => {
     const pane = await openPane();
     await settle();
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < WAIT_TICKS; i++) {
       if (pane.querySelector(".used-head") ?? pane.querySelector(".notice")) break;
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
@@ -702,7 +719,7 @@ describe("what the menu actually inserts", () => {
 
   /** Let the insert run as far as it can with no host to talk to. */
   async function ran(): Promise<void> {
-    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
   }
 
   it("uses the OTHER target for that one insert, and leaves the setting alone", async () => {
@@ -1035,7 +1052,7 @@ describe("moving the last insert to a new slide", () => {
     await settle();
     (pane.querySelector('[data-action="category"]') as HTMLElement).click();
     (pane.querySelector(`[data-tile="${id}"], [data-action="tile"]`) as HTMLElement).click();
-    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
     await settle();
     return pane;
   }
@@ -1049,7 +1066,7 @@ describe("moving the last insert to a new slide", () => {
     const pane = await inserted(1);
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
     pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
-    for (let i = 0; i < 200 && spliced.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < WAIT_TICKS && spliced.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
     await settle();
     // The second splice is the same element with the other target — an undo
     // and a fresh insert, not a second copy beside the first.
@@ -1076,7 +1093,7 @@ describe("moving the last insert to a new slide", () => {
     // end-to-end half of the steps case that says the same thing.
     const pane = await inserted(1);
     pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
-    for (let i = 0; i < 200 && host.removed.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < WAIT_TICKS && host.removed.length < 2; i++) await new Promise((r) => setTimeout(r, 5));
     await settle();
     expect(pane.querySelector('[data-action="move"]')).toBeNull();
   });
@@ -1304,11 +1321,11 @@ describe("a deck read that the deck outran", () => {
     // on purpose, and which is the whole point of the case.
     (pane.querySelector('[data-action="category"]') as HTMLElement).click();
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
-    for (let i = 0; i < 200 && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < WAIT_TICKS && spliced.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
     await settle();
 
     release();
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < WAIT_TICKS; i++) {
       if (pane.querySelector(".notice") ?? pane.querySelector(".used-head")) break;
       await new Promise((r) => setTimeout(r, 5));
     }
