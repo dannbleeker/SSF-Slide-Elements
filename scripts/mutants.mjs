@@ -918,7 +918,10 @@ export function lineOf(text, at) {
  *
  * The limit is deliberately far above any honest run: the whole suite is 57.6 s
  * and the slowest first tier is about 13 s, so ten minutes is more than ten
- * times the worst case and cannot cut a real run short. A run that hits it is
+ * times the worst case and cannot cut a real run short. `SSF_MUTANTS_RUN_LIMIT_MS`
+ * overrides it, which exists so the hang path can be PROVEN rather than
+ * asserted: at ten minutes a test of it takes twenty, and a check nobody can
+ * afford to run is a check nobody runs. A run that hits it is
  * INCONCLUSIVE, never a kill — the same direction as every other unclear
  * answer, and `tryMutation` will give it one more go.
  *
@@ -926,7 +929,7 @@ export function lineOf(text, at) {
  * @param {string} out where the JSON report goes
  * @returns {"survived"|"killed"|"inconclusive"}
  */
-export const RUN_LIMIT_MS = 10 * 60 * 1000;
+export const RUN_LIMIT_MS = Number(process.env.SSF_MUTANTS_RUN_LIMIT_MS) || 10 * 60 * 1000;
 
 export function verdictOf(files, out) {
   const args = [
@@ -1128,6 +1131,14 @@ export function strayPids(listing, workspace, self) {
  *
  * So the leak is not untidiness. It is how a sweep silently poisons its own
  * later answers, and the survivor list is what this script exists to produce.
+ *
+ * MEASURED END TO END on 2026-09-14, against `pkg.ts:785` — the real mutant that
+ * caused it. Before: one run, verdict `hung` after the full ten minutes, and one
+ * worker left behind at 99.9% of a core, still spinning 625 seconds later. After:
+ * `tryMutation` answers `hung` and leaves ZERO workers, with the source restored
+ * intact. That check is not in the suite because it costs 50 seconds against a
+ * 57.6 s suite — `SSF_MUTANTS_RUN_LIMIT_MS=25000 node <the proof>` reproduces it,
+ * and the FILTER it rests on is gated in `test/mutants.test.ts`.
  */
 function killStrays() {
   try {
@@ -1163,7 +1174,7 @@ function killStrays() {
  * @param {string} out
  * @returns {"survived"|"killed"|"inconclusive"}
  */
-function tryMutation(file, text, mutated, tests, out) {
+export function tryMutation(file, text, mutated, tests, out) {
   writeFileSync(file, mutated);
   try {
     let verdict = verdictOf(tests, out);
