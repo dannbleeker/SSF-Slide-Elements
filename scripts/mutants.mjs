@@ -78,7 +78,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { isMain } from "./is-main.mjs";
 import { failedNames } from "./test-count.mjs";
 
@@ -524,6 +524,24 @@ export function staleEquivalents(survivors, swept) {
  * @param {string} from a file path, relative to the repository root
  * @returns {string[]} the source paths it imports, resolved and relative
  */
+/**
+ * A repository path spelled the one way this file compares them: with `/`.
+ *
+ * Every path that becomes a KEY here — an import target, a test file name, the
+ * file a failed run blamed — is matched against constants written with forward
+ * slashes: `TARGETS`, `FAST`, and the expectations in `test/mutants.test.ts`.
+ * `join` and `relative` answer in the platform's separator, so on Windows those
+ * comparisons silently stopped matching: `testsReaching` answered
+ * `test\foo.test.ts` against a `FAST` map written `test/foo.test.ts`, and
+ * `failedFilesOf` answered `test\blamed.test.ts`. Three cases went red on
+ * Windows and green on Linux CI, which is the worst place for a defect to live.
+ *
+ * Only paths used as keys pass through here. A path handed to the filesystem —
+ * `node_modules/vitest`, a temp directory — stays native, because that is what
+ * the filesystem wants.
+ */
+const slashed = (/** @type {string} */ path) => path.split(sep).join("/");
+
 export function importsOf(from) {
   const text = readFileSync(from, "utf8");
   const here = dirname(from);
@@ -538,7 +556,7 @@ export function importsOf(from) {
     const base = join(here, spec).replace(/\.js$/, "");
     for (const candidate of [`${base}.ts`, join(base, "index.ts")]) {
       if (existsSync(candidate)) {
-        out.push(candidate);
+        out.push(slashed(candidate));
         break;
       }
     }
@@ -555,7 +573,7 @@ export function importsOf(from) {
 export function testsReaching(target) {
   const tests = readdirSync("test")
     .filter((name) => name.endsWith(".test.ts"))
-    .map((name) => join("test", name));
+    .map((name) => slashed(join("test", name)));
   return tests.filter((test) => {
     const seen = new Set([test]);
     const queue = [test];
@@ -1059,7 +1077,7 @@ export function failedFilesOf(out) {
   const files = readReport(out);
   const blamed = files
     .filter((one) => one.status === "failed" || (one.assertionResults ?? []).some((test) => test.status === "failed"))
-    .map((one) => relative(process.cwd(), one.name ?? ""))
+    .map((one) => slashed(relative(process.cwd(), one.name ?? "")))
     .filter(Boolean);
   return [...new Set(blamed)];
 }
