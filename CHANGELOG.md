@@ -9,6 +9,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The check that deliberately breaks the add-in's code learned a seventh way to
+  break it: reading a comparison backwards, so that "does this element fit in
+  the space" becomes "does the space fit in this element". That is the mistake
+  behind a whole family of layout bugs in our sister project, and it is the kind
+  a test can miss while still checking the edges. It made 81 such changes and
+  **every one of them was caught** by a test that already existed.
+
 - We asked PowerPoint the last of the seven questions we had never been able to
   put to it, and it answered. There are two ways for an add-in to read the deck
   you have open, and one of them quietly leaves your **comments** behind — and

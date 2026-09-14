@@ -43,21 +43,35 @@ Left, and every one of them needs the owner rather than this repo:
 The one open item **this repo can finish on its own**, and the only one that is
 code.
 
-`scripts/mutants.mjs` runs six operators — boundary, boolean, negation,
-fallback, guard, off-by-one — over `src/core`, `src/host` and `src/pane`. Every
-survivor those six can find is now closed: 48 recorded equivalents, and the last
-sweep left nothing else alive. So the next thing the sweep can teach us costs a
-new operator, not another run.
+`scripts/mutants.mjs` now runs **seven** operators — boundary, operands,
+boolean, negation, fallback, guard, off-by-one — over `src/core`, `src/host`
+and `src/pane`. Every survivor they can find is closed: 48 recorded
+equivalents, and the last sweep of each left nothing alive.
 
-Candidates, in the order they look worth trying: swapping a comparison's
-operands, dropping an argument at a call, replacing a returned object's field
-with its zero value, and exchanging `&&`/`||` chains' grouping. Each needs the
-same treatment every operator here has had — a gate in `test/mutants.test.ts`
-that is **proven to fail without it**, and a `FAST` row if it makes a file
-expensive.
+**`operands` was added on 2026-09-14 and found nothing, which is the result.**
+It swaps a comparison's operands — `rect.cx <= room.x` becomes
+`room.x <= rect.cx` — which moves a comparison's SENSE where `boundary` only
+moves its EDGE. 81 sites, **81 killed, 0 surviving**. Two were checked by hand
+rather than trusted to the counter, because a mutant that fails to parse also
+counts as killed: the overlap test in `cut.ts` went red on "paints out a part
+that intrudes on the crop" (1 box expected, 0 produced), and the export-loss
+comparison in `probe.ts` went red on "names what the export dropped" with the
+verdict flipping `yes` to `no`. Both are behaviour, not syntax.
 
-Deferred once already, on 2026-09-14, in favour of closing what the existing
-operators had found. That work is done.
+So the suite already distinguishes the direction of every comparison the
+operator can reach, and **that lowers the expected value of the three
+candidates left**, which were ranked on the same reasoning this one was:
+dropping an argument at a call, replacing a returned object's field with its
+zero value, and exchanging `&&`/`||` chains' grouping. Of those, only the
+returned-field one asks a question the seven do not — an argument dropped at a
+call is mostly a type error, which the type checker already refuses. Worth
+doing when something else is not more valuable; not worth doing next simply
+because it is here.
+
+Each needs the same treatment every operator here has had — a gate in
+`test/mutants.test.ts` that is **proven to fail without it**, and a `FAST` row
+if it makes a file expensive. `--what <operator>` sweeps one operator alone,
+which is what makes adding one cost minutes rather than a whole sweep.
 
 ## Settled — do not re-open
 

@@ -31,7 +31,9 @@ in the order to pick it up: the release (a screenshot, the listing name, the
 Partner Center submission), probe question 4 — whose deck now exists
 (`template/probe-comments.pptx`) and which waits only on one signed-in round —
 and widening what the mutation sweep changes, the one open item this repo can
-finish on its own. Everything that section used to list
+finish on its own — whose seventh operator, `operands`, landed on 2026-09-14
+and killed all 81 of its mutants, which is what lowered the value of the three
+candidates still listed there. Everything that section used to list
 as pending and is now settled sits under its settled section with the
 measurement that closed it, so a round is not asked for twice.
 
