@@ -224,6 +224,25 @@ describe("a name the destination is not already using", () => {
     expect(freeName(pkg, "ppt/media/thumbnail")).toBe("ppt/media/thumbnail1");
   });
 
+  it("numbers a name with no directory and no extension at its end, not in its middle", async () => {
+    /**
+     * A part name with neither a dot nor a slash. `resolveFrom` produces one
+     * whenever a carried part's target climbs past the package root —
+     * `../../..` out of `ppt/charts/` leaves the bare name behind — and `Pkg`
+     * accepts a root part, which is why `relsPathFor` carries its own case for
+     * one.
+     *
+     * Both halves of `freeName` compare the last dot against the last slash,
+     * and for this name both are -1. Read as "the dot is at least as far along
+     * as the slash", a name with no extension at all acquires one out of its
+     * own last character: `thumbnail` becomes `thumbnai` + a number + `l`, a
+     * part in no family the package knows and a name no reader would connect
+     * to the one it came from.
+     */
+    const pkg = await plain();
+    expect(freeName(pkg, "thumbnail")).toBe("thumbnail1");
+  });
+
   it("only moves on once the part has been written, which is what keeps two copies apart", async () => {
     /**
      * `freeName` does not RESERVE anything — it reads `Pkg`'s counter, and the
@@ -420,6 +439,42 @@ describe("what an element carries into the deck", () => {
     expect(declarations, "the content type was declared twice").toBe(1);
   });
 
+  it("names a picture by its bytes and its length, and that name does not drift between builds", async () => {
+    /**
+     * The sharing above works because the name is a pure function of the
+     * bytes, and it works ACROSS INSERTS — the second carry finds the first
+     * one's part by computing the same name again. So the name has to be the
+     * same tomorrow as it was today: a deck carrying `ssf-…` pictures from an
+     * earlier build of this add-in must still match, or every insert into it
+     * copies a picture the deck already holds and the case above stops
+     * catching anything.
+     *
+     * Which makes the fingerprint's arithmetic a published format rather than
+     * an implementation detail, so it is pinned here in full. Both seeds, both
+     * multipliers, the span of bytes read, the shift, the radix and the width
+     * are each visible in these sixteen characters — twelve bytes is enough to
+     * separate every one of them — and the byte length that follows is the
+     * second half of the key.
+     *
+     * The value is this repo's own arithmetic, computed here, not a platform
+     * digest: nothing outside this module can be asked what it should be.
+     */
+    const pkg = await plain();
+    const carried = await carry({
+      pkg,
+      owner: SLIDE,
+      rels: [rel("rId5", IMAGE, "ppt/media/image1.png")],
+      types: { "ppt/media/image1.png": "image/png" },
+      store: storeOf({ "ppt/media/image1.png": PNG }),
+    });
+
+    const name = carried.parts.get("ppt/media/image1.png");
+    expect(name, "the fingerprint moved, so no deck carrying the old name shares a picture again").toBe(
+      "ppt/media/ssf-adcb31aad54bea62-12.png",
+    );
+    expect(pkg.has(name as string)).toBe(true);
+  });
+
   it("carries a DIFFERENT picture separately, whatever it is called", async () => {
     // The other half, and the one that would make the case above vacuous if it
     // broke: sharing by content must not share by extension. Two pictures that
@@ -609,6 +664,58 @@ describe("the parts a carried part reaches through its own relationships", () =>
     });
     const name = carried.parts.get("ppt/media/image1.png") as string;
     expect(pkg.has(Pkg.relsPathFor(name))).toBe(false);
+  });
+
+  it("asks nothing further for a picture the package already holds, not even its relationships", async () => {
+    /**
+     * The shared path stops as soon as the part is declared. Everything below
+     * that point — the store fetch for the part's own rels, the copy of
+     * whatever they reach, and the rewrite of the rels part — is work already
+     * done by the insert that first brought the picture in.
+     *
+     * Both halves of that cost are real. The fetch is one round trip per
+     * shared picture per insert, over the network, from a task-pane WebView —
+     * the whole reason `PartStore` is a function and not a map. And the copy
+     * behind it is worse than wasted: the nested part is not media, so it gets
+     * a fresh free name every time, and the rewrite would point the SHARED
+     * picture's rels at the newest copy while the deck accumulates the rest.
+     *
+     * A picture with relationships of its own is unusual, which is why the
+     * stop is asserted on the ask as well as on the package: an insert that
+     * fetches nothing cannot copy anything either.
+     */
+    const pkg = await plain();
+    const parts = {
+      "ppt/media/image1.png": PNG,
+      "ppt/media/_rels/image1.png.rels": relsXml([{ id: "rId1", type: REL_TYPE.tags, target: "../tags/tag1.xml" }]),
+      "ppt/tags/tag1.xml": "<p:tagLst xmlns:p='urn:x'/>",
+    };
+    const types = { "ppt/media/image1.png": "image/png" };
+    const insert = async (): Promise<{ name: string; asked: string[] }> => {
+      const store = storeOf(parts);
+      const carried = await carry({
+        pkg,
+        owner: SLIDE,
+        rels: [rel("rId5", IMAGE, "ppt/media/image1.png")],
+        types,
+        store,
+      });
+      return { name: carried.parts.get("ppt/media/image1.png") as string, asked: store.asked };
+    };
+
+    const first = await insert();
+    expect(first.asked, "the first insert has to read the picture's relationships").toContain(
+      "ppt/media/_rels/image1.png.rels",
+    );
+    expect(pkg.partNames().filter((n) => n.startsWith("ppt/tags/"))).toHaveLength(1);
+
+    const second = await insert();
+    expect(second.name).toBe(first.name);
+    expect(second.asked, "a picture the package already holds was asked about again").toEqual(["ppt/media/image1.png"]);
+    expect(
+      pkg.partNames().filter((n) => n.startsWith("ppt/tags/")),
+      "the shared picture's relationships were followed a second time",
+    ).toHaveLength(1);
   });
 
   it("leaves an external target on a carried part alone, and copies nothing for it", async () => {

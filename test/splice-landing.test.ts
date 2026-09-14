@@ -185,6 +185,27 @@ describe("ontoSlide", () => {
     const rect: Rect = { x: 1000000, y: 1000000, cx: 2000000, cy: 1000000 };
     expect(ontoSlide(rect, SLIDE)).toEqual(rect);
   });
+
+  it("runs no scaling arithmetic on an element exactly as wide as the slide", () => {
+    // The comparison is bigger-THAN, not as-big-as, and the difference is
+    // whether the scaling arithmetic runs at all on an element that is already
+    // exactly the width it is allowed. A whole-EMU element cannot show that:
+    // the scale it would be given is exactly 1, so re-deriving the height
+    // returns the height. The half EMU here is the instrument rather than the
+    // case — `authored` rounds, so nothing in the add-in reaches this function
+    // with a fractional extent — and it makes the re-derivation visible,
+    // because rounding a half EMU is the one thing a scale of 1 still changes.
+    const rect: Rect = { x: 0, y: 0, cx: SLIDE.width, cy: 1000000.5 };
+    expect(ontoSlide(rect, SLIDE)).toEqual({ x: 0, y: 0, cx: SLIDE.width, cy: 1000000.5 });
+  });
+
+  it("runs none on one exactly as tall, either", () => {
+    // The same statement about the second comparison. Written `>=`, the width
+    // of an element exactly the slide's height is put through a scale of one
+    // and comes back rounded.
+    const rect: Rect = { x: 0, y: 0, cx: 2000000.5, cy: SLIDE.height };
+    expect(ontoSlide(rect, SLIDE)).toEqual({ x: 0, y: 0, cx: 2000000.5, cy: SLIDE.height });
+  });
 });
 
 describe("fitInside", () => {
@@ -464,6 +485,67 @@ describe("underTitle", () => {
     const landed = underTitle({ x: 0, y: 5000000, cx: 2000000, cy: 3000000 }, SLIDE, { title: TITLE });
     expect(landed).toEqual({ x: 0, y: 3858000, cx: 2000000, cy: 3000000 });
     expect(landed.y + landed.cy).toBe(SLIDE.height);
+  });
+
+  it("hands back the very same rectangle for an element that fills the room exactly", () => {
+    // The edges of the room are INSIDE it. An element flush against all four —
+    // which is what a whole-slide element under a title of the library's own
+    // height is — has nothing to clear, so it must come back as the same
+    // object and be spliced in byte for byte. Each of the four comparisons
+    // written strictly would send this rectangle through `fitInside` and the
+    // clamp, which return its own numbers in a new object: identical to read,
+    // and no longer the element the owner drew.
+    const rect: Rect = { x: 0, y: TITLE_BOTTOM, cx: SLIDE.width, cy: SLIDE.height - TITLE_BOTTOM };
+    const landed = underTitle(rect, SLIDE, { title: TITLE });
+    expect(landed, "the same object, not a copy of its numbers").toBe(rect);
+    expect(isIdentity(moveFrom(rect, landed))).toBe(true);
+  });
+
+  it("leaves a whole-slide element alone on a slide with no title at all", () => {
+    // With no title the room starts at the very top of the slide, and an
+    // element drawn across the whole slide fits it exactly. A top of anything
+    // but zero would push the room down by that much, and this element — which
+    // has no reason to move — would be scaled into what was left and centred
+    // in it.
+    const rect: Rect = { x: 0, y: 0, cx: SLIDE.width, cy: SLIDE.height };
+    expect(underTitle(rect, SLIDE, {})).toBe(rect);
+  });
+
+  it("uses a body exactly half the slide wide, which is the narrowest content area there is", () => {
+    // The line between a content area and a column: "the body is used only when
+    // it is at least half the slide wide". Exactly half is a content area, so
+    // the element is scaled into it rather than left across the slide.
+    const body: Rect = { x: 0, y: 2000000, cx: SLIDE.width / 2, cy: 3000000 };
+    const rect: Rect = { x: 0, y: 0, cx: SLIDE.width, cy: SLIDE.height };
+    const landed = underTitle(rect, SLIDE, { body });
+    expect(landed).toEqual({ x: 381334, y: 2000000, cx: 5333333, cy: 3000000 });
+    expect(landed.cx / landed.cy, "scaled, not squashed").toBeCloseTo(rect.cx / rect.cy, 5);
+  });
+
+  it("ignores a body two fifths of the slide wide, because that is a column", () => {
+    // "A two-content layout's body is one COLUMN, and squeezing a whole-slide
+    // element into the left column of somebody's comparison slide is a worse
+    // answer than letting it use the width it was drawn at." Two fifths is
+    // wider than a third and narrower than a half, so it says which fraction
+    // the rule uses rather than merely that it uses one.
+    const body: Rect = { x: 1000000, y: 1000000, cx: 4876800, cy: 4000000 };
+    expect(body.cx, "wider than a third of the slide").toBeGreaterThan(SLIDE.width / 3);
+    expect(body.cx, "and narrower than half of it").toBeLessThan(SLIDE.width / 2);
+    const rect: Rect = { x: 0, y: 0, cx: SLIDE.width, cy: SLIDE.height };
+    expect(underTitle(rect, SLIDE, { body }), "left across the slide, untouched").toBe(rect);
+  });
+
+  it("still scales into a room one EMU tall, because the rule gives up only on no room at all", () => {
+    // The other side of the boundary below: a room of zero height is the case
+    // the rule refuses, and one EMU is a room. The result is an element nobody
+    // can see, which is the honest consequence of a destination whose title
+    // covers all but one EMU of the slide — and the alternative, a threshold
+    // that called a sliver "no room", would be a number chosen here rather
+    // than the one thing `fitInside` genuinely cannot do.
+    const title: Rect = { x: 0, y: 0, cx: SLIDE.width, cy: SLIDE.height - 1 };
+    const landed = underTitle({ x: 0, y: 0, cx: 2000000, cy: 1000000 }, SLIDE, { title });
+    expect(landed).toEqual({ x: 6095999, y: 6857999, cx: 2, cy: 1 });
+    expect(landed.y, "in the one EMU below the title").toBe(SLIDE.height - 1);
   });
 
   it("only keeps an element on the slide when a title leaves no room at all", () => {

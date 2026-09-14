@@ -106,6 +106,22 @@ function table(id: number, box: Box, cols: number[], rows: number[]): string {
 }
 
 /**
+ * A connector, which states the shape ids it is glued to as REFERENCES.
+ *
+ * `<a:stCxn id>` and `<a:endCxn id>` are the only numeric `id` attributes the
+ * committed library carries outside `<p:cNvPr>` — measured 2026-09-14 over both
+ * decks, which hold one of each, valued 41 and 8. The two other `id` attributes
+ * in there, on `<a:fld>` and `<a16:creationId>`, are GUIDs.
+ */
+function cxn(id: number, box: Box, attachedTo: number): string {
+  return (
+    `<p:cxnSp ${NS}><p:nvCxnSpPr><p:cNvPr id="${id}" name="Lige forbindelse ${id}"/>` +
+    `<p:cNvCxnSpPr><a:stCxn id="${attachedTo}" idx="3"/><a:endCxn id="${attachedTo}" idx="1"/></p:cNvCxnSpPr>` +
+    `<p:nvPr/></p:nvCxnSpPr><p:spPr>${xfrm(box)}<a:prstGeom prst="line"><a:avLst/></a:prstGeom></p:spPr></p:cxnSp>`
+  );
+}
+
+/**
  * A modern chart as PowerPoint writes one: the frame in `<mc:Choice>` and a
  * PICTURE of it in `<mc:Fallback>`, each carrying a `<p:cNvPr id>` of its own.
  *
@@ -210,6 +226,40 @@ describe("ids the destination slide is not already using", () => {
     const spTree = tree(sp(11), `<p:sp ${NS}><p:nvSpPr><p:cNvPr id="9007199254740993" name="huge"/></p:nvSpPr></p:sp>`);
     expect(highestShapeId(spTree)).toBe(11);
     expect(highestShapeId(tree(`<p:sp ${NS}><p:nvSpPr><p:cNvPr name="nameless"/></p:nvSpPr></p:sp>`))).toBe(0);
+  });
+
+  it("reads the ids shapes DECLARE and not the ones a connector merely REFERENCES", () => {
+    /**
+     * `<a:stCxn id>` and `<a:endCxn id>` name the shapes a connector is glued
+     * to. They are ordinary markup — both committed decks carry one — and
+     * neither declares an id that anything owns. A destination deck can arrive
+     * with one still pointing at a shape that is no longer on the slide, and a
+     * reader that took a reference for a declaration would answer a number no
+     * shape has and renumber the whole element from there.
+     */
+    expect(highestShapeId(tree(sp(7, [0, 0, 10, 10]), cxn(9, [0, 0, 10, 10], 900)))).toBe(9);
+  });
+
+  it("reads an id only off a <p:cNvPr>, and not off any other element of PowerPoint's own namespace", () => {
+    /**
+     * The guard asks TWO things — the namespace AND the element name — and only
+     * the name half is in doubt on the markup the committed decks carry. Every
+     * non-`cNvPr` element holding an `id` inside a `<p:spTree>` there is in a
+     * FOREIGN namespace: 72 `<a:stCxn>`, 64 `<a:endCxn>`, 290 `<a:fld>` and
+     * 1,593 `<a16:creationId>`, counted across both libraries and
+     * validators.pptx on 2026-09-14. Those are refused by the namespace half
+     * alone, which is why the case above cannot see this one.
+     *
+     * What the name half is for is an element in PowerPoint's OWN namespace
+     * that declares no shape. They exist and carry plain numbers: a slide's
+     * animation block is full of `<p:cTn id="1">` (103 in those same decks) and
+     * a master's list of layouts holds `<p:sldLayoutId id="2147483649">`. A
+     * reader that took one for a shape id would answer a number no shape owns,
+     * and `splice.ts` asks this function for `highestShapeId(spTree) + 1`, so
+     * every id the splice then writes is built on top of it.
+     */
+    const timing = `<p:cTn ${NS} id="2147483649"/>`;
+    expect(highestShapeId(tree(sp(11), timing)), "a timing node was read as a shape").toBe(11);
   });
 
   it("gives every copy its own id, including a group's children and the picture in an mc:Fallback", () => {
@@ -348,6 +398,22 @@ describe("moving the shapes to where they landed", () => {
     expect(serializeXml(fragment)).toBe(before);
   });
 
+  it("does not raise a zero-height connector to one EMU, which is the byte an identity move risks", () => {
+    /**
+     * A straight horizontal line is `cy="0"`, and the clamp that stops a
+     * SCALED shape rounding away to nothing would write a 1 over it. The early
+     * return is the only thing between the owner's line and a one-EMU-tall
+     * one, because `Math.max(1, ...)` cannot tell that the scale it was handed
+     * was 1.
+     */
+    const fragment = parseFragment(sp(1, [1000, 2000, 500, 500]) + cxn(2, [1000, 2500, 800, 0], 1));
+    const before = serializeXml(fragment);
+    applyMove(topLevel(fragment), FROM, { dx: 0, dy: 0, sx: 1, sy: 1 });
+    expect(serializeXml(fragment)).toBe(before);
+    const line = elements(topLevel(fragment)[1] as Element, A_NS, "xfrm")[0];
+    expect(pair(line, "ext", "cx", "cy"), "the line was given a height it never had").toEqual(["800", "0"]);
+  });
+
   it("keeps the arrangement, repositioning each shape relative to the element's frame", () => {
     // A diagram whose arrow sits between two boxes still has it between them
     // afterwards. Absolute repositioning is how an element arrives as a heap.
@@ -400,6 +466,24 @@ describe("moving the shapes to where they landed", () => {
     expect(rectOf(frame)).toEqual({ x: 1000, y: 2000, cx: 500, cy: 300 });
   });
 
+  it("scales the grid when only ONE axis is scaled, which is what a 4:3 element on a 16:9 slide gets", () => {
+    /**
+     * `move.sx !== 1 || move.sy !== 1` asks "was anything scaled at all", and
+     * each half of it has to be able to answer on its own: a landing that
+     * scales width alone still has to take the columns with it, or the table
+     * keeps its authored width inside a frame that no longer matches it.
+     */
+    const wide = parseFragment(table(1, [1000, 2000, 1000, 600], [400, 600], [300]));
+    applyMove(topLevel(wide), FROM, { dx: 0, dy: 0, sx: 2, sy: 1 });
+    expect(valuesOf(topLevel(wide)[0] as Element, A_NS, "gridCol", "w")).toEqual(["800", "1200"]);
+    expect(valuesOf(topLevel(wide)[0] as Element, A_NS, "tr", "h")).toEqual(["300"]);
+
+    const tall = parseFragment(table(1, [1000, 2000, 1000, 600], [400], [300, 500]));
+    applyMove(topLevel(tall), FROM, { dx: 0, dy: 0, sx: 1, sy: 2 });
+    expect(valuesOf(topLevel(tall)[0] as Element, A_NS, "gridCol", "w")).toEqual(["400"]);
+    expect(valuesOf(topLevel(tall)[0] as Element, A_NS, "tr", "h")).toEqual(["600", "1000"]);
+  });
+
   it("leaves the grid alone for a move that only shifts the table", () => {
     // A landing that merely repositions an element must not rewrite a single
     // column width: the table is the size the owner drew it.
@@ -447,6 +531,31 @@ describe("moving the shapes to where they landed", () => {
     const oddY = elements(shapes[4] as Element, A_NS, "xfrm")[0];
     expect(pair(oddY, "off", "x", "y")).toEqual(["2100", "odd"]);
     expect(pair(oddY, "ext", "cx", "cy")).toEqual(["400", "odd"]);
+  });
+
+  it("scales DrawingML's own grid and not a foreign vocabulary that spells a column the same way", () => {
+    /**
+     * The scale walks every descendant of the shape, which is what lets it
+     * reach a table nested inside a group — and that walk goes through
+     * `<a:extLst>`, which is precisely where markup from vocabularies this
+     * add-in has never heard of is kept. `gridCol` and `tr` are DrawingML's
+     * words for a column and a row; another vocabulary is free to use the same
+     * two for something that is not a table, and rewriting its numbers on the
+     * way past is corrupting a part nobody asked this pass to touch.
+     */
+    const foreign = 'xmlns:ssf="urn:ssf-test:foreign"';
+    const fragment = parseFragment(
+      `<p:graphicFrame ${NS}><p:xfrm><a:off x="1000" y="2000"/><a:ext cx="1000" cy="600"/></p:xfrm>` +
+        `<a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="400"><a:extLst>` +
+        `<a:ext uri="{SSF-TEST}"><ssf:gridCol ${foreign} w="400"/><ssf:tr ${foreign} h="300"/></a:ext>` +
+        `</a:extLst></a:gridCol></a:tblGrid><a:tr h="300"><a:tc/></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame>`,
+    );
+    applyMove(topLevel(fragment), FROM, { dx: 0, dy: 0, sx: 0.5, sy: 0.5 });
+    const frame = topLevel(fragment)[0] as Element;
+    expect(valuesOf(frame, A_NS, "gridCol", "w")).toEqual(["200"]);
+    expect(valuesOf(frame, A_NS, "tr", "h")).toEqual(["150"]);
+    expect(valuesOf(frame, "urn:ssf-test:foreign", "gridCol", "w"), "a foreign column was scaled").toEqual(["400"]);
+    expect(valuesOf(frame, "urn:ssf-test:foreign", "tr", "h"), "a foreign row was scaled").toEqual(["300"]);
   });
 
   it("leaves a grid dimension that is not a number alone, rather than writing NaN into the file", () => {
@@ -512,6 +621,16 @@ describe("wrapping the shapes in one group", () => {
     expect(topLevel(fragment)).toEqual([first, group]);
     expect(Array.from(group.childNodes).filter((n) => n.nodeType === 1).length).toBe(4);
     expect(elements(group, P_NS, "sp")).toEqual([second, third]);
+  });
+
+  it("takes the first GROUPED shape's place, even with a shape it is not taking standing between them", () => {
+    // The same rule as above, asked where the two answers differ. A group that
+    // landed where its LAST shape was would come out in front of a shape the
+    // splice deliberately left loose behind it.
+    const fragment = parseFragment(sp(1, [0, 0, 100, 100]) + sp(2, [200, 0, 100, 100]) + sp(3, [400, 0, 100, 100]));
+    const [first, second, third] = topLevel(fragment) as [Element, Element, Element];
+    const group = groupShapes(fragment, [first, third], "Boxes", 9);
+    expect(topLevel(fragment)).toEqual([group, second]);
   });
 
   it("gives a run that states no box a frame of nothing rather than of NaN", () => {
@@ -615,6 +734,42 @@ describe("the destination slide's own shapes", () => {
       `<p:sp><p:nvSpPr><p:cNvPr id="6" name="Stripped"/><p:cNvSpPr/></p:nvSpPr><p:spPr/></p:sp>`,
     );
     expect(emptyBodyPlaceholders(spTree)).toEqual([]);
+  });
+
+  it("reads a claim only on a <p:sp>, so a picture carrying one is never taken for a ghost", () => {
+    /**
+     * A ghost is a `<p:sp>` and nothing else. The namespace half of that guard
+     * is never the half in doubt on a real slide; the element NAME is, because
+     * the destination deck is whatever the user brought and markup another tool
+     * left behind can put a shape's non-visual properties on a picture. What
+     * follows from reading one is not a ghost removed, it is the user's image
+     * deleted by an insert.
+     */
+    const spTree = tree(
+      `<p:pic ${NS}><p:nvSpPr><p:cNvPr id="1" name="Billede"/><p:cNvSpPr/>` +
+        `<p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+        `<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:pic>`,
+    );
+    expect(emptyBodyPlaceholders(spTree)).toEqual([]);
+  });
+
+  it("counts the text of an <a:t> run and not every character anywhere under the paragraph", () => {
+    /**
+     * Empty means the user has typed nothing, and what the user types is an
+     * `<a:t>` run. A paragraph can carry characters that are not a run at all:
+     * the extension list under `<a:rPr>` is where a foreign vocabulary keeps
+     * its own notes, and PowerPoint draws none of it. Reading the paragraph's
+     * whole text content instead is how the "Click to add text" ghost behind a
+     * whole-slide element stops being recognised and stays on the slide.
+     */
+    const spTree = tree(
+      `<p:sp ${NS}><p:nvSpPr><p:cNvPr id="1" name="Indhold"/><p:cNvSpPr/>` +
+        `<p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+        `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="da-DK"><a:extLst>` +
+        `<a:ext uri="{SSF-TEST}"><ssf:note xmlns:ssf="urn:ssf-test:foreign">Noter</ssf:note></a:ext>` +
+        `</a:extLst></a:rPr><a:t/></a:r></a:p></p:txBody></p:sp>`,
+    );
+    expect(emptyBodyPlaceholders(spTree).map((s) => shapeIds(s)[0])).toEqual(["1"]);
   });
 });
 
