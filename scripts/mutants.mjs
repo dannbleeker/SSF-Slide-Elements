@@ -35,10 +35,24 @@
  *
  * It is a text mutator with a hand-written mask, not a parser. It knows where
  * comments and string literals are and leaves them alone; it does not know
- * types, so a mutation that will not compile is simply killed by the run like
- * any other. That is the safe direction — a mutant reported dead when it never
- * ran is a wasted second, while a mutant reported ALIVE that never ran would be
- * a lie. Nothing here can produce the second.
+ * types.
+ *
+ * This paragraph used to say that a mutation which will not compile "is simply
+ * killed by the run like any other", and that nothing here could report a
+ * mutant ALIVE that never ran. BOTH halves were false, and each was proven so
+ * on 2026-09-14:
+ *
+ * - Vitest transpiles with esbuild, which strips types without checking them,
+ *   so a type-only breakage runs clean and was reported as a survivor. `tsc`
+ *   is now asked about every survivor before it goes in the report, and one it
+ *   refuses is TYPE-KILLED rather than alive.
+ * - A mutation can also stop the code terminating — delete a loop's only exit
+ *   and the suite never finishes. That was reported INCONCLUSIVE, which is a
+ *   bucket nobody reads. It has its own outcome now, and is asked twice, because
+ *   a wedged machine looks the same on one ask and a broken loop does not.
+ *
+ * Four outcomes, then, not two: killed, survived, did not terminate, and
+ * type-killed — plus inconclusive for a run that answered nothing at all.
  *
  * ## Two tiers, and the reason
  *
@@ -946,7 +960,7 @@ export function verdictOf(files, out) {
  * @returns {"killed"|"inconclusive"}
  */
 export function verdictOfFailure(error, out) {
-  if (/** @type {NodeJS.ErrnoException} */ (error)?.code === "ETIMEDOUT") return "inconclusive";
+  if (/** @type {NodeJS.ErrnoException} */ (error)?.code === "ETIMEDOUT") return "hung";
   try {
     return failedNames(JSON.parse(readFileSync(out, "utf8"))).length > 0 ? "killed" : "inconclusive";
   } catch {
@@ -1032,6 +1046,105 @@ export function confirmedKill(blamed, rerun) {
 }
 
 /**
+ * Whether the mutated source still typechecks.
+ *
+ * WHY THIS EXISTS. This file used to promise the opposite, in as many words: "a
+ * mutation that will not compile is simply killed by the run like any other...
+ * Nothing here can produce" a mutant reported ALIVE that never ran. That was
+ * false. Vitest transpiles with esbuild, which STRIPS types rather than
+ * checking them, so a mutation that breaks only the types runs perfectly and is
+ * reported as a survivor — a hole in the suite that is not a hole at all,
+ * because `npm run typecheck` is a CI step and rejects it.
+ *
+ * Proven 2026-09-14 on `src/core/splice/layout.ts:143`: neutering that guard
+ * gives `tsc --noEmit` error TS2345 at 144,38 while the suite passes 54 of 54.
+ * Measured over the whole report the same day, three of the 57 survivors then
+ * open in `src/core/splice` were this and nothing else.
+ *
+ * A mutant `tsc` refuses is not a survivor and not an equivalent. It is caught,
+ * by the other half of the gate.
+ *
+ * @param {string} file
+ * @param {string} text the original
+ * @param {string} mutated
+ * @returns {boolean}
+ */
+function typechecks(file, text, mutated) {
+  writeFileSync(file, mutated);
+  try {
+    execFileSync("npx", ["tsc", "--noEmit"], { stdio: "ignore", timeout: RUN_LIMIT_MS, killSignal: "SIGKILL" });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    writeFileSync(file, text);
+  }
+}
+
+/**
+ * The pids of vitest processes this sweep started and no longer owns.
+ *
+ * Separated from the killing so it can be held by a test: the dangerous part is
+ * the FILTER, not the signal.
+ *
+ * @param {string} listing the output of `ps -eo pid,args`
+ * @param {string} workspace the sweep's throwaway copy
+ * @param {number} self this process's own pid
+ * @returns {number[]}
+ */
+export function strayPids(listing, workspace, self) {
+  return (
+    listing
+      .split("\n")
+      .map((line) => /^\s*(\d+)\s+(.*)$/.exec(line))
+      .filter((m) => m !== null)
+      .filter((m) => Number(m[1]) !== self && (m[2] ?? "").includes(workspace))
+      // A `ps` listing contains the command that ASKED for it, so a pattern
+      // matching the workspace path matches the asker too. That is the mistake
+      // `pkill -f` makes, and it cost this session two killed wrappers and an
+      // orphaned sweep: the shell's own command line held the pattern. Matching
+      // on the vitest entry point rather than on the path alone is what keeps
+      // this from killing the hand that runs it.
+      .filter((m) => (m[2] ?? "").includes("vitest"))
+      .map((m) => Number(m[1]))
+  );
+}
+
+/**
+ * Kill the vitest workers a timed-out run left behind.
+ *
+ * WHY THIS EXISTS, measured 2026-09-14. `execFileSync`'s timeout signals the
+ * vitest process it started. Vitest runs the tests in FORKS, and those are not
+ * signalled: they are re-parented to init and keep running. When the mutation
+ * is one that removes a loop's only exit, they keep running that loop — at full
+ * speed, forever.
+ *
+ * Two mutants of this sweep did exactly that, and left FIFTEEN workers spinning
+ * for two hours on a four-core machine: a load average of eighteen. Everything
+ * measured beside it was wrong, and one mutant was reported KILLED that is not,
+ * because a machine under that load fails timing-sensitive tests repeatedly —
+ * which `confirmedKill` confirms rather than catches, since it re-runs the same
+ * file.
+ *
+ * So the leak is not untidiness. It is how a sweep silently poisons its own
+ * later answers, and the survivor list is what this script exists to produce.
+ */
+function killStrays() {
+  try {
+    const listing = execFileSync("ps", ["-eo", "pid,args"], { encoding: "utf8" });
+    for (const pid of strayPids(listing, process.cwd(), process.pid)) {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // Already gone between the listing and the signal, which is the common case.
+      }
+    }
+  } catch {
+    // No `ps`, or it answered nothing. A sweep that cannot tidy up still runs.
+  }
+}
+
+/**
  * Put the mutation in place, run the tests, and ALWAYS put the original back.
  *
  * The restore is in a `finally` because a half-written file is the one way this
@@ -1053,8 +1166,17 @@ export function confirmedKill(blamed, rerun) {
 function tryMutation(file, text, mutated, tests, out) {
   writeFileSync(file, mutated);
   try {
-    const first = verdictOf(tests, out);
-    const verdict = first === "inconclusive" ? verdictOf(tests, out) : first;
+    let verdict = verdictOf(tests, out);
+    // A hang and an unclear answer are both asked twice, for opposite reasons.
+    // An unclear answer is usually noise and usually goes away. A hang usually
+    // does NOT: a mutation that removes a loop's only exit hangs every time,
+    // and the second ask is what separates that from a wedged machine.
+    if (verdict === "inconclusive" || verdict === "hung") {
+      if (verdict === "hung") killStrays();
+      const again = verdictOf(tests, out);
+      verdict = verdict === "hung" && again === "hung" ? "hung" : again;
+      if (verdict === "hung") killStrays();
+    }
     if (verdict !== "killed") return verdict;
     // The mutation is still in place — the restore is in the `finally` below —
     // so the confirmation asks the same question of the same code.
@@ -1141,6 +1263,10 @@ function main() {
   const survivors = [];
   /** Mutants no run would give a straight answer about. Never counted as killed. */
   const unclear = [];
+  /** Mutants that stop the code terminating. The suite notices; it just never finishes. */
+  const hung = [];
+  /** Mutants `tsc` refuses. CI catches them; the suite cannot, so they are not survivors. */
+  const typeKilled = [];
   const out = join(tmpdir(), "ssf-mutants-report.json");
   let done = 0;
   for (const { file, text, mutations, tests } of plan) {
@@ -1155,6 +1281,11 @@ function main() {
         console.log(`mutants: INCONCLUSIVE  ${where}`);
         continue;
       }
+      if (verdict === "hung") {
+        hung.push(where);
+        console.log(`mutants: DID NOT TERMINATE  ${where}`);
+        continue;
+      }
       if (verdict === "killed") {
         if (done % 10 === 0) console.log(`mutants: ${done}/${total}, ${survivors.length} surviving so far`);
         continue;
@@ -1162,6 +1293,15 @@ function main() {
       // A survivor of the fast tier is not a survivor yet. Re-run it against
       // everything before it goes in the report.
       if (tryMutation(file, text, mutated, null, out) === "survived") {
+        // The suite is not the only thing that can reject a mutation, and until
+        // today this script said otherwise. `tsc` is asked LAST, only about a
+        // mutant that has already survived everything else, so it costs a few
+        // seconds on the handful rather than on all of them.
+        if (!typechecks(file, text, mutated)) {
+          typeKilled.push(where);
+          console.log(`mutants: TYPE-KILLED  ${where}`);
+          continue;
+        }
         survivors.push(where);
         // Written and printed as it is found, not only in the summary. A sweep
         // of the whole set is over an hour, and a run that is interrupted
@@ -1170,6 +1310,16 @@ function main() {
         appendFileSync(report, `${where}\n`);
       }
     }
+  }
+  if (hung.length) {
+    console.log(`\nmutants: ${hung.length} DID NOT TERMINATE — the suite noticed by never finishing:`);
+    for (const one of hung) console.log(`  ${one}`);
+    console.log("Each removes the only way out of a loop. NOT survivors, and not equivalents either.");
+  }
+  if (typeKilled.length) {
+    console.log(`\nmutants: ${typeKilled.length} TYPE-KILLED — the suite passed, \`tsc\` did not:`);
+    for (const one of typeKilled) console.log(`  ${one}`);
+    console.log("Caught by `npm run typecheck` in CI. Not a hole in the suite, and nothing to write.");
   }
   if (unclear.length) {
     console.log(`\nmutants: ${unclear.length} INCONCLUSIVE — two runs each, neither naming a failed test:`);
