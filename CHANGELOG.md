@@ -9,6 +9,24 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed — nothing you can see
 
+- The check that deliberately breaks the add-in's code now covers the last part
+  of the engine: the splice, which puts an element into a copy of your slide and
+  takes one back out. Fifty-three changes to it went unnoticed. Thirty-six are
+  now caught, thirteen alter nothing and are written down with the measurement
+  behind each, three are already refused by the type checker, and two were lines
+  that could never run.
+
+  Two of the thirty-six were defects waiting to happen rather than gaps in the
+  abstract. A straight horizontal line has no height, and one guard was the only
+  thing stopping an insert from giving the owner's line a height it never had.
+  Another checks that a claim to be an empty placeholder is made by a SHAPE: a
+  picture carrying that claim would otherwise have been read as leftover
+  furniture and deleted — your image, removed by an insert. And a third keeps
+  the add-in from mistaking PowerPoint's animation bookkeeping for a shape, which
+  would have numbered every shape it adds from two billion upward.
+
+### Changed — nothing you can see
+
 - The check that deliberately breaks the add-in's code now covers the part that
   READS AND WRITES the PowerPoint file itself — the zip of XML parts every
   insert opens, edits and hands back. Seventy-seven changes to it went

@@ -240,6 +240,28 @@ describe("ids the destination slide is not already using", () => {
     expect(highestShapeId(tree(sp(7, [0, 0, 10, 10]), cxn(9, [0, 0, 10, 10], 900)))).toBe(9);
   });
 
+  it("reads an id only off a <p:cNvPr>, and not off any other element of PowerPoint's own namespace", () => {
+    /**
+     * The guard asks TWO things — the namespace AND the element name — and only
+     * the name half is in doubt on the markup the committed decks carry. Every
+     * non-`cNvPr` element holding an `id` inside a `<p:spTree>` there is in a
+     * FOREIGN namespace: 72 `<a:stCxn>`, 64 `<a:endCxn>`, 290 `<a:fld>` and
+     * 1,593 `<a16:creationId>`, counted across both libraries and
+     * validators.pptx on 2026-09-14. Those are refused by the namespace half
+     * alone, which is why the case above cannot see this one.
+     *
+     * What the name half is for is an element in PowerPoint's OWN namespace
+     * that declares no shape. They exist and carry plain numbers: a slide's
+     * animation block is full of `<p:cTn id="1">` (103 in those same decks) and
+     * a master's list of layouts holds `<p:sldLayoutId id="2147483649">`. A
+     * reader that took one for a shape id would answer a number no shape owns,
+     * and `splice.ts` asks this function for `highestShapeId(spTree) + 1`, so
+     * every id the splice then writes is built on top of it.
+     */
+    const timing = `<p:cTn ${NS} id="2147483649"/>`;
+    expect(highestShapeId(tree(sp(11), timing)), "a timing node was read as a shape").toBe(11);
+  });
+
   it("gives every copy its own id, including a group's children and the picture in an mc:Fallback", () => {
     /**
      * The two places a `<p:cNvPr>` hides from a pass that walks only the
