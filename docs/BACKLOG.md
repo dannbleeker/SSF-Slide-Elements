@@ -45,13 +45,18 @@ comments and no `ppt/authors.xml`, so `exportAsBase64Presentation` had nothing
 to drop and the sheet says "not asked" rather than passing. The 2026-09-10 and
 2026-09-11 sheets are still the answer; this would confirm it on this build.
 
-Two halves, and only the second needs the owner:
+It was two halves. The first is **done**: `template/probe-comments.pptx` is a
+deck PowerPoint authored over COM on 2026-09-14, windowless, carrying a modern
+comment on slide 3 and the `ppt/authors.xml` that comes with one, scrubbed of
+the account PowerPoint stamps into a saved deck and held to both by
+`test/probe-deck.test.ts`.
 
-- **A deck with a comment and an `ppt/authors.xml` in it.** This repo can author
-  one — `template/validators.pptx` was made the same way, by PowerPoint over COM
-  — and nothing about it needs a host round.
+What is left needs the owner, and only because of the sign-in:
+
 - **One Script Lab round on the web** with that deck open. `docs/PROBE.md` says
-  how; the 2026-09-14 round is the worked example.
+  how; the 2026-09-14 round is the worked example. The deck is already uploaded
+  to OneDrive; the round stopped on 2026-09-14 because the browser holding the
+  signed-in session was closed and signing in again is the owner's alone.
 
 Low cost, low urgency: it confirms an answer two older sheets already give,
 rather than filling a hole. It is listed above the sweep only because it is the

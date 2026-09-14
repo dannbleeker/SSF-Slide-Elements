@@ -7,6 +7,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — nothing you can see
+
+- A small presentation for testing the add-in against a real PowerPoint, kept
+  with the project. One of the seven questions we put to PowerPoint asks what
+  each way of reading your deck quietly leaves behind — and a comment is the
+  thing most worth not losing. The last round could not answer it, because the
+  presentation it was run on had no comment in it. This one does.
+
+  PowerPoint wrote the presentation itself, and it is checked into the project
+  with the name of whoever saved it taken out: PowerPoint stamps the signed-in
+  account into every file it saves, and this project is public.
+
 ### Changed — nothing you can see
 
 - The check that deliberately breaks the add-in's code now covers the last part
