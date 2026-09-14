@@ -142,6 +142,33 @@ describe("taking it off", () => {
     await expect(removeElement({ deck, slide: 9, element: ID })).rejects.toThrow(/is not in this deck/);
   });
 
+  it("refuses the slide one past the last, not just one well past it", async () => {
+    // The bound is `>= deckSlides`, and the case that separates it from `>` is
+    // the index EQUAL to the count — slide 3 of a three-slide deck. A `>` there
+    // lets the index through, `paths[3]` is undefined, and the user is told
+    // their slide carries nothing of ours rather than that there is no such
+    // slide.
+    const plain = await makeDeck([
+      { paragraphs: [["First"]] },
+      { paragraphs: [["Second"]] },
+      { paragraphs: [["Third"]] },
+    ]);
+    await expect(removeElement({ deck: plain, slide: 3, element: ID })).rejects.toThrow(
+      /slide 4 is not in this deck, which has 3 slide\(s\)/,
+    );
+  });
+
+  it("refuses a slide before the first one", async () => {
+    // The other arm of the same check. `request.slide < 0` is one of three
+    // reasons the range is refused, and an index below zero reads
+    // `paths[-1]` as undefined — which looks, from further down, exactly like a
+    // slide carrying nothing of ours.
+    const plain = await makeDeck([{ paragraphs: [["First"]] }]);
+    await expect(removeElement({ deck: plain, slide: -1, element: ID })).rejects.toThrow(
+      /slide 0 is not in this deck, which has 1 slide\(s\)/,
+    );
+  });
+
   it("leaves another add-in's tagged shape alone", async () => {
     // A deck touched by think-cell carries a tagged shape on every slide it has
     // seen, and the measured deck had those tags sitting in `ppt/tags/` beside

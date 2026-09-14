@@ -232,7 +232,14 @@ export function underTitle(rect: Rect, slide: SlideSize, frames: Frames): Rect {
   const area: Rect = wide ?? { x: 0, y: top, cx: slide.width, cy: slide.height - top };
   const y = Math.max(area.y, top);
   const room: Rect = { x: area.x, y, cx: area.cx, cy: area.y + area.cy - y };
-  if (room.cy <= 0 || room.cx <= 0) return ontoSlide(rect, slide);
+  // Only the HEIGHT can run out: `room.cx` is the body's width when the body is
+  // used and the slide's own when it is not, and the body is used only when it
+  // is at least half the slide wide, so the width of the room is positive for
+  // every slide `slideSize` will answer — which is every slide, because it
+  // falls back to 4:3 rather than returning a zero. A `room.cx <= 0` beside
+  // this one therefore never fired; it was removed on 2026-09-14 rather than
+  // tested, because the only input that reaches it is a slide of zero width.
+  if (room.cy <= 0) return ontoSlide(rect, slide);
   const inside =
     rect.x >= room.x &&
     rect.y >= room.y &&

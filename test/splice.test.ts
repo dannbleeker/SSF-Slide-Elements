@@ -9,6 +9,7 @@ import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
 import { A_NS, P_NS, R_NS, child, children, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
 import { removeElement, slidesHolding } from "../src/core/splice/remove.js";
+import { highestShapeId } from "../src/core/splice/shapes.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -237,6 +238,17 @@ describe("one element into a deck", () => {
     const ids = everyShapeId(await rebuiltTree(report.base64, report.slidePath));
     expect(ids.length).toBeGreaterThan(3);
     expect(new Set(ids).size).toBe(ids.length);
+
+    // And the numbering starts at the NEXT one, not at some id past it. The
+    // renumber is documented as answering "the first id still free", which a
+    // caller splicing a second element onto the same slide carries on from;
+    // a start that skipped a number would still be unique and would quietly
+    // make that sentence false.
+    const highestBefore = highestShapeId(await treeOf(await Pkg.open(await destination()), "ppt/slides/slide2.xml"));
+    expect(highestBefore).toBeGreaterThan(0);
+    const added = ids.map(Number).filter((id) => id > highestBefore);
+    expect(added.length, "nothing on the rebuilt slide was renumbered").toBeGreaterThan(0);
+    expect(Math.min(...added), "the element's ids do not carry on from the slide's highest").toBe(highestBefore + 1);
   });
 
   it("wraps the shapes in one group when asked, and tags the group", async () => {
@@ -294,6 +306,12 @@ describe("one element into a deck", () => {
     const el = element("hvid-kasse-2x1-vertikale");
     await expect(spliceOne(el, { slide: 7 })).rejects.toThrow(/slide 8 is not in this deck, which has 3/);
     await expect(spliceOne(el, { slide: -1 })).rejects.toThrow(/is not in this deck/);
+    // The boundary itself. `slide` is an INDEX, so in a three-slide deck the
+    // first number that is not there is 3, and it is the only one a check
+    // written one off would let through: `paths[3]` is undefined, and the
+    // splice would carry on with it as if it were a part name.
+    await expect(spliceOne(el, { slide: 3 })).rejects.toThrow(/slide 4 is not in this deck, which has 3/);
+    await expect(spliceOne(el, { slide: 2 }), "the last slide is in the deck").resolves.toBeDefined();
   });
 
   it("refuses an element whose carried part the store does not hold, rather than shipping a dangling reference", async () => {
@@ -683,6 +701,54 @@ describe("as a new slide, in detail", () => {
     // The shape that is NOT a placeholder goes whole, which is the other half
     // of the same loop.
     expect(namedIn(spTree, "Body"), "a shape claiming no placeholder was kept").toBeUndefined();
+    expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
+  });
+
+  it("empties the paragraph of its runs and leaves everything that is not an element alone", async () => {
+    /**
+     * A slide's XML does not have to be one line. PowerPoint writes it that
+     * way, and plenty of the tools a deck passes through do not: an exported,
+     * pretty-printed or tool-touched slide carries whitespace between an
+     * `<a:p>`'s own children, and a comment or a processing instruction is
+     * legal there too.
+     *
+     * The emptying pass removes RUNS, which are elements. A loop that stopped
+     * telling a node kind from an element would hand a text node to the same
+     * `removeChild` and take the rest of the paragraph's contents with the
+     * runs — silently, because the file it produces is still valid and still
+     * opens.
+     */
+    const noisy =
+      `<p:sp><p:nvSpPr><p:cNvPr id="60" name="Stoejende placeholder 60"/>` +
+      `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+      `<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>\n  <p:spPr/>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/>\n  <a:p>\n    <a:pPr lvl="0"/>\n` +
+      `    <!-- ssf: a comment between the paragraph's own children -->\n` +
+      `    <?ssf-note skrevet af et andet vaerktoej?>\n` +
+      `    <a:r><a:rPr lang="da-DK"/><a:t>Linje et</a:t></a:r><a:endParaRPr lang="da-DK"/>\n  </a:p>\n` +
+      `  <a:p><a:r><a:rPr lang="da-DK"/><a:t>Linje to</a:t></a:r></a:p>\n</p:txBody></p:sp>`;
+    const report = await splice({
+      deck: await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]], shapes: [noisy] }]),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const spTree = await rebuiltTree(report.base64, report.slidePath);
+    const placeholder = namedIn(spTree, "Stoejende placeholder 60");
+    expect(placeholder, "the placeholder was removed rather than emptied").toBeDefined();
+    const txBody = child(placeholder as Element, P_NS, "txBody");
+    const paragraphs = children(txBody as Element, A_NS, "p");
+    expect(paragraphs).toHaveLength(1);
+    const first = new XMLSerializer().serializeToString(paragraphs[0] as never);
+
+    // The runs are gone, which is what the pass is for.
+    expect(first, "a run survived the emptying").not.toContain("Linje et");
+    // Everything in the paragraph that is not an element is still there.
+    expect(first, "the emptying took a comment with the runs").toContain("ssf: a comment");
+    expect(first, "the emptying took a processing instruction with the runs").toContain("ssf-note");
+    expect(first, "the emptying took the paragraph's whitespace with the runs").toContain("\n");
     expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
   });
 
