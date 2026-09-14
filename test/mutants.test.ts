@@ -16,6 +16,7 @@ const fastTests = tool.fastTests as (file: string) => string[];
 const testsReaching = tool.testsReaching as (file: string) => string[];
 const verdictOfFailure = tool.verdictOfFailure as (error: unknown, out: string) => "killed" | "inconclusive";
 const failedFilesOf = tool.failedFilesOf as (out: string) => string[];
+const strayPids = tool.strayPids as (listing: string, workspace: string, self: number) => number[];
 const confirmedKill = tool.confirmedKill as (
   blamed: string[],
   rerun: (files: string[]) => "survived" | "killed" | "inconclusive",
@@ -168,12 +169,13 @@ describe("what a run that failed is allowed to mean", () => {
     expect(verdictOfFailure(new Error("exit 1"), report)).toBe("killed");
   });
 
-  // A run that never finished says nothing about the mutant, and the report
+  // A run that never finished says nothing a REPORT can answer, and the report
   // beside it belongs to the PREVIOUS mutant — so reading it would answer this
-  // one with the last one's result.
-  it("reads a timed-out run as inconclusive, whatever the stale report says", () => {
+  // one with the last one's result. It is a hang, not a kill, and the stale
+  // report here names a failed test precisely so that reading it would say so.
+  it("reads a timed-out run as a hang, whatever the stale report says", () => {
     const timedOut = Object.assign(new Error("ETIMEDOUT"), { code: "ETIMEDOUT" });
-    expect(verdictOfFailure(timedOut, report)).toBe("inconclusive");
+    expect(verdictOfFailure(timedOut, report)).toBe("hung");
   });
 
   it("reads a report naming no failure as inconclusive rather than a kill", () => {
@@ -234,6 +236,52 @@ describe("a kill asked a second time", () => {
         throw new Error("must not re-run when no file was named");
       }),
     ).toBe("killed");
+  });
+});
+
+describe("the vitest workers a timed-out run leaves behind", () => {
+  // `execFileSync`'s timeout signals the vitest process it started. Vitest runs
+  // the tests in FORKS, and those are not signalled — they are re-parented to
+  // init and keep going. When the mutation removed a loop's only exit, they
+  // keep going forever: fifteen of them span for two hours on 2026-09-14 and
+  // took a four-core machine to a load average of eighteen.
+  const ws = "/tmp/ssf-mutants-abc123";
+  const listing = [
+    "  101 /opt/node22/bin/node " + ws + "/node_modules/vitest/dist/workers/forks.js",
+    "  102 /opt/node22/bin/node --require " + ws + "/node_modules/vitest/suppress-warnings.cjs",
+    "  103 /opt/node22/bin/node node_modules/vitest/vitest.mjs run --outputFile=/tmp/other/report.json",
+    "  104 /usr/bin/some-daemon --unrelated",
+  ].join("\n");
+
+  it("names the workers of this workspace and leaves other runs alone", () => {
+    expect(strayPids(listing, ws, 999)).toEqual([101, 102]);
+  });
+
+  // The trap this replaces: `pkill -f <pattern>` matches the shell that is
+  // RUNNING it, because the pattern is in that shell's own command line. It
+  // cost two killed wrappers and one orphaned sweep in a single session.
+  it("never names the process doing the asking, even when its own command line matches", () => {
+    const asker = "  777 /bin/bash -c ps -eo pid,args | grep " + ws + "/node_modules/vitest";
+    expect(strayPids(listing + "\n" + asker, ws, 777)).toEqual([101, 102]);
+  });
+
+  it("ignores a process of this workspace that is not vitest at all", () => {
+    const editor = "  555 /usr/bin/vim " + ws + "/src/core/pptx/pkg.ts";
+    expect(strayPids(listing + "\n" + editor, ws, 999)).toEqual([101, 102]);
+  });
+});
+
+describe("what a run that failed is allowed to mean, when it never finished", () => {
+  const report = join(tmpdir(), "ssf-mutants-hung-report.json");
+
+  it("still reads a named failure as a kill", () => {
+    writeFileSync(
+      report,
+      JSON.stringify({
+        testResults: [{ name: "test/x.test.ts", assertionResults: [{ status: "failed", fullName: "x" }] }],
+      }),
+    );
+    expect(verdictOfFailure(new Error("exit 1"), report)).toBe("killed");
   });
 });
 
