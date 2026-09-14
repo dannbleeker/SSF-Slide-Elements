@@ -119,13 +119,30 @@ about them here, including that an element actually goes into it.
 
 ## Still the owner's
 
-Two things cannot be produced without a screen and a real PowerPoint, and
-neither should be faked:
+Neither of these should be faked, and neither is a thing this repository can
+decide:
 
 - **The screenshot** (at least one, 1366×768). It has to be an actual capture of
   the pane open beside a real presentation. A composite of the pane over a drawn
   window would be a picture of something that does not exist, and drawing
   Microsoft's own interface into it would be worse.
+
+  **The CAPTURE is no longer the hard part, and this file used to say it was.**
+  Since the display fix of 2026-09-12 the machine has a real 3840×2160 console,
+  and on 2026-09-14 a genuine 1366×768 capture was taken unattended: PowerPoint
+  sized to the pixel through `MoveWindow`, the pane opened from the ribbon by UI
+  Automation and loaded from the live site, captured with `PrintWindow`. Nothing
+  composited.
+
+  What is still the owner's is **what appears in it**, and it is not a small
+  list. The deck has to be a real presentation rather than
+  `template/validators.pptx`, whose slides say things like "An empty slide to
+  insert onto"; the owner's own library is the obvious candidate and is internal
+  content, which is a publishing decision rather than a technical one. The frame
+  also carries his signed-in account's avatar, Microsoft's "Upgrade your plan"
+  button, and the ribbon entries of two sibling add-ins. Each of those is a
+  judgement about what a public listing shows, so the capture is taken to order
+  and approved, never chosen here.
 - **The listing NAME.** `docs/DESIGN.md` section 12: nothing here has been read
   against the naming policy, and the sibling SSF Merge is held on the same
   question. That answer decides this one.
