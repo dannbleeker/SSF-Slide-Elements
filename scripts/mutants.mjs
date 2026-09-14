@@ -601,7 +601,7 @@ export function testsReaching(target) {
  * unchanged. Then time what survives with no coverage instrumentation, which is
  * what a tier run actually costs. Both numbers are on every row.
  *
- * Sixteen of the nineteen rows are LOSSLESS — identical coverage to the whole
+ * Twenty-seven of the thirty rows are LOSSLESS — identical coverage to the whole
  * suite. Three are not, and are here anyway: `splice/carry.ts` (92.45 branches
  * against 96.22), `splice/colours.ts` (83.33 against 87.5) and
  * `splice/splice.ts` (89.7 against 97.05). Falling back to their sound sets
@@ -627,10 +627,65 @@ export function testsReaching(target) {
  * only ever covered `src/core`; `src/host` and `src/pane` have no rows in this
  * map at all, so their 316 mutations run against reaching sets that include
  * `test/pane-wiring.test.ts` at 15.2 s and `test/office-host.test.ts` at 15.7 s.
- * 227 of those 316 pay a ~15 s tier for what their own unit test answers in
- * ~1 s. Rows for them are the obvious next saving and are not written yet.
+ * 227 of those 316 paid a ~15 s tier for what their own unit test answers in
+ * ~1 s. Rows for them were measured on 2026-09-14 and are written now: eleven of
+ * the twelve candidates lossless, about 41 minutes off a whole sweep. The
+ * twelfth, `src/pane/steps.ts`, is not here — see the note on the map itself.
  */
 export const FAST = {
+  // `src/host` and `src/pane`, measured 2026-09-14 on an idle machine. These
+  // files had NO rows until then: the two-tier design was built for the engine
+  // and never applied to the files it was invented for, so 227 of their 316
+  // mutations were paying a ~15 s tier for what their own unit test answers in
+  // under one. `test/pane-wiring.test.ts` (15.2 s) and
+  // `test/office-host.test.ts` (15.7 s) sat in almost every reaching set.
+  // Eleven of the twelve candidates were LOSSLESS by the method below; about 41
+  // minutes off a whole sweep.
+  //
+  // `src/pane/steps.ts` is deliberately absent. Dropping `pane-wiring` there
+  // takes its branches from 100 to 98.85, and the three lossy rows further down
+  // are justified by a 57.6 s fallback, which is not this file's — its sound set
+  // costs 15 s. A rule kept only where it is cheap is not a rule.
+  // 14 mutations, 0.8 s a mutant, 96/96.96 statements/branches
+  "src/host/errors.ts": ["test/errors.test.ts"],
+  // 10 mutations, 0.9 s a mutant, 100/100
+  "src/host/insert.ts": ["test/host-insert.test.ts"],
+  // 12 mutations, 0.8 s a mutant, 100/100
+  "src/host/jump.ts": ["test/jump.test.ts"],
+  // 5 mutations, 0.9 s a mutant, 100/100
+  "src/host/links.ts": ["test/links.test.ts"],
+  // 8 mutations, 0.9 s a mutant, 100/83.33
+  "src/host/memory.ts": ["test/memory.test.ts", "test/pane-storage.test.ts"],
+  // 17 mutations, 0.9 s a mutant, 100/100
+  "src/host/theme.ts": ["test/theme.test.ts"],
+  // 4 mutations, 0.8 s a mutant, 100/100 — this file has no test named for it
+  "src/host/timeout.ts": ["test/host-insert.test.ts"],
+  // 17 mutations, 3.8 s a mutant, 100/100
+  "src/pane/card.ts": [
+    "test/pane-card.test.ts",
+    "test/pane-combinations.test.ts",
+    "test/pane-render.test.ts",
+    "test/splice-report.test.ts",
+  ],
+  // 56 mutations, 2.1 s a mutant, 100/100 — the biggest single saving here
+  "src/pane/search.ts": ["test/pane-combinations.test.ts", "test/pane-render.test.ts", "test/pane-search.test.ts"],
+  // 17 mutations, 0.9 s a mutant, 100/100
+  "src/pane/storage.ts": ["test/pane-storage.test.ts"],
+  // 16 mutations, 4.7 s a mutant, 100/100
+  "src/pane/used.ts": [
+    "test/docs.test.ts",
+    "test/pane-card.test.ts",
+    "test/pane-catalogue.test.ts",
+    "test/pane-combinations.test.ts",
+    "test/pane-render.test.ts",
+    "test/pane-search.test.ts",
+    "test/pane-steps.test.ts",
+    "test/pane-storage.test.ts",
+    "test/pane-used.test.ts",
+    "test/splice-report.test.ts",
+    "test/validators-deck.test.ts",
+  ],
+
   // 80 mutations, 5.9 s a mutant, 100/100 statements/branches
   "src/core/catalogue/boxes.ts": ["test/boxes.test.ts", "test/catalogue.test.ts", "test/splice-malformed.test.ts"],
   // 110 mutations, 6.2 s a mutant, 96.92/90.51 statements/branches
