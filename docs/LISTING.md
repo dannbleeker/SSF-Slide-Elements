@@ -134,15 +134,49 @@ decide:
   Automation and loaded from the live site, captured with `PrintWindow`. Nothing
   composited.
 
-  What is still the owner's is **what appears in it**, and it is not a small
-  list. The deck has to be a real presentation rather than
-  `template/validators.pptx`, whose slides say things like "An empty slide to
-  insert onto"; the owner's own library is the obvious candidate and is internal
-  content, which is a publishing decision rather than a technical one. The frame
-  also carries his signed-in account's avatar, Microsoft's "Upgrade your plan"
-  button, and the ribbon entries of two sibling add-ins. Each of those is a
-  judgement about what a public listing shows, so the capture is taken to order
-  and approved, never chosen here.
+  **The deck was settled on 2026-09-14: an EMPTY presentation.**
+  `template/validators.pptx` reads as a test fixture on a store page — its
+  slides say things like "An empty slide to insert onto" — and the owner's own
+  library is internal content. A blank slide shows the pane, which is the
+  product, and nothing that has to be cleared for publication.
+
+### Taking it
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\listing-shot.ps1 -Out shot.png
+```
+
+Start PowerPoint first. The script makes the empty deck, opens the pane from the
+ribbon by name, sizes the window to **1366 × (768 + 48)**, captures it with
+`PrintWindow`, and crops the title bar off, leaving exactly 1366×768.
+
+**Cropping the title bar is what removes the account avatar and Microsoft's
+"Upgrade your plan" button**, and it is not retouching: every pixel kept is a
+real pixel of a real window. Painting them out would be, and is not done.
+
+Two things the script deliberately leaves to a separate decision, because both
+change something outside this repository:
+
+1. **Other add-ins' ribbon groups.** The machine that takes the shot also
+   carries SSF Merge and SSF Charts, and their groups would otherwise sit in a
+   picture on a public page. `scripts/ribbon-cache.mjs` takes them off the
+   ribbon; its header carries the format, and `test/ribbon-cache.test.ts` holds
+   the rules. **Copy the cache file first and put it back afterwards** — they
+   are the owner's tools, and deleting that file rather than editing it removes
+   every add-in's ribbon entry including this one, measured, with no rebuild.
+   The Office add-ins dialog would be the sanctioned route and does not open
+   under automation: four attempts, two routes, 2026-09-14.
+2. **The status bar's language indicator** ("English (Denmark)"). Right-click
+   the status bar and untick **Language**. It is a display setting, it does not
+   change the editing language, and it did not survive a PowerPoint restart when
+   it was tried — so do it last, just before the capture.
+
+Left in on purpose: the **build stamp** in the pane's header. `docs/DESIGN.md`
+section 4 puts it there, and it is how a stale cached pane is told from a fresh
+deploy — PowerPoint caches the pane's HTML for about ten minutes. Taking it out
+of the picture alone would show a pane that does not exist, which this section
+forbids; taking it out of the product is a design change and belongs in its own
+PR.
 - **The listing NAME.** `docs/DESIGN.md` section 12: nothing here has been read
   against the naming policy, and the sibling SSF Merge is held on the same
   question. That answer decides this one.
