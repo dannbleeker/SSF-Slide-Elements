@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GLOBAL_KEY } from "../src/host/memory.js";
 import { EMPTY, type PaneState } from "../src/pane/steps.js";
-import { restored, shouldRestoreScroll, storedScroll, writes } from "../src/pane/storage.js";
+import { firstVisit, restored, shouldRestoreScroll, storedScroll, writes } from "../src/pane/storage.js";
 
 /**
  * What the pane remembers and where (`docs/DESIGN.md` section 4).
@@ -163,5 +163,37 @@ describe("whether to put the scroll back on this draw", () => {
     // One pixel is somewhere to go: the cut-off sits at zero, the same place
     // `storedScroll` and `writes` put it.
     expect(shouldRestoreScroll({ restored: false, kept: 1, hasTiles: true })).toBe(true);
+  });
+});
+
+describe("telling a deck nobody has opened from one whose user shut everything", () => {
+  /**
+   * The distinction exists for one caller: the first-visit open, which puts the
+   * top category on screen so a new deck does not show a column of shut
+   * headings and no elements.
+   *
+   * `restored` cannot answer it. `PaneState.open` is a list, so an absent
+   * field and an empty one both arrive as `[]` — and reading them the same
+   * would re-open the top category every time somebody closed it, which is the
+   * pane arguing with the user about their own deck.
+   */
+  it("says yes for a deck with nothing stored", () => {
+    expect(firstVisit({})).toBe(true);
+  });
+
+  it("says NO for a deck whose user closed every category", () => {
+    // The case the whole function is for. An empty list is a decision.
+    expect(firstVisit({ open: [] })).toBe(false);
+  });
+
+  it("says no for a deck with categories open", () => {
+    expect(firstVisit({ open: ["boxes"] })).toBe(false);
+  });
+
+  it("asks the field the pane always writes, so any saved deck answers no", () => {
+    // `writes` puts `open` in on every save whatever its value, which is what
+    // makes its absence mean "never written" rather than "nothing was open".
+    const [, deck] = writes("deck-1", { ...EMPTY, open: [] }, 0);
+    expect(firstVisit((deck?.[1] ?? {}) as Parameters<typeof firstVisit>[0])).toBe(false);
   });
 });

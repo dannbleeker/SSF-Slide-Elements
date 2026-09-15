@@ -9,6 +9,7 @@ import {
   isOpen,
   matches,
   offersOpenAll,
+  openAtFirst,
   runOf,
   stepMatches,
   tagsOf,
@@ -323,5 +324,33 @@ describe("offering to open every category", () => {
     expect(offersOpenAll({ ...EMPTY, open: [], tags: ["white"] }, two)).toBe(false);
     // A query of only spaces is not a search.
     expect(offersOpenAll({ ...EMPTY, open: [], query: "   " }, two)).toBe(true);
+  });
+});
+
+describe("the first screen of a deck nobody has opened before", () => {
+  /**
+   * Everything starts collapsed and the open categories are remembered per
+   * deck, so before this the first sight of a new deck was a search box, a row
+   * of tags and a column of shut headings — **not one element on screen**, and
+   * nothing saying a heading opens.
+   *
+   * Whether it IS a first visit is `storage.ts`'s question, deliberately: an
+   * empty list of open categories means both "never seen" and "the user shut
+   * everything", and reading them the same would re-open the top category every
+   * time somebody closed it.
+   */
+  it("opens the first category, so the first screen has elements on it", () => {
+    expect(openAtFirst(LIBRARY, { favourites: [], recent: [] })).toEqual(["boxes"]);
+  });
+
+  it("opens nothing when there is history, because Recent is already above it", () => {
+    // Favourites and Recent are drawn above the categories and put tiles on the
+    // first screen themselves. Opening a category as well would push them off it.
+    expect(openAtFirst(LIBRARY, { favourites: [], recent: ["one-box"] })).toEqual([]);
+    expect(openAtFirst(LIBRARY, { favourites: ["one-box"], recent: [] })).toEqual([]);
+  });
+
+  it("opens nothing rather than throwing when the library has no categories", () => {
+    expect(openAtFirst({ ...LIBRARY, categories: [] }, { favourites: [], recent: [] })).toEqual([]);
   });
 });

@@ -322,15 +322,17 @@ const STATES = [
       undo: 1,
       outcome: { ok: true, byHand: false, name: "One box", detail: "12 → 13 → 12 slides, slide 2 replaced." },
     },
-    shows: ["again", "undo", "star"],
+    shows: ["undo", "star"],
     // No `move`: this insert landed on a slide with nothing on it, which is
     // most of them, and the offer must not be the default picture.
     hides: ["move"],
   },
   {
-    // The same insert onto a slide that already had something on it: three
+    // The same insert onto a slide that already had something on it: both
     // actions in the footer at 320 px, which is the width the row has to
-    // survive (`docs/DESIGN.md` section 6).
+    // survive (`docs/DESIGN.md` section 6). It was three until 2026-09-16,
+    // when "Again" went — the row wrapped to two lines at this width, and the
+    // tile it repeated is in Recent a few lines up.
     name: "browse-after-insert-covered",
     step: "browse",
     state: {
@@ -341,7 +343,7 @@ const STATES = [
       moveable: "one-box",
       outcome: { ok: true, byHand: false, name: "One box", detail: "12 → 13 → 12 slides, slide 2 replaced." },
     },
-    shows: ["again", "undo", "move"],
+    shows: ["undo", "move"],
   },
   {
     name: "browse-by-hand",

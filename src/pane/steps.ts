@@ -279,8 +279,6 @@ export interface Footer {
   /** Whether the deck needs the user to put something right by hand. */
   byHand: boolean;
   undo: number;
-  /** True when the last insert can be repeated on the current slide. */
-  again: boolean;
   /**
    * True when the last insert can be moved onto a new slide instead.
    *
@@ -288,13 +286,16 @@ export interface Footer {
    * the move is an undo followed by a second insert, so an offer standing
    * after the history has gone would be a button that cannot do what it says.
    *
-   * NOT gated on `busy`, unlike `again` beside it. The two differ because they
-   * are about different things: Again offers a NEW insert, which there is no
-   * point drawing while one is running, and the move is about the insert that
-   * just happened, which is still the last one whatever the pane is doing. So
-   * it stays on screen and `render.ts` disables it, the way Undo does — a
-   * control that vanishes and comes back under the cursor is worse than one
-   * that greys out.
+   * NOT gated on `busy`. The move is about the insert that just happened, which
+   * is still the last one whatever the pane is doing, so it stays on screen and
+   * `render.ts` disables it, the way Undo does — a control that vanishes and
+   * comes back under the cursor is worse than one that greys out.
+   *
+   * There used to be an "Again" here too, repeating the last insert. It went on
+   * 2026-09-16: the element it would repeat is the first tile in **Recent**,
+   * drawn a few lines up the same pane, and clicking that tile does exactly the
+   * same thing. Two controls for one action, in the place with the least room —
+   * at 320 px the row wrapped to two lines. The one with the picture on it won.
    */
   move: boolean;
 }
@@ -304,7 +305,6 @@ export function footerOf(state: PaneState): Footer {
     detail: state.outcome?.detail ?? "",
     byHand: state.outcome?.byHand ?? false,
     undo: state.undo,
-    again: state.recent.length > 0 && state.busy !== true,
     move: state.moveable !== undefined && state.undo > 0,
   };
 }

@@ -57,6 +57,20 @@ export function storedScroll(deck: Stored): number {
  * one bucket holds both halves, and that is the fallback working rather than a
  * case to special-case here.
  */
+/**
+ * Whether this deck has ever been written back.
+ *
+ * `open` is the field to ask, because the pane writes it on every save whatever
+ * its value — so an ABSENT one means nothing was ever stored for this deck, and
+ * an empty one means the user shut every category. `restored` flattens the two
+ * into `[]` and has to: `PaneState.open` is a list, not a list-or-nothing. The
+ * distinction still matters to exactly one caller, the first-visit open, which
+ * would otherwise re-open the top category every time somebody closed it.
+ */
+export function firstVisit(deck: Stored): boolean {
+  return deck.open === undefined;
+}
+
 export function restored(machine: Stored, deck: Stored): Partial<PaneState> {
   return {
     favourites: machine.favourites ?? [],

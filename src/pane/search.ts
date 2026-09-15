@@ -152,6 +152,38 @@ export function isOpen(state: PaneState, key: string): boolean {
 }
 
 /**
+ * Which categories are open the first time a deck is seen.
+ *
+ * Everything here starts collapsed and the open ones are remembered per deck,
+ * so this only ever answers for a deck the pane has not met before. That case
+ * used to show a search box, a row of tags and eleven closed headings: **not
+ * one element on screen**, and nothing saying a heading opens. A person who did
+ * not already know had to guess before the library showed them anything.
+ *
+ * So the first category opens. The FIRST rather than the biggest: the order on
+ * screen is the order the owner's library is in, and "the top one is open" is a
+ * rule a user can see, where "the one with most in it" looks arbitrary from the
+ * outside.
+ *
+ * Nothing opens when there is history — Favourites and Recent are drawn above
+ * the categories and already put tiles on the first screen, which is what this
+ * is for.
+ *
+ * It does NOT decide whether this is a first visit, and the split is the point.
+ * An empty list of open categories means two different things — a deck the pane
+ * has never seen, and a deck whose user shut everything — and a rule that read
+ * them the same would re-open the top category every time somebody closed it,
+ * which is the pane arguing with the user. `storage.ts` answers that question
+ * from whether anything was ever written; this one only answers what to open
+ * once the answer is yes.
+ */
+export function openAtFirst(library: Library, history: Pick<PaneState, "favourites" | "recent">): string[] {
+  if (history.favourites.length > 0 || history.recent.length > 0) return [];
+  const first = library.categories[0];
+  return first ? [first.key] : [];
+}
+
+/**
  * Whether to offer "Open all" beside the count (`docs/DESIGN.md` section 4).
  *
  * Only while there is something to open. A search or a tag already opens

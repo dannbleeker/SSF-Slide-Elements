@@ -81,7 +81,7 @@ so is the decision under "Still the owner's" at the bottom.
 >    library that matches the deck's slide size, with the sections collapsed.
 > 3. Open a section — **White boxes** is the first — and click a tile. The
 >    element lands on the slide you are on. The footer says how many slides the
->    deck had before and after, and offers **Undo** and **Again**.
+>    deck had before and after, and offers **Undo**.
 > 4. Click **Undo**. The slide returns exactly as it was.
 > 5. Type in the search box (try `flow`), pick a tag, or open the gear beside
 >    the search to change where an element lands, whether its shapes arrive

@@ -277,13 +277,13 @@ describe("browsing", () => {
     };
     render(root, after, "browse");
     expect(root.querySelector(".outcome")?.textContent).toBe("3 → 4 → 3 slides, slide 2 replaced.");
-    expect(actions()).toContain("again");
     expect(actions()).toContain("undo");
     expect(root.querySelector('[data-action="undo"]')?.textContent).toBe("Undo (1)");
   });
 
-  it("draws Move to a new slide first, ahead of Again and Undo", () => {
-    // The order `docs/DESIGN.md` section 6 lists the three in.
+  it("draws Move to a new slide ahead of Undo", () => {
+    // The order `docs/DESIGN.md` section 6 lists them in. It listed three until
+    // 2026-09-16; "Again" went, because the tile it would repeat is in Recent.
     const covered = {
       ...browsing,
       recent: ["one-box"],
@@ -295,8 +295,8 @@ describe("browsing", () => {
     const drawn = actions();
     expect(drawn).toContain("move");
     expect(root.querySelector('[data-action="move"]')?.textContent).toBe("Move to a new slide");
-    expect(drawn.indexOf("move")).toBeLessThan(drawn.indexOf("again"));
-    expect(drawn.indexOf("again")).toBeLessThan(drawn.indexOf("undo"));
+    expect(drawn.indexOf("move")).toBeLessThan(drawn.indexOf("undo"));
+    expect(drawn).not.toContain("again");
   });
 
   it("draws no Move to a new slide when the element did not land on anything", () => {
@@ -832,5 +832,60 @@ describe("Open all beside the count", () => {
   it("is gone while searching, which opens what it finds by itself", () => {
     render(root, { ...browsing, open: [], query: "box" }, "browse");
     expect(root.querySelector('[data-action="open-all"]')).toBeNull();
+  });
+});
+
+describe("saying that a category opens", () => {
+  /**
+   * The heading has always BEEN a button carrying `aria-expanded`, so a screen
+   * reader has always been told it opens. A sighted user was told nothing: bold
+   * text with a hairline under it and no reason to think it was pressable.
+   *
+   * The mark is a real glyph rather than a drawn triangle because the pane is
+   * checked in FORCED COLOURS every week, where a border trick disappears and a
+   * character is painted in the forced text colour like any other text.
+   */
+  const heads = (): HTMLButtonElement[] => [...root.querySelectorAll<HTMLButtonElement>(".category-head")];
+
+  it("puts a mark on every category heading", () => {
+    render(root, browsing, "browse");
+    const all = heads();
+    expect(all.length).toBeGreaterThan(0);
+    for (const head of all) {
+      expect(head.querySelector(".twist"), "every heading says it opens").not.toBeNull();
+    }
+  });
+
+  it("hides the mark from a screen reader, which is already told by aria-expanded", () => {
+    // Read out, it would be an arrow announced after the word "collapsed".
+    render(root, browsing, "browse");
+    expect(heads()[0]?.querySelector(".twist")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("keeps the name and the count, and keeps them out of the mark", () => {
+    render(root, browsing, "browse");
+    const head = heads()[0];
+    expect(head?.querySelector(".category-label")?.textContent).toMatch(/\(\d+\)$/);
+    expect(head?.querySelector(".twist")?.textContent).not.toMatch(/\d/);
+  });
+
+  it("still says open or shut where the accessibility tree reads it", () => {
+    render(root, { ...browsing, open: [] }, "browse");
+    expect(heads()[0]?.getAttribute("aria-expanded")).toBe("false");
+    render(root, { ...browsing, open: ["boxes"] }, "browse");
+    expect(heads()[0]?.getAttribute("aria-expanded")).toBe("true");
+  });
+});
+
+describe("the search field's own shortcut", () => {
+  it("says which key focuses it, because nothing else in the pane does", () => {
+    // `/` focuses the field and Escape clears it. Neither was written anywhere,
+    // and a shortcut nobody can see is a shortcut nobody uses.
+    render(root, browsing, "browse");
+    const search = root.querySelector<HTMLInputElement>('[data-action="search"]');
+    expect(search?.placeholder).toContain("/");
+    // The label a screen reader reads stays a sentence, not a sentence with a
+    // punctuation mark stuck on the end.
+    expect(search?.getAttribute("aria-label")).toBe("Search the library");
   });
 });
