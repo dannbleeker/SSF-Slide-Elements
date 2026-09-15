@@ -184,3 +184,43 @@ describe("the testing notes admit which platforms nobody has measured", () => {
     return said.slice(at, at + 60).includes(platform.toLowerCase());
   }
 });
+
+describe("the screenshot the submission carries", () => {
+  /**
+   * The one listing asset that is a picture, held to the one thing about it a
+   * reviewer rejects on: its size.
+   *
+   * AppSource asks for 1366×768. A capture at the wrong size **looks right** —
+   * that is the whole danger, and it is not hypothetical: the first attempt at
+   * `scripts/listing-shot.ps1` produced 1366×2180 because a maximised window
+   * ignores `MoveWindow`'s height, and an earlier one would have been wrong
+   * again because Windows lies about sizes to a process that has not declared
+   * itself DPI-aware. Neither is visible by looking at the image.
+   *
+   * Read out of the PNG header rather than with a library: the IHDR chunk's
+   * width and height are the two big-endian integers at bytes 16 and 20, and
+   * the file is checked to be a PNG first so a JPEG renamed `.png` cannot pass
+   * by having plausible bytes there.
+   */
+  const SHOT = "docs/listing-screenshot.png";
+  const bytes = readFileSync(SHOT);
+
+  it("is a PNG, not something renamed to look like one", () => {
+    expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    // The first chunk of a PNG is IHDR, which is where the size below is read.
+    expect(bytes.subarray(12, 16).toString("ascii")).toBe("IHDR");
+  });
+
+  it("is exactly the size the store asks for", () => {
+    expect(bytes.readUInt32BE(16), "width").toBe(1366);
+    expect(bytes.readUInt32BE(20), "height").toBe(768);
+  });
+
+  it("is small enough to upload without anybody thinking about it", () => {
+    expect(bytes.length).toBeLessThan(2_000_000);
+  });
+
+  it("is the file the listing notes point at", () => {
+    expect(LISTING).toContain("listing-screenshot.png");
+  });
+});
