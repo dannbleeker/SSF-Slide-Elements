@@ -453,11 +453,6 @@ function footer(state: PaneState): HTMLElement {
     if (state.busy === true) move.disabled = true;
     actions.appendChild(move);
   }
-  if (report.again) {
-    const again = button("again", "secondary", "Again");
-    if (state.busy === true) again.disabled = true;
-    actions.appendChild(again);
-  }
   if (report.undo > 0) {
     const undo = button("undo", "secondary", `Undo (${report.undo})`);
     if (state.busy === true) undo.disabled = true;
@@ -487,7 +482,11 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
   const search = el("input", "search");
   search.type = "search";
   search.value = state.query;
-  search.placeholder = "Search";
+  // The slash is not decoration: `/` focuses this field and Escape clears it,
+  // and neither was written anywhere in the pane. A shortcut nobody can see is
+  // a shortcut nobody uses, and the placeholder is the one place a person is
+  // already reading when they are about to type.
+  search.placeholder = "Search  /";
   search.dataset["action"] = "search";
   search.setAttribute("aria-label", "Search the library");
   tools.appendChild(search);
@@ -595,10 +594,23 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
 
   for (const group of found) {
     const section = el("section", "category");
-    const head = button("category", "category-head", `${group.name} (${group.elements.length})`);
+    const head = button("category", "category-head", "");
     head.dataset["key"] = group.key;
     const open = isOpen(state, group.key);
     head.setAttribute("aria-expanded", open ? "true" : "false");
+    // The heading has always BEEN a button with `aria-expanded`, so a screen
+    // reader has always been told it opens. A sighted user was told nothing: a
+    // bold line with a hairline under it, and no reason to think it was
+    // pressable. The mark is what the tag line already uses for the same job,
+    // so the pane says "this opens" one way rather than two.
+    //
+    // `aria-hidden`, because the state it shows is the one `aria-expanded`
+    // already carries — read out, it would be an arrow announced after the word
+    // "collapsed".
+    const twist = el("span", "twist", "▸");
+    twist.setAttribute("aria-hidden", "true");
+    head.appendChild(twist);
+    head.appendChild(el("span", "category-label", `${group.name} (${group.elements.length})`));
     section.appendChild(head);
     if (open) {
       const tiles = el("ul", "tiles");

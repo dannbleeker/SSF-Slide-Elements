@@ -65,7 +65,8 @@ fetched only when you insert it.
 - **Search**, which matches an element's English name, its Danish name in the
   owner's deck, its category and its tags. Every word has to match, so
   "white box" finds "White boxes, 2x1 vertical". Press `/` to jump to the box
-  and `Esc` to clear it. If a search finds nothing, the pane offers what you
+  and `Esc` to clear it — the box says so itself, showing `/` beside the word
+  Search. If a search finds nothing, the pane offers what you
   might have meant — tap one and it searches for that instead. While you are
   searching, the sections that have hits appear as chips with counts: tap one to
   see only that section, tap it again to see them all;
@@ -130,10 +131,13 @@ fetched only when you insert it.
   stay plain text;
 - **Favourites** and **Recent**, when you have any. The star on a tile adds and
   removes a favourite, and the last six things you inserted are remembered;
-- the **categories**, collapsed until you open one, with **Open all** beside
-  the count to open every one at once. That link goes once they are all open,
-  because it has nothing left to do; close one by its own heading the way you
-  opened it. Searching or picking a tag opens whatever it found. Each tile
+- the **categories**, each heading carrying a small mark that turns when it
+  opens, with **Open all** beside the count to open every one at once. That
+  link goes once they are all open, because it has nothing left to do; close one
+  by its own heading the way you opened it. The first time the add-in sees a
+  presentation it opens the top category for you, so there is something to look
+  at; after that it remembers which ones you left open, for that presentation.
+  Searching or picking a tag opens whatever it found. Each tile
   shows the element's name and its picture —
   PowerPoint's own rendering of it, cut from a print of the library deck. Where
   there is no picture yet the tile keeps the small drawing of where on the slide
@@ -156,8 +160,8 @@ fetched only when you insert it.
   slide you were on. Beside it, **Move to a new slide** puts the element on a
   slide of its own instead — offered only when a whole-slide element landed on
   a slide that already had something on it, which is when it is likely to be
-  covering it — then **Again**, which repeats the last insert, and **Undo**,
-  which takes it back;
+  covering it — and **Undo**, which takes it back. To insert the same thing
+  again, click it again in **Recent**;
 - and the one primary button, **Insert an element**, which inserts whatever
   tile the keyboard is on. Clicking a tile inserts it directly.
 

@@ -43,10 +43,10 @@ import {
   themeBackground,
 } from "../office/powerpoint.js";
 import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
-import { restored, shouldRestoreScroll, storedScroll, writes } from "./storage.js";
+import { firstVisit, restored, shouldRestoreScroll, storedScroll, writes } from "./storage.js";
 import { render } from "./render.js";
 import { fractionOf, withLanded } from "./card.js";
-import { elementOf } from "./search.js";
+import { elementOf, openAtFirst } from "./search.js";
 import {
   arrowTo,
   EMPTY,
@@ -235,8 +235,21 @@ function remembered(): Partial<PaneState> {
   const deck = deckBucket === GLOBAL_KEY ? machine : read(deckBucket);
   // Not part of the state, so it is taken here rather than returned.
   keptScroll = storedScroll(deck);
+  // Read HERE and kept, because `restored` cannot carry it: the answer is
+  // whether a field was absent, and what it returns is a state where that field
+  // is a list either way. `load` uses it once, when the library arrives.
+  newDeck = firstVisit(deck);
   return restored(machine, deck);
 }
+
+/**
+ * Whether this deck has never been seen, so the first category can be opened.
+ *
+ * Alongside `keptScroll` rather than in the state, and for the same reason: it
+ * is a fact about the READ, true once, and a state field would have to be kept
+ * correct for the rest of the session by everything that touches it.
+ */
+let newDeck = false;
 
 /**
  * How far down the list the user had scrolled.
@@ -346,7 +359,15 @@ async function load(): Promise<void> {
   // 16:9 is what almost every modern deck is, and the shape read below corrects
   // it — visibly, through the line under the header — when it is not.
   const provisional = libraryFor(index, 12192000, 6858000);
-  set({ library: provisional });
+  // On a deck the pane has never seen, open the first category, so the first
+  // screen carries elements rather than a column of shut headings. Once only,
+  // and never against a deck that remembered something — including a deck whose
+  // user shut everything, which `firstVisit` is what tells apart.
+  set({
+    library: provisional,
+    ...(newDeck ? { open: openAtFirst(provisional, state) } : {}),
+  });
+  newDeck = false;
   store = new Store(provisional.size);
 
   const shape = await deckShape();
@@ -920,9 +941,6 @@ function onClick(event: MouseEvent): void {
       break;
     case "insert":
       if (state.chosen) void insert(state.chosen);
-      break;
-    case "again":
-      if (state.recent[0]) void insert(state.recent[0]);
       break;
     case "undo":
       void undo();

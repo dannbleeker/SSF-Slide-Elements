@@ -284,6 +284,24 @@ async function openPane(theme?: string): Promise<HTMLElement> {
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 /**
+ * Put the first category's tiles on screen.
+ *
+ * It presses the heading only when the heading says the category is SHUT.
+ * Since 2026-09-16 the pane opens the top category on a deck it has never seen,
+ * and every test here boots with empty storage — so the unconditional click
+ * these tests used to do now CLOSES the very tiles the test is about. Ten of
+ * them went red at once, which is the change being noticed properly rather than
+ * a fault.
+ *
+ * Asking the button what state it is in keeps each test about its own subject
+ * instead of about whatever the default happens to be this month.
+ */
+function showFirstCategory(pane: HTMLElement): void {
+  const head = pane.querySelector<HTMLElement>('[data-action="category"]');
+  if (head?.getAttribute("aria-expanded") === "false") head.click();
+}
+
+/**
  * Every listener a booted pane put on `document`, so each case starts alone.
  *
  * `openPane` imports `main.ts` fresh for each case, and the pane binds its
@@ -462,7 +480,11 @@ describe("what this deck already uses", () => {
       [...pane.querySelectorAll('[data-action="category"]')].filter(
         (head) => head.getAttribute("aria-expanded") === "true",
       ).length;
-    expect(expanded()).toBe(0);
+    // One, not none: this deck has never been seen, so the pane opens the top
+    // category rather than showing a column of shut headings with nothing under
+    // them. "Open all" still has something left to do, which is the point of
+    // checking it here.
+    expect(expanded()).toBe(1);
     pane.querySelector<HTMLElement>('[data-action="open-all"]')?.click();
     await settle();
     // Both categories the stub library carries, and the control has gone.
@@ -651,7 +673,7 @@ describe("pressing a tile", () => {
     const pane = await openPane();
     await settle();
 
-    pane.querySelector<HTMLElement>('[data-action="category"]')?.click();
+    showFirstCategory(pane);
     const ghost = pane.querySelector("svg.ghost");
     expect(ghost, "no tile drawing to click").not.toBeNull();
     expect(ghost).not.toBeInstanceOf(HTMLElement);
@@ -666,7 +688,7 @@ describe("pressing a tile", () => {
     indexMode = "ok";
     const pane = await openPane();
     await settle();
-    pane.querySelector<HTMLElement>('[data-action="category"]')?.click();
+    showFirstCategory(pane);
     pane.querySelector<HTMLElement>('[data-action="tile"]')?.click();
     await waitFor("the insert to reach a footer", () => pane.querySelector(".outcome"));
     expect(pane.querySelector(".outcome")?.textContent).toContain("The insert was refused");
@@ -703,7 +725,7 @@ describe("the other insert target, on right-click", () => {
     const pane = await openPane();
     await settle();
     // The library's one category starts collapsed; open it so there is a tile.
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     return pane;
   }
 
@@ -757,7 +779,7 @@ describe("what the menu actually inserts", () => {
     deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
     const pane = await openPane();
     await settle();
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     return pane;
   }
 
@@ -859,7 +881,9 @@ describe("what the pane remembers, and where", () => {
     (pane.querySelector('[data-action="open-all"]') as HTMLElement).click();
     await settle();
 
-    // A different deck opens closed, whatever the first one did.
+    // A different deck gets its OWN state, whatever the first one did — which
+    // since 2026-09-16 means the first-visit default rather than nothing open.
+    // The number is what matters: one, not the two the first deck was left on.
     detachPanes();
     host.url = B;
     pane = await openPane();
@@ -867,7 +891,7 @@ describe("what the pane remembers, and where", () => {
     const openIn = (p: HTMLElement): number =>
       [...p.querySelectorAll('[data-action="category"]')].filter((h) => h.getAttribute("aria-expanded") === "true")
         .length;
-    expect(openIn(pane)).toBe(0);
+    expect(openIn(pane)).toBe(1);
 
     // And the first deck still has its own.
     detachPanes();
@@ -886,7 +910,7 @@ describe("what the pane remembers, and where", () => {
     // Dismiss the coach marks and star one element, both on deck A.
     (pane.querySelector('[data-action="coached"]') as HTMLElement).click();
     await settle();
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     (pane.querySelector('[data-action="star"]') as HTMLElement).click();
     await settle();
 
@@ -973,7 +997,7 @@ describe("where the list was left", () => {
     indexMode = "ok";
     const pane = await openPane();
     await settle();
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     await settle();
     return pane;
   }
@@ -1002,12 +1026,25 @@ describe("where the list was left", () => {
    * reopen below draws tiles on its very first pass — and the case that matters
    * is the one where the restore has to wait for them.
    */
-  async function leftAt640(): Promise<void> {
+  /**
+   * Deck A, scrolled to 640 and written back.
+   *
+   * `closed` shuts the category the pane opens on a deck it has never seen, so
+   * the deck is remembered with nothing open. That is what gives the NEXT open
+   * a browse draw with no tiles in it — the window before the offset can go
+   * back, which one of the cases below is entirely about.
+   */
+  async function leftAt640(options: { closed?: boolean } = {}): Promise<void> {
     detachPanes();
     host.url = A;
     indexMode = "ok";
-    await openPane();
+    const pane = await openPane();
     await settle();
+    if (options.closed === true) {
+      const head = pane.querySelector<HTMLElement>('[data-action="category"]');
+      if (head?.getAttribute("aria-expanded") === "true") head.click();
+      await settle();
+    }
     scrollTo(640);
     await written();
   }
@@ -1037,10 +1074,13 @@ describe("where the list was left", () => {
       indexMode = "ok";
       const pane = await openPane();
       await settle();
-      // The loading screen and the first browse draw have no tiles, and
-      // scrolling a short paragraph to 640 leaves the user looking at nothing.
-      expect(pane.querySelector('[data-action="tile"]')).toBeNull();
-      (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+      // Tiles are on the FIRST browse draw now: this deck was left with a
+      // category open, so the restore has something to put the offset into
+      // straight away. It used to have to wait for a click, and the rule it is
+      // holding is the same either way — put it back once there are tiles, and
+      // put it back once.
+      expect(pane.querySelector('[data-action="tile"]')).not.toBeNull();
+      showFirstCategory(pane);
       await settle();
       // And not again on every draw after it: re-scrolling the user to where
       // they were an hour ago is the pane fighting them.
@@ -1053,16 +1093,23 @@ describe("where the list was left", () => {
   });
 
   it("does not put it back over a scroll the user has already made", async () => {
-    await leftAt640();
+    await leftAt640({ closed: true });
     const put = await scrolls(async () => {
       detachPanes();
       host.url = A;
       indexMode = "ok";
       const pane = await openPane();
       await settle();
-      // The user gets there first, before any tile is drawn.
+      // Everything shut, which is how this deck was left — so the first browse
+      // draw has no tiles and the restore has nothing to put the offset into
+      // yet. That is the window this rule defends, and since 2026-09-16 it is
+      // reached by a deck whose user closed the categories rather than by every
+      // deck: a deck left with one open gets its offset back on the first draw,
+      // before anybody could have scrolled.
+      expect(pane.querySelector('[data-action="tile"]')).toBeNull();
+      // The user gets there first.
       scrollTo(20);
-      (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+      showFirstCategory(pane);
       await settle();
     });
     expect(put).toEqual([]);
@@ -1094,7 +1141,7 @@ describe("moving the last insert to a new slide", () => {
     deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
     const pane = await openPane();
     await settle();
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     (pane.querySelector(`[data-tile="${id}"], [data-action="tile"]`) as HTMLElement).click();
     await waitFor("the splice to be asked for", () => spliced.length > 0);
     await settle();
@@ -1374,7 +1421,7 @@ describe("a deck read that the deck outran", () => {
     // four with the whole suite running beside it. The insert's own `readDeck`
     // is the SECOND call and is not the one being held, so it can reach its
     // footer while the read is still stopped.
-    (pane.querySelector('[data-action="category"]') as HTMLElement).click();
+    showFirstCategory(pane);
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await waitFor("the insert to finish while the read is held", () => pane.querySelector(".outcome"));
 

@@ -43,7 +43,7 @@ PowerPoint would settle.
    after it**, per a setting behind the gear. Insert first, prove the deck grew,
    then remove the replaced slide (the host rules in `CLAUDE.md`).
 4. The footer says what happened, with the deck's slide count before and after,
-   and offers **Undo** and **Again**.
+   and offers **Undo**.
 
 ## 2. What an element is
 
@@ -283,8 +283,27 @@ PowerPoint would settle.
 - **Favourites** (a star in the tile's corner, remembered per machine) and
   **Recent** (the last six inserts) sit above the categories.
 - **Categories** start collapsed, with "Open all" beside the count; a search or
-  a tag opens what it finds; category headers stick while scrolling. Built
-  2026-09-12, with one detail the record did not have: the control is
+  a tag opens what it finds; category headers stick while scrolling.
+
+  **Each heading carries a mark that turns when it opens** (2026-09-16). The
+  heading had always been a button with `aria-expanded`, so a screen reader was
+  told it opened and a sighted user was not: bold text with a hairline under it
+  and no reason to think it was pressable. The mark is a real glyph, not a
+  drawn triangle, because the pane is checked in forced colours every week and a
+  border trick vanishes there. The row answers hover, too.
+
+  **On a deck the pane has never seen, the FIRST category opens** (2026-09-16).
+  Before it, the first sight of a new deck was a search box, a row of tags and a
+  column of shut headings — not one element on screen, and nothing saying a
+  heading opens. The first rather than the biggest: the order on screen is the
+  library's own, and "the top one is open" is a rule a user can see. Nothing
+  opens when Favourites or Recent already put tiles on that screen. Whether it
+  is a first visit is answered by `storage.ts` from whether anything was ever
+  written for the deck, NOT from an empty list of open categories — those are
+  two different things, and reading them the same would re-open the top category
+  every time somebody closed it.
+
+  Built 2026-09-12, with one detail the record did not have: the control is
   WITHHELD once every category is open, and while a search or a tag is on,
   because in both states it would be a click that changes nothing. There is
   no "Close all" beside it — one control is what was approved, and a category
@@ -333,7 +352,7 @@ PowerPoint would settle.
   is drawn from the catalogue and never needed one either.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
-  already had content, **Again**, **Undo (n)**), then a line with the current
+  already had content, **Undo (n)**), then a line with the current
   settings that opens the gear. Built in that order, which is this list's:
   measured on 2026-09-12, the row wraps to two lines at 320 px with Undo alone
   on the second whichever way round the first two go, so the order is the
@@ -424,7 +443,12 @@ exception for width.
   sibling's tab; the lock is that rule made visible. The delta is the evidence,
   never the absence of an error.
 - **Undo** goes **one deep**, positional and count-checked, never by id.
-  **Again** repeats the last insert on the current slide or selection.
+
+  There was an **Again** beside it, repeating the last insert. It went on
+  2026-09-16: the element it repeats is the first tile in **Recent**, drawn a
+  few lines up the same pane, and clicking that tile does the same thing. Two
+  controls for one action, in the place with the least room — at 320 px the row
+  wrapped to two lines. The one with the picture on it stayed.
 
   Ten deep was the decision on 2026-09-08 and it did not survive the build.
   Taking back an insert that landed ONTO a slide means putting the replaced
@@ -462,10 +486,9 @@ exception for width.
     own sentence: a second copy beside the first is the one outcome a user
     asking to MOVE something cannot have meant.
   - **It is offered exactly as long as Undo is**, because it needs Undo to
-    work. Unlike "Again" beside it, it stays on screen and greys out while an
-    insert runs rather than vanishing: Again offers a NEW insert and has no
-    business being drawn during one, while this is about the insert that just
-    happened, which is still the last one. A control that disappears and comes
+    work. It stays on screen and greys out while an insert runs rather than
+    vanishing: it is about the insert that just happened, which is still the
+    last one whatever the pane is doing. A control that disappears and comes
     back under the cursor is worse than one that greys.
 - **Multi-shape elements land as one group** (gear option, default on), so the
   user moves them as one and ungroups when editing.

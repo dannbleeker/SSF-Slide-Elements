@@ -9,6 +9,25 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- **A category now looks like something you can open.** Each heading has a small
+  mark that turns when it opens. It was always a button — a screen reader has
+  always said "collapsed" — but on screen it was a line of bold text with
+  nothing to suggest you could press it.
+
+- **The first time the add-in sees a presentation, it opens the top category.**
+  Until now you were met with a search box, a row of tags and a column of closed
+  headings, and nothing to look at until you guessed that a heading opens. It
+  still remembers which ones you leave open, for that presentation — including
+  when you leave them all closed.
+
+- **The search box shows the `/` that jumps to it.** The shortcut was always
+  there and written only in the manual.
+
+- **"Again" has gone from the bar at the bottom.** It repeated the last thing
+  you inserted — which is the first tile under **Recent**, a few lines further
+  up, with a picture on it. Click that instead. The bottom of the pane is the
+  narrowest part of it, and two buttons for one action was one too many.
+
 - The short code in the corner of the pane's header is gone. It said which build
   of the add-in you were looking at, which matters when something has just been
   fixed and you want to know whether you have the fix yet. It is still there for

@@ -127,10 +127,10 @@ describe("what the pane says about the deck", () => {
 
 describe("the footer", () => {
   it("is empty before anything has happened", () => {
-    expect(footerOf(browsing)).toEqual({ detail: "", byHand: false, undo: 0, again: false, move: false });
+    expect(footerOf(browsing)).toEqual({ detail: "", byHand: false, undo: 0, move: false });
   });
 
-  it("carries the outcome, and offers Again only once something has been inserted", () => {
+  it("carries the outcome and what can still be done about it", () => {
     const after = {
       ...browsing,
       recent: ["one-box"],
@@ -139,12 +139,20 @@ describe("the footer", () => {
     };
     const report = footerOf(after);
     expect(report.detail).toBe("3 → 4 → 3 slides, slide 2 replaced.");
-    expect(report.again).toBe(true);
     expect(report.undo).toBe(1);
   });
 
-  it("does not offer Again while an insert is still going", () => {
-    expect(footerOf({ ...browsing, recent: ["one-box"], busy: true }).again).toBe(false);
+  it("offers nothing to repeat the insert with, because the Recent tile is that", () => {
+    // "Again" lived here until 2026-09-16. It repeated the last insert — which
+    // is the first tile in Recent, drawn a few lines up the same pane, where it
+    // has a picture on it. Two controls for one action, in the place with the
+    // least room. The footer is now what only the footer can offer.
+    expect(Object.keys(footerOf({ ...browsing, recent: ["one-box"], undo: 1 })).sort()).toEqual([
+      "byHand",
+      "detail",
+      "move",
+      "undo",
+    ]);
   });
 
   it("passes on that the deck needs a hand", () => {

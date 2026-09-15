@@ -574,7 +574,11 @@ input:focus-visible,
 }
 
 .category-head {
-  display: block;
+  /* Flex rather than block, so the mark and the name share a baseline row and
+     the name keeps the whole remaining width at 320px. */
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   text-align: left;
   min-height: 28px;
@@ -590,6 +594,48 @@ input:focus-visible,
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+/* The row is pressable, so it answers the pointer and the keyboard. Without
+   this the only thing that changed on hover was the cursor, which is not
+   something a person looks for. */
+.category-head:hover {
+  background: var(--sunk);
+}
+
+/**
+ * The mark that says a category opens.
+ *
+ * A real glyph rather than a drawn triangle: a border trick disappears in
+ * FORCED COLOURS, where the pane is checked at 320px every week, and a
+ * character is painted in the forced text colour like any other text.
+ */
+.twist {
+  display: inline-block;
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 120ms ease;
+}
+
+.category-head[aria-expanded="true"] .twist {
+  transform: rotate(90deg);
+}
+
+/* The rotation is the only motion here, and it is the kind a reader who has
+   asked for less should not get. The two states stay distinguishable without
+   it: the glyph still points down when open. */
+@media (prefers-reduced-motion: reduce) {
+  .twist {
+    transition: none;
+  }
+}
+
+.category-label {
+  /* Takes the rest of the row, so a long category name wraps against the pane's
+     edge rather than against the mark. */
+  flex: 1 1 auto;
 }
 
 .category-name {
