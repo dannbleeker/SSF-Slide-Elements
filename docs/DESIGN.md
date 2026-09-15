@@ -221,10 +221,22 @@ PowerPoint would settle.
 
 ## 4. The pane, top to bottom
 
-- **Header**, blue, with the SSF tick above the name and the build stamp at the
-  right. The tick (the small orange bar above a heading) is the design system's
-  signature and the one orange in the pane: orange in one place at a time, or it
-  stops meaning anything. Hover rings, the star, the ghost frame and the coach
+- **Header**, blue, with the SSF tick above the name. The tick (the small orange
+  bar above a heading) is the design system's signature and the one orange in
+  the pane: orange in one place at a time, or it stops meaning anything.
+
+  **The build stamp used to sit at its right, and no longer does** (2026-09-15).
+  It is on the root element as `data-build` instead. The reason it was drawn has
+  not gone away — PowerPoint caches the pane's HTML for about ten minutes, so a
+  round opened too soon after a deploy tests code the host never fetched and
+  reads as a clean run of the wrong build, and this project used the stamp twice
+  on 2026-09-14 to avoid exactly that. What changed is that the owner asked for
+  it out of the AppSource screenshot, and `docs/LISTING.md` forbids retouching
+  the picture, so the stamp had to leave the pane rather than leave the image. An
+  attribute is invisible to a user and to a capture and still there for devtools,
+  for a support request, and for a driver reading the DOM. **"Report a problem"
+  still carries the same value in its prefilled URL**, which is the route for a
+  user who cannot open devtools. Hover rings, the star, the ghost frame and the coach
   marks are blue or navy. Under the header, only when the deck's size is
   neither 16:9 nor 4:3: "4:3 library, scaled to A4 slides".
 - **Search**, one field, placeholder "Search", `/` focuses it, Esc clears it.
@@ -654,7 +666,7 @@ top hit.
 The pane never shows an empty or broken screen, and every message says what
 happened and what to do.
 
-- "Loading the library…" with the header and build stamp visible at once.
+- "Loading the library…" with the header visible at once.
 - "The library did not load" with a retry, for offline or Pages down.
 - The floor message when the host is below PowerPointApi 1.2, naming the fix:
   a current Microsoft 365, PowerPoint 2021, or PowerPoint on the web.
@@ -1199,3 +1211,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |
 | The scroll position is kept OUT of the pane's state — an offset in the state is a re-render per scroll event — and written on a 250 ms trailing timer; it is put back once, after the first draw that has tiles in it, and stood down by any scroll the user makes first | decided in the build, 2026-09-12 |
 | The owner has neither a Mac nor an iPad, so a Mac round stops being a release requirement and joins iPad's position: the validators' report is the first measurement for both, the pane degrades through the runtime floor check rather than a manifest requirement set, and the testing notes disclose it — derived by `test/listing.test.ts` from which answer sheets exist, so a filed Mac sheet forces the disclosure to drop Mac | owner: no access to a Mac or an iPad, 2026-09-12 |
+| The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |

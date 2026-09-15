@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- The short code in the corner of the pane's header is gone. It said which build
+  of the add-in you were looking at, which matters when something has just been
+  fixed and you want to know whether you have the fix yet. It is still there for
+  that — **Report a problem** puts it into your report automatically — it simply
+  is not printed on the pane any more.
+
 ### Added — nothing you can see
 
 - The screenshot for the add-in's store page can now be taken by running one
