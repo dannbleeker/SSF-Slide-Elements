@@ -29,20 +29,18 @@ browser storage, and the validators' test deck (`template/validators.pptx`,
 authored by PowerPoint over COM rather than assembled here, held to its
 description by `test/validators-deck.test.ts`).
 
-Left, and every one of them needs the owner rather than this repo:
+The screenshot is no longer on this list. It shipped on 2026-09-15 as
+[`docs/listing-screenshot.png`](listing-screenshot.png) — `docs/LISTING.md` is
+the recipe, `scripts/listing-shot.ps1` retakes it, and `test/listing.test.ts`
+holds it to 1366×768.
 
-1. **A 1366×768 screenshot** of the pane beside a real presentation. **The
-   capture is no longer the blocker** — one was taken unattended on 2026-09-14,
-   PowerPoint sized to the pixel and the pane loaded from the live site, nothing
-   composited. What is needed is the DECISION about what it shows: which deck
-   (not the validators' one, whose slides read as test fixtures), and whether
-   the frame may carry the owner's account avatar, Microsoft's "Upgrade your
-   plan" button and two sibling add-ins' ribbon entries. `docs/LISTING.md` has
-   the detail. Say what it should show and this repo takes it.
-2. **The listing name**, which waits on the same naming-policy answer SSF Merge
-   waits on. Needs a decision, not a measurement.
-3. **The Partner Center submission** of `manifest-prod.xml`, after 1 and 2.
-4. **v0.1.0** on the releases page. `npm run release:check` is the pre-flight.
+Left, and the first of them is the only thing anything else waits on:
+
+1. **The listing name**, which waits on the same naming-policy answer SSF Merge
+   waits on. Needs a decision, not a measurement. **Nothing else here can move
+   until it is settled.**
+2. **The Partner Center submission** of `manifest-prod.xml`, after 1.
+3. **v0.1.0** on the releases page. `npm run release:check` is the pre-flight.
 
 ### Widen what the mutation sweep changes
 

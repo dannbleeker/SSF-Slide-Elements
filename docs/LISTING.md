@@ -140,6 +140,11 @@ decide:
   library is internal content. A blank slide shows the pane, which is the
   product, and nothing that has to be cleared for publication.
 
+**The submission's copy is committed: [`listing-screenshot.png`](listing-screenshot.png)**,
+taken on 2026-09-15 against build `9396e3d`. `test/listing.test.ts` holds it to
+1366×768, because a capture at the wrong size looks right. Retake it with the
+recipe below whenever the pane changes enough to matter.
+
 ### Taking it
 
 ```powershell
