@@ -7,6 +7,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added — nothing you can see
+
+- The screenshot for the add-in's store page can now be taken by running one
+  command, instead of being assembled by hand. It makes an empty presentation,
+  opens the add-in beside it, and captures the window at exactly the size the
+  store asks for. Nothing in the picture is retouched — the parts that should
+  not appear on a public page are left out of the frame rather than painted
+  over.
+
 ### Changed — nothing you can see
 
 - The check that deliberately breaks the add-in's code learned a seventh way to
