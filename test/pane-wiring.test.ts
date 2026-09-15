@@ -558,17 +558,37 @@ describe("booting the pane", () => {
     expect(region.getAttribute("aria-live")).toBe("polite");
   });
 
-  it("shows the build in the header when the bundler stamped one", async () => {
+  it("puts the build on the document, where a reader can find it and a screenshot cannot", async () => {
+    /**
+     * It used to be painted in the header. The owner asked for it out of the
+     * AppSource screenshot on 2026-09-15, and `docs/LISTING.md` forbids
+     * retouching the picture — so the stamp had to leave the pane rather than
+     * leave the image.
+     *
+     * It still has to be SOMEWHERE. PowerPoint caches the pane's HTML for about
+     * ten minutes, so a round opened too soon after a deploy tests code the host
+     * never fetched and reads as a clean run of the wrong build; this project
+     * used the stamp twice on 2026-09-14 for exactly that. An attribute is
+     * invisible to a user and to a capture, and still there for devtools, a
+     * support request, or a driver reading the DOM.
+     */
     vi.stubGlobal("__BUILD_STAMP__", "abc1234");
     await openPane();
-    const build = document.querySelector("header .build");
-    expect(build?.textContent).toBe("abc1234");
-    expect(build?.getAttribute("title")).toContain("abc1234");
+    expect(document.documentElement.getAttribute("data-build")).toBe("abc1234");
+    // And nothing is drawn: the whole point is that a capture cannot see it.
+    expect(document.querySelector("header .build")).toBeNull();
+    expect(document.querySelector("header")?.textContent ?? "").not.toContain("abc1234");
   });
 
-  it("shows no build when there is none to show", async () => {
+  it("stamps nothing when there is no build to stamp", async () => {
+    // The attribute goes on the ROOT element, and jsdom hands every case in
+    // this file the same document — so the case above leaves its stamp behind
+    // and this one would pass or fail on the order the two happened to run in.
+    // Cleared here rather than relied upon: a real pane gets a fresh document
+    // on every load, and a test that depends on its neighbour is not a test.
+    document.documentElement.removeAttribute("data-build");
     await openPane();
-    expect(document.querySelector("header .build")).toBeNull();
+    expect(document.documentElement.hasAttribute("data-build")).toBe(false);
   });
 
   it("follows PowerPoint's theme, not the browser's", async () => {

@@ -171,12 +171,11 @@ change something outside this repository:
    change the editing language, and it did not survive a PowerPoint restart when
    it was tried — so do it last, just before the capture.
 
-Left in on purpose: the **build stamp** in the pane's header. `docs/DESIGN.md`
-section 4 puts it there, and it is how a stale cached pane is told from a fresh
-deploy — PowerPoint caches the pane's HTML for about ten minutes. Taking it out
-of the picture alone would show a pane that does not exist, which this section
-forbids; taking it out of the product is a design change and belongs in its own
-PR.
+Nothing else needs doing. The **build stamp** that used to sit in the pane's
+header was taken off it on 2026-09-15 and now lives on the root element as
+`data-build` — invisible to a capture, still readable in devtools and still
+prefilled into "Report a problem". `docs/DESIGN.md` section 4 carries the
+reasoning.
 - **The listing NAME.** `docs/DESIGN.md` section 12: nothing here has been read
   against the naming policy, and the sibling SSF Merge is held on the same
   question. That answer decides this one.

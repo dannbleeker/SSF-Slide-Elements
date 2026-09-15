@@ -1182,29 +1182,36 @@ function buildStamp(): string | undefined {
 }
 
 /**
- * The build this pane was served from, in the header, before anything is run.
+ * The build this pane was served from, on the document, before anything is run.
  *
  * PowerPoint caches the pane's HTML for about ten minutes, so opening it too
  * soon after a deploy tests code the host never fetched, and the result reads
  * as a clean run of the wrong build. The sibling projects record whole rounds
- * lost to it. Seven characters in the header is how the two are told apart.
+ * lost to it, and this project used it twice on 2026-09-14 to know the site had
+ * caught up with `main` before trusting a round.
+ *
+ * It used to be seven characters PAINTED in the header. The owner asked for
+ * them out of the AppSource screenshot on 2026-09-15, and a stamp that is in
+ * the picture cannot be left out of it honestly — `docs/LISTING.md` forbids
+ * retouching. So it moved rather than went: `data-build` on the root element is
+ * invisible to a user and to a screenshot, and is still there for anyone
+ * reading the DOM — devtools, a support request, or a driver over CDP, which is
+ * how this project reads it. The diagnostic survives; only the paint is gone.
+ *
+ * "Report a problem" carries the same value into its prefilled URL and is
+ * unaffected, so a user who cannot open devtools still has a way to send it.
  */
-function showBuild(): void {
-  const build = buildStamp() ?? "unknown";
-  const header = document.querySelector("header");
-  if (!header || build === "unknown") return;
-  const span = document.createElement("span");
-  span.className = "build";
-  span.textContent = build;
-  span.title = `SSF Slide Elements was built from commit ${build}`;
-  header.append(span);
+function stampBuild(): void {
+  const build = buildStamp();
+  if (!build) return;
+  document.documentElement.setAttribute("data-build", build);
 }
 
 void Office.onReady(() => {
   applyTheme();
   // Before the floor check: a host that cannot run the add-in is exactly the
   // case where somebody needs to say which build refused them.
-  showBuild();
+  stampBuild();
   const check = hostReady();
   if (!check.ok) {
     // Said out loud rather than swallowed: a pane that renders a dead UI on an
