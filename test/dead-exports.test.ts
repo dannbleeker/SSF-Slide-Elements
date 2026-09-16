@@ -46,8 +46,16 @@ describe("every export in src is reached by something that ships", () => {
     for (const key of Object.keys(ALLOWED)) {
       const [file, name] = key.split("::");
       const source = readFileSync(file as string, "utf8");
-      expect(source, `${key} is recorded as a deliberate exception, but ${file} no longer exports it`).toMatch(
-        new RegExp(`^export (?:async )?(?:function|const) ${name}\\b`, "m"),
+      // Either form the sweep can report. A class METHOD is declared at the
+      // class's own indent rather than with `export` in front of it, and the
+      // excuse has to die with the method exactly as it dies with a function —
+      // this arm was added on 2026-09-16 with the sweep's own, and without it
+      // every method entry in ALLOWED read as an export that no longer exists.
+      expect(source, `${key} is recorded as a deliberate exception, but ${file} no longer declares it`).toMatch(
+        new RegExp(
+          `^export (?:async )?(?:function|const) ${name}\\b|^ {2}(?:static )?(?:async )?(?:get |set )?${name}\\s*[(<]`,
+          "m",
+        ),
       );
     }
   });

@@ -1044,3 +1044,38 @@ describe("a tag the user has since grouped away", () => {
     expect((await readShapeTags(pkg, SLIDE)).map((t) => t.shapeId)).toEqual(["50"]);
   });
 });
+
+describe("what reading a deck costs to hold", () => {
+  /**
+   * Reading the deck must not hold one parsed document per slide.
+   *
+   * `Pkg.doc` RETAINS — the cache is also the dirty-part set, which is what
+   * makes an edit survive — and `readShapeTags` used it. So `usedInDeck`, which
+   * calls it once per slide of the user's WHOLE presentation, left a live
+   * xmldom Document for every slide and every tag part alive at the same time.
+   * Measured 2026-09-16 on `template/library-16x9.pptx` (109 slides, 1,426 KB
+   * zipped): 197 parts held and heap up 277.1 MB, against 9 held and 3.5 MB
+   * once the reads went through `peek`. A task pane's WebView works in about
+   * 2 GB, and the cost grew with the user's deck.
+   *
+   * Stated as an exact count rather than a heap figure, for the reason
+   * `Pkg.cachedParts` gives: a memory assertion would be flaky and this one is
+   * not. The property is that the held count does not grow with the number of
+   * slides, so the same slide is read at two deck lengths and the counts must
+   * agree — which no single-length assertion can express. Without the fix it
+   * reads "3 slides held 5 parts, 60 slides held 62".
+   */
+  it("holds no more parts for a long deck than for a short one", async () => {
+    const slide: SlideSpec = { paragraphs: [["A slide with a little text on it"]] };
+
+    const short = await deck(Array.from({ length: 3 }, () => slide));
+    expect(await usedInDeck(short)).toEqual([]);
+    const afterShort = short.cachedParts();
+
+    const long = await deck(Array.from({ length: 60 }, () => slide));
+    expect(await usedInDeck(long)).toEqual([]);
+    const afterLong = long.cachedParts();
+
+    expect(afterLong, `3 slides held ${afterShort} parts, 60 slides held ${afterLong}`).toBe(afterShort);
+  }, 60000);
+});
