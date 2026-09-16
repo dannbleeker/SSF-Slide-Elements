@@ -22,9 +22,19 @@
  *
  * ## What it mutates
  *
- * The pure decision code only — `src/host` and the flat pure files of
- * `src/pane`. Nothing that talks to Office.js, and nothing in `src/core`, whose
- * tests are the slow half of the suite.
+ * The pure decision code — `src/host` and the flat pure files of `src/pane` —
+ * AND the engine, `src/core`. Nothing that talks to Office.js. 1,156 mutations
+ * across 35 files as of 2026-09-16: 804 in `src/core`, 180 in `src/pane`, 172
+ * in `src/host`.
+ *
+ * This paragraph said "nothing in `src/core`, whose tests are the slow half of
+ * the suite" until 2026-09-16, three days after `TARGETS` below gained the
+ * whole engine — the change that made it affordable wrote its reasoning beside
+ * the list and left the summary above it saying the opposite. It is the header
+ * a reader meets first, and on 2026-09-16 it sent one off hand-reading
+ * `src/core` for bugs on the belief that no sweep covered it. A file that
+ * contradicts itself sixty lines apart is worse than one that says nothing:
+ * the wrong half is the half that gets believed.
  *
  * The operators are the mistakes this repo has actually made, not a textbook's
  * list: a comparison boundary, a boolean operator, a dropped negation, a
