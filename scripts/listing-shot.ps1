@@ -158,6 +158,39 @@ if (($r.Right - $r.Left) -ne $WIDE -or ($r.Bottom - $r.Top) -ne $want) {
 Start-Sleep -Seconds 4
 
 [Listing]::Shot($hwnd, $Out, $CropTop, $WIDE, $TALL)
-$img = [System.Drawing.Image]::FromFile($Out)
-Write-Output ("wrote " + $img.Width + "x" + $img.Height + " to " + $Out + " (cropped " + $CropTop + "px of title bar)")
-$img.Dispose()
+
+# A BLANK FRAME IS THE FAILURE THIS TOOL CANNOT OTHERWISE SEE.
+#
+# Measured 2026-09-16: PrintWindow returned an all-black bitmap - PowerPoint
+# had been left in an odd state by a teaching callout - and the script wrote it
+# out and reported "wrote 1366x768" exactly as if nothing were wrong. The file
+# is the right size, the right format, and a picture of nothing. Worse, the
+# first check written for it sampled the PNG's bytes and called it fine,
+# because an opaque image carries an alpha channel of 255 beside colour bytes
+# of 0.
+#
+# So the pixels are read back. A real pane shot is mostly light and has
+# hundreds of colours in it; a dead capture has one.
+$img = [System.Drawing.Bitmap]::FromFile($Out)
+try {
+  $seen = New-Object 'System.Collections.Generic.HashSet[int]'
+  $lit = 0
+  $n = 0
+  for ($y = 4; $y -lt $img.Height; $y += 16) {
+    for ($x = 4; $x -lt $img.Width; $x += 16) {
+      $c = $img.GetPixel($x, $y)
+      [void]$seen.Add(($c.R -shl 16) -bor ($c.G -shl 8) -bor $c.B)
+      if ([int]$c.R + [int]$c.G + [int]$c.B -gt 60) { $lit++ }
+      $n++
+    }
+  }
+  $share = if ($n -gt 0) { $lit / $n } else { 0 }
+  Write-Output ("checked " + $n + " pixels: " + $seen.Count + " colours, " + [int]($share * 100) + "% lit")
+  if ($seen.Count -lt 20 -or $share -lt 0.3) {
+    throw ("that capture is blank or nearly - " + $seen.Count + " colours, " + [int]($share * 100) +
+      "% lit. PrintWindow can return an empty bitmap when PowerPoint is mid-dialog or has a callout open. Clear it and run again.")
+  }
+  Write-Output ("wrote " + $img.Width + "x" + $img.Height + " to " + $Out + " (cropped " + $CropTop + "px of title bar)")
+} finally {
+  $img.Dispose()
+}

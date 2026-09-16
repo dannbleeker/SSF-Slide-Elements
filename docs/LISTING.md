@@ -141,9 +141,16 @@ decide:
   product, and nothing that has to be cleared for publication.
 
 **The submission's copy is committed: [`listing-screenshot.png`](listing-screenshot.png)**,
-taken on 2026-09-15 against build `9396e3d`. `test/listing.test.ts` holds it to
+taken on 2026-09-16 against build `c4f31e7`. `test/listing.test.ts` holds it to
 1366×768, because a capture at the wrong size looks right. Retake it with the
-recipe below whenever the pane changes enough to matter.
+recipe below whenever the pane changes enough to matter — the pane changed on
+2026-09-16 and the shot was a day stale within hours of being committed, which
+is the ordinary case rather than the exception.
+
+The pane in it is scrolled a little, so the picture carries actual ELEMENTS
+rather than a column of headings. That is a deliberate choice about what a
+store page should show: the library is the product, and the add-in's name is
+already on PowerPoint's own task-pane title bar above it.
 
 ### Taking it
 
