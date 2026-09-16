@@ -82,7 +82,23 @@ where `getFileAsync` gave 48, dropping the comment part and `ppt/authors.xml`.
 Section 13 is borrowed from a sibling on neither platform this project has a
 sheet for; Mac and iPad, having none, are borrowed on everything. The splice ran against the web on 2026-09-10, and
 the whole product — pane, insert and Undo — against the web and then against
-Windows on 2026-09-11. **Mac and iPad have had no round, and none is planned
+Windows on 2026-09-11.
+
+**v0.1.0 itself was run on Windows on 2026-09-16**, against the released
+`manifest-prod.xml` — the release asset, the copy in the shared-folder catalog
+and the tree's own file all one SHA — with the pane loading from the live site
+and reporting `data-build` `6058e2d`, the release commit. Measured through COM
+rather than believed from the pane: an empty slide of a saved deck went to one
+GROUP of five shapes named "White box, 1 large" and `SlideID` 256 to 257, which
+is the insert-then-remove replacing the slide; **Undo put `SlideID` 256 back**
+with the slide empty again, so the user's own slide returned rather than a new
+one standing in for it. A second insert onto the slide that now held the box put
+the Confidential stamp at `rot=331` — its authored −29° — 22pt from the right
+edge, which is `topRight` doing what it promises, and left the box alone.
+"Used in this deck" listed both, which is `readShapeTags` answering on a real
+PowerPoint-saved deck after the `peek` change of the same day.
+
+**Mac and iPad have had no round, and none is planned
 before release** — the owner has neither device (2026-09-12), so the
 validators' report is the first measurement for both and a Mac round is not a
 release requirement (`docs/DESIGN.md` section 9). Every claim about those two
