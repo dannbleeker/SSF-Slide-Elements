@@ -197,6 +197,18 @@ async function main(argv) {
     return problems.length === 0 ? 0 : 1;
   }
   const cleaned = anonymise(text);
+  // The verdict BEFORE the write, not after it. The scrub only knows the parts
+  // the allow list names, so a package can come out of it still naming
+  // somebody — through the address net, or a field nothing here has a rule for.
+  // Writing first and reporting after leaves a file that LOOKS scrubbed on
+  // disk, under the name the operator chose for the scrubbed copy, and the only
+  // thing saying otherwise is a line of console output and an exit code.
+  const left = identityProblems(cleaned);
+  if (left.length > 0) {
+    for (const problem of left) console.log(`STILL: ${problem}`);
+    console.log(`${output} NOT written: the scrub does not reach all of that`);
+    return 1;
+  }
   for (const [name, body] of Object.entries(cleaned)) {
     if (body !== text[name]) {
       zip.file(name, body);
@@ -204,10 +216,8 @@ async function main(argv) {
     }
   }
   writeFileSync(output, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
-  const left = identityProblems(cleaned);
-  for (const problem of left) console.log(`STILL: ${problem}`);
-  console.log(left.length === 0 ? `wrote ${output}` : `${output} still names somebody`);
-  return left.length === 0 ? 0 : 1;
+  console.log(`wrote ${output}`);
+  return 0;
 }
 
 if (isMain(import.meta.url)) {

@@ -1,6 +1,10 @@
-import { readFileSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import JSZip from "jszip";
 import { beforeAll, describe, expect, it } from "vitest";
+import { makeDeck } from "./fixtures/deck.js";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
 import { packageProblems } from "../scripts/package-integrity.mjs";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
@@ -208,5 +212,52 @@ describe("who a committed deck says wrote it", () => {
     // is what the comment's `authorId` points at — rewriting it would orphan
     // the comment.
     expect(cleaned["ppt/authors.xml"]).toContain('id="{A}"');
+  });
+});
+
+describe("the scrubber's own command line", () => {
+  /**
+   * A scrub it cannot finish must not leave a file behind.
+   *
+   * `anonymise` only knows the parts the allow list names, so a package can come
+   * out of it still naming somebody — through the address net, or a field
+   * nothing here has a rule for. The CLI used to write the output file and THEN
+   * say so, which leaves a deck that looks scrubbed on disk, under the name the
+   * operator chose for the scrubbed copy, with nothing but a line of console
+   * output and an exit code against it. The next person to reach for that file
+   * reaches for a file that names a person.
+   *
+   * Run as a subprocess because that is the surface under test: `main` is what
+   * the exit code comes from, and calling the pure functions would not see it.
+   */
+  it("refuses to write a copy it could not finish scrubbing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ssf-identity-"));
+    const input = join(dir, "dirty.pptx");
+    const output = join(dir, "scrubbed.pptx");
+    // An address in a slide's own text: past every allow-list rule, caught by
+    // the second net, and not something `anonymise` can rewrite.
+    writeFileSync(input, await makeDeck([{ paragraphs: [["write to someone@example.com"]] }]));
+
+    const run = spawnSync(process.execPath, ["scripts/deck-identity.mjs", input, output], { encoding: "utf8" });
+
+    expect(run.status, run.stdout).toBe(1);
+    expect(run.stdout).toContain("NOT written");
+    expect(existsSync(output), "a deck that still names somebody was left on disk").toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("writes the copy when the scrub does reach everything", async () => {
+    // The other half, so the refusal above is a refusal and not a CLI that
+    // never writes anything.
+    const dir = mkdtempSync(join(tmpdir(), "ssf-identity-"));
+    const input = join(dir, "ordinary.pptx");
+    const output = join(dir, "scrubbed.pptx");
+    writeFileSync(input, await makeDeck([{ paragraphs: [["nothing identifying here"]] }]));
+
+    const run = spawnSync(process.execPath, ["scripts/deck-identity.mjs", input, output], { encoding: "utf8" });
+
+    expect(run.status, run.stdout).toBe(0);
+    expect(existsSync(output)).toBe(true);
+    rmSync(dir, { recursive: true, force: true });
   });
 });
