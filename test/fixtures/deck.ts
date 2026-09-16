@@ -614,8 +614,19 @@ function themeXml(scheme: Record<string, string> | undefined, name: string): str
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<a:theme ${A} name="${name}">${elements}</a:theme>`;
 }
 
-/** Build a deck whose slides are exactly the specs given. */
-export async function makeDeck(slides: SlideSpec[], theme: ThemeSpec = {}): Promise<Uint8Array> {
+/**
+ * Build a deck whose slides are exactly the specs given.
+ *
+ * `size` is the slide size in EMU, and defaults to 16:9 because that is what
+ * every case written before it assumed. A case that is ABOUT the slide shape —
+ * which library the pane picks, and what it says about a borrowed one — passes
+ * its own, because the shape is read from this part and no API answers it.
+ */
+export async function makeDeck(
+  slides: SlideSpec[],
+  theme: ThemeSpec = {},
+  size: { cx: number; cy: number } = { cx: 12192000, cy: 6858000 },
+): Promise<Uint8Array> {
   const zip = new JSZip();
   const second = theme.second !== undefined;
 
@@ -690,7 +701,7 @@ export async function makeDeck(slides: SlideSpec[], theme: ThemeSpec = {}): Prom
       (second ? `<p:sldMasterId id="2147483650" r:id="rId100"/>` : "") +
       `</p:sldMasterIdLst>` +
       `<p:sldIdLst>${sldIds}</p:sldIdLst>` +
-      `<p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`,
+      `<p:sldSz cx="${size.cx}" cy="${size.cy}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`,
   );
 
   const presRels = slides

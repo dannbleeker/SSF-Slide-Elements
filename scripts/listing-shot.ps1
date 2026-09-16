@@ -157,7 +157,16 @@ if (($r.Right - $r.Left) -ne $WIDE -or ($r.Bottom - $r.Top) -ne $want) {
 [void][Listing]::SetForegroundWindow($hwnd)
 Start-Sleep -Seconds 4
 
-[Listing]::Shot($hwnd, $Out, $CropTop, $WIDE, $TALL)
+# THE CAPTURE LANDS BESIDE ITS DESTINATION, NOT ON IT.
+#
+# The check below can REJECT this capture, and a rejected capture must not have
+# already replaced a good picture. Writing straight to $Out threw the error
+# after the damage: `-Out docs\listing-screenshot.png` is an ordinary way to run
+# this, and a blank frame overwrote the committed shot and then complained. The
+# staging file is left behind on a failure, deliberately, because looking at
+# what PrintWindow actually returned is the first thing anyone does next.
+$stage = "$Out.staging.png"
+[Listing]::Shot($hwnd, $stage, $CropTop, $WIDE, $TALL)
 
 # A BLANK FRAME IS THE FAILURE THIS TOOL CANNOT OTHERWISE SEE.
 #
@@ -171,7 +180,7 @@ Start-Sleep -Seconds 4
 #
 # So the pixels are read back. A real pane shot is mostly light and has
 # hundreds of colours in it; a dead capture has one.
-$img = [System.Drawing.Bitmap]::FromFile($Out)
+$img = [System.Drawing.Bitmap]::FromFile($stage)
 try {
   $seen = New-Object 'System.Collections.Generic.HashSet[int]'
   $lit = 0
@@ -188,9 +197,14 @@ try {
   Write-Output ("checked " + $n + " pixels: " + $seen.Count + " colours, " + [int]($share * 100) + "% lit")
   if ($seen.Count -lt 20 -or $share -lt 0.3) {
     throw ("that capture is blank or nearly - " + $seen.Count + " colours, " + [int]($share * 100) +
-      "% lit. PrintWindow can return an empty bitmap when PowerPoint is mid-dialog or has a callout open. Clear it and run again.")
+      "% lit. PrintWindow can return an empty bitmap when PowerPoint is mid-dialog or has a callout open. Clear it and run again. " +
+      $Out + " was NOT touched; the capture is at " + $stage + " to look at.")
   }
-  Write-Output ("wrote " + $img.Width + "x" + $img.Height + " to " + $Out + " (cropped " + $CropTop + "px of title bar)")
+  $wide = $img.Width
+  $tall = $img.Height
 } finally {
+  # Before the move, or the file is still open and the move fails.
   $img.Dispose()
 }
+Move-Item -LiteralPath $stage -Destination $Out -Force
+Write-Output ("wrote " + $wide + "x" + $tall + " to " + $Out + " (cropped " + $CropTop + "px of title bar)")

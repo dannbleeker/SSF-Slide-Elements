@@ -146,13 +146,45 @@ describe("who a committed deck says wrote it", () => {
   });
 
   it("catches an address in a part it has no rule for", () => {
-    // The allow list only knows two parts. A deck that carried a person's
+    // The allow list only knows three parts. A deck that carried a person's
     // address in a slide's own text would pass every rule above, which is why
     // there is a second net under them.
     const stamped = { ...clean, "ppt/slides/slide1.xml": "<a:t>write to someone@example.com</a:t>" };
     expect(identityProblems(stamped)).toEqual([
       "ppt/slides/slide1.xml carries what reads as an address, someone@example.com",
     ]);
+  });
+
+  it("catches the organisation, which the allow list used to have no rule for at all", () => {
+    // `docProps/app.xml` was outside the allow list until 2026-09-16. The
+    // 2026-09-14 reading that built the list found the owner in two parts and
+    // no others — on ONE machine, whose Office carries no company name. An
+    // Office that has one writes it into every file it saves, and the check
+    // would have stayed green on exactly the machine where it mattered.
+    const stamped = {
+      ...clean,
+      "docProps/app.xml": `<Properties><Application>Microsoft Office PowerPoint</Application><Company>A Real Employer A/S</Company><Manager>A Real Manager</Manager></Properties>`,
+    };
+    expect(identityProblems(stamped)).toEqual([
+      `docProps/app.xml gives Company as "A Real Employer A/S", and a committed deck names no organisation`,
+      `docProps/app.xml gives Manager as "A Real Manager", and a committed deck names no organisation`,
+    ]);
+    // Emptied, not filled in with a stand-in, and nothing else in the part moves.
+    const cleaned = anonymise(stamped);
+    expect(identityProblems(cleaned)).toEqual([]);
+    expect(cleaned["docProps/app.xml"]).toContain("<Application>Microsoft Office PowerPoint</Application>");
+    expect(cleaned["docProps/app.xml"]).toContain("<Company></Company>");
+  });
+
+  it("says nothing about an app part that names no organisation, which is most of them", () => {
+    // Absent and empty are both fine; only a value is a problem. A rule that
+    // confused them would fail every ordinary deck in `template/`.
+    expect(
+      identityProblems({
+        ...clean,
+        "docProps/app.xml": `<Properties><Company></Company><Slides>3</Slides></Properties>`,
+      }),
+    ).toEqual([]);
   });
 
   it("says nothing about a deck with no comment in it, which has no author list at all", () => {

@@ -30,6 +30,17 @@ type Readiness = { ok: boolean; detail: string };
 let readiness: Readiness = { ok: true, detail: "fine" };
 type IndexMode = "fail" | "ok" | "hang";
 let indexMode: IndexMode = "fail";
+/**
+ * Whether the index carries a 4:3 library as well, and in the OTHER order.
+ *
+ * Off by default, so every case written before it sees the index it always saw.
+ * The case that turns it on is about the pane choosing its first open category
+ * against the library that matches the deck rather than the 16:9 one it starts
+ * from, and the two libraries have to disagree about which category comes first
+ * for that choice to be visible at all. The real libraries agree today, which is
+ * luck rather than a rule, so the disagreement is made here on purpose.
+ */
+let bothSizes = false;
 /** What PowerPoint answers for its own chrome colour, per case. */
 let themeColour: string | undefined;
 
@@ -258,6 +269,51 @@ vi.mock("../src/pane/catalogue.js", async () => {
                   ],
                   carried: {},
                 },
+                ...(bothSizes
+                  ? {
+                      "4:3": {
+                        size: "4:3",
+                        width: 9144000,
+                        height: 6858000,
+                        // The other order, which is the whole point of this
+                        // library: the first category here is the SECOND one
+                        // over in 16:9.
+                        categories: [
+                          { key: "stamps", name: "Stamps and labels" },
+                          { key: "boxes", name: "White boxes" },
+                        ],
+                        elements: [
+                          {
+                            id: "markeringer-1",
+                            key: "Markeringer 1",
+                            name: "Marker, circle",
+                            category: { key: "stamps", name: "Stamps and labels" },
+                            slide: 1,
+                            kind: "part",
+                            box: { x: 0.6, y: 0.1, w: 0.2, h: 0.2 },
+                            landing: "cursor",
+                            shapes: 1,
+                            tags: ["stamp"],
+                            markup: { xml: "", rels: [], parts: [] },
+                          },
+                          {
+                            id: "one-box",
+                            key: "En kasse",
+                            name: "One box",
+                            category: { key: "boxes", name: "White boxes" },
+                            slide: 2,
+                            kind: "slide",
+                            box: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 },
+                            landing: "layout",
+                            shapes: 1,
+                            tags: ["boxes"],
+                            markup: { xml: "", rels: [], parts: [] },
+                          },
+                        ],
+                        carried: {},
+                      },
+                    }
+                  : {}),
               },
             }),
   };
@@ -355,6 +411,7 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
   readiness = { ok: true, detail: "fine" };
   indexMode = "fail";
+  bothSizes = false;
   opened.length = 0;
   externalOpens = true;
   deckBase64 = undefined;
@@ -647,6 +704,40 @@ describe("when it does arrive", () => {
     // `currentSlide` answers undefined here, and the pane says so rather than
     // quietly aiming at the first slide.
     expect(pane.querySelector(".slide")?.textContent).toMatch(/did not say/i);
+  });
+
+  /**
+   * The pane opens the top category on a deck it has never seen, and the top
+   * category has to be the top of the library that MATCHES the deck.
+   *
+   * The choice used to be made once, against the provisional 16:9 library the
+   * pane draws while the deck is still being measured, and was never revisited
+   * when the real library replaced it. On a deck of another shape that opens
+   * whichever category happened to come first over in 16:9 — the wrong one when
+   * the other library carries it lower down, as here, and NONE AT ALL when the
+   * other library has not got that key, which puts the first screen back to the
+   * column of shut headings the open exists to prevent with nothing on it saying
+   * why. Nobody could see either because the two real libraries start with the
+   * same category — so this case builds an index whose two libraries disagree,
+   * which is what makes the wrong answer visible. Broken, it opens "boxes".
+   */
+  it("opens the top of the library that matches the deck, not the one it started from", async () => {
+    indexMode = "ok";
+    bothSizes = true;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }], {}, { cx: 9144000, cy: 6858000 })).then(
+      (p) => p.toBase64(),
+    );
+    const pane = await openPane();
+    await settle();
+    // The 4:3 library is the one on screen.
+    await waitFor(
+      "the 4:3 library to replace the provisional one",
+      () => [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')][0]?.dataset["key"] === "stamps",
+    );
+    const open = [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].filter(
+      (head) => head.getAttribute("aria-expanded") === "true",
+    );
+    expect(open.map((head) => head.dataset["key"])).toEqual(["stamps"]);
   });
 });
 

@@ -363,9 +363,10 @@ async function load(): Promise<void> {
   // screen carries elements rather than a column of shut headings. Once only,
   // and never against a deck that remembered something — including a deck whose
   // user shut everything, which `firstVisit` is what tells apart.
+  const firstSight = newDeck;
   set({
     library: provisional,
-    ...(newDeck ? { open: openAtFirst(provisional, state) } : {}),
+    ...(firstSight ? { open: openAtFirst(provisional, state) } : {}),
   });
   newDeck = false;
   store = new Store(provisional.size);
@@ -375,7 +376,14 @@ async function load(): Promise<void> {
   const library: Library = libraryFor(index, shape.width, shape.height);
   if (library.size !== provisional.size || library.borrowed !== provisional.borrowed) {
     store = new Store(library.size);
-    set({ library });
+    // Choose the open category AGAIN, against the library that is real. The one
+    // chosen above came from the provisional 16:9 library, and the two libraries
+    // do not carry the same categories — so on a deck of another shape that key
+    // can name a category this library has not got, and the first screen goes
+    // back to the column of shut headings the open exists to prevent, with
+    // nothing on screen saying why. Today both libraries happen to start with
+    // the same category, which is luck and not a rule.
+    set({ library, ...(firstSight ? { open: openAtFirst(library, state) } : {}) });
   }
   const current = await currentSlide();
   set({
