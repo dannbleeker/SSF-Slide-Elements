@@ -734,27 +734,32 @@ describe("the committed library", () => {
   it("harvests the 16:9 deck into the library the design describes", async () => {
     const { catalogue } = await load("library-16x9.pptx", "16:9");
     const parts = catalogue.elements.filter((e) => e.kind === "part");
-    expect(catalogue.elements.length).toBe(107);
+    expect(catalogue.elements.length).toBe(106);
     // Ten fewer than before 2026-09-16, when the owner had the Flowchart shapes
     // category taken out: one slide in each deck, ten PART elements on it, and
     // the category went with the slide that carried its heading.
-    expect(parts.length).toBe(11);
+    expect(parts.length).toBe(10);
     expect(new Set(parts.map((e) => e.category.name))).toEqual(new Set(["Markers", "Stamps and labels"]));
     expect(new Set(catalogue.elements.filter((e) => e.run).map((e) => e.run?.key)).size).toBe(12);
     // A part is keyed by its own text on the slide, and that text is English
-    // since 2026-09-11. The last one keeps a Danish key because it has no text
-    // of its own and falls back to the slide title numbered, and titles stay
-    // Danish (docs/DESIGN.md section 2).
+    // since 2026-09-11.
+    //
+    // There used to be a sixth here, `Stempler og lignende 1` — the Scales —
+    // and it was the one part with a DANISH key, because it has no text of its
+    // own and fell back to the slide title numbered (titles stay Danish,
+    // `docs/DESIGN.md` section 2). The owner had it removed on 2026-09-16, so
+    // every key in this list is now English and the fallback has nothing left
+    // to demonstrate. If a future part arrives without text of its own, the
+    // numbered Danish fallback is what it will get.
     expect(catalogue.elements.filter((e) => e.landing === "top-right").map((e) => e.key)).toEqual([
       "Confidential",
       "Draft",
       "Confidential (2)",
       "Discussion paper",
       "Working document",
-      "Stempler og lignende 1",
     ]);
     // Every key has an English name, and no two keys share a slug.
-    expect(new Set(catalogue.elements.map((e) => e.id)).size).toBe(107);
+    expect(new Set(catalogue.elements.map((e) => e.id)).size).toBe(106);
   }, 30000);
 
   it("harvests the 4:3 deck into the same keys", async () => {

@@ -53,10 +53,14 @@ PowerPoint would settle.
   one-pagers), so the harvest cannot depend on grouping.
 - **A collection slide yields one element per top-level shape, and the slide's
   title is their category.** The owner's collection slides give _Markers_ and
-  _Stamps and labels_; a further one, _Icons_, holds the scales and the waste
-  bin, which are neither. There was a third, _Flowchart shapes_, until the owner
+  _Stamps and labels_. There was a third, _Flowchart shapes_, until the owner
   had it removed on 2026-09-16 — one slide in each deck, ten part elements on
-  it, and the category went with the slide that carried its heading. A collection slide is
+  it, and the category went with the slide that carried its heading. The
+  _Icons_ collection is gone too, and not by a decision of its own: it held the
+  scales and the waste bin, the waste bin left with Flowchart shapes, and the
+  owner had the scales removed the same day — a SHAPE deletion off the Stamps
+  and labels slide rather than a slide deletion, since seven other elements
+  share that slide. A collection slide is
   marked by a line `SSF: ét element pr. figur` in the notes of its category
   heading slide, inherited by the slides under it, overridable per slide.
   Instruction text on such a slide (the "good rules for flowcharts" box) goes
@@ -95,8 +99,8 @@ PowerPoint would settle.
   never inside "2×2" or "1-2-3", "box" the one irregular plural, and the
   key-figure flows one run by an explicit rule. The stepper names what it
   counts ("boxes 1 2 3 4 5 6"). The pane never uses the word "family"; that
-  word is for this document. The 16:9 deck has twelve such runs, so 107
-  elements show as 74 tiles: the runs cover 45 elements, so 107 − 45 + 12.
+  word is for this document. The 16:9 deck has twelve such runs, so 106
+  elements show as 73 tiles: the runs cover 45 elements, so 106 − 45 + 12.
 - **Categories** are the heading slides (a slide with a title and no content).
   **Tags** are derived from names; there is no authored tag vocabulary.
 - An off-slide shape (x at or beyond the slide's right edge) is never part of
@@ -106,7 +110,7 @@ PowerPoint would settle.
 
 - **Two decks, one per slide size**, authored by the owner and committed under
   `template/`: `library-16x9.pptx` and `library-4x3.pptx`. Both carry the same
-  107 keys, and the harvest refuses a key that is not in both, so no element
+  106 keys, and the harvest refuses a key that is not in both, so no element
   is ever scaled from the other size. A deck that is neither 16:9 nor 4:3 (A4,
   16:10, a custom size) borrows the nearest library, scaled to fit, and the
   line under the pane's header says so.
@@ -823,10 +827,12 @@ each one ends in a fresh PDF print of both decks:
 3. **The collection marker line** — `SSF: ét element pr. figur` is in the notes
    of one heading slide per deck. Whether the slides under it inherit it, or
    whether the other collection headings need their own, is unsettled.
-4. **The Icons slide** — the least specified of the four. Section 2 says the
-   Icons collection "holds the scales and the waste bin, which are neither"
-   marker, stamp nor flowchart shape; it says what is wrong and not what the
-   fix is. This one needs a decision before it can be done.
+4. ~~**The Icons slide**~~ — **settled on 2026-09-16, and not by answering it.**
+   It held the scales and the waste bin, "which are neither" marker, stamp nor
+   flowchart shape, and the record said what was wrong without saying what the
+   fix was. The waste bin left with the Flowchart shapes category and the owner
+   had the scales removed the same day, so there is no Icons collection left to
+   specify. Every part in the library is now a marker, a stamp or a label.
 
 ## 15. Measured and assumed
 
@@ -1239,5 +1245,6 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |
 | The scroll position is kept OUT of the pane's state — an offset in the state is a re-render per scroll event — and written on a 250 ms trailing timer; it is put back once, after the first draw that has tiles in it, and stood down by any scroll the user makes first | decided in the build, 2026-09-12 |
 | The owner has neither a Mac nor an iPad, so a Mac round stops being a release requirement and joins iPad's position: the validators' report is the first measurement for both, the pane degrades through the runtime floor check rather than a manifest requirement set, and the testing notes disclose it — derived by `test/listing.test.ts` from which answer sheets exist, so a filed Mac sheet forces the disclosure to drop Mac | owner: no access to a Mac or an iPad, 2026-09-12 |
+| The Scales comes out of both library decks — a SHAPE deleted from the Stamps and labels collection slide, not a slide deleted, because seven other elements share it. Identified by the box the catalogue records rather than by an index or a shape name, and refused unless exactly one shape matched. It was the last of the _Icons_ pair after the waste bin left with Flowchart shapes, and the only part whose key was Danish — `Stempler og lignende 1`, the numbered fallback for a part with no text of its own. The libraries go to 106 elements | owner: remove the Scales, 2026-09-16 |
 | The Flowchart shapes category and its ten part elements come out of both library decks: one slide each (105 at 16:9, 104 at 4:3), carrying the category's own heading, so the category goes with it. The libraries drop from 117 elements to 107 and the 16:9 deck from twelve categories to eleven. A deck that already uses one keeps it — they are ordinary shapes once inserted — and "Used in this deck" still names it as an element from an older library rather than dropping the row | owner: delete Flowchart shapes, 2026-09-16 |
 | The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |

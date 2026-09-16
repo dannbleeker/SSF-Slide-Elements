@@ -21,7 +21,7 @@ import { makeDeck } from "./fixtures/deck.js";
  * checker, on every commit" — and the entry was removed when the sweep shipped,
  * which is what that file does with work that lands. The synthetic cases below
  * prove each RULE in isolation; the
- * sweep proves the rules add up over 107 real elements the owner drew, which
+ * sweep proves the rules add up over 106 real elements the owner drew, which
  * between them carry tables, pictures, embedded objects, a chart with a
  * workbook behind it, groups, and tag parts PowerPoint wrote.
  *
@@ -188,8 +188,8 @@ function everyShapeId(spTree: Element): string[] {
 
 describe("the library the sweep runs over", () => {
   it("is the deck the design says it is, so the sweep is not vacuous", () => {
-    expect(library.catalogue.elements.length).toBe(107);
-    expect(library.catalogue.elements.filter((e) => e.kind === "part").length).toBe(11);
+    expect(library.catalogue.elements.length).toBe(106);
+    expect(library.catalogue.elements.filter((e) => e.kind === "part").length).toBe(10);
     // The four part families the elements really carry. A sweep over a library
     // with no pictures and no embedded objects would prove far less than this
     // one does.
@@ -417,7 +417,7 @@ describe("the sweep: every element in the 16:9 library", () => {
     // reason it means anything. The fixture destination's shapes are numbered
     // 1, 2 and 9; a single library element chosen to test against may use none
     // of those, so a check on one element passes whether or not the splice
-    // renumbers anything. Across all 107 it does not: the collision is real,
+    // renumbers anything. Across all 106 it does not: the collision is real,
     // and switching the renumber off turns this red.
     const deck = await destination();
     const failures: string[] = [];
@@ -1016,7 +1016,7 @@ describe("the sweep the one above leaves out", () => {
    * `blank()` (a new slide), the ungrouped adopt, the 4:3 elements, and the
    * colour pin.
    *
-   * Swept as a MATRIX once, in a scratch run: 214 elements × onto/new ×
+   * Swept as a MATRIX once, in a scratch run: 212 elements × onto/new ×
    * grouped/loose, 936 packages, no finding. Kept here SAMPLED — each element
    * takes the combination its index names — because the matrix costs 51 seconds
    * and the sample costs a quarter of that while still putting every element

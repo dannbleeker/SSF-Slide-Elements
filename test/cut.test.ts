@@ -198,7 +198,7 @@ describe("the committed catalogue", () => {
       const parts = elements.filter((e) => e.kind === "part");
       // Eleven since 2026-09-16: the ten Flowchart shapes were parts too, and
       // their slide went with the category.
-      expect(parts.length).toBe(11);
+      expect(parts.length).toBe(10);
       // at least some of them are close enough to intrude; if none were, the
       // white-out rule would be dead code and this test would be pinning nothing
       const withNeighbours = cuts.filter((c) => c.whiteOut.length > 0);
