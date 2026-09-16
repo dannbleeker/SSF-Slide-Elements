@@ -141,11 +141,12 @@ decide:
   product, and nothing that has to be cleared for publication.
 
 **The submission's copy is committed: [`listing-screenshot.png`](listing-screenshot.png)**,
-taken on 2026-09-16 against build `c4f31e7`. `test/listing.test.ts` holds it to
+taken on 2026-09-16 against build `80dd869`. `test/listing.test.ts` holds it to
 1366×768, because a capture at the wrong size looks right. Retake it with the
-recipe below whenever the pane changes enough to matter — the pane changed on
-2026-09-16 and the shot was a day stale within hours of being committed, which
-is the ordinary case rather than the exception.
+recipe below whenever the pane or the library changes enough to matter — it was
+retaken twice on 2026-09-16 alone, once for the pane's own changes and once
+because the shot quotes the element count and the library lost ten. That is the
+ordinary case rather than the exception, which is why the recipe is a script.
 
 The pane in it is scrolled a little, so the picture carries actual ELEMENTS
 rather than a column of headings. That is a deliberate choice about what a
