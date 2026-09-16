@@ -2,17 +2,13 @@
   "_comment": "English names per element, keyed by the deck's Danish slide title (a whole-slide element) or part name (a shape on a collection slide). The deck stays the authoring surface and its Danish titles are the keys; this file is what a locale adds. A key with no entry fails the harvest. Categories are the heading slides and, for a collection slide, its title.",
   "categories": {
     "Dokumentstruktur": "Document structure",
-    "Flowchart ikoner": "Flowchart shapes",
-    "Flowchart-figurer": "Flowchart shapes",
     "Grå kasser": "Grey boxes",
     "Hvide kasser": "White boxes",
     "Hvide kasser med sorte overskrifter": "White boxes with black headings",
-    "Ikoner": "Icons",
     "Kun streger": "Lines only",
     "Markeringer": "Markers",
     "One-page templates": "One-page templates",
     "Procesflow": "Process flows",
-    "Stempler og etiketter": "Stamps and labels",
     "Stempler og lignende": "Stamps and labels",
     "Tabeller": "Tables",
     "Trekanter": "Triangles"
@@ -20,7 +16,6 @@
   "names": {
     "[ Agendapunkt – skriv navn som overskrift - DA ]": "Agenda item (Danish)",
     "[ Agendapunkt – skriv navn som overskrift - ENG ]": "Agenda item (English)",
-    "[ Agendapunkt – skriv navn som overskrift ]": "Agenda item",
     "[ KPI definition – skriv navn som overskrift ]": "KPI definition",
     "2 kolonner med adskillelse": "2 columns with a divider",
     "Ændringslog til dokumentet": "Change log for the document",

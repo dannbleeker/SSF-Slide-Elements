@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import JSZip from "jszip";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   HarvestError,
   Pkg,
@@ -761,6 +761,59 @@ describe("the committed library", () => {
     // Every key has an English name, and no two keys share a slug.
     expect(new Set(catalogue.elements.map((e) => e.id)).size).toBe(106);
   }, 30000);
+
+  /**
+   * `names.en.json` must carry nothing the decks do not use.
+   *
+   * The harvest fails on a MISSING name and says nothing about a spare one, so
+   * every element and category the owner takes out of a deck leaves its English
+   * name behind, silently, in a file a person reads to find out what the library
+   * contains. It had happened three times by 2026-09-16 and was cleaned by hand
+   * twice: ten element names orphaned when the Flowchart shapes category went
+   * (#107), and then — found by sweeping for it rather than by remembering — one
+   * more element name and FOUR category names that the hand cleanup had not
+   * looked for, one of them the same removal's own category.
+   *
+   * So it is a sweep now. Remembering is what failed both times.
+   *
+   * Both decks together, because a name is legitimately used if EITHER reaches
+   * it, and only these two are ever harvested with this file: `validators.pptx`
+   * refuses the harvest outright, and `test/validators-deck.test.ts` harvests
+   * the library deck rather than that one.
+   */
+  /**
+   * Every element key and every category key the two decks between them use.
+   *
+   * Harvested once and shared, because each deck takes seconds and the two
+   * cases below want the same answer. A name is legitimately kept if EITHER
+   * deck reaches it.
+   */
+  let inUse: { elements: Set<string>; categories: Set<string> };
+  beforeAll(async () => {
+    const both = [
+      ...(await load("library-16x9.pptx", "16:9")).catalogue.elements,
+      ...(await load("library-4x3.pptx", "4:3")).catalogue.elements,
+    ];
+    inUse = { elements: new Set(both.map((e) => e.key)), categories: new Set(both.map((e) => e.category.key)) };
+  }, 60000);
+
+  // Two cases rather than two assertions in one, because the first `expect` to
+  // fail hides the second — and it did. Putting the orphans back to watch this
+  // go red reported the element name and said nothing about the four
+  // categories, which is how half a gate gets committed as a whole one.
+  it("carries no English name for an element the decks no longer have", () => {
+    expect(
+      Object.keys(names.names).filter((key) => !inUse.elements.has(key)),
+      "an English name for an element no deck has. The owner removed the element; remove its name in the same change",
+    ).toEqual([]);
+  });
+
+  it("carries no English name for a category the decks no longer have", () => {
+    expect(
+      Object.keys(names.categories).filter((key) => !inUse.categories.has(key)),
+      "an English name for a category no deck has. A category name outlives its category exactly as an element name does — four of these survived the hand cleanup that removed ten element names",
+    ).toEqual([]);
+  });
 
   it("harvests the 4:3 deck into the same keys", async () => {
     const wide = await load("library-16x9.pptx", "16:9");
