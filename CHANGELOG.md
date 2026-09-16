@@ -7,6 +7,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- **The publisher is now named StruktureretSundFornuft ApS**, with the company
+  form, on the add-in itself and on the privacy, terms and licence pages. It is
+  the registered entity, and the sibling SSF Merge already said so. If you have
+  sideloaded the add-in, **re-install it** — this is a manifest change, and the
+  manifest version went to 1.0.0.1 with it.
+
 ### Added
 
 - **Terms of use and a licence page**, both on the add-in's own site. The terms

@@ -782,7 +782,11 @@ file it is given, and Microsoft's own submission rules forbid a listing URL
 pointing at the repository, so "the licence is in the repo" was not an answer
 either; `termsOfUseUrl` lives in the JSON manifests only, so the move needed no
 re-sideload, checked by hashing the XML either side of it); the publisher
-StruktureretSundFornuft as a company; first-run guidance; keyboard, focus rings,
+**StruktureretSundFornuft ApS** as a company — the owner settled the spelling on
+2026-09-16, when the sibling SSF Merge's terms page turned out to carry the
+`ApS` and this project's manifests did not, and a publisher display name that
+does not match the registered one is a certification question nobody wants to
+answer twice; first-run guidance; keyboard, focus rings,
 live region, high contrast, 320 px; the runtime floor check with a plain message
 instead of a `<Requirements>` element; Office.js from the official CDN; the
 store logo 300×300, at least one screenshot 1366×768 (the docked 512 px view
@@ -1223,7 +1227,7 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | Stamps land top-right, markers and flowchart icons at the cursor, centre when nothing is selected | approved |
 | Recent kept (last six); collection marker as a notes line; names per locale, English only; colours as a switch; categories collapsed with Open all | approved |
 | No Danish tooltip; everything English; format-only elements authored in the other deck (both v2 decks approved) | approved |
-| Publishing on AppSource, publisher StruktureretSundFornuft as a company, web + Windows + Mac at launch | approved |
+| Publishing on AppSource, publisher StruktureretSundFornuft ApS as a company, web + Windows + Mac at launch | approved |
 | Sizes with a stepper; keyboard operation; preview card; favourites; parts ignore the target and "Move to a new slide"; options behind the gear with sticky search and headers; one insert at a time | approved |
 | Authored tag vocabulary; a "when to use" sentence per element; a "New" chip | rejected |
 | No "family" word in the pane; collection split by slide title with an Icons slide; tags one line | approved |

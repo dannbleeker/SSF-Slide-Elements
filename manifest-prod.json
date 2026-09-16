@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
   "id": "5eb9457b-eeb7-43e1-b12b-9bf3c01a22f1",
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "name": {
     "short": "SSF Slide Elements",
     "full": "SSF Slide Elements for PowerPoint"
@@ -12,7 +12,7 @@
     "full": "A library of ready-made slide elements for PowerPoint. Browse the collection in the task pane and drop any element onto the slide you are on, with every font, colour and placement intact."
   },
   "developer": {
-    "name": "StruktureretSundFornuft",
+    "name": "StruktureretSundFornuft ApS",
     "websiteUrl": "https://struktureretsundfornuft.dk",
     "privacyUrl": "https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html",
     "termsOfUseUrl": "https://ssf-slide-elements.struktureretsundfornuft.dk/terms.html"
