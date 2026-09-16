@@ -141,17 +141,28 @@ decide:
   product, and nothing that has to be cleared for publication.
 
 **The submission's copy is committed: [`listing-screenshot.png`](listing-screenshot.png)**,
-taken on 2026-09-16 against build `80dd869`. `test/listing.test.ts` holds it to
-1366×768, because a capture at the wrong size looks right. Retake it with the
+taken on 2026-09-16 against build `67b6478`, which the live pane confirmed
+through its own `data-build` before the shutter. `test/listing.test.ts` holds it
+to 1366×768, because a capture at the wrong size looks right. Retake it with the
 recipe below whenever the pane or the library changes enough to matter — it was
-retaken twice on 2026-09-16 alone, once for the pane's own changes and once
-because the shot quotes the element count and the library lost ten. That is the
-ordinary case rather than the exception, which is why the recipe is a script.
+retaken three times on 2026-09-16 alone: once for the pane's own changes, once
+because the shot quotes the element count and the library lost ten, and once
+because it lost one more. That is the ordinary case rather than the exception,
+which is why the recipe is a script.
 
 The pane in it is scrolled a little, so the picture carries actual ELEMENTS
 rather than a column of headings. That is a deliberate choice about what a
 store page should show: the library is the product, and the add-in's name is
 already on PowerPoint's own task-pane title bar above it.
+
+The scroll is still needed even though the pane now opens the top category by
+itself. Measured 2026-09-16 in the window this shot is taken in: at 1366×768 the
+pane's own viewport is **391 px**, and the header, the search box, the tag row,
+the "Used in this deck" link and the count come to about 389 of it — so the
+first tile sits one pixel below the fold. The open category earns its keep on a
+real screen, where the pane is two or three times this tall; at the store's
+required window size it does not, and the shot is scrolled by 205 px through
+the pane's own devtools.
 
 ### Taking it
 
@@ -179,6 +190,16 @@ change something outside this repository:
    every add-in's ribbon entry including this one, measured, with no rebuild.
    The Office add-ins dialog would be the sanctioned route and does not open
    under automation: four attempts, two routes, 2026-09-14.
+
+   **A STORE add-in puts itself back; the sideloaded ones do not.** Measured
+   2026-09-16: the cache was trimmed to this add-in alone with PowerPoint shut,
+   and the copy that started next listed two — this one and `wa104380862`, which
+   is Script Lab, installed from AppSource. The two sideloaded siblings stayed
+   off. Script Lab draws a TAB rather than a ribbon group, it is Microsoft's own
+   developer tool, and the committed shot has always carried it; taking it off
+   would mean uninstalling it rather than editing a cache, which is the owner's
+   call and not worth making. So trim the two GUIDs and expect the store one
+   back.
 2. **The status bar's language indicator** ("English (Denmark)"). Right-click
    the status bar and untick **Language**. It is a display setting, it does not
    change the editing language, and it did not survive a PowerPoint restart when
