@@ -292,6 +292,23 @@ a refactor, and a check that guessed would be noise.
   manifest re-install in PowerPoint", and bump `VERSION` in
   `scripts/manifest-source.mjs`, never the npm version.
 
+  **Check WHICH manifest carries the change before saying that.** The XML
+  manifests are what gets sideloaded; the JSON ones are for the AppSource
+  submission. `termsOfUseUrl` and `privacyUrl` live in the JSON only, so moving
+  them changes nothing installed — hash the two XML files either side of the
+  change rather than assuming, as #112 did.
+
+  **And on the owner's own machine it is not a re-sideload.** Measured
+  2026-09-16 with the publisher rename of #113: the add-in is installed from the
+  `\\AITEST\OfficeAddins` shared-folder catalog, so dropping the new
+  `manifest-prod.xml` in and restarting PowerPoint is the whole of it. Office
+  re-read the catalog when the ribbon button was next pressed and cached the new
+  manifest under a VERSION-KEYED folder — `…\Wef\{C0A9AD50-…}\…\Manifests\
+  <id>_1.0.0.1` — which is also how to prove it landed rather than inferring it
+  from the pane still working. No dialog, which matters because the Office
+  add-ins dialog does not open under automation. A user who sideloaded a
+  downloaded file still has to redo it, which is what the flag is for.
+
 - **Dependabot's banner gets read, and the reading gets written down** in
   `docs/DEPENDENCY-ALERTS.md`, "no exposure" included. Never take
   `npm audit`'s advice unread: on a sibling its proposed remedy moved a runtime
