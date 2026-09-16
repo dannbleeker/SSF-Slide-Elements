@@ -207,16 +207,23 @@ describe("the listing's own files", () => {
     expect(existsSync(logo as string), logo as string).toBe(true);
   });
 
-  it("still says the screenshot and the name are the owner's", () => {
-    // The point of this one is the DIRECTION it fails in. Neither can be
-    // produced without a real PowerPoint, and the failure mode worth guarding
+  it("still says the screenshot is the owner's, and that the name was decided rather than cleared", () => {
+    // The point of this one is the DIRECTION it fails in. The screenshot cannot
+    // be produced without a real PowerPoint, and the failure mode worth guarding
     // is somebody — including a future me — quietly deciding a composited
     // screenshot will do. If one is genuinely done, this test is what makes
     // removing the caveat a deliberate act: it went red the day the test deck
-    // was written, and was edited rather than deleted.
+    // was written, and was edited rather than deleted. It went red again on
+    // 2026-09-16 when the owner settled the NAME, and was edited again.
     const owners = LISTING.slice(LISTING.indexOf("## Still the owner's"));
     expect(owners).toContain("1366×768");
-    expect(owners).toContain("naming policy");
+    // The name is decided, and what this now holds is the HONESTY of how it is
+    // recorded. Nobody read it against certification policy 1100.7, and a
+    // record that said "checked" would licence a later reader to tell a
+    // reviewer it was. If someone softens this into a clearance, this goes red.
+    expect(owners, "the listing name's record must not claim a policy clearance nobody performed").toContain(
+      "not as a policy clearance",
+    );
     expect(owners, "the test deck is written; it no longer belongs in this list").not.toContain("test deck");
   });
 

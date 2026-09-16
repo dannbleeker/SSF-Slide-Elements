@@ -7,6 +7,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-16
+
+The first release. Everything below is what the add-in does the day it ships:
+a library of 106 ready-made slide elements in each of the two slide sizes,
+inserted onto the slide you are on, with Undo one click away.
+
 ### Changed
 
 - **The publisher is now named StruktureretSundFornuft ApS**, with the company

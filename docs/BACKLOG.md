@@ -34,13 +34,16 @@ The screenshot is no longer on this list. It shipped on 2026-09-15 as
 the recipe, `scripts/listing-shot.ps1` retakes it, and `test/listing.test.ts`
 holds it to 1366×768.
 
-Left, and the first of them is the only thing anything else waits on:
+The listing name is no longer on this list. The owner settled it on 2026-09-16
+as **`SSF Slide Elements`** — what the manifests always carried, now a decision
+rather than an open question. It is recorded as a decision and NOT as a policy
+clearance: nobody read it against certification policy 1100.7, and
+`test/listing.test.ts` holds `docs/LISTING.md` to saying so.
 
-1. **The listing name**, which waits on the same naming-policy answer SSF Merge
-   waits on. Needs a decision, not a measurement. **Nothing else here can move
-   until it is settled.**
-2. **The Partner Center submission** of `manifest-prod.xml`, after 1.
-3. **v0.1.0** on the releases page. `npm run release:check` is the pre-flight.
+Left:
+
+1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
+   the only step that needs a Microsoft sign-in.
 
 ### Widen what the mutation sweep changes
 

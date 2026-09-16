@@ -111,15 +111,14 @@ describe("the version a release is cut as", () => {
 
   it("agrees with the version this repo is at", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { version: string };
-    // NOT releasable yet, and said so: package.json is at 0.1.0 and the
-    // changelog holds only [Unreleased]. The one problem is the missing
-    // section, which is exactly what cutting the first release adds. Flip
-    // both expectations to `toEqual([])` in that change.
-    expect(versionProblems(read, pkg.version)).toEqual([expect.stringContaining(`no "## [${pkg.version}]" section`)]);
+    // RELEASABLE since 2026-09-16, and this is the flip the note here asked
+    // for: package.json is at 0.1.0 and the changelog now has the section to
+    // match. What it used to assert was the one problem standing in the way —
+    // the missing section — which is exactly what cutting the first release
+    // added.
+    expect(versionProblems(read, pkg.version)).toEqual([]);
     // A leading v is what somebody types; it is the same version.
-    expect(versionProblems(read, `v${pkg.version}`)).toEqual([
-      expect.stringContaining(`no "## [${pkg.version}]" section`),
-    ]);
+    expect(versionProblems(read, `v${pkg.version}`)).toEqual([]);
   });
 
   it("refuses a version this repo has never heard of", () => {
