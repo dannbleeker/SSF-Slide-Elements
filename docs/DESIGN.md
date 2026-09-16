@@ -310,7 +310,15 @@ PowerPoint would settle.
   is a first visit is answered by `storage.ts` from whether anything was ever
   written for the deck, NOT from an empty list of open categories — those are
   two different things, and reading them the same would re-open the top category
-  every time somebody closed it.
+  every time somebody closed it. The first category is the first of the library
+  that MATCHES the deck, which is not the one the pane starts from: the pane
+  draws the 16:9 library while the deck is still being measured, and the two
+  libraries do not carry the same categories in the same order. So the choice is
+  made again when the real library arrives (2026-09-16). It went in choosing
+  once, against the provisional library, and nothing noticed because both real
+  libraries happen to begin with the same category — luck, not a rule, and on a
+  library that differed the first screen would have gone back to the column of
+  shut headings this exists to prevent.
 
   Built 2026-09-12, with one detail the record did not have: the control is
   WITHHELD once every category is open, and while a search or a tag is on,

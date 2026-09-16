@@ -7,7 +7,9 @@
  * is a modern comment to attribute — takes the display name, the initials, the
  * account's `userId` and the identity provider that issued it. Measured on
  * 2026-09-14 on the deck PowerPoint authored for the probe: those two parts,
- * and no others, named the owner.
+ * and no others, named the owner — on THAT machine. `docProps/app.xml` was
+ * added to the list on 2026-09-16 for the organisation the same Office writes
+ * when it is configured with one, which this one is not; see `APP_FIELDS`.
  *
  * **This repository is public.** A deck is the one file a reviewer cannot read
  * before it is merged, so the check here is an ALLOW LIST rather than a search
@@ -36,6 +38,22 @@ export const PROBE_AUTHOR = {
 
 const AUTHORS = "ppt/authors.xml";
 const CORE = "docProps/core.xml";
+const APP = "docProps/app.xml";
+
+/**
+ * The extended properties that name an ORGANISATION rather than a person.
+ *
+ * ASSUMED, not measured, and the distinction is the reason this is here. The
+ * 2026-09-14 reading found the owner's name in the two parts above and nowhere
+ * else — but that was one machine, whose Office install carries no company. The
+ * extended-properties schema has carried `Company` and `Manager` since
+ * ECMA-376, and an Office configured with them writes them into every file it
+ * saves. So an allow list that never looks at this part stays GREEN on the
+ * machine where it would matter, which is the shape of gate this repository
+ * does not keep. Wanted empty rather than set to the invented author: a deck
+ * belongs to nobody.
+ */
+const APP_FIELDS = ["Company", "Manager"];
 
 /**
  * Every value the named attribute takes in a part.
@@ -99,6 +117,13 @@ export function identityProblems(parts, author = PROBE_AUTHOR) {
       if (value && value !== author.name) problems.push(`${CORE} gives ${tag} as "${value}", not "${author.name}"`);
     }
   }
+  const app = parts[APP];
+  if (typeof app === "string") {
+    for (const tag of APP_FIELDS) {
+      const value = element(app, tag);
+      if (value) problems.push(`${APP} gives ${tag} as "${value}", and a committed deck names no organisation`);
+    }
+  }
   // A second net, under the allow list rather than instead of it: an address is
   // identifying wherever it turns up, including in a part this function has no
   // rule for.
@@ -134,6 +159,14 @@ export function anonymise(parts, author = PROBE_AUTHOR) {
       `<cp:lastModifiedBy>${author.name}</cp:lastModifiedBy>`,
     );
   }
+  if (typeof out[APP] === "string") {
+    // Emptied rather than replaced. The invented author is a person the deck
+    // may claim to be by; there is no invented company to stand in for one, and
+    // an empty element is what an Office with no company set writes.
+    for (const tag of APP_FIELDS) {
+      out[APP] = out[APP].replace(new RegExp(`<${tag}>[^<]*</${tag}>`, "g"), `<${tag}></${tag}>`);
+    }
+  }
   return out;
 }
 
@@ -164,6 +197,18 @@ async function main(argv) {
     return problems.length === 0 ? 0 : 1;
   }
   const cleaned = anonymise(text);
+  // The verdict BEFORE the write, not after it. The scrub only knows the parts
+  // the allow list names, so a package can come out of it still naming
+  // somebody — through the address net, or a field nothing here has a rule for.
+  // Writing first and reporting after leaves a file that LOOKS scrubbed on
+  // disk, under the name the operator chose for the scrubbed copy, and the only
+  // thing saying otherwise is a line of console output and an exit code.
+  const left = identityProblems(cleaned);
+  if (left.length > 0) {
+    for (const problem of left) console.log(`STILL: ${problem}`);
+    console.log(`${output} NOT written: the scrub does not reach all of that`);
+    return 1;
+  }
   for (const [name, body] of Object.entries(cleaned)) {
     if (body !== text[name]) {
       zip.file(name, body);
@@ -171,10 +216,8 @@ async function main(argv) {
     }
   }
   writeFileSync(output, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
-  const left = identityProblems(cleaned);
-  for (const problem of left) console.log(`STILL: ${problem}`);
-  console.log(left.length === 0 ? `wrote ${output}` : `${output} still names somebody`);
-  return left.length === 0 ? 0 : 1;
+  console.log(`wrote ${output}`);
+  return 0;
 }
 
 if (isMain(import.meta.url)) {
