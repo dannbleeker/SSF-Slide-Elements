@@ -21,7 +21,8 @@ so is the decision under "Still the owner's" at the bottom.
 | Short description | Ready-made slide elements, dropped onto the slide you are on. |
 | Support URL | <https://ssf-slide-elements.struktureretsundfornuft.dk/support.html> |
 | Privacy URL | <https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html> |
-| Terms | Microsoft's standard EULA |
+| Terms | <https://ssf-slide-elements.struktureretsundfornuft.dk/terms.html> |
+| Licence | <https://ssf-slide-elements.struktureretsundfornuft.dk/license.html> |
 | Store logo | `public/assets/store-300.png`, 300×300, drawn by `npm run icons` |
 | Test deck | `template/validators.pptx`, three slides, written by PowerPoint itself |
 | Products | PowerPoint — web, Windows, Mac, iPad |
@@ -39,8 +40,8 @@ so is the decision under "Still the owner's" at the bottom.
 > **What is in it**
 >
 > - 106 elements in each of the two slide sizes: boxes and box layouts, process
->   flows, hierarchies, matrices, tables, timelines, stamps, labels, markers and
->   flowchart shapes.
+>   flows, hierarchies, matrices, tables, triangles, document structure, stamps,
+>   labels and markers.
 > - Elements that come in sizes — a process flow of one to six boxes, a
 >   hierarchy of two to five — are one tile with a stepper, so the list stays
 >   short.
@@ -50,8 +51,8 @@ so is the decision under "Still the owner's" at the bottom.
 > **How it behaves**
 >
 > - An element lands on the slide you are on, or as a new slide after it —
->   whichever you set behind the gear. Stamps go top right, markers and
->   flowchart shapes go where your selection is.
+>   whichever you set behind the gear. Stamps go top right, and a marker lands
+>   on the shape you have selected.
 > - Colours follow the deck you put the element in, so it looks like your deck
 >   and follows your design if you change it later. One setting keeps the
 >   library's own colours instead.

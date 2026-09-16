@@ -774,7 +774,14 @@ from the site it is served from, which is why `SECURITY.md` says "it sends
 nothing anywhere" rather than "no network calls"; the support and privacy pages
 on the site, the privacy page naming the browser storage (the gear's settings,
 favourites, the last six inserted, and which categories were left open) and
-that nothing leaves the machine; Microsoft's standard EULA; the publisher
+that nothing leaves the machine; **our own terms of use and a licence page**
+(2026-09-16, replacing Microsoft's standard EULA — the standard text is written
+for an add-in that might do anything, so it could say neither that the
+presentation never leaves the pane nor that an insert REWRITES one slide of the
+file it is given, and Microsoft's own submission rules forbid a listing URL
+pointing at the repository, so "the licence is in the repo" was not an answer
+either; `termsOfUseUrl` lives in the JSON manifests only, so the move needed no
+re-sideload, checked by hashing the XML either side of it); the publisher
 StruktureretSundFornuft as a company; first-run guidance; keyboard, focus rings,
 live region, high contrast, 320 px; the runtime floor check with a plain message
 instead of a `<Requirements>` element; Office.js from the official CDN; the

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Licence — SSF Slide Elements</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="SSF Slide Elements is MIT-licensed open source. This page carries the licence, the third-party notices for the two libraries that ship inside the pane, and what the elements you insert are yours to do with.">
+<link rel="icon" href="/assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/icon-80.png">
+
+<!-- Microsoft's submission rules forbid pointing a listing URL at a GitHub
+     repository, so "the licence is in the repo" is not an answer a store
+     listing can give. This page is the licence on our own origin, with the
+     third-party notices beside it, because a reader asking "what is in this
+     thing and what may I do with it" should not have to leave the site.
+
+     `terms.html` governs the ADD-IN; this governs the CODE. The two are
+     genuinely different questions and the distinction is stated on both pages.
+
+     It ships from `public/`, which the Pages workflow copies verbatim. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Licence — SSF Slide Elements">
+<meta property="og:description" content="MIT-licensed open source, with the third-party notices for the two libraries that ship inside the pane.">
+<meta property="og:url" content="https://ssf-slide-elements.struktureretsundfornuft.dk/license.html">
+<meta property="og:image" content="https://ssf-slide-elements.struktureretsundfornuft.dk/assets/icon-80.png">
+<meta name="twitter:card" content="summary">
+
+<style>
+  /* The landing page's palette and rhythm, unchanged. A policy that looks like
+     a different site is a policy a reader wonders about. */
+  :root {
+    --navy: #00254c;
+    --blue: #2b6cb0;
+    --orange: #ed8936;
+    --ink: #1a202c;
+    --grey: #6b7280;
+    --calm: #edf2f7;
+    --hair: #cbd5e0;
+  }
+  body {
+    margin: 0;
+    padding: 12vh 24px;
+    background: var(--calm);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 34rem; margin: 0 auto }
+  .tick {
+    display: block;
+    width: 26px;
+    height: 3px;
+    background: var(--orange);
+    margin-bottom: 14px;
+    border-radius: 1px;
+  }
+  h1 { color: var(--navy); font-size: 2rem; margin: 0 0 4px; letter-spacing: -.02em }
+  h2 { color: var(--navy); font-size: 1.1rem; margin: 28px 0 8px }
+  h3 { color: var(--ink); font-size: 1rem; margin: 20px 0 4px }
+  p, li { color: var(--grey); margin: 0 0 12px }
+  .lede { color: var(--ink) }
+  .updated { font-size: .95rem; margin-bottom: 24px }
+  a { color: var(--blue) }
+  ul { padding-left: 1.2rem }
+  code {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: .95em;
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  strong { color: var(--ink) }
+  /* The licence texts themselves, quoted rather than paraphrased: a summary of
+     a licence is not a licence. */
+  pre {
+    background: #fff;
+    border: 1px solid var(--hair);
+    border-radius: 4px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .rule { border: 0; border-top: 1px solid var(--hair); margin: 28px 0 16px }
+  .from { font-size: .95rem }
+</style>
+
+<main>
+  <span class="tick"></span>
+  <h1>Licence</h1>
+  <p class="updated">SSF Slide Elements &middot; last updated 16 September 2026</p>
+
+  <p class="lede">SSF Slide Elements is open source under the MIT licence. This page carries that
+    licence, the notices for the two libraries that ship inside the pane, and the answer to the
+    question most people actually have &mdash; what you may do with the slides it makes.</p>
+
+  <h2>Three different things, and they are easy to mix up</h2>
+  <ul>
+    <li><strong>The slides you insert</strong> are yours, with no condition attached. See below.</li>
+    <li><strong>The add-in</strong> &mdash; installing and using it &mdash; is governed by the
+      <a href="/terms.html">terms of use</a>.</li>
+    <li><strong>The source code</strong> is governed by the MIT licence on this page. A licence
+      telling a developer they may fork a repository is not one telling a user what they may do with
+      the product, which is why there are two.</li>
+  </ul>
+
+  <h2>The slides you insert</h2>
+  <p><strong>Yours, outright.</strong> An element you insert becomes ordinary PowerPoint shapes in
+    your own file. There is no attribution to keep, no watermark, no notice to carry, and no
+    restriction on the presentation you build with it &mdash; personal or commercial, internal or
+    published, sold or given away.</p>
+  <p>Nothing we publish later reaches back into a deck you have already made.</p>
+
+  <h2>The source code</h2>
+  <p>The full source is public at
+    <a href="https://github.com/dannbleeker/SSF-Slide-Elements">github.com/dannbleeker/SSF-Slide-Elements</a>,
+    under the MIT licence:</p>
+
+  <pre>MIT License
+
+Copyright (c) 2026 Dann Bleeker Pedersen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
+
+  <p>The MIT licence covers the code. It does not cover the element library in the
+    <code>template/</code> decks, which is the owner's own design work and is published here as part
+    of the add-in rather than as a template pack to redistribute.</p>
+
+  <h2>What ships inside the pane</h2>
+  <p>The pane is built from this project's own source plus <strong>two</strong> third-party
+    libraries, both bundled into the file your browser downloads. They are listed here because a
+    reader is entitled to know what is running, not because either licence requires a hosted page.</p>
+
+  <h3>JSZip 3.10.2 &mdash; MIT or GPL-3.0-or-later</h3>
+  <p>Reads and writes the <code>.pptx</code> package, which is a zip. Dual-licensed by its authors;
+    we take it under the <strong>MIT</strong> option.
+    <a href="https://github.com/Stuk/jszip">github.com/Stuk/jszip</a></p>
+
+  <h3>@xmldom/xmldom 0.9.12 &mdash; MIT</h3>
+  <p>Parses and writes the XML parts inside that package.
+    <a href="https://github.com/xmldom/xmldom">github.com/xmldom/xmldom</a></p>
+
+  <h2>What does not ship inside the pane</h2>
+  <p>Microsoft's <code>office.js</code> is loaded at run time from Microsoft's own content delivery
+    network, as every Office add-in is required to do. It is Microsoft's, under Microsoft's terms, and
+    is not redistributed by us.</p>
+  <p>The fonts and colours an inserted element arrives with come from your own presentation's theme,
+    or from the library's, and no font is bundled or redistributed by this add-in.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about licensing:
+    <a href="mailto:dann@struktureretsundfornuft.dk">dann@struktureretsundfornuft.dk</a>.</p>
+
+  <hr class="rule">
+  <p class="from"><a href="/">SSF Slide Elements</a> &middot;
+    <a href="/catalogue.html">The element library</a> &middot;
+    <a href="/support.html">Support</a> &middot;
+    <a href="/privacy.html">Privacy policy</a> &middot;
+    <a href="/terms.html">Terms of use</a> &middot;
+    <a href="https://github.com/dannbleeker/SSF-Slide-Elements">Source and progress</a> &middot;
+    From <a href="https://struktureretsundfornuft.dk">StruktureretSundFornuft.dk</a>.</p>
+</main>
+</html>
