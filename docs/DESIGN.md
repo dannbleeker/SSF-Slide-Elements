@@ -52,9 +52,11 @@ PowerPoint would settle.
   elements in the 16:9 deck have no group at all (tables, matrices, the
   one-pagers), so the harvest cannot depend on grouping.
 - **A collection slide yields one element per top-level shape, and the slide's
-  title is their category.** The owner's three collection slides give
-  _Markers_, _Stamps and labels_ and _Flowchart shapes_; a fourth, _Icons_,
-  holds the scales and the waste bin, which are neither. A collection slide is
+  title is their category.** The owner's collection slides give _Markers_ and
+  _Stamps and labels_; a further one, _Icons_, holds the scales and the waste
+  bin, which are neither. There was a third, _Flowchart shapes_, until the owner
+  had it removed on 2026-09-16 — one slide in each deck, ten part elements on
+  it, and the category went with the slide that carried its heading. A collection slide is
   marked by a line `SSF: ét element pr. figur` in the notes of its category
   heading slide, inherited by the slides under it, overridable per slide.
   Instruction text on such a slide (the "good rules for flowcharts" box) goes
@@ -93,8 +95,8 @@ PowerPoint would settle.
   never inside "2×2" or "1-2-3", "box" the one irregular plural, and the
   key-figure flows one run by an explicit rule. The stepper names what it
   counts ("boxes 1 2 3 4 5 6"). The pane never uses the word "family"; that
-  word is for this document. The 16:9 deck has twelve such runs, so 117
-  elements show as 84 tiles: the runs cover 45 elements, so 117 − 45 + 12.
+  word is for this document. The 16:9 deck has twelve such runs, so 107
+  elements show as 74 tiles: the runs cover 45 elements, so 107 − 45 + 12.
 - **Categories** are the heading slides (a slide with a title and no content).
   **Tags** are derived from names; there is no authored tag vocabulary.
 - An off-slide shape (x at or beyond the slide's right edge) is never part of
@@ -104,7 +106,7 @@ PowerPoint would settle.
 
 - **Two decks, one per slide size**, authored by the owner and committed under
   `template/`: `library-16x9.pptx` and `library-4x3.pptx`. Both carry the same
-  117 keys, and the harvest refuses a key that is not in both, so no element
+  107 keys, and the harvest refuses a key that is not in both, so no element
   is ever scaled from the other size. A deck that is neither 16:9 nor 4:3 (A4,
   16:10, a custom size) borrows the nearest library, scaled to fit, and the
   line under the pane's header says so.
@@ -128,7 +130,10 @@ PowerPoint would settle.
   was on the stock Office scheme, while the 4:3 deck still carried **"07 Blå"**,
   the palette of the company it was made at in 2013 — its `docProps` still names
   that company. So **79 of the 117 element pairs rendered in different colours
-  in the two sizes**: the same box was Office orange at 16:9 and light blue at
+  in the two sizes** — 117 being what the libraries held on 2026-09-11, before
+  the Flowchart shapes category was removed; the figures in this paragraph are
+  that measurement and are not restated against a later library. The same box
+  was Office orange at 16:9 and light blue at
   4:3, the same rule Office blue and grey. The 4:3 deck's `<a:clrScheme>` was
   replaced with the 16:9 deck's, and nothing else in the package was touched —
   one part changed of 568, verified part by part by SHA-256, and the result
@@ -1234,4 +1239,5 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The pane's per-deck memory is keyed on a hash of `Office.context.document.url` rather than on the URL, with the query and fragment dropped so the key survives a session; no URL — an unsaved deck — falls back to the one per-machine bucket rather than forgetting; favourites and the first-run flag stay per machine, and Recent goes per deck | owner: key it on the deck's URL, guarded, 2026-09-12 |
 | The scroll position is kept OUT of the pane's state — an offset in the state is a re-render per scroll event — and written on a 250 ms trailing timer; it is put back once, after the first draw that has tiles in it, and stood down by any scroll the user makes first | decided in the build, 2026-09-12 |
 | The owner has neither a Mac nor an iPad, so a Mac round stops being a release requirement and joins iPad's position: the validators' report is the first measurement for both, the pane degrades through the runtime floor check rather than a manifest requirement set, and the testing notes disclose it — derived by `test/listing.test.ts` from which answer sheets exist, so a filed Mac sheet forces the disclosure to drop Mac | owner: no access to a Mac or an iPad, 2026-09-12 |
+| The Flowchart shapes category and its ten part elements come out of both library decks: one slide each (105 at 16:9, 104 at 4:3), carrying the category's own heading, so the category goes with it. The libraries drop from 117 elements to 107 and the 16:9 deck from twelve categories to eleven. A deck that already uses one keeps it — they are ordinary shapes once inserted — and "Used in this deck" still names it as an element from an older library rather than dropping the row | owner: delete Flowchart shapes, 2026-09-16 |
 | The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |

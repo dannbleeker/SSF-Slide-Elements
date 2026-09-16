@@ -734,11 +734,12 @@ describe("the committed library", () => {
   it("harvests the 16:9 deck into the library the design describes", async () => {
     const { catalogue } = await load("library-16x9.pptx", "16:9");
     const parts = catalogue.elements.filter((e) => e.kind === "part");
-    expect(catalogue.elements.length).toBe(117);
-    expect(parts.length).toBe(21);
-    expect(new Set(parts.map((e) => e.category.name))).toEqual(
-      new Set(["Markers", "Stamps and labels", "Flowchart shapes"]),
-    );
+    expect(catalogue.elements.length).toBe(107);
+    // Ten fewer than before 2026-09-16, when the owner had the Flowchart shapes
+    // category taken out: one slide in each deck, ten PART elements on it, and
+    // the category went with the slide that carried its heading.
+    expect(parts.length).toBe(11);
+    expect(new Set(parts.map((e) => e.category.name))).toEqual(new Set(["Markers", "Stamps and labels"]));
     expect(new Set(catalogue.elements.filter((e) => e.run).map((e) => e.run?.key)).size).toBe(12);
     // A part is keyed by its own text on the slide, and that text is English
     // since 2026-09-11. The last one keeps a Danish key because it has no text
@@ -753,7 +754,7 @@ describe("the committed library", () => {
       "Stempler og lignende 1",
     ]);
     // Every key has an English name, and no two keys share a slug.
-    expect(new Set(catalogue.elements.map((e) => e.id)).size).toBe(117);
+    expect(new Set(catalogue.elements.map((e) => e.id)).size).toBe(107);
   }, 30000);
 
   it("harvests the 4:3 deck into the same keys", async () => {
