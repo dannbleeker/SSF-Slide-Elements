@@ -7,8 +7,8 @@
   xsi:type="TaskPaneApp">
 
   <Id>5eb9457b-eeb7-43e1-b12b-9bf3c01a22f1</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>StruktureretSundFornuft</ProviderName>
+  <Version>1.0.0.1</Version>
+  <ProviderName>StruktureretSundFornuft ApS</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="SSF Slide Elements" />
   <Description DefaultValue="A library of ready-made slide elements for PowerPoint. Browse the collection in the task pane and drop any element onto the slide you are on, with every font, colour and placement intact." />

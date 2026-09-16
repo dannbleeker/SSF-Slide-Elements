@@ -35,7 +35,7 @@ export const ID = "5eb9457b-eeb7-43e1-b12b-9bf3c01a22f1";
  * the moment Office has to be told an installed add-in has been updated, and it
  * is the moment AppSource requires a new number.
  */
-export const VERSION = "1.0.0.0";
+export const VERSION = "1.0.0.1";
 
 /**
  * The requirement floor, as the manifests' comment states it.
@@ -59,7 +59,20 @@ const DESCRIPTION =
 export const DEFINITION = {
   id: ID,
   version: VERSION,
-  provider: "StruktureretSundFornuft",
+  /**
+   * The LEGAL entity, with its company form, because that is what Partner
+   * Center registers and what a store page then shows.
+   *
+   * It was "StruktureretSundFornuft" until 2026-09-16. The sibling SSF Merge's
+   * terms page already said "StruktureretSundFornuft ApS", the two siblings
+   * disagreed, and the owner settled it: the ApS is correct. A publisher
+   * display name that does not match the registered one is a certification
+   * question nobody wants to answer twice.
+   *
+   * `DBP Invest ApS`, CVR 36053925, is the company; this is the publisher name
+   * it trades under, and the privacy, terms and licence pages all say so.
+   */
+  provider: "StruktureretSundFornuft ApS",
   displayName: "SSF Slide Elements",
   shortDescription: "Ready-made slide elements, dropped onto the slide you are on.",
   description: DESCRIPTION,

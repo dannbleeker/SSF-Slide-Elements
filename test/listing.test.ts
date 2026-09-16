@@ -96,6 +96,38 @@ describe("the listing says what the manifests say", () => {
     expect(normalise(quoted as string)).toBe(normalise(readFileSync("LICENSE", "utf8")));
   });
 
+  /**
+   * The publisher is named in four places and they must agree.
+   *
+   * It was "StruktureretSundFornuft" in the manifests and on the pages here,
+   * while the sibling SSF Merge's terms page said "StruktureretSundFornuft
+   * ApS". Two siblings disagreeing about the name of the company that publishes
+   * them is the kind of thing nobody notices until Partner Center asks, and the
+   * owner settled it on 2026-09-16: the ApS is correct, because that is the
+   * registered entity and a publisher display name has to match it.
+   *
+   * So it is asserted rather than remembered. The manifest is the source, and
+   * the two policy pages that name a publisher are held to it — the ones a
+   * reviewer opens from the listing.
+   */
+  it("names the same publisher in the manifests and on the pages that state one", async () => {
+    // @ts-expect-error — plain .mjs with no types.
+    const { DEFINITION } = await import("../scripts/manifest-source.mjs");
+    const provider = DEFINITION.provider as string;
+
+    const xml = readFileSync("manifest-prod.xml", "utf8");
+    expect(/<ProviderName>([^<]*)<\/ProviderName>/.exec(xml)?.[1]).toBe(provider);
+    const json = JSON.parse(readFileSync("manifest-prod.json", "utf8")) as { developer: { name: string } };
+    expect(json.developer.name).toBe(provider);
+
+    for (const page of ["public/privacy.html", "public/terms.html"]) {
+      expect(
+        readFileSync(page, "utf8"),
+        `${page} states a publisher name, and it is not the one the manifests carry`,
+      ).toContain(`<strong>${provider}</strong>`);
+    }
+  });
+
   it("names the ribbon button by the label the manifest gives it", () => {
     // The testing notes tell a validator what to click. A label that has moved
     // on leaves them looking for a button that is not there, and the first

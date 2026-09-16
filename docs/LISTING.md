@@ -17,7 +17,7 @@ so is the decision under "Still the owner's" at the bottom.
 | Field | Value |
 | --- | --- |
 | Name | SSF Slide Elements |
-| Provider | StruktureretSundFornuft |
+| Provider | StruktureretSundFornuft ApS |
 | Short description | Ready-made slide elements, dropped onto the slide you are on. |
 | Support URL | <https://ssf-slide-elements.struktureretsundfornuft.dk/support.html> |
 | Privacy URL | <https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html> |
