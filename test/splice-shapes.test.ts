@@ -823,7 +823,7 @@ describe("the committed library", () => {
     // Listed all at once rather than one at a time, the way the harvest reports
     // a missing name: one run says which elements are wrong, not the first.
     expect(problems).toEqual([]);
-    expect(committed()).toHaveLength(214);
+    expect(committed()).toHaveLength(212);
   }, 120_000);
 
   it("is made of the markup that makes parsing it worth checking, so the sweep is not vacuous", () => {
@@ -847,7 +847,7 @@ describe("the committed library", () => {
       }
       references += relIdsIn(fragment).length;
     }
-    expect(groups).toBe(199);
+    expect(groups).toBe(193);
     expect(frames).toBe(163);
     expect(fallbacks).toBe(57);
     expect(references).toBe(370);

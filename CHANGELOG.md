@@ -9,6 +9,10 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Removed
 
+- **The Scales is gone** from Stamps and labels. The library now holds 106
+  elements in each slide size. As with anything else removed, a copy already on
+  one of your slides stays exactly where it is.
+
 - **The Flowchart shapes category is gone**, and the ten small shapes in it:
   Document, Documents, Start / stop, Process / action, Decision, two labelled
   arrows, a dashed connector, a waste bin and a box with a footer strip. The

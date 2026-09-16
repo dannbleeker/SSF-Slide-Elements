@@ -1,5 +1,5 @@
 {
-  "version": "45ed87fad757",
+  "version": "90e77084aa68",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -2728,29 +2728,6 @@
             "h": 0.105
           },
           "landing": "as-authored",
-          "shapes": 1,
-          "tags": [
-            "stamps",
-            "small"
-          ]
-        },
-        {
-          "id": "stempler-og-lignende-1",
-          "key": "Stempler og lignende 1",
-          "name": "Scales",
-          "category": {
-            "key": "Stempler og lignende",
-            "name": "Stamps and labels"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.3464,
-            "y": 0.7205,
-            "w": 0.2033,
-            "h": 0.231
-          },
-          "landing": "top-right",
           "shapes": 1,
           "tags": [
             "stamps",
@@ -5680,29 +5657,6 @@
             "h": 0.105
           },
           "landing": "as-authored",
-          "shapes": 1,
-          "tags": [
-            "stamps",
-            "small"
-          ]
-        },
-        {
-          "id": "stempler-og-lignende-1",
-          "key": "Stempler og lignende 1",
-          "name": "Scales",
-          "category": {
-            "key": "Stempler og lignende",
-            "name": "Stamps and labels"
-          },
-          "slide": 103,
-          "kind": "part",
-          "box": {
-            "x": 0.2953,
-            "y": 0.7205,
-            "w": 0.271,
-            "h": 0.231
-          },
-          "landing": "top-right",
           "shapes": 1,
           "tags": [
             "stamps",

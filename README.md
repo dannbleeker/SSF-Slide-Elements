@@ -35,9 +35,9 @@ what is still open.
 | Weekly pane audit: overflow, contrast, focus, hit areas, axe, at 320 and 512 in both themes | done |
 | Weekly sibling watch over SSF-Charts and SSF-Merge — one issue for any finding with no row in this repo's ledger | done |
 | Package layer — the .pptx as parts, relationships, content types and the slide list, ported from SSF-Merge with its tests | done |
-| Library harvest — two library decks under `template/` read into a catalogue: categories, 107 elements per size with their English names, boxes, landing and sizes, and the markup and media each one carries. The index is committed and CI-checked against the decks; the markup and media are built on deploy | done |
+| Library harvest — two library decks under `template/` read into a catalogue: categories, 106 elements per size with their English names, boxes, landing and sizes, and the markup and media each one carries. The index is committed and CI-checked against the decks; the markup and media are built on deploy | done |
 | Host probe — a Script Lab snippet that asks a real PowerPoint the seven questions the design rests on (a pruned package on the way in, insert-then-delete order, the selected slide, which read of the deck, Ctrl+Z, timing and the floor), and a reader that says what each answer means and files the sheet | done — four sheets from PowerPoint for the web under `docs/host-answers/`, 2026-09-10 |
-| Splice — an element into the slide you are on, and the package self-check | done — proven over all 107 elements against the package integrity check |
+| Splice — an element into the slide you are on, and the package self-check | done — proven over all 106 elements against the package integrity check |
 | The picker — browse by section, search, insert, Recent, favourites, Undo one deep | done |
 | Used in this deck — which library elements the open deck already holds, and where, read from the tags an insert writes | done |
 | The jump — a slide number in Used in this deck goes to that slide, and the pane says so only once PowerPoint reports being there | done — on SSF-Charts' web measurement of the call, read back on every click; not yet measured on any host by this repo (probe question 7) |

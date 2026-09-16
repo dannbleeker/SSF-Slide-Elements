@@ -59,7 +59,7 @@ describe("destinations nobody has handed it", () => {
       size: "16:9",
       names: NAMES,
     });
-    expect(library.catalogue.elements.length).toBe(107);
+    expect(library.catalogue.elements.length).toBe(106);
   }, 120000);
 
   it("a deck of exactly one slide", async () => {
