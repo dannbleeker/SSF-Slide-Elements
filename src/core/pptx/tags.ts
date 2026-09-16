@@ -290,7 +290,26 @@ export interface TaggedShape {
 export async function readShapeTags(pkg: Pkg, slidePath: string): Promise<TaggedShape[]> {
   const out: TaggedShape[] = [];
   if (!pkg.has(slidePath)) return out;
-  const doc = await pkg.doc(slidePath);
+  // `peek`, not `doc`, and it is not a micro-optimisation. `usedInDeck` and
+  // `slidesHolding` call this ONCE PER SLIDE of the user's whole presentation,
+  // and `doc` retains every document it hands out — so reading the deck used to
+  // leave one parsed DOM per slide alive at once, which is the exact shape
+  // `peek`'s own comment was written about. Measured 2026-09-16 on
+  // `template/library-16x9.pptx`, 109 slides and 1,426 KB zipped: **197 parts
+  // held and heap up 277.1 MB**, against **9 held and 3.5 MB** through `peek`.
+  // A task pane's WebView is working in about 2 GB (`Pkg.release`, measured at
+  // 300 clones of a 124 KB slide), and the held count grew with the user's
+  // deck, so this was pointed straight at that ceiling.
+  //
+  // A part somebody else has already parsed stays parsed, which is what keeps
+  // `removeElement` correct: it reads the tags back off a rebuilt slide it has
+  // just edited in the cache, and `peek` hands back that same live document
+  // rather than the bytes underneath it.
+  return pkg.peek(slidePath, (doc) => readTags(pkg, slidePath, doc, out));
+}
+
+/** The body of `readShapeTags`, against a document somebody else is holding open. */
+async function readTags(pkg: Pkg, slidePath: string, doc: Document, out: TaggedShape[]): Promise<TaggedShape[]> {
   const cSld = child(doc.documentElement, P_NS, "cSld");
   const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
   if (!spTree) return out;
@@ -306,10 +325,14 @@ export async function readShapeTags(pkg: Pkg, slidePath: string): Promise<Tagged
     const target = await pkg.relTarget(slidePath, rId);
     if (!target || !pkg.has(target)) return undefined;
     const values = new Map<string, string>();
-    for (const tag of elements(await pkg.doc(target), P_NS, "tag")) {
-      const name = tag.getAttribute("name");
-      if (name) values.set(name, tag.getAttribute("val") ?? "");
-    }
+    // Same reason as the slide part above: a deck carries one tag part per
+    // tagged shape, and holding them all was the other half of the 277 MB.
+    await pkg.peek(target, (tags) => {
+      for (const tag of elements(tags, P_NS, "tag")) {
+        const name = tag.getAttribute("name");
+        if (name) values.set(name, tag.getAttribute("val") ?? "");
+      }
+    });
     return values;
   };
 

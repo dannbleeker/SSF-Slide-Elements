@@ -55,6 +55,27 @@ export const ALLOWED = {
     "one call over the chain, for the test that holds the two libraries to the same palette; the harvest needs the chain's parts separately and calls them apart",
   "src/pane/steps.ts::STEPS":
     "the enumeration the gates sweep — test/docs.test.ts holds the manual to every step in it; the pane draws one step at a time and never wants the list",
+
+  // `Pkg`'s own members, which this sweep could not see until 2026-09-16 and
+  // which were therefore never triaged. Each is reached by its test and by
+  // nothing the add-in runs. Two of them are SUPERSEDED rather than spare and
+  // say so: they are left standing because deleting engine surface is the
+  // owner's call, not a sweep's, and the note is what puts the question in
+  // front of him.
+  "src/core/pptx/pkg.ts::cachedParts":
+    "a diagnostic, and the only exact way to state a held-part property — test/pptx-tags.test.ts uses it to hold reading a deck to a count that does not grow with its slides",
+  "src/core/pptx/pkg.ts::partNames":
+    "a measurement rather than a manipulation: the package-integrity checks enumerate parts through it, and nothing the add-in runs needs the list",
+  "src/core/pptx/pkg.ts::release":
+    "the memory tool, measured in the sibling merge at 1697 MB against 93 — this repo clones ONE slide per insert, so nothing here reaches the scale it exists for. Keep it: the scale is a feature away",
+  "src/core/pptx/pkg.ts::addContentTypeDefault":
+    "the Default-over-Override route its own comment describes, for a caller embedding hundreds of pictures. This repo's splice carries a handful of parts and declares each one, so only its test reaches it",
+  "src/core/pptx/pkg.ts::maybeText":
+    "the forgiving read. Every caller here asks `has` first and then `text`, so the undefined arm is reached only by its own test",
+  "src/core/pptx/pkg.ts::nextMediaNumber":
+    "SUPERSEDED. `freeName` in splice/carry.ts numbers every family through the general `nextNumber`, and carried media is named by fingerprint (`ssf-<hash>-<len>.emf`) rather than by extending the image sequence at all. A deletion candidate",
+  "src/core/pptx/pkg.ts::removeSlide":
+    "SUPERSEDED for this repo. The three packages handed to PowerPoint are reduced by `keepOnly`, which UNLISTS slides and leaves their parts — probe question 1's unlisted arm, and the half that touches least. Really removing a slide and its orphans is a capability this add-in never uses. A deletion candidate",
 };
 
 /**
@@ -84,6 +105,47 @@ function mentions(code, name) {
 }
 
 /**
+ * The public methods of every `export class` in a file.
+ *
+ * WITHOUT THIS THE SWEEP COULD NOT SEE THE BIGGEST SURFACE IN THE REPO. It
+ * matched `^export function` and `^export const` and nothing else, so `Pkg` —
+ * twenty-eight public members, the package layer the whole engine is built on —
+ * was never examined at all, and the sweep reported "0 unexcused" while seven
+ * of those members were reached by nothing but their own tests. A gate blind to
+ * a whole shape of declaration is a gate that cannot go red for it.
+ *
+ * Classes here are top level, so a line beginning `}` at column 0 closes one.
+ * `private` and `protected` members are not a surface anything outside could
+ * call and are skipped; a `constructor` is not a member.
+ *
+ * @param {string} text
+ * @returns {{ name: string, cls: string }[]}
+ */
+function classMethods(text) {
+  /** @type {{ name: string, cls: string }[]} */
+  const found = [];
+  /** @type {string | undefined} */
+  let cls;
+  for (const line of text.split("\n")) {
+    const open = line.match(/^export (?:abstract )?class (\w+)/);
+    if (open) {
+      cls = open[1];
+      continue;
+    }
+    if (cls === undefined) continue;
+    if (/^\}/.test(line)) {
+      cls = undefined;
+      continue;
+    }
+    if (/^ {2}(?:private|protected|readonly)\b/.test(line)) continue;
+    const m = line.match(/^ {2}(?:static )?(?:async )?(?:get |set )?([a-zA-Z_$][\w$]*)\s*[(<]/);
+    if (!m || m[1] === "constructor") continue;
+    found.push({ name: /** @type {string} */ (m[1]), cls });
+  }
+  return found;
+}
+
+/**
  * Every export in `src/` that no other file in `src/` or `scripts/` reaches.
  *
  * Answers `{ file, name, kind, reach }`, where `reach` is `"tests"` when a test
@@ -109,6 +171,7 @@ export function deadExports(root = ".") {
     const declared = new Map();
     for (const m of text.matchAll(/^export (?:async )?function (\w+)/gm)) declared.set(m[1], "function");
     for (const m of text.matchAll(/^export const (\w+)/gm)) declared.set(m[1], "const");
+    for (const { name, cls } of classMethods(text)) declared.set(name, `method on ${cls}`);
     for (const [name, kind] of declared) {
       if (mentions(text, name) > 1) continue; // dispatched or re-used inside its own file
       const elsewhere = [...code].filter(([other, body]) => other !== file && mentions(body, name) > 0).map(([f]) => f);
