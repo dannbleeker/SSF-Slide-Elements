@@ -120,8 +120,15 @@ about them here, including that an element actually goes into it.
 
 ## Still the owner's
 
-Neither of these should be faked, and neither is a thing this repository can
-decide:
+**The listing NAME is settled: `SSF Slide Elements`**, decided by the owner on
+2026-09-16. It is what the manifests have always carried, so nothing in the
+build changes; what changed is that it is now a decision rather than an open
+question. Recorded as a DECISION and not as a policy clearance — nobody has read
+it against certification policy 1100.7, and if a reviewer objects to it the
+answer is a rename, not a claim that it was cleared. `docs/DESIGN.md` section 12
+carries the same distinction.
+
+This one should not be faked, and it is not a thing this repository can decide:
 
 - **The screenshot** (at least one, 1366×768). It has to be an actual capture of
   the pane open beside a real presentation. A composite of the pane over a drawn
@@ -211,6 +218,3 @@ header was taken off it on 2026-09-15 and now lives on the root element as
 `data-build` — invisible to a capture, still readable in devtools and still
 prefilled into "Report a problem". `docs/DESIGN.md` section 4 carries the
 reasoning.
-- **The listing NAME.** `docs/DESIGN.md` section 12: nothing here has been read
-  against the naming policy, and the sibling SSF Merge is held on the same
-  question. That answer decides this one.

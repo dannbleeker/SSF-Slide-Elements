@@ -794,13 +794,16 @@ serves), descriptions, testing notes and a validators' test deck; one measured
 round on web and Windows, both taken. **Mac and iPad are NOT release
 requirements** — section 9 says why, and the testing notes disclose it.
 
-**Not checked by anyone yet: the listing NAME.** Section 12 was read against the
-certification policies' section 1120 and the submission form; nothing here has
-been read against the naming policy. The sibling SSF Merge is held on exactly
-that question — whether policy 1100.7 permits its name — and "SSF Slide
-Elements" is the same publisher and the same shape of name, so the answer there
-decides the answer here. It is the owner's to settle before a submission, not a
-build task.
+**The listing NAME is settled: `SSF Slide Elements`** (2026-09-16, the owner).
+It is what the manifests have always carried, so nothing in the build moved;
+what changed is that it stopped being an open question.
+
+**Recorded as a DECISION, not as a policy clearance**, and the distinction is
+the point. Section 12 was read against the certification policies' section 1120
+and the submission form; **nobody has read this name against policy 1100.7**,
+which is the question the sibling SSF Merge was held on. If a reviewer objects
+to it, the answer is a rename — not a claim that it was cleared, which is what a
+record saying "checked" would licence somebody to make.
 
 ## 13. Open questions for the host
 

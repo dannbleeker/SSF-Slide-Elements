@@ -58,10 +58,11 @@ export const ALLOWED = {
 
   // `Pkg`'s own members, which this sweep could not see until 2026-09-16 and
   // which were therefore never triaged. Each is reached by its test and by
-  // nothing the add-in runs. Two of them are SUPERSEDED rather than spare and
-  // say so: they are left standing because deleting engine surface is the
-  // owner's call, not a sweep's, and the note is what puts the question in
-  // front of him.
+  // nothing the add-in runs.
+  //
+  // **Ask the SIBLING before calling one of these spare.** `src/core` is shared
+  // engine, and "nothing in this repo calls it" is not the same claim as
+  // "nothing calls it" — a distinction two of these rows got wrong for a day.
   "src/core/pptx/pkg.ts::cachedParts":
     "a diagnostic, and the only exact way to state a held-part property — test/pptx-tags.test.ts uses it to hold reading a deck to a count that does not grow with its slides",
   "src/core/pptx/pkg.ts::partNames":
@@ -72,10 +73,19 @@ export const ALLOWED = {
     "the Default-over-Override route its own comment describes, for a caller embedding hundreds of pictures. This repo's splice carries a handful of parts and declares each one, so only its test reaches it",
   "src/core/pptx/pkg.ts::maybeText":
     "the forgiving read. Every caller here asks `has` first and then `text`, so the undefined arm is reached only by its own test",
+  // These two were recorded on 2026-09-16 as SUPERSEDED and put to the owner as
+  // deletion candidates. THAT WAS WRONG, and the correction is the reason the
+  // rows now carry a sibling file and line. `src/core/pptx/pkg.ts` is shared
+  // engine, and the verdict had been reached by reading THIS repo only. Both
+  // are called by SSF-Merge, checked against its whole tree — 61 source files
+  // fetched and grepped, not sampled, after GitHub's code search returned empty
+  // for a symbol already proven to be in that repo and so proved only that the
+  // search was broken. Deleting either would have broken the sibling at the
+  // next port.
   "src/core/pptx/pkg.ts::nextMediaNumber":
-    "SUPERSEDED. `freeName` in splice/carry.ts numbers every family through the general `nextNumber`, and carried media is named by fingerprint (`ssf-<hash>-<len>.emf`) rather than by extending the image sequence at all. A deletion candidate",
+    "the sibling merge calls it — `src/core/merge/images.ts:204`, `ppt/media/image${this.pkg.nextMediaNumber()}.${extension}`. Unused HERE: `freeName` in splice/carry.ts numbers every family through the general `nextNumber`, and carried media is named by fingerprint (`ssf-<hash>-<len>.emf`) rather than by extending the image sequence at all",
   "src/core/pptx/pkg.ts::removeSlide":
-    "SUPERSEDED for this repo. The three packages handed to PowerPoint are reduced by `keepOnly`, which UNLISTS slides and leaves their parts — probe question 1's unlisted arm, and the half that touches least. Really removing a slide and its orphans is a capability this add-in never uses. A deletion candidate",
+    "the sibling merge calls it — `src/office/merge.ts:381`, `if (!keep.has(path)) await pkg.removeSlide(path);` — and it takes `orphanedParts` with it, which is why that one is private rather than listed here. Unused HERE: the three packages handed to PowerPoint are reduced by `keepOnly`, which UNLISTS slides and leaves their parts (probe question 1's unlisted arm, the half that touches least). Really removing a slide and its orphans is a capability this add-in never reaches for",
 };
 
 /**
