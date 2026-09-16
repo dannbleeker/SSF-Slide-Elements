@@ -77,12 +77,28 @@ export const DEFINITION = {
   support: "https://ssf-slide-elements.struktureretsundfornuft.dk/support.html",
   privacy: "https://ssf-slide-elements.struktureretsundfornuft.dk/privacy.html",
   /**
-   * Microsoft's own standard EULA, which they offer to publishers who have no
-   * lawyer of their own. Governs the ADD-IN; MIT governs the source, and a
-   * licence telling a developer they may fork the repository is not one
-   * telling a user what they may do with the add-in.
+   * Our own terms, since 2026-09-16. Governs the ADD-IN; MIT governs the
+   * source, and a licence telling a developer they may fork the repository is
+   * not one telling a user what they may do with the add-in. `license.html`
+   * carries the MIT text on this origin and states the distinction, because
+   * Microsoft's submission rules forbid pointing a listing URL at a GitHub
+   * repository — so "the licence is in the repo" is not an answer a listing can
+   * give.
+   *
+   * This was Microsoft's standard EULA
+   * (`support.office.com/client/61994a3b-2c87-41c4-a88d-a6455efa362d`), which
+   * they offer to publishers who have no lawyer of their own. The standard text
+   * is written for an add-in that might do anything, so it could say nothing
+   * about the two properties that matter here: that the presentation never
+   * leaves the pane, and that an insert REWRITES one slide of the file it is
+   * given. Both are now written out.
+   *
+   * It appears in the JSON manifests only. The XML ones, which are what gets
+   * sideloaded, have no terms element at all — so this change needs no
+   * re-install, which was checked by hashing them either side of it rather than
+   * assumed.
    */
-  terms: "https://support.office.com/client/61994a3b-2c87-41c4-a88d-a6455efa362d",
+  terms: "https://ssf-slide-elements.struktureretsundfornuft.dk/terms.html",
   /** Navy, the pane's own heading colour. */
   accent: "#00254C",
   button: {

@@ -55,6 +55,47 @@ describe("the listing says what the manifests say", () => {
     expect(field("Privacy URL")).toBe(`<${json.developer.privacyUrl}>`);
   });
 
+  it("points at terms we publish ourselves, on a page that is in this repo", () => {
+    // Until 2026-09-16 this was Microsoft's standard EULA, offered to
+    // publishers with no lawyer of their own. The standard text is written for
+    // an add-in that might do anything, so it could say nothing about the two
+    // properties that matter here — that the presentation never leaves the
+    // pane, and that an insert REWRITES one slide of the file it is given.
+    //
+    // `termsOfUseUrl` lives in the JSON manifests only; the XML ones have no
+    // terms element, which is why moving it needed no re-sideload.
+    const json = JSON.parse(readFileSync("manifest-prod.json", "utf8")) as {
+      developer: { termsOfUseUrl: string };
+    };
+    const terms = json.developer.termsOfUseUrl;
+    expect(field("Terms")).toBe(`<${terms}>`);
+    // On OUR origin, and a file that ships. Microsoft's submission rules forbid
+    // a listing URL pointing at a GitHub repository, so a page that is only in
+    // the repository is not an answer.
+    expect(terms).toContain("ssf-slide-elements.struktureretsundfornuft.dk");
+    expect(existsSync("public/terms.html"), "the terms URL has no page behind it").toBe(true);
+  });
+
+  it("publishes the licence on its own origin rather than pointing at the repository", () => {
+    const licence = field("Licence");
+    expect(licence).toContain("ssf-slide-elements.struktureretsundfornuft.dk");
+    expect(existsSync("public/license.html")).toBe(true);
+    // The page QUOTES the licence rather than summarising it, and the copy in
+    // it has to be the repository's own. A summary of a licence is not a
+    // licence, and a quoted licence that has drifted from the real one is
+    // worse than either.
+    const page = readFileSync("public/license.html", "utf8");
+    const quoted = /<pre>([\s\S]*?)<\/pre>/.exec(page)?.[1];
+    expect(quoted, "public/license.html quotes no licence text").toBeTruthy();
+    const normalise = (s: string) =>
+      s
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&")
+        .replace(/\r\n/g, "\n")
+        .trim();
+    expect(normalise(quoted as string)).toBe(normalise(readFileSync("LICENSE", "utf8")));
+  });
+
   it("names the ribbon button by the label the manifest gives it", () => {
     // The testing notes tell a validator what to click. A label that has moved
     // on leaves them looking for a button that is not there, and the first
@@ -77,6 +118,53 @@ describe("the listing says what the library holds", () => {
     const counts = Object.values(index.sizes).map((s) => s.elements.length);
     expect(new Set(counts).size, "the two sizes hold different numbers of elements").toBe(1);
     expect(LISTING).toContain(`${counts[0] as number} elements in each of the two slide sizes`);
+  });
+
+  /**
+   * The copy must not offer a category the library has not got.
+   *
+   * The count above was checked and correct while the long description promised
+   * **flowchart shapes** — twice — for the ten days after the owner had that
+   * whole category taken out (#105). A number that is watched and a sentence
+   * that is not is exactly how a listing ends up describing a product that no
+   * longer exists, and the reader it misleads is a Microsoft reviewer or a
+   * customer deciding whether to install.
+   *
+   * Named categories only. The copy also says "hierarchies", "matrices" and
+   * "triangles", which are kinds of element rather than categories, and holding
+   * prose to a vocabulary would be a gate that fails on good writing. What this
+   * catches is the case that actually happened: a phrase that IS one of the
+   * library's own category names, still in the copy after the category went.
+   */
+  it("offers no category the library has stopped having", () => {
+    const index = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {
+      sizes: Record<string, { categories: { name: string }[] }>;
+    };
+    const live = new Set(Object.values(index.sizes).flatMap((s) => s.categories.map((c) => c.name.toLowerCase())));
+    // Every category name this library has ever shipped, so a removal is what
+    // the sweep notices. Adding one here is how a category that goes away later
+    // stays watched.
+    const everShipped = [
+      "White boxes",
+      "White boxes with black headings",
+      "Lines only",
+      "Process flows",
+      "Tables",
+      "Triangles",
+      "Document structure",
+      "Grey boxes",
+      "Markers",
+      "Stamps and labels",
+      "One-page templates",
+      "Flowchart shapes",
+      "Icons",
+    ];
+    const gone = everShipped.filter((name) => !live.has(name.toLowerCase()));
+    const description = LISTING.slice(LISTING.indexOf("## Long description"));
+    expect(
+      gone.filter((name) => new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(description)),
+      "the long description offers a category the library no longer has. It is the text a reviewer and a customer read",
+    ).toEqual([]);
   });
 });
 

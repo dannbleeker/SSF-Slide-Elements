@@ -7,6 +7,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- **Terms of use and a licence page**, both on the add-in's own site. The terms
+  say what the add-in is allowed to do to your presentation — it rewrites one
+  slide when you insert, and writes a small marker beside each element so
+  "Used in this deck" can find its own work later — and the licence page says
+  what you may do with the slides you make. Short version: they are yours, with
+  nothing to attribute and no condition attached. Until now the terms were
+  Microsoft's generic ones, which could not say either of those things.
+
 ### Removed
 
 - **The Scales is gone** from Stamps and labels. The library now holds 106
