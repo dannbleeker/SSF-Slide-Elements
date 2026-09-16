@@ -1,5 +1,5 @@
 {
-  "version": "4723bf2dfef3",
+  "version": "45ed87fad757",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -45,10 +45,6 @@
         {
           "key": "Stempler og lignende",
           "name": "Stamps and labels"
-        },
-        {
-          "key": "Flowchart ikoner",
-          "name": "Flowchart shapes"
         },
         {
           "key": "One-page templates",
@@ -2762,250 +2758,6 @@
           ]
         },
         {
-          "id": "document",
-          "key": "Document",
-          "name": "Document",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.4637,
-            "y": 0.4074,
-            "w": 0.0777,
-            "h": 0.0541
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "documents",
-          "key": "Documents",
-          "name": "Documents (stack)",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.2699,
-            "y": 0.332,
-            "w": 0.079,
-            "h": 0.0754
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "start-stop",
-          "key": "Start / Stop",
-          "name": "Start / stop",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.3664,
-            "y": 0.2596,
-            "w": 0.0776,
-            "h": 0.0533
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "process-action",
-          "key": "Process / Action",
-          "name": "Process / action",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.3664,
-            "y": 0.332,
-            "w": 0.0777,
-            "h": 0.0552
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "process",
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-1",
-          "key": "Flowchart ikoner 1",
-          "name": "Labelled curved arrow",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.2994,
-            "y": 0.4895,
-            "w": 0.0625,
-            "h": 0.1036
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "decision",
-          "key": "Decision",
-          "name": "Decision",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.3735,
-            "y": 0.4685,
-            "w": 0.0677,
-            "h": 0.0945
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-2",
-          "key": "Flowchart ikoner 2",
-          "name": "Labelled straight arrow",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.2404,
-            "y": 0.6365,
-            "w": 0.1299,
-            "h": 0.0945
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-3",
-          "key": "Flowchart ikoner 3",
-          "name": "Dashed curved connector",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.4468,
-            "y": 0.563,
-            "w": 0.1361,
-            "h": 0.3406
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-4",
-          "key": "Flowchart ikoner 4",
-          "name": "Waste bin",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.4291,
-            "y": 0.6575,
-            "w": 0.0298,
-            "h": 0.0754
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-5",
-          "key": "Flowchart ikoner 5",
-          "name": "Box with a footer strip",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 105,
-          "kind": "part",
-          "box": {
-            "x": 0.2401,
-            "y": 0.7835,
-            "w": 0.0777,
-            "h": 0.0552
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
           "id": "problem-statement",
           "key": "Problem statement",
           "name": "Problem statement",
@@ -3013,7 +2765,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 107,
+          "slide": 106,
           "kind": "slide",
           "box": {
             "x": 0.0577,
@@ -3035,7 +2787,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 108,
+          "slide": 107,
           "kind": "slide",
           "box": {
             "x": 0.0592,
@@ -3057,7 +2809,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 109,
+          "slide": 108,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -3080,7 +2832,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 110,
+          "slide": 109,
           "kind": "slide",
           "box": {
             "x": 0.0385,
@@ -3117,17 +2869,9 @@
         "ppt/charts/_rels/chart1.xml.rels": "application/vnd.openxmlformats-package.relationships+xml",
         "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
         "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "ppt/embeddings/oleObject10.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject11.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject12.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject13.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject14.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject15.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject7.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject8.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject9.bin": "application/vnd.openxmlformats-officedocument.oleObject",
+        "ppt/embeddings/oleObject4.bin": "application/vnd.openxmlformats-officedocument.oleObject",
+        "ppt/embeddings/oleObject5.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/media/image10.emf": "image/x-emf",
-        "ppt/media/image11.wmf": "image/x-wmf",
         "ppt/media/image2.jpeg": "image/jpeg",
         "ppt/media/image3.jpeg": "image/jpeg",
         "ppt/media/image4.jpeg": "image/jpeg",
@@ -3256,10 +3000,6 @@
         {
           "key": "Stempler og lignende",
           "name": "Stamps and labels"
-        },
-        {
-          "key": "Flowchart ikoner",
-          "name": "Flowchart shapes"
         },
         {
           "key": "One-page templates",
@@ -5402,7 +5142,7 @@
           "box": {
             "x": 0.0935,
             "y": 0.1853,
-            "w": 0.834,
+            "w": 0.8366,
             "h": 0.7225
           },
           "landing": "layout",
@@ -5994,250 +5734,6 @@
           ]
         },
         {
-          "id": "document",
-          "key": "Document",
-          "name": "Document",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.4516,
-            "y": 0.4074,
-            "w": 0.1035,
-            "h": 0.0541
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "documents",
-          "key": "Documents",
-          "name": "Documents (stack)",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.1932,
-            "y": 0.332,
-            "w": 0.1053,
-            "h": 0.0754
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "start-stop",
-          "key": "Start / Stop",
-          "name": "Start / stop",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.3219,
-            "y": 0.2596,
-            "w": 0.1035,
-            "h": 0.0533
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "process-action",
-          "key": "Process / Action",
-          "name": "Process / action",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.3219,
-            "y": 0.332,
-            "w": 0.1035,
-            "h": 0.0552
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "process",
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-1",
-          "key": "Flowchart ikoner 1",
-          "name": "Labelled curved arrow",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.2326,
-            "y": 0.4895,
-            "w": 0.0834,
-            "h": 0.1036
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "decision",
-          "key": "Decision",
-          "name": "Decision",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.3314,
-            "y": 0.4685,
-            "w": 0.0902,
-            "h": 0.0945
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "meeting",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-2",
-          "key": "Flowchart ikoner 2",
-          "name": "Labelled straight arrow",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.1538,
-            "y": 0.6365,
-            "w": 0.1732,
-            "h": 0.0945
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-3",
-          "key": "Flowchart ikoner 3",
-          "name": "Dashed curved connector",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.4291,
-            "y": 0.563,
-            "w": 0.1814,
-            "h": 0.3406
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-4",
-          "key": "Flowchart ikoner 4",
-          "name": "Waste bin",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.4055,
-            "y": 0.6575,
-            "w": 0.0397,
-            "h": 0.0754
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
-          "id": "flowchart-ikoner-5",
-          "key": "Flowchart ikoner 5",
-          "name": "Box with a footer strip",
-          "category": {
-            "key": "Flowchart ikoner",
-            "name": "Flowchart shapes"
-          },
-          "slide": 104,
-          "kind": "part",
-          "box": {
-            "x": 0.1535,
-            "y": 0.7835,
-            "w": 0.1035,
-            "h": 0.0552
-          },
-          "landing": "cursor",
-          "shapes": 1,
-          "tags": [
-            "flowchart",
-            "icons",
-            "small"
-          ]
-        },
-        {
           "id": "problem-statement",
           "key": "Problem statement",
           "name": "Problem statement",
@@ -6245,7 +5741,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 106,
+          "slide": 105,
           "kind": "slide",
           "box": {
             "x": 0.0526,
@@ -6267,7 +5763,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 107,
+          "slide": 106,
           "kind": "slide",
           "box": {
             "x": 0.0592,
@@ -6289,7 +5785,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 108,
+          "slide": 107,
           "kind": "slide",
           "box": {
             "x": 0.0385,
@@ -6325,7 +5821,7 @@
       "carried": {
         "ppt/charts/_rels/chart1.xml.rels": "application/vnd.openxmlformats-package.relationships+xml",
         "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
-        "ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "ppt/embeddings/oleObject1.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject10.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject11.bin": "application/vnd.openxmlformats-officedocument.oleObject",
@@ -6383,7 +5879,6 @@
         "ppt/media/image15.emf": "image/x-emf",
         "ppt/media/image16.emf": "image/x-emf",
         "ppt/media/image17.emf": "image/x-emf",
-        "ppt/media/image18.wmf": "image/x-wmf",
         "ppt/media/image2.emf": "image/x-emf",
         "ppt/media/image3.emf": "image/x-emf",
         "ppt/media/image4.jpeg": "image/jpeg",

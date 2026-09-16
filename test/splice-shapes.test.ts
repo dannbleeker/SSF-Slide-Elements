@@ -823,14 +823,14 @@ describe("the committed library", () => {
     // Listed all at once rather than one at a time, the way the harvest reports
     // a missing name: one run says which elements are wrong, not the first.
     expect(problems).toEqual([]);
-    expect(committed()).toHaveLength(234);
+    expect(committed()).toHaveLength(214);
   }, 120_000);
 
   it("is made of the markup that makes parsing it worth checking, so the sweep is not vacuous", () => {
     /**
      * Measured against the committed decks. A library of plain rectangles would
      * parse under any wrapper at all; these numbers are the prefixes beyond
-     * `p` and `a` that the sweep above actually has to resolve — `r` on 376
+     * `p` and `a` that the sweep above actually has to resolve — `r` on 370
      * relationship references, `mc` on 57 alternate-content fallbacks, and the
      * `c`, `a14`, `a16` and `p14` a real drawing carries.
      */
@@ -847,10 +847,10 @@ describe("the committed library", () => {
       }
       references += relIdsIn(fragment).length;
     }
-    expect(groups).toBe(205);
+    expect(groups).toBe(199);
     expect(frames).toBe(163);
     expect(fallbacks).toBe(57);
-    expect(references).toBe(376);
+    expect(references).toBe(370);
   }, 120_000);
 
   it("gives every shape of every element an id of its own when renumbered", () => {
@@ -895,6 +895,6 @@ describe("the committed library", () => {
       }
     }
     expect(problems).toEqual([]);
-    expect(naming).toBe(73);
+    expect(naming).toBe(71);
   }, 120_000);
 });

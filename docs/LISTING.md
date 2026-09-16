@@ -38,7 +38,7 @@ so is the decision under "Still the owner's" at the bottom.
 >
 > **What is in it**
 >
-> - 117 elements in each of the two slide sizes: boxes and box layouts, process
+> - 107 elements in each of the two slide sizes: boxes and box layouts, process
 >   flows, hierarchies, matrices, tables, timelines, stamps, labels, markers and
 >   flowchart shapes.
 > - Elements that come in sizes — a process flow of one to six boxes, a

@@ -7,6 +7,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Removed
+
+- **The Flowchart shapes category is gone**, and the ten small shapes in it:
+  Document, Documents, Start / stop, Process / action, Decision, two labelled
+  arrows, a dashed connector, a waste bin and a box with a footer strip. The
+  library now holds 107 elements in each slide size rather than 117.
+
+  Anything you already put on a slide stays exactly where it is — those are
+  ordinary PowerPoint shapes now and the add-in has no hold on them. If a
+  presentation of yours uses one, **Used in this deck** still lists it, as
+  "an element from an older version of the library", so nothing disappears
+  from that list either. You just cannot insert them again.
+
 ### Changed
 
 - **A category now looks like something you can open.** Each heading has a small
