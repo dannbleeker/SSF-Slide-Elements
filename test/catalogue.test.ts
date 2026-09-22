@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   HarvestError,
   Pkg,
+  REL_TYPE,
   boxOf,
   contentCount,
   countKeys,
@@ -186,6 +187,53 @@ describe("headings and elements", () => {
       '"Kasse, 2 vertikale" is the key of both slide 2 and slide 3',
       '"Navnløs" (slide 4) has no English name in the names file',
     ]);
+  });
+
+  it("fails an element that names a part the catalogue will not publish", async () => {
+    /**
+     * Two rules disagreed about which parts an element owns, and only one of
+     * them was enforced. `CARRIED` filters what the harvest COLLECTS, so a part
+     * outside `ppt/(charts|diagrams|drawings|embeddings|media|tags)/` is never
+     * written under `<size>/parts/` — while `carry()` in the splice copies
+     * every non-external relationship the markup names, with no filter, and
+     * raises by name when the store cannot serve one.
+     *
+     * So an element whose shape reached outside the allowlist harvested clean
+     * and then failed on EVERY insert, under a sentence blaming the catalogue
+     * for a part it was never told to publish. Neither shipped deck does it —
+     * 0 of 370 internal targets — but the decks are the owner's and one action
+     * button or one chart pasted with its own theme override is enough. The
+     * harvest is where that can still be fixed.
+     */
+    const pkg = await Pkg.open(
+      await makeDeck([
+        heading("Kasser"),
+        {
+          paragraphs: [["a"]],
+          title: "Kasse, 2 vertikale",
+          shapes: [
+            `<p:pic><p:nvPicPr><p:cNvPr id="40" name="Knap"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+              `<p:blipFill><a:blip r:embed="rId99"/><a:stretch/></p:blipFill>` +
+              `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`,
+          ],
+        },
+      ]),
+    );
+    const relsPath = Pkg.relsPathFor("ppt/slides/slide2.xml");
+    const rels = await pkg.text(relsPath);
+    pkg.setText(
+      relsPath,
+      rels.replace(
+        "</Relationships>",
+        `<Relationship Id="rId99" Type="${REL_TYPE.image}" Target="../slides/slide1.xml"/></Relationships>`,
+      ),
+    );
+    await expect(harvest(pkg, { size: "16:9", names: NAMES })).rejects.toMatchObject({
+      problems: [
+        '"Kasse, 2 vertikale" (slide 2) names "ppt/slides/slide1.xml", which the catalogue does not publish — ' +
+          "every insert of it would fail",
+      ],
+    });
   });
 
   it("fails a slide with content but no title, and a deck without a slide size", async () => {

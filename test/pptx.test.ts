@@ -463,6 +463,57 @@ describe("a part whose file name begins with a dot", () => {
   });
 });
 
+describe("relationship ids at the edge of what a Number can count", () => {
+  it("never hands back an id the part already holds", async () => {
+    /**
+     * `nextFree` refuses a package whose part numbers are too large to extend,
+     * because above 2^53 `max + 1 === max`. `addRel` took the same
+     * highest-plus-one and had no such guard, so a part holding
+     * `rId9007199254740992` was handed that very id straight back.
+     *
+     * `Id` is an xsd:ID, so the part is then schema-invalid — and `repoint`
+     * writes that id into the inserted shape's `<a:blip r:embed>`, where a
+     * reader taking the first match resolves it to whatever the deck already
+     * had under it. An inserted marker drawing the user's own picture.
+     *
+     * No producer writes such an id; PowerPoint's are three digits. It is the
+     * same threat model this file already codes against elsewhere — a deck can
+     * be sent to somebody.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]] }]);
+    const rels = await pkg.text(SLIDE1_RELS);
+    pkg.setText(
+      SLIDE1_RELS,
+      rels.replace(
+        "</Relationships>",
+        `<Relationship Id="rId9007199254740992" Type="${REL_TYPE.image}" Target="../media/theirs.png"/></Relationships>`,
+      ),
+    );
+    await expect(pkg.addRel(SLIDE1, REL_TYPE.image, "../media/ours.png")).resolves.not.toBe("rId9007199254740992");
+
+    const after = await pkg.text(SLIDE1_RELS);
+    const ids = [...after.matchAll(/<Relationship[^>]*Id="([^"]+)"/g)].map((m) => m[1]);
+    expect(new Set(ids).size, "the part carries a duplicate Id").toBe(ids.length);
+  });
+
+  it("refuses when every id it could hand out is too large to be distinct", async () => {
+    // The other side: with the unsafe id skipped there is a small free one, so
+    // the case above gets an answer. Push the high-water mark itself to the
+    // edge and there is none, and this refuses the way `nextFree` does rather
+    // than answering something it cannot tell apart.
+    const pkg = await deck([{ paragraphs: [["a"]] }]);
+    const rels = await pkg.text(SLIDE1_RELS);
+    pkg.setText(
+      SLIDE1_RELS,
+      rels.replace(
+        "</Relationships>",
+        `<Relationship Id="rId${Number.MAX_SAFE_INTEGER}" Type="${REL_TYPE.image}" Target="../media/theirs.png"/></Relationships>`,
+      ),
+    );
+    await expect(pkg.addRel(SLIDE1, REL_TYPE.image, "../media/ours.png")).rejects.toThrow(/too large to extend/);
+  });
+});
+
 describe("counters that must not drift", () => {
   it("does not lower a part number when the package loses a part", async () => {
     /**

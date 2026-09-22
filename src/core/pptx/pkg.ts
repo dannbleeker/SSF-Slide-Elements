@@ -434,11 +434,26 @@ export class Pkg {
       max = 0;
       for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
         const n = Number(/^rId(\d+)$/.exec(rel.getAttribute("Id") ?? "")?.[1] ?? 0);
-        if (n > max) max = n;
+        // `countable`, for the reason it exists: above 2^53 `Number` cannot
+        // tell one id from the next, so an id that large is not a number this
+        // can count FROM. Skipping it leaves a small free id to hand out, which
+        // is a better answer than refusing; the guard below is what refuses
+        // when there genuinely is none.
+        if (countable(n) && n > max) max = n;
       }
     }
-    const id = `rId${max + 1}`;
-    this.relHighWater.set(path, max + 1);
+    const next = max + 1;
+    // The hole `nextFree` closes for part numbers, closed here too. Above 2^53
+    // `max + 1 === max`, so a part holding `rId9007199254740992` was handed
+    // that very id back: `Id` is an xsd:ID, so the part is schema-invalid, and
+    // `repoint` writes the id into the inserted shape where a reader taking the
+    // first match resolves it to whatever the deck already had there — an
+    // inserted marker drawing the user's own picture. `relHighWater` would then
+    // be pinned at that value and repeat it for every further call.
+    if (!Number.isSafeInteger(next))
+      throw new Error(`ssf-slide-elements: ${path} has relationship ids too large to extend`);
+    const id = `rId${next}`;
+    this.relHighWater.set(path, next);
     const rel = doc.createElementNS(PKG_REL_NS, "Relationship");
     rel.setAttribute("Id", id);
     rel.setAttribute("Type", type);
@@ -1049,7 +1064,16 @@ function resolvePath(ownerPart: string, target: string, decode: boolean): string
   const parts = base === "" ? [] : base.split("/");
   for (const seg of target.split("/")) {
     if (seg === "..") parts.pop();
-    else if (seg !== ".") parts.push(seg);
+    // An EMPTY segment is dropped, not pushed. A doubled or trailing slash in a
+    // Target produced a name with one in it — `..//media/image1.png` resolved to
+    // `ppt//media/image1.png` — which `has` then answers no for, and every
+    // reader in this layer is written to degrade silently on that: a notes page
+    // shared between two slides, a layout and theme chain that comes back
+    // empty. `resolvePart` in `scripts/package-integrity.mjs` and `resolveFrom`
+    // in `splice/carry.ts` both already drop it, so the package checker and the
+    // engine disagreed about whether such a deck was sound. `clone.ts` says it
+    // for all three: the resolvers must be the same one.
+    else if (seg !== "." && seg !== "") parts.push(seg);
   }
   return parts.map(segment).join("/");
 }

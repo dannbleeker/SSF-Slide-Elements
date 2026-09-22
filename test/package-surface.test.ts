@@ -105,7 +105,21 @@ describe("content types", () => {
     const types = await pkg.doc(TYPES);
     const defaults = elements(types, "http://schemas.openxmlformats.org/package/2006/content-types", "Default");
     expect(defaults.filter((d) => d.getAttribute("Extension")?.toLowerCase() === "jpeg")).toHaveLength(1);
-    expect(types.documentElement.firstChild).toBe(defaults[0]);
+    // The ORDER, named as the node it means. This used to read
+    // `toBe(defaults[0])` — and `defaults[0]` is whatever comes first in
+    // document order, so over a package whose Defaults already precede its
+    // Overrides the assertion was `x === x` and held however the new Default
+    // was inserted. Measured: with `insertBefore` changed to `appendChild`,
+    // which writes the new Default AFTER every Override — the arrangement the
+    // function's own comment says must not ship — the case still passed.
+    const jpeg = defaults.find((d) => d.getAttribute("Extension") === "jpeg");
+    expect(jpeg, "the Default that was just added").toBeDefined();
+    const children = [...types.documentElement.childNodes].filter((n) => n.nodeType === 1);
+    const overrides = children.filter((n) => (n as Element).localName === "Override");
+    expect(overrides.length, "no Override to be ahead of, so the order proves nothing").toBeGreaterThan(0);
+    expect(children.indexOf(jpeg as Element), "the new Default is ahead of every Override").toBeLessThan(
+      Math.min(...overrides.map((o) => children.indexOf(o))),
+    );
     expect(await pkg.contentTypeOf("ppt/media/photo.JPEG")).toBe("image/jpeg");
   });
 });

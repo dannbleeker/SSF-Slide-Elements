@@ -276,6 +276,16 @@ describe("the engine and the checker resolve a relationship the same way", () =>
     ["ppt/slides/slide1.xml", "/ppt/embeddings/Sales%20Data.xlsx"],
     ["ppt/slides/slide1.xml", "../media/100%.png"],
     ["ppt/slides/slide1.xml", "../charts/%2E%2E"],
+    // The second pair they disagreed on. An EMPTY segment is neither ".." nor
+    // "." — the engine pushed it and both the checker and `resolveFrom` in
+    // `splice/carry.ts` dropped it, so `..//media/image1.png` came out as
+    // `ppt//media/image1.png` here and `ppt/media/image1.png` there. The
+    // corpus above held them equal and contained no doubled or trailing slash,
+    // so the one gate written to catch exactly this kind of drift could not.
+    ["ppt/slides/slide1.xml", "..//media/image1.png"],
+    ["ppt/slides/slide1.xml", "../media//image1.png"],
+    ["ppt/slides/slide1.xml", "../media/"],
+    ["ppt/presentation.xml", "slides//slide1.xml"],
   ];
 
   it.each(pairs)("agrees on %s + %s", (owner, target) => {

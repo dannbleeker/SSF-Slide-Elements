@@ -150,8 +150,13 @@ async function markupFor(
     seen,
     collect,
   );
-  // A part reached from the slide's relationships but not by the CARRIED rule is the destination's business
-  // (a layout, a notes page); the splice never copies it, so it is not listed.
+  // A part reached from the slide's relationships but not by the CARRIED rule
+  // is the destination's business (a layout, a notes page), so it is not
+  // listed. This used to add "the splice never copies it", which is not true:
+  // `carry()` copies every non-external relationship the markup names. Nothing
+  // a SHAPE names reaches outside the rule today, and `harvest` now refuses an
+  // element that does rather than leaving the disagreement to be discovered by
+  // a user whose insert fails.
   return { xml, rels, parts };
 }
 
@@ -305,6 +310,34 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     if (other !== undefined && other !== el.key)
       problems.push(`"${el.key}" and "${other}" both slug to the id "${el.id}"`);
     ids.set(el.id, el.key);
+  }
+
+  // An element may not NAME a part this harvest will not publish.
+  //
+  // Two rules disagreed about which parts an element owns, and only one of them
+  // was enforced. `CARRIED` above filters what `reachableParts` collects, so
+  // only matching parts are written under `<size>/parts/` and listed in the
+  // content-type map — while `carry()` in the splice copies EVERY non-external
+  // relationship the markup names, with no filter, and raises by name when the
+  // store cannot serve one. So an element whose shape reached outside the
+  // allowlist harvested clean and then failed on every insert, with the
+  // sentence "the catalogue has no part …, which this element needs" blaming
+  // the catalogue for a part it was never told to publish.
+  //
+  // Neither shipped deck does it — 0 of 370 internal targets, measured
+  // 2026-09-23 — because no SHAPE names a layout or a notes page. But the decks
+  // are the owner's and are re-harvested whenever they change, and one "go to
+  // slide" action button or one chart pasted with its own theme override is
+  // enough. This turns that from a failure in somebody's PowerPoint into a
+  // failure of `npm run harvest`, which is where it can still be fixed.
+  for (const el of elementsOut) {
+    for (const rel of el.markup.rels) {
+      if (rel.external || CARRIED.test(rel.target)) continue;
+      problems.push(
+        `"${el.key}" (slide ${el.slide}) names "${rel.target}", which the catalogue does not publish — ` +
+          `every insert of it would fail`,
+      );
+    }
   }
   if (problems.length)
     throw new HarvestError(`the ${options.size} deck cannot be harvested: ${problems.length} problem(s)`, problems);

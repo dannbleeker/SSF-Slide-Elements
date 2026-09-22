@@ -9,6 +9,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A deck written by another tool is read the way the rest of the add-in
+  reads it.** Where a deck referred to one of its own files with a doubled or
+  trailing slash, the add-in worked out a name the file does not have and then
+  quietly treated that file as missing — which could mean a new slide sharing
+  the previous one's speaker notes, or an element placed against the wrong
+  layout. PowerPoint does not write those, but other tools do.
+
 - **An empty group is no longer left behind when you remove a part you had
   grouped with something of your own.** If the group was one PowerPoint had
   written its own bookkeeping onto — which it does to a group in a shared,
