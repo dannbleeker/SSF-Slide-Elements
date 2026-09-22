@@ -84,10 +84,33 @@ describe("the committed prints", () => {
   describe("the rules go red when they should", () => {
     // A gate that cannot fail is not a gate (CLAUDE.md). Each case below moves
     // ONE thing and names the sentence it expects back.
+    /**
+     * A baseline with NO problems in it, which is what the comment above
+     * promises and what it stopped being.
+     *
+     * `slides` was hard-coded to 110. The deck and its sidecar both say 109 —
+     * the Flowchart slide went on 2026-09-16 and 110 is the count from before
+     * that — so this handed every case a package already failing two rules:
+     * "sidecar says 109 slides, the deck has 110" and "109 pages for 110
+     * slides". Each case then moved one thing on top of two, and the one about
+     * a deck that gained a slide moved NOTHING: its `args.slides = 110` was
+     * the value this already returned. Measured 2026-09-22 by deleting that
+     * line — the case still passed.
+     *
+     * Read from the sidecar rather than written down again, so the next slide
+     * added or removed cannot put this back where it was.
+     */
     const base = () => {
       const { deckBytes, printBytes, stamp } = read("library-16x9");
-      return { name: "library-16x9", deckBytes, printBytes, stamp: { ...stamp }, slides: 110 };
+      return { name: "library-16x9", deckBytes, printBytes, stamp: { ...stamp }, slides: stamp.slides };
     };
+
+    it("starts from a package with nothing wrong with it", () => {
+      // The case the block's own comment assumes and never checked. Without it
+      // a baseline can drift back to carrying failures and every case below
+      // goes on passing, because `toContain` does not mind extra sentences.
+      expect(printProblems(base())).toEqual([]);
+    });
 
     it("catches a deck edited after the print was taken", () => {
       const args = base();
@@ -103,10 +126,12 @@ describe("the committed prints", () => {
 
     it("catches a deck that gained a slide", () => {
       const args = base();
-      args.slides = 110;
+      // One MORE than the sidecar knows about, whatever the sidecar says, so
+      // this stays a real mutation when the library next changes size.
+      args.slides = args.stamp.slides + 1;
       const said = printProblems(args).join(" ");
-      expect(said).toContain("sidecar says 109 slides, the deck has 110");
-      expect(said).toContain("109 pages for 110 slides");
+      expect(said).toContain(`sidecar says ${args.stamp.slides} slides, the deck has ${args.stamp.slides + 1}`);
+      expect(said).toContain(`${args.stamp.pages} pages for ${args.stamp.slides + 1} slides`);
     });
 
     it("catches a missing sidecar", () => {
