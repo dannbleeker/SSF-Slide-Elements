@@ -584,6 +584,45 @@ describe("what this deck already uses", () => {
     expect(row?.querySelector(".used-where")?.textContent).toBe("slide 1");
   });
 
+  it("moves the slide numbers a NEW slide pushed down", async () => {
+    /**
+     * Those numbers are jump controls, so a stale one does not merely read
+     * wrong: `jumpTo` turns it into a position at the last moment and
+     * `jumpOutcome` reports success, because the host really did go to the
+     * slide the row named. The user is sent to somebody else's slide and told
+     * it worked.
+     *
+     * Stood on slide 1 with the gear on "As a new slide", so the new slide
+     * lands at 2 and the stamp that was on 2 is now on 3.
+     */
+    const pkg = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]));
+    const doc = await pkg.doc("ppt/slides/slide2.xml");
+    const shape = doc.getElementsByTagName("p:sp")[0] as unknown as Element;
+    await writeShapeTags(pkg, "ppt/slides/slide2.xml", shape, [
+      [TAG_ELEMENT, "one-box"],
+      [TAG_CATALOGUE, "v1"],
+    ]);
+    deckBase64 = await pkg.toBase64();
+    host.current = { index: 0, id: "256" };
+
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".used-where")?.textContent, "the stamp starts on slide 2").toBe("slide 2");
+
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="target"][data-value="new"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+
+    // One row for `one-box`, now naming both the slide it was on — pushed from
+    // 2 to 3 — and the new slide it just landed on.
+    const where = pane.querySelector(".used-where")?.textContent ?? "";
+    expect(where, "the old use moved with the deck").toContain("3");
+    expect(where, "and the new one is named too").toContain("2");
+  });
+
   it("says the deck holds nothing rather than showing an empty space", async () => {
     // "Asked and empty" and "not asked" are different facts, and the pane has
     // to be able to tell the user which one it is.

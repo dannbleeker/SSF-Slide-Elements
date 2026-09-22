@@ -70,6 +70,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   stamp's own height, so the mask clipped the stamp instead of framing it.
   Previews are rebuilt on release, so this arrives with the next one.
 
+- **"Used in this deck" no longer sends you to the wrong slide.** Each slide
+  number in that list is a button that takes you there. Inserting an element as
+  a new slide pushes everything after it one slide along, and the list was not
+  told — so a row still naming slide 5 took you to whatever slide 5 had become,
+  and said it had worked. The numbers now move with the deck, and move back
+  when the insert is undone.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had

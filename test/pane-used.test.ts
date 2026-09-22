@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { browsing, LIBRARY } from "./fixtures/pane.js";
-import { slideList, slideParts, usedHeading, usedRows, withInsert, withoutInsert } from "../src/pane/used.js";
+import {
+  renumbered,
+  slideList,
+  slideParts,
+  usedHeading,
+  usedRows,
+  withInsert,
+  withoutInsert,
+} from "../src/pane/used.js";
 
 /**
  * "Used in this deck", checked without a browser.
@@ -84,6 +92,34 @@ describe("what this deck already uses", () => {
     expect(withInsert(used, "new-thing", 1)).toContainEqual({ element: "new-thing", slides: [1] });
     // The same element onto a slide it is already on is one slide, not two.
     expect(withInsert(used, "one-box", 2)).toContainEqual({ element: "one-box", slides: [2] });
+  });
+
+  it("moves the slides a new slide pushed down, because those numbers are links", () => {
+    /**
+     * "As a new slide" grows the deck at the insertion point, so every element
+     * sitting at or after it is now one slide further on. The list was not
+     * told: it gained the new row and left every other number where it was.
+     *
+     * It matters because those numbers are CONTROLS. `docs/DESIGN.md` section 4
+     * gives each one a jump, and `jumpTo` turns it into a position at the last
+     * moment — so a row reading "slide 5" sends the user to slide 5, which is
+     * now somebody else's slide, and `jumpOutcome` reports success because the
+     * host really did go there.
+     */
+    expect(renumbered(used, 3, 1)).toEqual([
+      { element: "one-box", slides: [2] },
+      { element: "two-boxes", slides: [4, 6, 12] },
+    ]);
+    // At the insertion point itself, because a slide inserted AT 3 pushes the
+    // old 3 down. One below it is untouched.
+    expect(renumbered(used, 2, 1)).toContainEqual({ element: "one-box", slides: [3] });
+    expect(renumbered(used, 3, 1)).toContainEqual({ element: "one-box", slides: [2] });
+  });
+
+  it("moves them back when the new slide is taken away again", () => {
+    // The undo of the case above, and the pair that keeps the two arithmetics
+    // from drifting: renumbering one way and back is the list it started as.
+    expect(renumbered(renumbered(used, 3, 1), 4, -1)).toEqual(used);
   });
 
   it("leaves the list alone when the deck has never been read", () => {

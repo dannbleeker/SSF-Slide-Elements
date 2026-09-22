@@ -65,7 +65,7 @@ import {
   type Library,
   type PaneState,
 } from "./steps.js";
-import { withInsert, withoutInsert } from "./used.js";
+import { renumbered, withInsert, withoutInsert } from "./used.js";
 
 let state: PaneState = { ...EMPTY };
 let index: Index | undefined;
@@ -608,7 +608,14 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // exactly what it just put where, and the read is the expensive half of
       // this feature. Untouched when nothing has been read — an insert is not a
       // reason to start claiming the deck has been looked at.
-      used: outcome.ok ? withInsert(state.used, element.id, landed) : state.used,
+      // Renumbered FIRST when the deck grew, then the new row added at the
+      // number it actually landed on. "As a new slide" pushes every element at
+      // or after that point one slide along, and those numbers are jump
+      // controls — a row left saying "slide 5" sends the user to whatever
+      // slide 5 has become. "Onto this slide" is net zero and shifts nothing.
+      used: outcome.ok
+        ? withInsert(target === "new" ? renumbered(state.used, landed, 1) : state.used, element.id, landed)
+        : state.used,
       // The card's grey boxes keep up the same way: the splice says where the
       // element landed, in EMU **on the user's slide**, so it is the USER's
       // slide size that turns it into a fraction. The library's size is a
@@ -726,7 +733,13 @@ async function undo(): Promise<boolean> {
       outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
       // The slide it was on is the user's own again, so whatever the insert put
       // there went with it — both in the list and in the card's grey boxes.
-      used: withoutInsert(state.used, entry.id, entry.landedOn),
+      // The mirror: the row for the slide that went, then everything after it
+      // back down by one. Only for a new slide — undoing an "onto" puts the
+      // user's own slide back in place and moves nothing.
+      used:
+        entry.target === "new"
+          ? renumbered(withoutInsert(state.used, entry.id, entry.landedOn), entry.landedOn + 1, -1)
+          : withoutInsert(state.used, entry.id, entry.landedOn),
       onSlide: entry.onSlide,
     };
     delete state.notice;
