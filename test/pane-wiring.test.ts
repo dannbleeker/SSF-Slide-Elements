@@ -1112,7 +1112,20 @@ describe("what the pane remembers, and where", () => {
     indexMode = "ok";
     const pane = await openPane();
     await settle();
-    return { pane, query: pane.querySelector<HTMLInputElement>('[data-action="search"]')?.value ?? "" };
+    // Waited for, not assumed. `render` draws the search box only inside
+    // `if (step === "browse" && state.library)`, so a pane whose library has
+    // not arrived has no box at all — and the `?? ""` this replaces reported
+    // that as a deck with an empty search. One `setTimeout(0)` is enough for
+    // the boot chain on an idle machine and not on a busy one, which is why
+    // the storage cases failed about one full-suite run in five while the same
+    // file alone passed ten times running.
+    //
+    // Measured 2026-09-22: at the moment of failure localStorage already held
+    // `{"query":"boxes"}` under this deck's own key. Nothing was lost and
+    // nothing was overwritten; the read answered for a box that was not there.
+    await waitFor("the pane to draw its search box", () => pane.querySelector('[data-action="search"]') !== null);
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    return { pane, query: box.value };
   }
 
   /** Type into the open pane's search box. */
