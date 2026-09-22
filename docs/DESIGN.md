@@ -699,8 +699,21 @@ top hit.
   the restore is flagged and the focus handler returns under it. Anything that
   focuses on render has to account for this, or it arms timers and redraws in a
   loop.
-- **Touch**: the first tap on a tile shows the preview, the second inserts;
-  nothing depends on hover.
+- **Touch**: a tap on a tile INSERTS, and nothing depends on hover. A
+  long press opens the same menu the right button does, and the click the
+  lifting finger produces is swallowed — without that the menu was closed by
+  its own gesture and the element inserted onto the current slide, which is the
+  target the menu exists to override (found 2026-09-23, reproduced in jsdom).
+
+  This line read "the first tap on a tile shows the preview, the second
+  inserts" until 2026-09-23. **That was never built** — `onClick` inserts on
+  the click every tap produces, and nothing in that path consults
+  `state.previewing`. It is written down as what the pane does rather than
+  built, on the owner's decision of the same day, because neither iPad nor
+  Windows touch has an answer sheet and a two-tap rule is a change to the core
+  interaction on a platform this repo cannot measure. The preview is still
+  reachable on touch: it opens on focus, which a tap gives the tile. Revisit it
+  in a round where a real touch host is to hand.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
   tiles and the tick stay visible. **Measured from 2026-09-12**, when
   `pane-shots` gained a forced-colours pass over every state: until then this

@@ -112,6 +112,26 @@ describe("an insert that did not land", () => {
 });
 
 describe("an insert that landed and could not be tidied", () => {
+  it("does not name a slide to delete when the deck came back SHORTER", () => {
+    // The removal half's guard, the mirror of the insert half's. That branch
+    // is written for `removed === before + 1`, where the copy is still on the
+    // slide — and it fired for `removed < before` too, where the copy is gone
+    // and the deck has lost something else. `slide` is then the slide the
+    // element LANDED on, so the sentence told the user to delete their own
+    // content: `landedOn({target: "onto", index})` is the same number.
+    //
+    // Same route as the insert half, which `docs/DESIGN.md` section 10 already
+    // accepts: `countReaching` answers whatever it last saw after its pauses,
+    // and the pane locks itself and not PowerPoint.
+    const out = outcomeOf({ ...base, inserted: 13, removed: 11 });
+    expect(out.detail, "it named the slide the element is on").not.toContain("delete slide");
+    expect(out.detail).toBe(
+      "The insert landed, but the deck now has 11 slides where it had 12. Check the deck before inserting again.",
+    );
+    expect(out.byHand).toBe(true);
+    expect(out.ok).toBe(false);
+  });
+
   it("names the slide the user has to delete", () => {
     // `docs/DESIGN.md` section 10, word for word. The pane does not try again:
     // a second positional delete on a deck whose shape it has already misread

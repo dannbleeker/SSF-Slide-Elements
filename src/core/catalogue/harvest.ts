@@ -19,7 +19,7 @@
 import { XMLSerializer } from "@xmldom/xmldom";
 import { Pkg } from "../pptx/pkg.js";
 import { coloursOf, themeChain } from "../pptx/theme.js";
-import { A_NS, P_NS, PKG_REL_NS, R_NS, child, elements, element } from "../pptx/xml.js";
+import { A_NS, P_NS, PKG_REL_NS, R_NS, child, elements, element, parseXml } from "../pptx/xml.js";
 import { boxOf, offSlide, rotationOf, rounded, topLevelShapes, union } from "./boxes.js";
 import { sizeRuns } from "./runs.js";
 import { tagsFor } from "./tags.js";
@@ -369,6 +369,37 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
       problems.push(
         `"${el.key}" (slide ${el.slide}) names "${rel.target}", which the catalogue does not publish — ` +
           `every insert of it would fail`,
+      );
+    }
+  }
+
+  // And the same one level down, because `copyPart` recurses.
+  //
+  // A carried part's own `.rels` is stored VERBATIM, while `reachableParts`
+  // above follows only the targets inside `CARRIED`. `copyPart` follows all of
+  // them: a chart pasted with its own colours is stored by PowerPoint with
+  // `ppt/charts/_rels/chart1.xml.rels` naming
+  // `Type=".../themeOverride" Target="../theme/themeOverride1.xml"`, and
+  // `ppt/theme/` is outside the rule — so the override is never published, the
+  // dangling Relationship reaches the pane inside the stored rels part, and the
+  // insert dies on it. `OWNABLE_BY_GRAPHIC` in `parts.ts` names `theme` for
+  // exactly this reason and `CARRIED` does not, which is where the two lists
+  // part company.
+  //
+  // Checked over the stored parts rather than per element, because that is the
+  // set `copyPart` walks, and one part reached by two elements is one problem.
+  for (const [path, body] of parts) {
+    if (!path.endsWith(".rels") || typeof body !== "string") continue;
+    const owner = path.replace("/_rels/", "/").replace(/\.rels$/, "");
+    for (const rel of elements(parseXml(body), PKG_REL_NS, "Relationship")) {
+      if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
+      const target = rel.getAttribute("Target");
+      if (!target) continue;
+      const resolved = pkg.resolved(owner, target);
+      if (CARRIED.test(resolved)) continue;
+      problems.push(
+        `the carried part "${owner}" names "${resolved}", which the catalogue does not publish — ` +
+          `every insert that carries it would fail`,
       );
     }
   }

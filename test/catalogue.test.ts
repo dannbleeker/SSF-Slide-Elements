@@ -236,6 +236,62 @@ describe("headings and elements", () => {
     });
   });
 
+  it("fails when a CARRIED part names a part the catalogue will not publish", async () => {
+    /**
+     * The same disagreement one level down, because `copyPart` recurses. A
+     * carried part's own `.rels` is stored verbatim while `reachableParts`
+     * follows only the targets inside `CARRIED` — so a chart pasted with its
+     * own colours, which PowerPoint stores with
+     * `Type=".../themeOverride" Target="../theme/themeOverride1.xml"`, is
+     * published without its override. The dangling Relationship reaches the
+     * pane inside the stored rels part, `copyPart` resolves it, the store
+     * answers undefined and the insert dies.
+     *
+     * `ppt/theme/` is in `OWNABLE_BY_GRAPHIC` in `parts.ts` — whose own comment
+     * names a theme override — and not in `CARRIED`, which is exactly where the
+     * two lists part company.
+     */
+    const pkg = await Pkg.open(
+      await makeDeck([
+        heading("Kasser"),
+        {
+          paragraphs: [["a"]],
+          title: "Kasse, 2 vertikale",
+          noBody: true,
+          shapes: [
+            `<p:pic><p:nvPicPr><p:cNvPr id="50" name="Diagram"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+              `<p:blipFill><a:blip r:embed="rId80"/><a:stretch/></p:blipFill>` +
+              `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`,
+          ],
+        },
+      ]),
+    );
+    // A carried picture, and a rels part of its own naming a theme override.
+    pkg.setBytes("ppt/media/image9.png", new Uint8Array([1, 2, 3]));
+    const slideRels = Pkg.relsPathFor("ppt/slides/slide2.xml");
+    pkg.setText(
+      slideRels,
+      (await pkg.text(slideRels)).replace(
+        "</Relationships>",
+        `<Relationship Id="rId80" Type="${REL_TYPE.image}" Target="../media/image9.png"/></Relationships>`,
+      ),
+    );
+    pkg.setText(
+      Pkg.relsPathFor("ppt/media/image9.png"),
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/themeOverride"` +
+        ` Target="../theme/themeOverride1.xml"/></Relationships>`,
+    );
+
+    await expect(harvest(pkg, { size: "16:9", names: NAMES })).rejects.toMatchObject({
+      problems: [
+        'the carried part "ppt/media/image9.png" names "ppt/theme/themeOverride1.xml", which the catalogue does ' +
+          "not publish — every insert that carries it would fail",
+      ],
+    });
+  });
+
   it("fails a slide with content but no title, and a deck without a slide size", async () => {
     await expect(harvested([heading("Kasser"), { paragraphs: [["orphan"]] }])).rejects.toMatchObject({
       problems: ["slide 2 has content but no title, so it has no key"],

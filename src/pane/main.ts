@@ -1079,11 +1079,26 @@ async function removeEverywhere(id: string): Promise<void> {
   }
 
   const outcome = removalOutcome(element.name, done, wanted.length);
+  // The armed Undo goes with it, whether or not a single slide was changed.
+  //
+  // `undoable` holds `before`: the WHOLE deck as it was before an earlier
+  // insert. Undoing after a removal replays `undoPlan` against a deck that has
+  // moved on, putting back a slide from bytes that predate the removal — so
+  // the element the user just took off the deck comes back on one slide, and
+  // every count check agrees, because each removal cycle is insert-then-remove
+  // and is net zero on the slide count. The pane then printed "Undone."
+  //
+  // Disarmed on the way out rather than in the catch above: the entry stops
+  // describing the deck at the first cycle that lands, and `done` is not known
+  // until here. The same rule as the insert's `asked` flag — an undo entry that
+  // no longer describes the deck is not an undo.
+  undoable = undefined;
   state = {
     ...state,
     busy: false,
     removing: undefined,
     outcome,
+    undo: 0,
     // What the deck holds has changed under the pane, and the snapshot of the
     // current slide with it. Both are dropped rather than guessed: the next
     // "See what this deck already uses" is what puts them back.
@@ -1130,6 +1145,26 @@ function onContextMenu(event: MouseEvent): void {
 const LONG_PRESS = 500;
 let pressing: ReturnType<typeof setTimeout> | undefined;
 
+/**
+ * Set when a long press has OPENED the menu, and consumed by the click the same
+ * gesture then produces.
+ *
+ * A finger lifting raises `pointerup` and then a `click`, and nothing cancelled
+ * it: `onClick` closed the menu the press had just opened and fell straight
+ * into `case "tile": void insert(id)` — inserting onto the slide the user is
+ * on, which is the very target the menu exists to override. The menu flashed
+ * up at 500 ms and was gone on the lift with an element in the deck.
+ *
+ * The mouse path never had this, because `contextmenu` fires with no left-button
+ * click after it and `onContextMenu` calls `preventDefault`.
+ *
+ * A flag consumed once, the way `restoringFocus` gates `onFocus`, rather than
+ * `preventDefault` on the pointer event: cancelling `pointerup` does not
+ * reliably suppress the click on every engine, and this is about one click
+ * rather than about the gesture.
+ */
+let pressOpened = false;
+
 function cancelPress(): void {
   if (pressing !== undefined) clearTimeout(pressing);
   pressing = undefined;
@@ -1137,6 +1172,11 @@ function cancelPress(): void {
 
 function onPointerDown(event: PointerEvent): void {
   cancelPress();
+  // A fresh gesture, so nothing is owed to the previous one. Cleared HERE
+  // rather than on a timer: a long press whose click never arrives — which is
+  // what Windows touch does, raising `contextmenu` instead — must not leave the
+  // flag set to swallow the next tap.
+  pressOpened = false;
   if (event.pointerType === "mouse") return;
   const found = actionOf(event.target);
   const element = elementOf(state.library, found?.el.dataset["id"]);
@@ -1144,12 +1184,23 @@ function onPointerDown(event: PointerEvent): void {
   const key = tileKey(found.el.dataset["where"] ?? "", element.id);
   pressing = setTimeout(() => {
     pressing = undefined;
-    if (state.busy !== true) set({ menuFor: key });
+    if (state.busy !== true) {
+      pressOpened = true;
+      set({ menuFor: key });
+    }
   }, LONG_PRESS);
 }
 
 function onClick(event: MouseEvent): void {
   const found = actionOf(event.target);
+  // The click a long press produces when the finger lifts. It is the tail of
+  // the gesture that opened the menu, not a new one, so it is swallowed whole:
+  // without this it closed the menu and inserted with the default target.
+  if (pressOpened) {
+    pressOpened = false;
+    event.preventDefault();
+    return;
+  }
   // Any click that is not ON the menu closes it, which is what every other
   // menu on every other platform does.
   if (state.menuFor !== undefined && found?.action !== "other-target") set({ menuFor: undefined });
@@ -1374,6 +1425,19 @@ function onKey(event: KeyboardEvent): void {
     }
     return;
   }
+  // LEFT and RIGHT belong to the search box while the caret is in it. The
+  // branch below ran whatever the event target was, and `arrowTo` answers a
+  // tile for an `at` of -1 — which is what the focus is when it is in the
+  // input — so ArrowLeft was `preventDefault`ed and the focus thrown onto tile
+  // 0. A user correcting a typo could not move the caret at all, the pane
+  // redrew with a preview card open, and the next Enter activated the tile,
+  // which is a real button: it inserted.
+  //
+  // DOWN is left alone deliberately. `arrowTo`'s own docstring justifies it —
+  // "a user pressing Down from the search box" — and it is how the keyboard
+  // reaches the tiles at all. Up with it, for symmetry: neither does anything
+  // in a one-line input that Home and End do not.
+  if (inSearch && (event.key === "ArrowLeft" || event.key === "ArrowRight")) return;
   const tiles = [...root().querySelectorAll<HTMLElement>('[data-action="tile"]')];
   const to = arrowTo(event.key, tiles.indexOf(document.activeElement as HTMLElement), tiles.length);
   const next = to === undefined ? undefined : tiles[to];

@@ -22,6 +22,7 @@
  */
 import { checkFloor, type Readiness, type Supports } from "../host/capability.js";
 import { readable } from "../host/errors.js";
+import { sameSlideId } from "../host/jump.js";
 import { BUDGET, CONFIRM, withTimeout } from "../host/timeout.js";
 
 /**
@@ -231,8 +232,27 @@ export async function currentSlide(within: number = BUDGET.read): Promise<Curren
         const first = selected.items[0]?.id;
         if (first === undefined) return undefined;
         if (!whole(all.items.length, count.value)) return undefined;
-        const index = all.items.findIndex((s) => s.id === first);
-        return index < 0 ? undefined : { index, id: first };
+        // `sameSlideId`, not `===`. A selection id can lack the `#suffix` the
+        // deck's own list carries (office-js#2474, Windows desktop, closed not
+        // planned), and `src/host/jump.ts` owns that comparison — this compared
+        // the two spellings directly, which is the rule reimplemented inline
+        // that `CLAUDE.md` warns rots quietly. On a host with that shape
+        // `findIndex` answered -1, `currentSlide` answered undefined, and the
+        // pane refused every insert with "PowerPoint would not say which slide
+        // you are on" for the whole session.
+        //
+        // And two matches are REFUSED rather than guessed at, which is what
+        // `docs/SIBLING.md` promises for that issue: `findIndex` alone would
+        // take the first.
+        const index = all.items.findIndex((s) => sameSlideId(s.id, first));
+        if (index < 0) return undefined;
+        if (all.items.some((s, at) => at !== index && sameSlideId(s.id, first))) return undefined;
+        // The DECK's spelling, not the selection's. `Current.id` is documented
+        // as "its id in the host's own `256#3561048925` spelling, for
+        // `targetSlideId`", and handing back `first` passed an unsuffixed id
+        // straight to `insertSlidesFromBase64` on exactly the host this guards.
+        const id = all.items[index]?.id;
+        return id === undefined ? undefined : { index, id };
       }),
       within,
       "asking which slide is selected",

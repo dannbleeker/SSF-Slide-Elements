@@ -9,6 +9,29 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The arrow keys work in the search box again.** Pressing Left or Right to
+  fix a typo moved the focus onto the first tile instead of the caret — and
+  since a tile is a button, the next Enter inserted that element. Left and
+  Right now belong to the search box; Down still steps out of it onto the
+  tiles.
+
+- **A long press on a touch screen no longer inserts the thing behind the menu
+  it just opened.** Holding a tile opened the menu, and then the same gesture's
+  own click closed it again and inserted onto the slide you were on — the very
+  target the menu is there to change.
+
+- **Undo is no longer left armed after "Remove from N slides".** Pressing it
+  would have put the removed element back on one slide and reported "Undone."
+
+- **An insert that leaves the deck shorter than it started no longer tells you
+  to delete a slide.** The slide it named was the one your element had just
+  landed on.
+
+- **The add-in copes with a PowerPoint that names the selected slide
+  differently from the deck's own list.** Where that happens, the pane could
+  not tell which slide you were on and refused every insert for the rest of the
+  session.
+
 - **Elements from the 4:3 library land where they should, and no longer bring
   an invisible object into your deck.** The 4:3 library deck had been through
   think-cell, which leaves an invisible frame in the corner of every slide it

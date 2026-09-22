@@ -130,6 +130,19 @@ export function outcomeOf(attempt: Attempt): Outcome {
   }
 
   const removed = attempt.removed;
+  if (removed !== undefined && removed < before) {
+    // The removal took the copy AND the deck lost something else. The sentence
+    // below is written for `removed === before + 1`, where the copy is still
+    // there — and it fired here too, where the copy is gone and slide `slide`
+    // is the one the element LANDED on (`landedOn` for "onto" is the same
+    // number). A user who followed it deleted their own content, which is the
+    // exact failure `src/pane/main.ts` says this file exists to prevent.
+    return {
+      ok: false,
+      detail: `The insert landed, but the deck now has ${removed} slides where it had ${before}. Check the deck before inserting again.`,
+      byHand: true,
+    };
+  }
   if (removed === undefined || removed !== before) {
     return {
       ok: false,

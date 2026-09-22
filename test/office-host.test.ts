@@ -214,6 +214,36 @@ describe("a deck read that came back short", () => {
     expect(await mod.currentSlide()).toEqual({ index: 1, id: "b" });
   });
 
+  it("matches a selection id that lacks the deck's #suffix, and answers the DECK's spelling", async () => {
+    /**
+     * office-js#2474: a selection id can come back without the `#suffix` the
+     * deck's own list carries. `src/host/jump.ts` owns that comparison as
+     * `sameSlideId` and `docs/SIBLING.md` triages the issue **Relevant** with
+     * the promise "whatever names the slide the user is on matches by prefix
+     * and refuses two matches rather than guessing".
+     *
+     * This compared the two spellings with `===`, so on such a host
+     * `findIndex` answered -1 and the pane refused every insert with
+     * "PowerPoint would not say which slide you are on" — for the whole
+     * session, since the next read has the same shape.
+     *
+     * The second assertion is the other half: `Current.id` is documented as
+     * the host's own `256#3561048925` spelling because it becomes
+     * `targetSlideId`, and handing back the SELECTION's `first` passed an
+     * unsuffixed id straight to `insertSlidesFromBase64`.
+     */
+    const mod = await host({ deck: ["256#3561048925", "257#1178432"], selected: ["257"] });
+    expect(await mod.currentSlide()).toEqual({ index: 1, id: "257#1178432" });
+  });
+
+  it("refuses two slides whose ids both match, rather than taking the first", async () => {
+    // The pair, and the rest of what the ledger promises. Two suffixed ids
+    // sharing a prefix are DIFFERENT to `sameSlideId`, so this needs the
+    // ambiguous shape: one suffixed, one bare, both "257".
+    const mod = await host({ deck: ["257", "257#1178432"], selected: ["257"] });
+    expect(await mod.currentSlide(), "it guessed between two slides").toBeUndefined();
+  });
+
   it("refuses to name an index when the list is shorter than the count", async () => {
     // The host dropped "c". Nothing about "b" is wrong here — the point is
     // that the next read might drop "a" instead, and then "b" is index 0.
