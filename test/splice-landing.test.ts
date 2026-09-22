@@ -428,6 +428,32 @@ describe("underTitle", () => {
     expect(landed.cx / landed.cy, "scaled, not squashed").toBeCloseTo(rect.cx / rect.cy, 5);
   });
 
+  it("moves an element that FITS the room but sits above it down into the room", () => {
+    /**
+     * The gap between the two cases above. `fitInside` returns the rectangle
+     * UNCHANGED when it already fits its target — it only ever scales — so an
+     * element small enough for the room but positioned too high fell straight
+     * through: `inside` is false because it starts above the room, `fitInside`
+     * hands it back as it was, and `ontoSlide` clamps it to the SLIDE, which it
+     * was already inside. It stayed on top of the title.
+     *
+     * Which is the case this rule is named for. The taller-title case above
+     * only passes because its element is too BIG for the room, so `fitInside`
+     * has something to do; shrink it and the same overlap goes uncorrected.
+     */
+    const frames: Frames = { title: TITLE };
+    // Small enough for the room below the title, and sitting over the title.
+    const rect: Rect = { x: 838200, y: 400000, cx: 4000000, cy: 2000000 };
+    expect(rect.cy, "it fits the room's height").toBeLessThan(SLIDE.height - TITLE_BOTTOM);
+    expect(rect.y, "and it starts above the title's bottom").toBeLessThan(TITLE_BOTTOM);
+
+    const landed = underTitle(rect, SLIDE, frames);
+    expect(landed.y, "clear of the title").toBeGreaterThanOrEqual(TITLE_BOTTOM);
+    expect(landed.cx, "and not scaled, because it already fitted").toBe(rect.cx);
+    expect(landed.cy).toBe(rect.cy);
+    expect(onSlide(landed, SLIDE), "still on the slide").toBe(true);
+  });
+
   it("measures the room from the title's bottom when the body placeholder starts above it", () => {
     // A deck whose body overlaps its own title is ordinary, and scaling into
     // the whole body would leave the element under the title anyway — the one

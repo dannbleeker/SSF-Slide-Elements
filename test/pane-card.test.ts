@@ -22,6 +22,25 @@ describe("which slide the card is describing", () => {
     // user was not looking at is the complaint this avoids.
     expect(slideLine(browsing)).toMatch(/did not say/i);
   });
+
+  it("does not promise a landing the insert refuses", () => {
+    /**
+     * The line said "so an element will land on the first", and `insert`
+     * does the opposite: with no slide named it stops before the host is
+     * asked, with "PowerPoint would not say which slide you are on, so
+     * nothing was inserted. Click a slide and try again." Nothing anywhere
+     * falls back to slide one.
+     *
+     * It matters more since the API floor stayed at 1.2 (owner's decision,
+     * 2026-09-22). `getSelectedSlides` is 1.5, so on a host between the two
+     * the floor check passes, the pane loads, and this is the permanent state
+     * — the card promising an insert that every click refuses, with nothing
+     * naming the reason.
+     */
+    const line = slideLine(browsing);
+    expect(line, "no promise about the first slide").not.toMatch(/first/i);
+    expect(line, "and it says what to do instead").toMatch(/click a slide/i);
+  });
 });
 
 describe("where the preview card says an element will land", () => {

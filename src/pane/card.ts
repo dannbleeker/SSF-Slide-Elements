@@ -82,10 +82,25 @@ export function withLanded(
   return { slide, boxes: [...onSlide.boxes, box] };
 }
 
-/** Which slide an insert would land on, as the pane says it. */
+/**
+ * Which slide an insert would land on, as the pane says it.
+ *
+ * With no slide named this says what the INSERT does, which is refuse:
+ * `insert` stops before the host is asked, with "PowerPoint would not say
+ * which slide you are on, so nothing was inserted. Click a slide and try
+ * again." The line used to promise the element would "land on the first"
+ * instead — a landing nothing in the pane or the engine has ever offered, so
+ * the card contradicted the only thing that could act on it.
+ *
+ * It is not a rare screen. `getSelectedSlides` is PowerPointApi 1.5 and the
+ * floor stays at 1.2 (the owner's decision, 2026-09-22), so on a host between
+ * the two the floor check passes, the pane loads, and this is the permanent
+ * state of it — which makes the sentence the only thing telling that user why
+ * nothing inserts.
+ */
 export function slideLine(state: PaneState): string {
   return state.slide === undefined
-    ? "PowerPoint did not say which slide you are on, so an element will land on the first."
+    ? "PowerPoint did not say which slide you are on. Click a slide and try again."
     : `Slide ${state.slide}.`;
 }
 

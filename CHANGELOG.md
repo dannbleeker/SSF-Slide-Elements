@@ -92,6 +92,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   ten-inch "On-screen Show (16:9)" deck. That size has the same 16:9 shape as
   the library, so the pane never even said it was borrowing one.
 
+- **An element that would sit on top of your title is moved off it**, even when
+  it was already small enough to fit below. The rule that keeps library
+  elements clear of a taller title only ever resized them, so one that already
+  fitted was left exactly where it was — on top of the title, which is the one
+  thing that rule exists to prevent.
+
+- **The preview card no longer promises an insert that cannot happen.** When
+  PowerPoint will not say which slide you are on, the card said an element
+  would land on the first slide. Nothing does that: the insert stops and asks
+  you to click a slide. The card now says the same thing.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
