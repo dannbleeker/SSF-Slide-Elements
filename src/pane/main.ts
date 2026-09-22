@@ -1206,6 +1206,11 @@ function onClick(event: MouseEvent): void {
       break;
     case "clear":
       set({ query: "", tags: [], category: undefined });
+      // Kept, like every keystroke that FILLED the box. Without it the deck's
+      // bucket holds the old search and the next open restores one the user
+      // explicitly got rid of — `docs/DESIGN.md` section 4 asks for the search
+      // back, not for a cleared search back.
+      keep();
       break;
     // Section 8's chips narrow a search to one category; picking the one
     // already picked widens it again.
@@ -1272,7 +1277,17 @@ function onKey(event: KeyboardEvent): void {
         set({ gear: false });
         break;
       case "search":
-        set({ query: "", tags: [] });
+        // The CATEGORY goes too, and is kept, which is what the `clear` action
+        // a few lines up already does. `steps.ts` states the rule — the picked
+        // category is not carried across a cleared search — and this rung is
+        // the half a user actually presses.
+        //
+        // What it left behind was invisible: `render` draws the chips only
+        // while there IS a search, so a category still picked after Escape
+        // narrowed the library to one section with no control on screen to
+        // lift it and nothing saying why.
+        set({ query: "", tags: [], category: undefined });
+        keep();
         break;
     }
     return;

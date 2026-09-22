@@ -103,6 +103,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   would land on the first slide. Nothing does that: the insert stops and asks
   you to click a slide. The card now says the same thing.
 
+- **Escape now clears the whole search, and the clearing sticks.** Pressing
+  Escape left the category you had picked still filtering the library — and the
+  category buttons are only on screen while a search is, so there was nothing
+  left to unpick and nothing saying why most of the library had gone. Clearing
+  the search also was not remembered, so the search you had just got rid of came
+  back the next time the pane opened.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had

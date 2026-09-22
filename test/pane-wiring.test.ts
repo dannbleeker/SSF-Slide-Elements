@@ -1042,6 +1042,56 @@ describe("what the menu actually inserts", () => {
   });
 });
 
+describe("Escape and the category chip", () => {
+  /**
+   * The chips narrow a search to one category, and they are drawn only while
+   * there IS a search (`render.ts`: `if (state.query.trim() !== "")`). So a
+   * category left picked after the search is gone is a filter with no control
+   * on screen to lift it: the library stays narrowed to one category and
+   * nothing says why.
+   *
+   * `steps.ts` states the opposite rule for this field — not carried across a
+   * cleared search — and the `clear` action already honours it. The Escape
+   * rung did not, which is the half a user actually presses.
+   */
+  async function searched(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = "e";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    return pane;
+  }
+
+  const chips = (pane: HTMLElement): number => pane.querySelectorAll('[data-action="category-chip"]').length;
+  const lit = (pane: HTMLElement): number =>
+    pane.querySelectorAll('[data-action="category-chip"][aria-pressed="true"]').length;
+
+  it("lifts the category filter when Escape clears the search", async () => {
+    const pane = await searched();
+    expect(chips(pane), "the search matches more than one category, or this proves nothing").toBeGreaterThan(1);
+
+    (pane.querySelector('[data-action="category-chip"]') as HTMLElement).click();
+    await settle();
+    expect(lit(pane), "a category is picked").toBe(1);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+
+    // Search again: if the category survived Escape it is still narrowing the
+    // library, with no chip on screen in between to have lifted it.
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = "e";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    expect(lit(pane), "Escape left a category filtering with nothing to unpick it").toBe(0);
+  });
+});
+
 describe("the keyboard reaching the tiles", () => {
   /**
    * `docs/DESIGN.md` section 9 and `docs/MANUAL.md` both promise it: "Tab
@@ -1290,6 +1340,24 @@ describe("what the pane remembers, and where", () => {
     // And neither has taken the other's.
     expect((await reopen(A)).query).toBe("boxes");
     expect((await reopen(B)).query).toBe("stamp");
+  });
+
+  it("forgets a search that was cleared, rather than bringing it back", async () => {
+    /**
+     * Every keystroke that FILLED the box called `keep`; neither path that
+     * empties it did. So the deck's bucket kept the old query, and the next
+     * open restored a search the user had explicitly cleared.
+     *
+     * `docs/DESIGN.md` section 4 asks for the search back — it does not ask for
+     * a search the user got rid of back.
+     */
+    await search((await reopen(A)).pane, "boxes");
+    expect((await reopen(A)).query, "the search was remembered").toBe("boxes");
+
+    await reopen(A);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    expect((await reopen(A)).query, "a search cleared with Escape does not come back").toBe("");
   });
 
   it("gives each deck its own tags back", async () => {
