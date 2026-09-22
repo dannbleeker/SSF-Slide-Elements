@@ -562,7 +562,7 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
     // A search that found nothing is a dead end; section 8 turns it into a
     // route. Every suggestion is a name the library really has, so each one is
     // a search that will find something.
-    const meant = didYouMean(library, state.query);
+    const meant = didYouMean(library, state.query, state);
     if (meant.length > 0) {
       const did = el("div", "meant");
       did.appendChild(el("span", "meant-lead", "Did you mean"));

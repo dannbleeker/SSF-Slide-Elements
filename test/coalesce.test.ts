@@ -106,6 +106,54 @@ describe("one job at a time, and one more after the last request", () => {
     expect(calls, "the next event is still answered").toBe(2);
   });
 
+  it("still runs once more for a request that arrived while a job that RAISED was in flight", async () => {
+    // The two cases above, together, which is the combination that was missing.
+    // A job may fail — `currentSlide` swallows its own failures today, but the
+    // rule this file states is about `coalescing` and not about one caller —
+    // and the request that arrived DURING that job is exactly the one whose
+    // answer the user is waiting for. A raise that cut the loop short would
+    // drop it, and there is no later event to put it right: that is the whole
+    // defect this module exists to prevent, reached through the error path
+    // instead of through the drop.
+    const gates: ((ok: boolean) => void)[] = [];
+    let runs = 0;
+    const work = (): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        runs += 1;
+        gates.push((ok) => (ok ? resolve() : reject(new Error("the host would not say"))));
+      });
+
+    const ask = coalescing(work);
+    ask();
+    await settle();
+    expect(runs, "the first request runs immediately").toBe(1);
+
+    ask();
+    await settle();
+    expect(runs, "nothing new starts while one is in flight").toBe(1);
+
+    const first = gates.shift();
+    if (!first) throw new Error("nothing was waiting to be failed");
+    first(false);
+    await settle();
+    expect(runs, "the request made during the FAILED run is still answered").toBe(2);
+  });
+
+  it("does not run again just because a job failed", async () => {
+    // The pair of the case above, and the reason it is here: the fix for it is
+    // "a raise does not end the loop", and the way to get that wrong is to
+    // make a raise START one. A failure with nothing queued behind it is one
+    // run, not two and not forever.
+    let calls = 0;
+    const ask = coalescing(() => {
+      calls += 1;
+      return Promise.reject(new Error("the host would not say"));
+    });
+    ask();
+    await settle();
+    expect(calls, "a failure is not by itself a request to run again").toBe(1);
+  });
+
   it("collapses a long burst into two runs, not into ten", async () => {
     const job = pending();
     const ask = coalescing(job.work);

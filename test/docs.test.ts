@@ -80,23 +80,55 @@ describe("the manual keeps up with the pane", () => {
    * symbol was renamed rather than removed. Prose is never matched against
    * prose.
    */
-  const BUILT: Array<{ row: string; file: string; proof: string }> = [
-    { row: "The picker", file: "src/pane/steps.ts", proof: `"browse"` },
-    { row: "The insert", file: "src/pane/main.ts", proof: "insertPackage(" },
-    { row: "Taking it back", file: "src/host/insert.ts", proof: "export function undoPlan" },
-    { row: "Jumping to a slide", file: "src/host/jump.ts", proof: "export function jumpOutcome" },
+  /**
+   * `readme` is named separately because the two documents do not call these
+   * the same thing, and pretending they do is what made half this guard dead.
+   *
+   * It matched `| <label> |`, which is the MANUAL's convention — its first cell
+   * is the label alone. The README's first cell holds the whole description
+   * (`| The picker — browse by section, search, insert, Recent, favourites,
+   * Undo one deep | done |`), so no row ever matched, `line` came back
+   * undefined, and the `continue` under it skipped the README for all four
+   * rows. Measured 2026-09-22: flipping the README's picker row to `planned`
+   * left this file 20/20 green, while the same edit to the manual went red at
+   * once.
+   *
+   * Which is exactly the staleness the docstring above records — "three rows
+   * of its feature table said `planned` ... The README said the same. All
+   * three had shipped weeks earlier" — for the one of the two documents the
+   * public actually reads first.
+   *
+   * `null` means the document has no row of its own, and it says so here
+   * rather than by quietly finding nothing: the README folds Undo into the
+   * picker's row.
+   */
+  const BUILT: Array<{ row: string; readme: string | null; file: string; proof: string }> = [
+    { row: "The picker", readme: "The picker", file: "src/pane/steps.ts", proof: `"browse"` },
+    { row: "The insert", readme: "Splice", file: "src/pane/main.ts", proof: "insertPackage(" },
+    { row: "Taking it back", readme: null, file: "src/host/insert.ts", proof: "export function undoPlan" },
+    {
+      row: "Jumping to a slide",
+      readme: "The jump",
+      file: "src/host/jump.ts",
+      proof: "export function jumpOutcome",
+    },
   ];
 
-  it.each(BUILT)("does not call $row planned while $proof is in $file", ({ row, file, proof }) => {
+  it.each(BUILT)("does not call $row planned while $proof is in $file", ({ row, readme: readmeRow, file, proof }) => {
     expect(readFileSync(file, "utf8"), `${file} no longer contains ${proof}`).toContain(proof);
-    for (const [name, text] of [
-      ["the manual", manual],
-      ["the README", readme],
+    for (const [name, text, label] of [
+      ["the manual", manual, row],
+      ["the README", readme, readmeRow],
     ] as const) {
-      // The row's own line, wherever the table sits in the file.
-      const line = text.split("\n").find((l) => l.startsWith(`| ${row} |`));
-      if (line === undefined) continue;
-      expect(line.toLowerCase(), `${name} still calls "${row}" planned`).not.toContain("planned");
+      if (label === null) continue;
+      // Matched on the first cell's opening WORDS, with the space that follows
+      // them, so it finds `| The picker |` and `| The picker — browse …` alike
+      // and still cannot match a longer word that merely starts the same way.
+      const line = text.split("\n").find((l) => l.startsWith(`| ${label} `));
+      // Found, not skipped. An absent row used to disable the check silently,
+      // which is how a guard stops guarding without anyone editing it.
+      expect(line, `${name} has no feature row starting "${label}"`).toBeDefined();
+      expect(line?.toLowerCase(), `${name} still calls "${label}" planned`).not.toContain("planned");
     }
   });
 

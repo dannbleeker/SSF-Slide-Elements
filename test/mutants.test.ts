@@ -15,6 +15,9 @@ const TARGETS = tool.TARGETS as string[];
 const fastTests = tool.fastTests as (file: string) => string[];
 const testsReaching = tool.testsReaching as (file: string) => string[];
 const verdictOfFailure = tool.verdictOfFailure as (error: unknown, out: string) => "killed" | "inconclusive";
+const afterWholeSuite = tool.afterWholeSuite as (
+  v: "survived" | "killed" | "hung" | "inconclusive",
+) => "survived" | "killed" | "hung" | "inconclusive";
 const failedFilesOf = tool.failedFilesOf as (out: string) => string[];
 const strayPids = tool.strayPids as (listing: string, workspace: string, self: number) => number[];
 const confirmedKill = tool.confirmedKill as (
@@ -412,5 +415,35 @@ describe("the first-tier test map", () => {
     const without = TARGETS.find((f) => !(f in FAST));
     expect(without, "this case needs at least one file without an entry").toBeDefined();
     if (without !== undefined) expect(fastTests(without)).toEqual(testsReaching(without));
+  });
+});
+
+describe("what the whole-suite re-check's answer means", () => {
+  /**
+   * The second tier used to be `if (tryMutation(…) === "survived")` with no
+   * `else`. Only two of the four answers went anywhere: a `"killed"` fell
+   * through, which is right, and `"hung"` and `"inconclusive"` fell through
+   * with it — into no bucket, no console line and no entry in the survivors
+   * file. The mutant vanished and the totals stopped adding up to `total`.
+   *
+   * Which is the one thing this script must not do: its header promises four
+   * outcomes plus inconclusive, and a sweep that silently drops the answers it
+   * finds hardest reports a cleaner suite than it measured. The two it dropped
+   * are exactly the ones the file documents as common on a four-core box —
+   * a mutation that removes a loop's only exit, and a worker the kernel killed.
+   */
+  it("gives every answer a bucket, including the two that used to vanish", () => {
+    expect(afterWholeSuite("survived")).toBe("survived");
+    expect(afterWholeSuite("killed")).toBe("killed");
+    expect(afterWholeSuite("hung")).toBe("hung");
+    expect(afterWholeSuite("inconclusive")).toBe("inconclusive");
+  });
+
+  it("never answers `survived` for anything but a survivor", () => {
+    // The direction that matters: a mutant reported as surviving is a finding
+    // somebody goes and reads, so an unclear run must not be dressed up as one.
+    for (const v of ["killed", "hung", "inconclusive"] as const) {
+      expect(afterWholeSuite(v), `${v} must not be read as a survivor`).not.toBe("survived");
+    }
   });
 });

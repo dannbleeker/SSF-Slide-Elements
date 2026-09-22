@@ -713,6 +713,30 @@ describe("the destination slide's own shapes", () => {
     expect(emptyBodyPlaceholders(spTree).map((s) => shapeIds(s)[0])).toEqual(["2"]);
   });
 
+  it("leaves the running furniture alone, empty or not", () => {
+    /**
+     * `docs/DESIGN.md` section 6 says what this removes: the "Click to add
+     * text" GHOSTS behind a whole-slide element. A footer, a slide number and
+     * a date are not ghosts — they are the deck's own furniture, put there by
+     * its layout, and an empty one is empty because that slide has no footer
+     * text, not because nobody has got round to typing yet.
+     *
+     * Taking them off the rebuilt slide is the insert deleting part of the
+     * user's deck. `src/core/pptx/layout.ts` already keeps `CHROME` apart from
+     * `TITLES` for exactly this reason; this pass knew only about titles.
+     */
+    const spTree = tree(
+      placeholder(1, { type: "ftr" }),
+      placeholder(2, { type: "sldNum" }),
+      placeholder(3, { type: "dt" }),
+      placeholder(4, { type: "body" }),
+    );
+    expect(
+      emptyBodyPlaceholders(spTree).map((s) => shapeIds(s)[0]),
+      "only the body ghost goes",
+    ).toEqual(["4"]);
+  });
+
   it("treats a placeholder that states no type as a body, which is what PowerPoint does", () => {
     // `<p:ph idx="1"/>` with no type IS a body placeholder, and it is the
     // commonest spelling in a deck built from the standard layouts.

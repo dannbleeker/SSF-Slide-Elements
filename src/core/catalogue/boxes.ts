@@ -7,6 +7,7 @@
  * than the table PowerPoint draws, so a table's box is the sum of its columns
  * and rows when that is larger than the frame.
  */
+import { CHROME, TITLES } from "../pptx/layout.js";
 import { A_NS, P_NS, element, elements, children } from "../pptx/xml.js";
 import { placeholderType, textOf } from "./text.js";
 import type { Box } from "./types.js";
@@ -51,8 +52,30 @@ function frameOf(shape: Element): Frame | undefined {
   return { x, y, w, h, rot: (numberAttr(xfrm, "rot") ?? 0) / 60000 };
 }
 
-/** A table's drawn size: its columns and rows added up. Undefined when the frame holds no table. */
+/**
+ * A table's drawn size: its columns and rows added up. Undefined when the shape
+ * is not a table frame.
+ *
+ * Only a `<p:graphicFrame>`, because `element` walks DESCENDANTS and a table is
+ * only ever inside one. Asking any top-level shape found a table nested deep
+ * inside a GROUP and handed back its column widths — which are in the group's
+ * own child coordinate space, not slide EMU. A group is routinely scaled
+ * several times over between `chExt` and `ext`, so `Math.max` below then took a
+ * number three or more times too large and called it the group's width: the
+ * preview card drew a grey box off the edge of its slide for a table somebody
+ * had grouped with its caption. The group's own frame is already its drawn size
+ * and is now what decides, which may understate a grouped table the way a bare
+ * frame understates a loose one — not measured either way, and not guessed at
+ * here.
+ *
+ * Neither library deck contains one: measured 2026-09-22 over all 109 slides of
+ * `template/library-16x9.pptx` and all 107 of `template/library-4x3.pptx`, no
+ * top-level shape other than a `<p:graphicFrame>` holds an `<a:tbl>`. So the
+ * committed catalogue is unaffected; the user's own deck, which
+ * `occupiedBoxes` and `contentCount` read, is where this was reachable.
+ */
 function tableSize(shape: Element): { w: number; h: number } | undefined {
+  if (shape.localName !== "graphicFrame") return undefined;
   const tbl = element(shape, A_NS, "tbl");
   if (!tbl) return undefined;
   const grid = element(tbl, A_NS, "tblGrid");
@@ -224,7 +247,14 @@ export function contentCount(slide: Document, width: number, height: number): nu
   let held = 0;
   for (const shape of topLevelShapes(slide)) {
     const ph = placeholderType(shape);
-    if (ph === "title" || ph === "ctrTitle") continue;
+    // The title, and the running furniture with it. A footer, a slide number
+    // and a date carry text — a company name, "2", today's date — so the
+    // empty-placeholder rule below never reaches them, and they were counted
+    // as things the user had put on the slide. `held` is what decides the
+    // "Move to a new slide" offer, so an otherwise empty slide with a footer
+    // and a slide number on it offered to move the element off a slide that
+    // holds nothing but its own furniture.
+    if (ph !== undefined && (TITLES.has(ph) || CHROME.has(ph))) continue;
     if (isEmptyPlaceholder(shape)) continue;
     const box = boxOf(shape, width, height);
     if (box && offSlide(box)) continue;

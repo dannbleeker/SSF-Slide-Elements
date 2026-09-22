@@ -58,7 +58,22 @@ vi.mock("../src/office/powerpoint.js", () => ({
   // exports before anyone noticed.
   slideCount: () => Promise.resolve(host.slides),
   // The count the pane is waiting for, unless this run is refusing.
-  countReaching: (want: number) => Promise.resolve(host.cycles === host.refuseAt ? host.slides : want),
+  countReaching: (want: number) => {
+    host.countCalls += 1;
+    // A count read that RAISES, which is not the same as one that disagrees.
+    // `withTimeout` rejects on the budget and on any host raise alike, and
+    // `timeout.ts` records this host taking 40 s for a 40 KB read on a session
+    // that had been through a timeout reload — so this is the ordinary way the
+    // read after a landed insert fails, not an exotic one.
+    if (host.countRaises) return Promise.reject(new Error("gave up waiting for counting the deck's slides"));
+    // One NAMED read that does not reach what it was asked for, counted from
+    // one. `refuseAt` beside it keys off `cycles`, which only the insert
+    // moves, so it cannot single out the SECOND read of one insert — and the
+    // second read is the removal's, which is the one a case about a removal
+    // that did not land has to miss.
+    if (host.missCountAt === host.countCalls) return Promise.resolve(host.slides + 1);
+    return Promise.resolve(host.cycles === host.refuseAt ? host.slides : want);
+  },
   readDeck: () => {
     // Only the FIRST call waits, and the field is cleared synchronously so the
     // second caller does not join the queue. That is what lets a case hold the
@@ -73,7 +88,10 @@ vi.mock("../src/office/powerpoint.js", () => ({
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
-  onSlideChange: () => Promise.resolve(false),
+  onSlideChange: () => {
+    host.followed += 1;
+    return Promise.resolve(false);
+  },
   insertPackage: () => {
     host.cycles += 1;
     return Promise.resolve(undefined);
@@ -202,8 +220,16 @@ const host = {
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
   refuseRemoval: false,
+  /** Whether the confirming count read raises rather than answering. */
+  countRaises: false,
+  /** How many times `countReaching` has been asked this case. */
+  countCalls: 0,
+  /** Which of those reads answers the deck's grown size instead of the one asked for. */
+  missCountAt: 0,
   /** The URL the host gives for the open deck; undefined is an unsaved one. */
   url: undefined as string | undefined,
+  /** How many times the pane asked to be told about a slide change. */
+  followed: 0,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -358,6 +384,31 @@ function showFirstCategory(pane: HTMLElement): void {
 }
 
 /**
+ * Wait until the pane is not in the middle of anything.
+ *
+ * `state.busy` is not reachable from a case, and the tile's `disabled` is the
+ * same flag drawn: `render.ts` disables every tile while an insert runs. A case
+ * that stops before this leaves an insert in flight, and the `keep()` at the
+ * end of it writes localStorage during whatever case runs next.
+ */
+async function idle(pane: HTMLElement): Promise<void> {
+  await waitFor("the pane to stop being busy", () => {
+    const tiles = Array.from(pane.querySelectorAll<HTMLButtonElement>('[data-action="tile"]'));
+    // At least one, or this is a `some` over an empty list answering "not
+    // busy" for a pane that has not drawn yet — a wait that cannot wait.
+    return tiles.length > 0 && !tiles.some((t) => t.disabled);
+  });
+  await settle();
+}
+
+/** Every category open, for a case whose element is not in the first one. */
+function showEveryCategory(pane: HTMLElement): void {
+  for (const head of Array.from(pane.querySelectorAll<HTMLElement>('[data-action="category"]'))) {
+    if (head.getAttribute("aria-expanded") === "false") head.click();
+  }
+}
+
+/**
  * Every listener a booted pane put on `document`, so each case starts alone.
  *
  * `openPane` imports `main.ts` fresh for each case, and the pane binds its
@@ -405,7 +456,62 @@ function detachPanes(): void {
   for (const [type, fn] of boundToWindow.splice(0)) window.removeEventListener(type, fn);
 }
 
-afterEach(() => {
+/**
+ * Wait until nothing is still DRAWING into the pane.
+ *
+ * `main.ts` resolves its root with `document.getElementById("pane")` at draw
+ * time rather than capturing it at boot, which is right for the add-in — there
+ * is only ever one pane — and is the thing that leaks here. `openPane` builds a
+ * fresh body and re-imports the module, so a case can leave a previous pane's
+ * `load()` chain in flight; when it finishes it calls `set` → `draw` → `root()`
+ * and finds the NEXT case's `#pane`, which it then empties and redraws with its
+ * own state. `detachPanes` cannot stop that: it unbinds listeners, and this is
+ * not a listener.
+ *
+ * What that looked like: the storage cases failing about one full-suite run in
+ * five with `expected '' to be 'boxes'`, while the store demonstrably held
+ * `"query":"boxes"` under that deck's own key at the moment of the assertion.
+ * The search box was on screen and empty because a DEAD pane had drawn it.
+ *
+ * Waited on the effect rather than on a delay: the observer resets a short
+ * window on every mutation of the pane, so this returns once the drawing has
+ * actually stopped, however long the boot took on a busy machine. The cap is
+ * there so a case that genuinely never settles fails as itself rather than
+ * hanging the file.
+ */
+function quiet(still = 60, cap = 3000): Promise<void> {
+  const node = document.getElementById("pane");
+  if (!node) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    let timer: ReturnType<typeof setTimeout>;
+    const observer = new MutationObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(done, still);
+    });
+    const hard = setTimeout(done, cap);
+    function done(): void {
+      clearTimeout(timer);
+      clearTimeout(hard);
+      observer.disconnect();
+      resolve();
+    }
+    timer = setTimeout(done, still);
+    observer.observe(node, { childList: true, subtree: true, attributes: true, characterData: true });
+  });
+}
+
+afterEach(async () => {
+  // Cancel a pending preview FIRST. Focusing or hovering a tile arms
+  // `previewAfterDelay`, which is a third of a second — five times `quiet`'s
+  // still-window — so the pane can be perfectly still, this teardown can run,
+  // and the timer then fires into the NEXT case, redrawing its pane from a
+  // dead one's state. The pane binds `mouseleave` on `document` to
+  // `closePreview`, which is exactly the cancel, so this asks it the way a
+  // user leaving the pane would rather than reaching into the module.
+  document.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+  // BEFORE the teardown, so a pane still finishing its boot draws into its own
+  // case's DOM and writes its own case's storage, rather than the next one's.
+  await quiet();
   detachPanes();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("data-theme");
@@ -426,8 +532,12 @@ afterEach(() => {
   host.held = 0;
   host.removed.length = 0;
   host.refuseRemoval = false;
+  host.countRaises = false;
+  host.countCalls = 0;
+  host.missCountAt = 0;
   host.url = undefined;
   host.holdRead = undefined;
+  host.followed = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -486,6 +596,45 @@ describe("what this deck already uses", () => {
     const row = pane.querySelector(".used-row");
     expect(row?.querySelector(".used-name")?.textContent).toBe("One box");
     expect(row?.querySelector(".used-where")?.textContent).toBe("slide 1");
+  });
+
+  it("moves the slide numbers a NEW slide pushed down", async () => {
+    /**
+     * Those numbers are jump controls, so a stale one does not merely read
+     * wrong: `jumpTo` turns it into a position at the last moment and
+     * `jumpOutcome` reports success, because the host really did go to the
+     * slide the row named. The user is sent to somebody else's slide and told
+     * it worked.
+     *
+     * Stood on slide 1 with the gear on "As a new slide", so the new slide
+     * lands at 2 and the stamp that was on 2 is now on 3.
+     */
+    const pkg = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]));
+    const doc = await pkg.doc("ppt/slides/slide2.xml");
+    const shape = doc.getElementsByTagName("p:sp")[0] as unknown as Element;
+    await writeShapeTags(pkg, "ppt/slides/slide2.xml", shape, [
+      [TAG_ELEMENT, "one-box"],
+      [TAG_CATALOGUE, "v1"],
+    ]);
+    deckBase64 = await pkg.toBase64();
+    host.current = { index: 0, id: "256" };
+
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".used-where")?.textContent, "the stamp starts on slide 2").toBe("slide 2");
+
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="target"][data-value="new"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+
+    // One row for `one-box`, now naming both the slide it was on — pushed from
+    // 2 to 3 — and the new slide it just landed on.
+    const where = pane.querySelector(".used-where")?.textContent ?? "";
+    expect(where, "the old use moved with the deck").toContain("3");
+    expect(where, "and the new one is named too").toContain("2");
   });
 
   it("says the deck holds nothing rather than showing an empty space", async () => {
@@ -739,6 +888,35 @@ describe("when it does arrive", () => {
     );
     expect(open.map((head) => head.dataset["key"])).toEqual(["stamps"]);
   });
+
+  it("follows the selection even when the deck could not be read at boot", async () => {
+    // The two are independent: one reads the FILE, the other subscribes to an
+    // EVENT. `load` returned early on a deck read it could not do and took the
+    // subscription with it, so the line under the header stayed on whatever it
+    // said at boot for the rest of the session however much the user clicked —
+    // silently, because nothing on screen tells a line that is right from one
+    // that stopped being asked. A deck read is the likelier of the two to fail:
+    // section 13's sixth open question is how long one takes on a 50 MB deck.
+    indexMode = "ok";
+    deckBase64 = undefined; // so `readDeck` rejects and `deckShape` answers nothing
+    const pane = await openPane();
+    await settle();
+    expect(pane.querySelector("h1")?.textContent, "the library still arrived").toBe("Slide elements");
+    expect(host.followed, "the pane stopped listening for slide changes").toBeGreaterThan(0);
+  });
+
+  it("subscribes exactly once when the deck DID read, because both call sites are the same one", async () => {
+    // The pair: `follow` is idempotent, which is what lets the failure path
+    // above stand beside the call at the end of `load`.
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    await openPane();
+    await waitFor("the boot chain to reach the subscription", () => host.followed > 0);
+    // And no second one after everything else has had a chance to run.
+    await settle();
+    expect(host.followed).toBe(1);
+  });
 });
 
 describe("pressing a tile", () => {
@@ -899,6 +1077,284 @@ describe("what the menu actually inserts", () => {
   });
 });
 
+describe("Escape and the category chip", () => {
+  /**
+   * The chips narrow a search to one category, and they are drawn only while
+   * there IS a search (`render.ts`: `if (state.query.trim() !== "")`). So a
+   * category left picked after the search is gone is a filter with no control
+   * on screen to lift it: the library stays narrowed to one category and
+   * nothing says why.
+   *
+   * `steps.ts` states the opposite rule for this field — not carried across a
+   * cleared search — and the `clear` action already honours it. The Escape
+   * rung did not, which is the half a user actually presses.
+   */
+  async function searched(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = "e";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    return pane;
+  }
+
+  const chips = (pane: HTMLElement): number => pane.querySelectorAll('[data-action="category-chip"]').length;
+  const lit = (pane: HTMLElement): number =>
+    pane.querySelectorAll('[data-action="category-chip"][aria-pressed="true"]').length;
+
+  it("lifts the category filter when Escape clears the search", async () => {
+    const pane = await searched();
+    expect(chips(pane), "the search matches more than one category, or this proves nothing").toBeGreaterThan(1);
+
+    (pane.querySelector('[data-action="category-chip"]') as HTMLElement).click();
+    await settle();
+    expect(lit(pane), "a category is picked").toBe(1);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+
+    // Search again: if the category survived Escape it is still narrowing the
+    // library, with no chip on screen in between to have lifted it.
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = "e";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    expect(lit(pane), "Escape left a category filtering with nothing to unpick it").toBe(0);
+  });
+
+  it("lifts it when the box is backspaced to empty, which no button was pressed for", async () => {
+    // The route Escape and Clear do not cover, and the one a user actually
+    // takes: delete the search rather than press anything. The chips are drawn
+    // only while there is a query, so a category surviving this narrows the
+    // whole library to one category with nothing on screen to say so and no
+    // chip left to unpick it.
+    const pane = await searched();
+    (pane.querySelector('[data-action="category-chip"]') as HTMLElement).click();
+    await settle();
+    expect(lit(pane), "a category is picked").toBe(1);
+
+    // Re-queried each time: every `set` rebuilds the pane's children, so a box
+    // held across a redraw is a detached node whose events reach nothing.
+    const type = async (text: string): Promise<void> => {
+      const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+      box.value = text;
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+      await settle();
+    };
+
+    await type("");
+    // With no query the chips are gone either way, so the evidence is the
+    // library itself: every category the pane knows about is drawn again.
+    const headings = pane.querySelectorAll('[data-action="category"]').length;
+    expect(headings, "the emptied box left the library filtered to one category").toBeGreaterThan(1);
+
+    // And typing again does not bring the old pick back with it.
+    await type("e");
+    expect(lit(pane), "the category outlived the search it was narrowing").toBe(0);
+  });
+});
+
+describe("the keyboard reaching the tiles", () => {
+  /**
+   * `docs/DESIGN.md` section 9 and `docs/MANUAL.md` both promise it: "Tab
+   * reaches the tiles; the arrow keys move between them and Enter or Space
+   * inserts the one you are on."
+   *
+   * None of it worked. Focus landing on a tile calls `set({chosen})`, `set`
+   * redraws, and `render` opens with `root.textContent = ""` — so the button
+   * that had just taken focus was removed from the document and focus fell back
+   * to `<body>`. Tab could not get past the first tile, every arrow key landed
+   * on tile 0 forever because `indexOf(document.activeElement)` was -1, and
+   * Enter had nothing under it to insert.
+   *
+   * `draw` already puts the SEARCH caret back across the same redraw, and for
+   * the same reason. This is that, for everything else.
+   */
+  async function browsing(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    return pane;
+  }
+
+  const focused = (): string | undefined => (document.activeElement as HTMLElement | null)?.dataset["id"];
+
+  it("keeps the focus on a tile that has just taken it", async () => {
+    const pane = await browsing();
+    const first = pane.querySelector<HTMLElement>('[data-action="tile"]')!;
+    const id = first.dataset["id"];
+    first.focus();
+    await settle();
+    expect(focused(), "the redraw threw the focus on the floor").toBe(id);
+  });
+
+  it("moves to the next tile on an arrow, and stays there", async () => {
+    const pane = await browsing();
+    const tiles = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')];
+    expect(tiles.length, "more than one tile, or this case proves nothing").toBeGreaterThan(1);
+    const second = tiles[1]!.dataset["id"];
+    tiles[0]!.focus();
+    await settle();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await settle();
+    expect(focused(), "the arrow moved the focus and the redraw kept it").toBe(second);
+  });
+});
+
+describe("a host that raises after the work landed", () => {
+  /**
+   * `CLAUDE.md`, twice: **a call can raise and still have done the work**, and
+   * **the deck DELTA is the evidence, never the absence of an error**. The
+   * second sentence is the one that gets quoted; this is the first one, and
+   * the pane read the raise instead of the delta in three places.
+   */
+  async function insertOnce(id = "one-box"): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = 1;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    (pane.querySelector(`[data-action="tile"][data-id="${id}"]`) as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    // To the END of the insert. The splice is the third of its awaits, and the
+    // `keep()` that writes the deck's bucket is the last — a helper that
+    // returns between them leaves that write for whatever case runs next.
+    await idle(pane);
+    return pane;
+  }
+
+  it("does not tell the user to delete a slide the removal already took", async () => {
+    // The removal raises and the count says the deck came back to its old
+    // size, which means it landed. Telling the user to delete slide 1 by hand
+    // here is telling them to delete the slide the element is now ON.
+    host.refuseRemoval = true;
+    const pane = await insertOnce();
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "the count says the copy went").not.toContain("by hand");
+    expect(host.removed, "and the removal really was attempted").toContain(0);
+  });
+
+  it("does not say REFUSED, or keep a stale Undo, when the insert may have landed", async () => {
+    /**
+     * The count read straight after `insertSlidesFromBase64` can fail — it is
+     * `withTimeout`, which rejects on the budget as readily as on a host
+     * raise, and `timeout.ts` records this host taking 40 s for a 40 KB read
+     * on a session that had been through a timeout reload.
+     *
+     * Two things were then wrong at once. The pane said "The insert was
+     * refused" with `byHand: false` — nothing changed, nothing to put right —
+     * while the rebuilt slide may be in the deck with the original still
+     * beside it. And the Undo left armed still described the PREVIOUS insert,
+     * so pressing it would put a slide back against a deck this code has
+     * already admitted it cannot measure.
+     */
+    const pane = await insertOnce();
+    expect(pane.querySelector('[data-action="undo"]'), "the first insert armed an undo").not.toBeNull();
+
+    host.countRaises = true;
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the second insert to answer", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("did not confirm"),
+    );
+    await settle();
+    await idle(pane);
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "a call that may have landed was not refused").not.toContain("refused");
+    expect(pane.querySelector('[data-action="undo"]'), "the stale undo is disarmed").toBeNull();
+  });
+
+  it("still calls it refused when nothing was ever asked of the host", async () => {
+    // The pair, and the half that must NOT change: a failure before
+    // `insertSlidesFromBase64` — the markup fetch, the deck read, the splice —
+    // leaves the deck alone, so "refused" is honest and an undo armed by an
+    // earlier insert still describes the deck and has to survive.
+    const pane = await insertOnce();
+    expect(pane.querySelector('[data-action="undo"]')).not.toBeNull();
+
+    // The deck read is the first await of the next insert, and it rejects with
+    // no deck to read.
+    deckBase64 = undefined;
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the second insert to answer", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("refused"),
+    );
+    await idle(pane);
+    expect(pane.querySelector('[data-action="undo"]'), "the earlier insert is still undoable").not.toBeNull();
+  });
+
+  it("still says so when the copy really is still there", async () => {
+    // The pair. `refuseAt` makes `countReaching` answer the deck's own size
+    // rather than the one asked for, so the second read finds `before + 1` and
+    // the copy genuinely did not go.
+    host.refuseRemoval = true;
+    host.missCountAt = 2;
+    const pane = await insertOnce();
+    expect(pane.querySelector(".outcome")?.textContent ?? "").toContain("by hand");
+  });
+});
+
+describe("what the insert target means for a PART", () => {
+  /**
+   * `docs/DESIGN.md` section 5: "A part ignores the insert target: it always
+   * lands on the slide the user is on", and section 7 again: "A part offers
+   * nothing. A stamp or a marker ignores the insert target".
+   *
+   * `offersOtherTarget` in `src/pane/steps.ts` keeps that rule for the
+   * right-click menu — it answers false for anything that is not a whole slide
+   * — and the GEAR was never held to it. So the menu obeyed the record and the
+   * setting did not, which is the half a user actually leaves switched on.
+   *
+   * What it costs is not cosmetic. "As a new slide" makes the splice BLANK the
+   * clone, so a stamp set that way lands alone on an empty slide wedged after
+   * the user's, the user's own slide keeps nothing, and the footer reports
+   * plain success — while the preview card has just promised the element would
+   * land on the shape they have selected.
+   */
+  async function paneWithTargetNew(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="target"][data-value="new"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    return pane;
+  }
+
+  it("splices a part ONTO the slide even with the gear set to a new slide", async () => {
+    const pane = await paneWithTargetNew();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="markeringer-1"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await settle();
+    expect(
+      spliced.map((s) => s.target),
+      "a part ignores the insert target",
+    ).toEqual(["onto"]);
+  });
+
+  it("still honours the gear for a whole-slide element, which is what it is for", async () => {
+    // The pair, so "a part ignores the target" cannot quietly become "nothing
+    // reads the target".
+    const pane = await paneWithTargetNew();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await settle();
+    expect(spliced.map((s) => s.target)).toEqual(["new"]);
+  });
+});
+
 describe("what the pane remembers, and where", () => {
   /**
    * `docs/DESIGN.md` section 4. Two buckets: favourites and the first-run flag
@@ -916,7 +1372,20 @@ describe("what the pane remembers, and where", () => {
     indexMode = "ok";
     const pane = await openPane();
     await settle();
-    return { pane, query: pane.querySelector<HTMLInputElement>('[data-action="search"]')?.value ?? "" };
+    // Waited for, not assumed. `render` draws the search box only inside
+    // `if (step === "browse" && state.library)`, so a pane whose library has
+    // not arrived has no box at all — and the `?? ""` this replaces reported
+    // that as a deck with an empty search. One `setTimeout(0)` is enough for
+    // the boot chain on an idle machine and not on a busy one, which is why
+    // the storage cases failed about one full-suite run in five while the same
+    // file alone passed ten times running.
+    //
+    // Measured 2026-09-22: at the moment of failure localStorage already held
+    // `{"query":"boxes"}` under this deck's own key. Nothing was lost and
+    // nothing was overwritten; the read answered for a box that was not there.
+    await waitFor("the pane to draw its search box", () => pane.querySelector('[data-action="search"]') !== null);
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    return { pane, query: box.value };
   }
 
   /** Type into the open pane's search box. */
@@ -937,6 +1406,24 @@ describe("what the pane remembers, and where", () => {
     // And neither has taken the other's.
     expect((await reopen(A)).query).toBe("boxes");
     expect((await reopen(B)).query).toBe("stamp");
+  });
+
+  it("forgets a search that was cleared, rather than bringing it back", async () => {
+    /**
+     * Every keystroke that FILLED the box called `keep`; neither path that
+     * empties it did. So the deck's bucket kept the old query, and the next
+     * open restored a search the user had explicitly cleared.
+     *
+     * `docs/DESIGN.md` section 4 asks for the search back — it does not ask for
+     * a search the user got rid of back.
+     */
+    await search((await reopen(A)).pane, "boxes");
+    expect((await reopen(A)).query, "the search was remembered").toBe("boxes");
+
+    await reopen(A);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    expect((await reopen(A)).query, "a search cleared with Escape does not come back").toBe("");
   });
 
   it("gives each deck its own tags back", async () => {
@@ -1259,14 +1746,110 @@ describe("moving the last insert to a new slide", () => {
 
   it("stops at the undo when the undo does not work, rather than inserting a second copy", async () => {
     // The one outcome a user asking to MOVE something cannot have meant.
+    //
+    // The undo has to actually fail for this to be about anything, and a host
+    // RAISE is not that: `undo`'s removal half reads the deck's size after the
+    // delete, so a delete that raised and landed is a delete that worked. The
+    // count is what has to miss. `missCountAt` is the undo's own removal read:
+    // the insert this case starts from spends two, and the undo's insert half
+    // spends the third.
     const pane = await inserted(1);
     const before = spliced.length;
     host.refuseRemoval = true;
+    host.missCountAt = host.countCalls + 2;
     pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
     await settle();
     await settle();
     expect(spliced.length).toBe(before);
-    expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not work");
+    // "did not finish" rather than "did not work": this case fails AFTER the
+    // restoring insert landed, so the deck holds the original and the rebuilt
+    // slide both, and a sentence implying nothing happened would be untrue.
+    // The "did not work" wording is still there for a failure before the host
+    // was asked, which the case below holds.
+    expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not finish");
+  });
+
+  it("disarms Undo when the undo itself failed after putting the slide back", async () => {
+    /**
+     * The sibling of `insert()`'s catch, and it was not fixed with it.
+     *
+     * `undo()` puts the user's original slide back FIRST and takes the rebuilt
+     * one away second. If the first half lands and the second does not, the
+     * deck holds both — and the catch said only "Undo did not work", left
+     * `undoable` set and left `state.undo` at 1. So the button was still on
+     * screen, still armed, over a deck that had already changed.
+     *
+     * Pressing it again re-runs the whole plan against that deck: the original
+     * goes in a SECOND time, the rebuilt slide comes out, the counts agree, and
+     * the pane reports "Undone." The user is left with two copies of their own
+     * slide, the element gone, and a success message.
+     *
+     * `insert()`'s own catch already carries the rule — after the host has been
+     * asked, the undo no longer describes the deck and is disarmed rather than
+     * left to act on it.
+     */
+    const pane = await inserted(1);
+    expect(pane.querySelector('[data-action="undo"]'), "the insert armed an undo").not.toBeNull();
+
+    host.refuseRemoval = true;
+    host.missCountAt = host.countCalls + 2;
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    await waitFor("the undo to report", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("Undo did not finish"),
+    );
+    await idle(pane);
+
+    const said = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(said, "and it names where to look, rather than implying nothing happened").toContain("Check the deck");
+    expect(
+      pane.querySelector('[data-action="undo"]'),
+      "Undo stayed armed over a deck the undo had already changed",
+    ).toBeNull();
+  });
+
+  it("keeps Undo armed when the undo failed before the host was asked", async () => {
+    // The pair, and the half that must NOT change. `slideIdAt` answering
+    // undefined stops `undo` before `insertSlidesFromBase64`, so the deck is
+    // untouched and the entry still describes it exactly.
+    const pane = await inserted(1);
+    host.namesSlides = false;
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    await waitFor("the undo to report", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("Undo did not work"),
+    );
+    await idle(pane);
+    expect(
+      pane.querySelector('[data-action="undo"]'),
+      "nothing was asked of the host, so the undo still describes the deck",
+    ).not.toBeNull();
+  });
+
+  it("finishes the move when the delete raised but the deck's own size says it worked", async () => {
+    /**
+     * The pair, and the case the rule above used to swallow. `CLAUDE.md`: a
+     * call can raise and still have done the work, and the delta is the
+     * evidence. `undo`'s INSERT half already worked that way — the count
+     * decides and the raise only supplies the message — and its removal half
+     * tested the raise first, so a delete that raised and landed threw over a
+     * correctly restored deck.
+     *
+     * What that cost is worse than a wrong sentence: "Move to a new slide"
+     * runs this undo and then inserts again, so it stopped after the undo and
+     * the element the user asked to MOVE was gone from the deck altogether,
+     * under a message saying the undo had failed.
+     */
+    const pane = await inserted(1);
+    const before = spliced.length;
+    host.refuseRemoval = true;
+    pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
+    // Waited out to the END of the second insert, not just to the splice it
+    // asks for. The insert writes the deck's bucket when it finishes, and a
+    // case that returns while it is still running leaves that write to land in
+    // the NEXT case — which is how this file's own storage cases started
+    // failing one run in four.
+    await waitFor("the move to ask for its second splice", () => spliced.length > before);
+    await idle(pane);
+    expect(spliced.map((s) => s.target)).toEqual(["onto", "new"]);
   });
 
   it("withdraws the offer once the insert has simply been undone", async () => {
@@ -1319,7 +1902,13 @@ describe("removing a part from every slide it is on", () => {
           markup: el.markup,
         },
         options: { target: "onto", group: true, colours: "deck" },
-        catalogue: { version: "v1", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+        catalogue: {
+          version: "v1",
+          carried: lib.catalogue.carried,
+          theme: lib.catalogue.theme,
+          width: 12192000,
+          height: 6858000,
+        },
         store: (path: string) => Promise.resolve(lib.parts.get(path)),
       });
       deck = report.base64;
@@ -1359,6 +1948,53 @@ describe("removing a part from every slide it is on", () => {
     const pane = await askedToRemove();
     (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
     expect(pane.querySelector(".tile-ask")).toBeNull();
+    expect(host.cycles).toBe(0);
+  });
+
+  it("drops the question when a search takes its tile off the screen", async () => {
+    // The question is drawn ON the tile and nowhere else, and while one is open
+    // the Remove button is suppressed on EVERY tile. So a search that filtered
+    // the tile away left the pane with no question on screen, no Remove button
+    // anywhere, and only Escape — which nothing on screen said — to get out of
+    // it. A question about a tile does not outlive the tile.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask"), "the question is up to begin with").not.toBeNull();
+
+    // Re-queried between the two: every `set` rebuilds the pane's children, so
+    // the box held across a redraw is a detached node whose events reach
+    // nothing.
+    const type = async (text: string): Promise<void> => {
+      const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+      box.value = text;
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+      await settle();
+    };
+    await type("zzzzzz");
+    await type("");
+
+    expect(pane.querySelector(".tile-ask"), "the question survived its tile").toBeNull();
+    // The category is still open, so the tile is back on screen — and it
+    // carries its Remove button again, which is what the open question was
+    // suppressing everywhere.
+    expect(pane.querySelector('[data-action="remove"]'), "no tile offered Remove any more").not.toBeNull();
+    expect(host.cycles, "and nothing was removed on the way").toBe(0);
+  });
+
+  it("drops it when the category it is in is collapsed, which hides the tile too", async () => {
+    // Collapsing hides the question either way, since the question is drawn on
+    // the tile — so the evidence has to be what is left AFTER the category is
+    // opened again: the question gone rather than waiting there, and the Remove
+    // button it was suppressing back on the tile.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask")).not.toBeNull();
+    const stamps = (): HTMLElement | undefined =>
+      [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].find((c) => c.dataset["key"] === "stamps");
+    stamps()?.click();
+    await settle();
+    stamps()?.click();
+    await settle();
+    expect(pane.querySelector(".tile-ask"), "the question was waiting where it was left").toBeNull();
+    expect(pane.querySelector('[data-action="remove"]'), "and it was still suppressing Remove").not.toBeNull();
     expect(host.cycles).toBe(0);
   });
 

@@ -31,7 +31,7 @@ import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, taggable, writeShapeTags } from "../pptx/tags.js";
-import { A_NS, PKG_REL_NS, P_NS, child, children, elements } from "../pptx/xml.js";
+import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
 import { keepOnly } from "./listing.js";
 import { pinColoursInXml, pinSchemeColours } from "./colours.js";
@@ -90,10 +90,25 @@ export interface SpliceRequest {
   /**
    * What the catalogue knows that this element's own entry does not: the
    * version stamped into every inserted shape's tag, the content type of every
-   * carried part, and the library theme's colour map the "As in the library"
-   * setting pins to.
+   * carried part, the library theme's colour map the "As in the library"
+   * setting pins to, and the LIBRARY DECK'S OWN SLIDE SIZE.
+   *
+   * That last one is not decoration. An element's `box` is a fraction of the
+   * library's slide and its shapes carry the library deck's absolute EMU, so
+   * the frame `applyMove` moves them FROM has to be in their own units. It was
+   * computed from the destination's size, which is the same rectangle only when
+   * the two decks happen to be the same size — and then every shape kept its
+   * library coordinates on a slide that is not the library's.
    */
-  catalogue: { version: string; carried: Record<string, string>; theme?: Record<string, string> };
+  catalogue: {
+    version: string;
+    carried: Record<string, string>;
+    theme?: Record<string, string>;
+    /** The library deck's slide width in EMU, which its shapes are drawn in. */
+    width: number;
+    /** The library deck's slide height in EMU. */
+    height: number;
+  };
   store: PartStore;
   /** The selected shape's rectangle, when the host could name one. */
   selection?: Rect;
@@ -190,8 +205,10 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
  * one it follows — and a slide whose layout is not in the deck is a slide
  * PowerPoint has to invent a design for.
  *
- * Placeholders stay and are emptied; everything else goes. So do the notes page
- * and the COMMENTS, and both for the same reason: a new slide carrying the
+ * EMPTY placeholders stay, and the text ones among them are emptied; everything
+ * else goes, including a placeholder the user has filled with something that is
+ * not text. So do the notes page and the COMMENTS, and both for the same
+ * reason: a new slide carrying the
  * previous slide's speaker notes or somebody's review thread is a surprise
  * nobody asked for. The parts they point at are left in the package as orphans,
  * which `scripts/package-integrity.mjs` treats as weight rather than damage and
@@ -209,8 +226,18 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
 async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   const spTree = await spTreeOf(pkg, slidePath);
   for (const shape of slideShapes(spTree)) {
-    const isPlaceholder = placeholderIn(shape);
-    if (!isPlaceholder) {
+    // A placeholder is kept only when it is a `<p:sp>`. That is the spelling of
+    // an EMPTY placeholder — the layout's own prompt box, which a new slide
+    // should keep, whether or not it has a `<p:txBody>` to empty. A placeholder
+    // the user has FILLED is spelled differently: a table is a
+    // `<p:graphicFrame>` and a picture is a `<p:pic>`, both carrying their
+    // `<p:ph>` in their own non-visual properties. They read as placeholders
+    // and have no `<p:txBody>`, so the emptying pass below stepped over them
+    // and left the user's own figures standing on a slide that is meant to be
+    // new. They go with the rest of the content, and PowerPoint draws the
+    // layout's prompt in their place.
+    const keep = placeholderIn(shape) && shape.namespaceURI === P_NS && shape.localName === "sp";
+    if (!keep) {
       shape.parentNode?.removeChild(shape);
       continue;
     }
@@ -236,9 +263,65 @@ async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   const relsPath = Pkg.relsPathFor(slidePath);
   if (!pkg.has(relsPath)) return;
   const rels = await pkg.doc(relsPath);
+  const dropped = new Set<string>();
   for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
     const type = rel.getAttribute("Type") ?? "";
-    if (type === REL_TYPE.notesSlide || COMMENT_REL_TYPES.includes(type)) rel.parentNode?.removeChild(rel);
+    if (type !== REL_TYPE.notesSlide && !COMMENT_REL_TYPES.includes(type)) continue;
+    const id = rel.getAttribute("Id");
+    if (id) dropped.add(id);
+    rel.parentNode?.removeChild(rel);
+  }
+  // And whatever in the slide's own markup NAMED them, because a relationship
+  // is only half of a reference.
+  //
+  // A modern comment is anchored from the slide's extension list as
+  // `<p188:commentRel r:id="…"/>`. Removing the relationship and leaving that
+  // behind is the failure `clone.ts` records as its reason for reading the
+  // markup first, reproduced here by the one pass that deletes without
+  // reading: the anchor names a relationship that is gone, and — worse —
+  // deleting a relationship FREES ITS ID, so the next one this run adds takes
+  // it and the comment anchor comes out of the insert resolving to this
+  // add-in's own tag part.
+  if (dropped.size > 0) await dropReferences(pkg, slidePath, dropped);
+}
+
+/**
+ * Take out every element whose `r:` attribute names one of `ids`.
+ *
+ * Scoped to the relationship ids just removed, so nothing else on the slide is
+ * touched. An emptied `<p:ext>` goes with its last child, and an emptied
+ * `<p:extLst>` with its last `<p:ext>`: both require at least one child, and a
+ * slide carrying an empty one is this add-in producing the schema-invalid
+ * markup it refuses to produce elsewhere.
+ */
+async function dropReferences(pkg: Pkg, slidePath: string, ids: Set<string>): Promise<void> {
+  const doc = await pkg.doc(slidePath);
+  const root = doc.documentElement;
+  if (!root) return;
+  const doomed: Element[] = [];
+  const walk = (node: Element): void => {
+    const named = node.getAttributeNS(R_NS, "id");
+    if (named !== null && named !== "" && ids.has(named)) {
+      doomed.push(node);
+      return;
+    }
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 1) walk(child as Element);
+    }
+  };
+  walk(root);
+  for (const node of doomed) {
+    const parent = node.parentNode as Element | null;
+    parent?.removeChild(node);
+    // Upwards while the removal is what emptied it, and only through the two
+    // elements that may not be empty.
+    let up = parent;
+    while (up && up.namespaceURI === P_NS && (up.localName === "ext" || up.localName === "extLst")) {
+      if (up.firstChild) break;
+      const next = up.parentNode as Element | null;
+      next?.removeChild(up);
+      up = next;
+    }
   }
 }
 
@@ -330,7 +413,20 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   // rotated shape's rotated extent (`docs/DESIGN.md` section 3), which is the
   // ink the user sees. Landing the ink where the rule says is the promise;
   // landing the unrotated frame there would put a 29° stamp off the edge.
-  const from = authored(request.element.box, size);
+  // The element's own frame, in the units its SHAPES are drawn in — the
+  // library deck's, not this deck's. `place` below works in the destination's
+  // units, and `moveFrom` between the two is what rebases the shapes: the
+  // scale is destination-over-library, which is the "scaled to fit"
+  // `docs/DESIGN.md` section 3 promises a deck of another shape.
+  //
+  // Built from the destination size until 2026-09-22, which is identical
+  // whenever the deck matches the library and wrong otherwise. Measured on an
+  // ordinary ten-inch "On-screen Show (16:9)" deck, 9144000 x 5143500 — whose
+  // RATIO matches, so the pane calls it an exact library and shows no
+  // "borrowed" line: the Confidential stamp's right edge landed at 10024466 on
+  // a 9144000-wide slide, and a white box 2.5 inches past it, while
+  // `SpliceReport.landed` reported a rectangle wholly on the slide.
+  const from = authored(request.element.box, { width: request.catalogue.width, height: request.catalogue.height });
   const landed = place({
     box: request.element.box,
     landing: request.element.landing,

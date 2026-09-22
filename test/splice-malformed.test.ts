@@ -63,7 +63,10 @@ const BOX: SpliceElement = {
   },
 };
 
-const CATALOGUE = { version: "test-version", carried: {}, theme: {} };
+// The fixture decks here are the library's own 16:9 size, so the element's
+// shapes and the destination share a coordinate space and the splice's rebase
+// is the identity. `test/splice.test.ts` carries the case where they differ.
+const CATALOGUE = { version: "test-version", carried: {}, theme: {}, width: 12192000, height: 6858000 };
 const store = (): Promise<undefined> => Promise.resolve(undefined);
 
 /** A three-slide fixture deck with named parts replaced, or removed with `null`. */
@@ -299,7 +302,7 @@ describe("what the element itself can be missing", () => {
       slide: 1,
       element: BOX,
       options: { target: "onto", group: true, colours: "library" },
-      catalogue: { version: "v1", carried: {} },
+      catalogue: { version: "v1", carried: {}, width: 12192000, height: 6858000 },
       store,
     });
     expect(report.slidePath).toBeTruthy();

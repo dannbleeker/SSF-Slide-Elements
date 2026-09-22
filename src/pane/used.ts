@@ -113,6 +113,30 @@ export function withInsert(used: DeckUsage[] | undefined, element: string, slide
 }
 
 /**
+ * Every slide number at or after `from` moved by `by`.
+ *
+ * "As a new slide" grows the deck at the insertion point, and everything from
+ * there on is one slide further along than the list says. `withInsert` below
+ * only ever added the row for the element just placed, so every OTHER row kept
+ * a number that had moved underneath it.
+ *
+ * That is not a cosmetic drift, because these numbers are CONTROLS.
+ * `docs/DESIGN.md` section 4 makes each one a jump, and `jumpTo` turns it into
+ * a position at the last moment — so a row still reading "slide 5" sends the
+ * user to whatever slide 5 has become, and `jumpOutcome` calls it a success,
+ * because the host really did go there. The wrong slide, reported as the right
+ * one.
+ *
+ * "Onto this slide" needs none of this: insert then remove is net zero, and the
+ * caller only asks for a shift when the deck actually grew.
+ */
+export function renumbered(used: DeckUsage[] | undefined, from: number, by: number): DeckUsage[] | undefined {
+  if (used === undefined) return undefined;
+  if (by === 0) return used;
+  return used.map((u) => ({ element: u.element, slides: u.slides.map((n) => (n >= from ? n + by : n)) }));
+}
+
+/**
  * The deck's usage with an insert taken back out.
  *
  * Undo puts the user's own slide back, so whatever the insert added to THAT

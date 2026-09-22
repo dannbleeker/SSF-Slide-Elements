@@ -9,7 +9,7 @@ import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
 import { A_NS, P_NS, R_NS, child, children, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
 import { removeElement, slidesHolding } from "../src/core/splice/remove.js";
-import { highestShapeId } from "../src/core/splice/shapes.js";
+import { highestShapeId, slideShapes, unionOf } from "../src/core/splice/shapes.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -105,8 +105,23 @@ const store = (path: string): Promise<Uint8Array | string | undefined> => Promis
 
 const CATALOGUE = { version: "test-version", carried: {} as Record<string, string> };
 
-function catalogueFor(): { version: string; carried: Record<string, string>; theme: Record<string, string> } {
-  return { version: CATALOGUE.version, carried: library.catalogue.carried, theme: library.catalogue.theme };
+function catalogueFor(): {
+  version: string;
+  carried: Record<string, string>;
+  theme: Record<string, string>;
+  width: number;
+  height: number;
+} {
+  return {
+    version: CATALOGUE.version,
+    carried: library.catalogue.carried,
+    theme: library.catalogue.theme,
+    // The LIBRARY deck's own slide, which is the space its elements' shapes are
+    // drawn in. Taken from the harvested catalogue rather than written out, so
+    // a case that harvests the 4:3 deck gets 4:3 here without saying so twice.
+    width: library.catalogue.width,
+    height: library.catalogue.height,
+  };
 }
 
 async function spliceOne(
@@ -869,6 +884,189 @@ describe("where an element lands, through the whole splice", () => {
   });
 });
 
+describe("a slide whose placeholders hold something other than text", () => {
+  /**
+   * `blank()` implements "placeholders stay and are emptied, everything else
+   * goes". It only knows how to empty a `<p:sp>` with a `<p:txBody>`.
+   *
+   * A content placeholder the user dropped a TABLE into is a
+   * `<p:graphicFrame>`, and a picture placeholder is a `<p:pic>`. Both carry
+   * their `<p:ph>` inside their own non-visual properties, so `placeholderIn`
+   * calls them placeholders; neither has a `<p:txBody>`, so the emptying loop
+   * passed over them and left them whole — on a slide that is supposed to be
+   * new.
+   *
+   * Both shipped routes into `target: "new"` reach it: the tile menu's "Insert
+   * as a new slide", and the footer's "Move to a new slide" — which is OFFERED
+   * on `held > 0`, the very condition such content creates.
+   */
+  const SECRET = "HEMMELIG OMSAETNING";
+  const HEADING = "The user's own heading";
+
+  async function deckWithRichPlaceholders(): Promise<Uint8Array> {
+    // A TITLE placeholder, because the pair of this is that an ordinary text
+    // placeholder is still emptied rather than removed.
+    const pkg = await Pkg.open(
+      await makeDeck([
+        { paragraphs: [["First"]] },
+        { paragraphs: [["Second"]], title: HEADING },
+        { paragraphs: [["Third"]] },
+      ]),
+    );
+    const path = (await pkg.slidePaths())[1] as string;
+    const doc = await pkg.doc(path);
+    const cSld = child(doc.documentElement, P_NS, "cSld");
+    const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
+    if (!spTree) throw new Error("the fixture slide has no spTree");
+
+    const frame = parseXml(
+      `<p:graphicFrame xmlns:p="${P_NS}" xmlns:a="${A_NS}">` +
+        `<p:nvGraphicFramePr><p:cNvPr id="70" name="Brugerens tabel"/><p:cNvGraphicFramePr/>` +
+        `<p:nvPr><p:ph idx="1"/></p:nvPr></p:nvGraphicFramePr>` +
+        `<p:xfrm><a:off x="838200" y="1825625"/><a:ext cx="10515600" cy="2000000"/></p:xfrm>` +
+        `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">` +
+        `<a:tbl><a:tr h="370840"><a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>${SECRET}</a:t></a:r></a:p>` +
+        `</a:txBody></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame>`,
+    ).documentElement;
+    const picture = parseXml(
+      `<p:pic xmlns:p="${P_NS}" xmlns:a="${A_NS}">` +
+        `<p:nvPicPr><p:cNvPr id="71" name="Brugerens billede"/><p:cNvPicPr/>` +
+        `<p:nvPr><p:ph type="pic" idx="2"/></p:nvPr></p:nvPicPr>` +
+        `<p:blipFill><a:blip/><a:stretch/></p:blipFill>` +
+        `<p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="100" cy="100"/></a:xfrm></p:spPr></p:pic>`,
+    ).documentElement;
+    spTree.appendChild(doc.importNode(frame, true));
+    spTree.appendChild(doc.importNode(picture, true));
+    return pkg.toBytes();
+  }
+
+  it("does not carry the user's table onto a slide that is meant to be new", async () => {
+    const report = await splice({
+      deck: await deckWithRichPlaceholders(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const xml = serializeXml(await out.doc(report.slidePath));
+    expect(xml, "the user's own figures arrived on the new slide").not.toContain(SECRET);
+  });
+
+  it("does not carry the user's picture placeholder either", async () => {
+    const report = await splice({
+      deck: await deckWithRichPlaceholders(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const xml = serializeXml(await out.doc(report.slidePath));
+    expect(xml).not.toContain("Brugerens billede");
+  });
+
+  it("still empties an ordinary text placeholder rather than removing it", async () => {
+    // The pair: "everything that is not a text placeholder goes" must not
+    // become "every placeholder goes". A body placeholder is what the layout
+    // draws its prompt into, and the new slide is meant to look like the
+    // layout.
+    const report = await splice({
+      deck: await deckWithRichPlaceholders(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const xml = serializeXml(await out.doc(report.slidePath));
+    expect(xml, "the title placeholder went with the two that hold content").toContain('<p:ph type="title"');
+    expect(xml, "and it arrived emptied, not carrying the old slide's heading").not.toContain(HEADING);
+  });
+});
+
+describe("a deck whose slide size is not the library's", () => {
+  /**
+   * `docs/DESIGN.md` section 3: a deck of another shape "borrows the nearest
+   * library, scaled to fit". The catalogue's boxes are FRACTIONS of the library
+   * slide, and the element's shapes carry the library deck's ABSOLUTE EMU — so
+   * the frame those shapes are moved from has to be in their own units. It was
+   * built from the DESTINATION size instead, which is the same rectangle only
+   * when the two decks happen to be the same size.
+   *
+   * 9144000 x 5143500 is the ordinary ten-inch "On-screen Show (16:9)". Its
+   * RATIO is exactly 16:9, so `libraryFor` calls it an exact match and the pane
+   * shows no "borrowed" line at all — the case least likely to be noticed and
+   * most likely to be met.
+   */
+  const SMALL = { cx: 9144000, cy: 5143500 };
+
+  async function smallDeck(): Promise<Uint8Array> {
+    return makeDeck(
+      [{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }, { paragraphs: [["Third"]] }],
+      {},
+      SMALL,
+    );
+  }
+
+  async function landedShapes(
+    base64: string,
+    slidePath: string,
+  ): Promise<{ x: number; y: number; cx: number; cy: number }> {
+    const out = await Pkg.open(base64);
+    const doc = await out.doc(slidePath);
+    const cSld = child(doc.documentElement, P_NS, "cSld");
+    const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
+    if (!spTree) throw new Error("the rebuilt slide has no shape tree");
+    const union = unionOf(slideShapes(spTree));
+    if (!union) throw new Error("nothing on the rebuilt slide has a frame");
+    return union;
+  }
+
+  for (const id of ["confidential", "hvid-kasse-2x1-vertikale"]) {
+    it(`${id}: the shapes land on the slide, not off the edge of it`, async () => {
+      const report = await splice({
+        deck: await smallDeck(),
+        slide: 1,
+        element: asSplice(element(id)),
+        options: { target: "onto", group: false, colours: "deck" },
+        catalogue: catalogueFor(),
+        store,
+      });
+      const union = await landedShapes(report.base64, report.slidePath);
+      expect(union.x, "left edge").toBeGreaterThanOrEqual(0);
+      expect(union.y, "top edge").toBeGreaterThanOrEqual(0);
+      expect(union.x + union.cx, "right edge past the slide").toBeLessThanOrEqual(SMALL.cx);
+      expect(union.y + union.cy, "bottom edge past the slide").toBeLessThanOrEqual(SMALL.cy);
+    });
+  }
+
+  it("reports a landing the file actually has", async () => {
+    // `SpliceReport.landed` is what the pane's card draws in grey and what the
+    // footer's sentence is built from. A report that disagrees with the file is
+    // the pane telling the user where the element is not.
+    const report = await splice({
+      deck: await smallDeck(),
+      slide: 1,
+      element: asSplice(element("confidential")),
+      options: { target: "onto", group: false, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const union = await landedShapes(report.base64, report.slidePath);
+    // Generous: the reported rectangle is the element's BOX, which for a
+    // rotated stamp is its turned bounding box rather than the raw union of its
+    // shapes. Being on the same part of the slide is the claim here, not being
+    // identical to the EMU.
+    const near = (a: number, b: number): boolean => Math.abs(a - b) < SMALL.cx * 0.1;
+    expect(near(union.x, report.landed.x), `x ${union.x} vs reported ${report.landed.x}`).toBe(true);
+    expect(near(union.y, report.landed.y), `y ${union.y} vs reported ${report.landed.y}`).toBe(true);
+  });
+});
+
 describe("a slide that carries a comment", () => {
   /**
    * A modern comment as PowerPoint for the web writes one.
@@ -926,6 +1124,91 @@ describe("a slide that carries a comment", () => {
       store,
     });
     expect(await commentsOn(report.base64, report.slidePath)).toHaveLength(1);
+  });
+
+  /**
+   * A CLASSIC comment, as PowerPoint 2016 and 2019 write one — and as any deck
+   * not yet upgraded to modern comments still carries.
+   *
+   * The difference that matters is not the part name but the ANCHOR: a modern
+   * comment is named from the slide's own extension list, and a classic one is
+   * named by nothing at all. It hangs off the slide under the relationship and
+   * that is the whole of the link. `cloneSlide`'s drop pass removes what the
+   * markup does not name, so the spelling the project already knows about in
+   * `COMMENT_REL_TYPES` and in `test/probe-deck.test.ts` is exactly the one
+   * that pass cannot see.
+   */
+  const CLASSIC_COMMENT_REL = `${R_NS}/comments`;
+  const CLASSIC_COMMENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml";
+
+  async function deckWithClassicComment(): Promise<Uint8Array> {
+    const pkg = await Pkg.open(await destination());
+    const slide = (await pkg.slidePaths())[1] as string;
+    const part = "ppt/comments/comment2.xml";
+    pkg.setText(part, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:cmLst xmlns:p="${P_NS}"/>`);
+    await pkg.addContentTypeOverride(`/${part}`, CLASSIC_COMMENT_TYPE);
+    // The relationship and nothing else. No anchor: that is what makes it
+    // classic, and what made it invisible to the pass that decides what stays.
+    await pkg.addRel(slide, CLASSIC_COMMENT_REL, "../comments/comment2.xml");
+    return pkg.toBytes();
+  }
+
+  it("keeps a CLASSIC comment when the slide is rebuilt, though nothing in the markup names it", async () => {
+    // The same rule as the modern case above and the same stakes, reached by
+    // the spelling the drop pass cannot see. Rebuilding the user's slide is
+    // not a reason to lose their reviewer's thread, whichever PowerPoint wrote
+    // it.
+    const report = await splice({
+      deck: await deckWithClassicComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toHaveLength(1);
+  });
+
+  it("takes a classic comment away for a NEW slide, like the modern one", async () => {
+    // The pair, so "keep classic comments" cannot quietly become "keep them
+    // everywhere": a slide that is meant to be new must not arrive carrying
+    // somebody's review thread.
+    const report = await splice({
+      deck: await deckWithClassicComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toEqual([]);
+  });
+
+  it("takes the comment ANCHOR with the relationship, so a new slide names nothing that is gone", async () => {
+    /**
+     * `blank()` removes the comment RELATIONSHIP and leaves the slide's own
+     * `<p188:commentRel r:id="…"/>` behind, which is the half nobody sees.
+     *
+     * Two things follow, and the second is worse. The anchor names a
+     * relationship that is not there; and deleting a relationship FREES ITS
+     * ID, so the next one this run adds — a tag part, a carried picture —
+     * takes it, and the comment anchor comes out of the insert resolving to
+     * somebody else's part. `clone.ts` records that exact failure as the
+     * reason its own drop pass reads the markup first; `blank()` deletes
+     * without reading it.
+     */
+    const report = await splice({
+      deck: await deckWithComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const doc = await out.doc(report.slidePath);
+    const anchors = elements(doc, "http://schemas.microsoft.com/office/powerpoint/2018/8/main", "commentRel");
+    expect(anchors, "a new slide carries no comment anchor").toHaveLength(0);
   });
 
   it("drops it for a NEW slide, so a review thread is not duplicated", async () => {
@@ -1049,7 +1332,13 @@ describe("the sweep the one above leaves out", () => {
             slide: 1,
             element: asSplice(el),
             options,
-            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            catalogue: {
+              version: "sweep",
+              carried: lib.catalogue.carried,
+              theme: lib.catalogue.theme,
+              width: 12192000,
+              height: 6858000,
+            },
             store: (path) => Promise.resolve(lib.parts.get(path)),
           });
           const out = await Pkg.open(report.base64);
@@ -1127,7 +1416,13 @@ describe("what the user does to the element afterwards", () => {
             slide: 1,
             element: asSplice(el),
             options: { target: "onto", group: true, colours: "deck" },
-            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            catalogue: {
+              version: "sweep",
+              carried: lib.catalogue.carried,
+              theme: lib.catalogue.theme,
+              width: 12192000,
+              height: 6858000,
+            },
             store: (path) => Promise.resolve(lib.parts.get(path)),
           });
 

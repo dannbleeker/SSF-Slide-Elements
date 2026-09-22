@@ -833,8 +833,12 @@ export function codeMask(text) {
       at = end === -1 ? text.length : end;
       continue;
     }
-    if (two === "/*") {
-      const end = text.indexOf("*/", at + 2);
+    // Split, both of them: spelled whole they are a `/*` and a `*/` in the
+    // source, so the naive stripper in `without-prose.mjs` reads them as a
+    // comment and eats the 24 characters between — inside the one function in
+    // this repo that gets string literals right.
+    if (two === "/" + "*") {
+      const end = text.indexOf("*" + "/", at + 2);
       const stop = end === -1 ? text.length : end + 2;
       blank(at, stop);
       at = stop;
@@ -1442,6 +1446,8 @@ function main() {
   const typeKilled = [];
   const out = join(tmpdir(), "ssf-mutants-report.json");
   let done = 0;
+  /** Mutants the suite rejected, counted so the run can check its own sums. */
+  let killed = 0;
   for (const { file, text, mutations, tests } of plan) {
     if (!tests.length) console.log(`\nmutants: NOTHING IMPORTS ${file} — every mutation of it will survive`);
     for (const m of mutations) {
@@ -1460,12 +1466,29 @@ function main() {
         continue;
       }
       if (verdict === "killed") {
+        killed += 1;
         if (done % 10 === 0) console.log(`mutants: ${done}/${total}, ${survivors.length} surviving so far`);
         continue;
       }
       // A survivor of the fast tier is not a survivor yet. Re-run it against
-      // everything before it goes in the report.
-      if (tryMutation(file, text, mutated, null, out) === "survived") {
+      // everything before it goes in the report — and bucket EVERY answer that
+      // run can give, not just the one this was interested in.
+      const second = afterWholeSuite(tryMutation(file, text, mutated, null, out));
+      if (second === "hung") {
+        hung.push(where);
+        console.log(`mutants: DID NOT TERMINATE  ${where}`);
+        continue;
+      }
+      if (second === "inconclusive") {
+        unclear.push(where);
+        console.log(`mutants: INCONCLUSIVE  ${where}`);
+        continue;
+      }
+      if (second === "killed") {
+        killed += 1;
+        continue;
+      }
+      {
         // The suite is not the only thing that can reject a mutation, and until
         // today this script said otherwise. `tsc` is asked LAST, only about a
         // mutant that has already survived everything else, so it costs a few
@@ -1483,6 +1506,16 @@ function main() {
         appendFileSync(report, `${where}\n`);
       }
     }
+  }
+  // Every mutation has to have landed somewhere. This is the arithmetic that
+  // stopped adding up while two of the second tier's answers fell through, and
+  // a sweep whose numbers do not reconcile is one reporting a cleaner suite
+  // than it measured.
+  const accounted = killed + survivors.length + unclear.length + hung.length + typeKilled.length;
+  if (accounted !== done) {
+    console.log(
+      `\nmutants: ${done} mutations ran but only ${accounted} were accounted for — ${done - accounted} went in no bucket. This is a bug in this script, not a finding about the suite.`,
+    );
   }
   if (hung.length) {
     console.log(`\nmutants: ${hung.length} DID NOT TERMINATE — the suite noticed by never finishing:`);
@@ -1517,6 +1550,37 @@ function main() {
   console.log(
     "\nEach is either a case the suite is missing or a line that does not matter. Both are findings; the second gets deleted.",
   );
+}
+
+/**
+ * What a mutant's SECOND run means, as a bucket name.
+ *
+ * The first tier branches on all four verdicts. The second did not: it was
+ * `if (tryMutation(…) === "survived")` with no `else`, so only two of the four
+ * answers went anywhere. A `"killed"` falling through is right — the whole
+ * suite really did kill it, and it is not a survivor — but `"hung"` and
+ * `"inconclusive"` fell through with it, into no bucket, no console line and
+ * no line in the survivors file. The mutant vanished, and the totals stopped
+ * adding up to `total`.
+ *
+ * Which is the one thing this script must not do. Its header promises "four
+ * outcomes, then, not two: killed, survived, did not terminate, and type-killed
+ * — plus inconclusive for a run that answered nothing at all", and a sweep that
+ * silently drops the answers it finds hardest is a sweep reporting a cleaner
+ * suite than it measured.
+ *
+ * A function rather than an `if` chain inside `main`, because `main` is a
+ * thousand lines of run loop that no case can reach, and this is the decision
+ * worth holding.
+ *
+ * @param {"survived" | "killed" | "hung" | "inconclusive"} verdict
+ * @returns {"survived" | "killed" | "hung" | "inconclusive"}
+ */
+export function afterWholeSuite(verdict) {
+  if (verdict === "hung") return "hung";
+  if (verdict === "inconclusive") return "inconclusive";
+  if (verdict === "survived") return "survived";
+  return "killed";
 }
 
 /**

@@ -93,6 +93,8 @@ describe("painting out the neighbours", () => {
 
 describe("masking a rotated part", () => {
   it("gives the frame's four corners turned about its centre", () => {
+    // No page given, so this is the square-page case and a fraction-square is
+    // a real square. The case below is the one that carries a real page.
     const square = { x: 0.25, y: 0.25, w: 0.5, h: 0.5 };
     const turned = rotatedCorners(square, 90);
     // a square turned a quarter turn is the same square, corners relabelled
@@ -123,6 +125,45 @@ describe("masking a rotated part", () => {
     // the corner that was top-left (0, 0.4) swings to the top of the turned box
     expect(topLeft!.x).toBeCloseTo(0.6, 6);
     expect(topLeft!.y).toBeCloseTo(0, 6);
+  });
+
+  it("turns in PHYSICAL space, not in fractions of the page", () => {
+    /**
+     * The geometry here is fractions of the page, so an offset `(dx, dy)` is
+     * `dx` of the WIDTH and `dy` of the HEIGHT — different distances on any
+     * page that is not square, which is every page a print has. Turning that
+     * pair with a plain rotation matrix is a shear.
+     *
+     * Measured 2026-09-22 on the 16:9 print's 960x540pt page, against the two
+     * stamps the library actually carries: a 211x38pt frame at -29° had every
+     * corner 23.5pt from where a rotated rectangle's corner belongs — more
+     * than half that frame's height, against a `MASK_AIR` worth under 4pt. The
+     * mask was cutting into the stamps it exists to frame.
+     *
+     * A fraction-SQUARE is the case that says it plainly: 0.2 by 0.2 is
+     * physically wide, not square, so a quarter turn has to come back 0.2/a
+     * wide and 0.2*a tall. Under the old spelling it came back 0.2 by 0.2, its
+     * own shape, which is only true on a square page.
+     */
+    const a = 16 / 9;
+    const frame = { x: 0.4, y: 0.4, w: 0.2, h: 0.2 };
+    const turned = rotatedCorners(frame, 90, a);
+    const xs = turned.map((p) => p.x);
+    const ys = turned.map((p) => p.y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(0.2 / a, 6);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(0.2 * a, 6);
+    // Turned about its own centre, so the centre does not move.
+    expect((Math.max(...xs) + Math.min(...xs)) / 2).toBeCloseTo(0.5, 6);
+    expect((Math.max(...ys) + Math.min(...ys)) / 2).toBeCloseTo(0.5, 6);
+  });
+
+  it("is the plain rotation when the page IS square, so the default cannot drift", () => {
+    // The pair: `aspect` defaults to 1, and at 1 the new spelling has to agree
+    // with the old one exactly, or every caller that does not pass a page has
+    // quietly changed.
+    const frame = { x: 0.2, y: 0.3, w: 0.4, h: 0.2 };
+    const at = (p: Point) => [Math.round(p.x * 1e6) / 1e6, Math.round(p.y * 1e6) / 1e6];
+    expect(rotatedCorners(frame, 37).map(at)).toEqual(rotatedCorners(frame, 37, 1).map(at));
   });
 
   it("is absent when the element is not rotated, because the crop is the frame", () => {
@@ -168,13 +209,16 @@ describe("intersect", () => {
 
 describe("the committed catalogue", () => {
   const catalogue = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {
-    sizes: Record<string, { elements: Element[] }>;
+    sizes: Record<string, { elements: Element[]; width: number; height: number }>;
   };
+
+  /** The page's own proportions, which is what `build-previews.mjs` passes. */
+  const aspectOf = (size: "16:9" | "4:3"): number => catalogue.sizes[size]!.width / catalogue.sizes[size]!.height;
 
   for (const size of ["16:9", "4:3"] as const) {
     it(`${size}: every element gets a cut that stays on its page`, () => {
       const elements = catalogue.sizes[size]!.elements;
-      const cuts = cutsFor(elements);
+      const cuts = cutsFor(elements, undefined, aspectOf(size));
       expect(cuts).toHaveLength(elements.length);
       for (const cut of cuts) {
         expect(cut.page).toBeGreaterThanOrEqual(1);
@@ -188,13 +232,46 @@ describe("the committed catalogue", () => {
     });
 
     it(`${size}: only the two rotated stamps are masked`, () => {
-      const masked = cutsFor(catalogue.sizes[size]!.elements).filter((c) => c.mask);
+      const masked = cutsFor(catalogue.sizes[size]!.elements, undefined, aspectOf(size)).filter((c) => c.mask);
       expect(masked.map((c) => c.id).sort()).toEqual(["confidential", "draft"]);
+    });
+
+    it(`${size}: a rotated stamp's mask is the size a turned rectangle actually is`, () => {
+      /**
+       * Derived independently of `rotatedCorners`, so this cannot agree with it
+       * by sharing its arithmetic: a `w` by `h` rectangle turned by `d` has a
+       * bounding box of `|w·cos d| + |h·sin d|` by `|w·sin d| + |h·cos d|`.
+       * Everything is taken to EMU on the page first, because that is the space
+       * the rotation is real in — which is the whole of the defect this pins.
+       *
+       * Under the fraction-space spelling this file used to hold, the 16:9
+       * stamps came out with every corner 23.5pt from where a turned rectangle
+       * puts one, on frames 38pt tall. The mask was cutting into the stamp.
+       */
+      const W = catalogue.sizes[size]!.width;
+      const H = catalogue.sizes[size]!.height;
+      const elements = catalogue.sizes[size]!.elements;
+      const masked = cutsFor(elements, undefined, aspectOf(size)).filter((c) => c.mask);
+      expect(masked.length, "the library's two rotated stamps").toBe(2);
+
+      for (const cut of masked) {
+        const source = elements.find((e) => e.id === cut.id)!;
+        const turn = source.rotation!;
+        const frame = withAir(turn.frame, 0.1);
+        const t = (turn.deg * Math.PI) / 180;
+        const wantW = Math.abs(frame.w * W * Math.cos(t)) + Math.abs(frame.h * H * Math.sin(t));
+        const wantH = Math.abs(frame.w * W * Math.sin(t)) + Math.abs(frame.h * H * Math.cos(t));
+
+        const xs = cut.mask!.map((p) => p.x * W);
+        const ys = cut.mask!.map((p) => p.y * H);
+        expect(Math.max(...xs) - Math.min(...xs), `${cut.id} width`).toBeCloseTo(wantW, 3);
+        expect(Math.max(...ys) - Math.min(...ys), `${cut.id} height`).toBeCloseTo(wantH, 3);
+      }
     });
 
     it(`${size}: the parts that share a collection slide paint each other out`, () => {
       const elements = catalogue.sizes[size]!.elements;
-      const cuts = cutsFor(elements);
+      const cuts = cutsFor(elements, undefined, aspectOf(size));
       const parts = elements.filter((e) => e.kind === "part");
       // Eleven since 2026-09-16: the ten Flowchart shapes were parts too, and
       // their slide went with the category.

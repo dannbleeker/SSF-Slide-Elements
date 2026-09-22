@@ -179,10 +179,17 @@ export function atCursor(rect: Rect, slide: SlideSize, selection?: Rect): Rect {
  * like a pen mark and turns into a blob.
  *
  * With nothing selected there is nothing to wrap, and this is the same rule as
- * `atCursor`.
+ * `atCursor`. A selection with no AREA is the same case: a straight connector
+ * is stored with one side of its frame zero — a horizontal line is
+ * `<a:ext cx="…" cy="0"/>`, and the library's own decks are full of them — and
+ * wrapping one produced a marker zero EMU tall, which is a marker the user
+ * cannot see and cannot easily select to delete. It is centred on the line at
+ * its authored size instead, which is what the too-big branch below already
+ * does for the other end of the same scale.
  */
 export function wrapping(rect: Rect, slide: SlideSize, selection?: Rect): Rect {
   if (!selection) return atCursor(rect, slide);
+  if (!(selection.cx > 0 && selection.cy > 0)) return ontoSlide(centredOn(rect, centreOf(selection)), slide);
   const share = (selection.cx * selection.cy) / (slide.width * slide.height);
   if (share > WRAP_LIMIT) return ontoSlide(centredOn(rect, centreOf(selection)), slide);
   const air = { x: Math.round(selection.cx * WRAP_AIR), y: Math.round(selection.cy * WRAP_AIR) };
@@ -246,7 +253,24 @@ export function underTitle(rect: Rect, slide: SlideSize, frames: Frames): Rect {
     rect.x + rect.cx <= room.x + room.cx &&
     rect.y + rect.cy <= room.y + room.cy;
   if (inside) return rect;
-  return ontoSlide(fitInside(rect, room), slide);
+  // Moved into the room as well as scaled to it. `fitInside` only ever
+  // RESIZES — it hands a rectangle back untouched when it already fits — so an
+  // element small enough for the room but sitting too high fell straight
+  // through this line: not `inside`, unchanged by `fitInside`, and then
+  // clamped by `ontoSlide` to the SLIDE, which it was already within. It
+  // stayed on top of the title, which is the one outcome this rule is named
+  // for.
+  //
+  // The taller-title case hid it, because there the element is too BIG for the
+  // room and `fitInside` has something to do — and when it scales, it centres
+  // within the room, so this nudge is a no-op for it.
+  const fitted = fitInside(rect, room);
+  const nudged: Rect = {
+    ...fitted,
+    x: Math.min(Math.max(fitted.x, room.x), room.x + room.cx - fitted.cx),
+    y: Math.min(Math.max(fitted.y, room.y), room.y + room.cy - fitted.cy),
+  };
+  return ontoSlide(nudged, slide);
 }
 
 /** Which rule an element's landing takes, before any of them is applied. */

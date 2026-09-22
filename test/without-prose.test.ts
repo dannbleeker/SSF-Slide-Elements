@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 // @ts-expect-error — plain .mjs with no types, shared with the scripts.
 import * as prose from "../scripts/without-prose.mjs";
+// @ts-expect-error — plain .mjs with no types, and the one masker here that
+// knows string literals from comments.
+import { codeMask as mutantMask } from "../scripts/mutants.mjs";
 
 const { withoutHashComments, withoutTsComments, withoutTsProse, withoutTsText, withoutXmlComments } = prose;
 
@@ -229,6 +232,50 @@ describe("no file in this repo trips that limit", () => {
       e.isDirectory() ? sourceFiles(join(dir, e.name)) : /\.(ts|mjs)$/.test(e.name) ? [join(dir, e.name)] : [],
     );
   }
+
+  /**
+   * The file whose SUBJECT is the limitation, and the only one allowed to trip
+   * it. Its cases build `const OPEN = "/*";` on purpose, to pin the behaviour
+   * the sweep below licenses; a sweep that failed on them would be failing on
+   * its own fixture.
+   */
+  const CONSTRUCTS_THE_CASE = ["test/without-prose.test.ts"];
+
+  it("eats no CODE, which is what the heading above claims", () => {
+    /**
+     * The declaration sweep below is not that claim. It checks that every
+     * `export … NAME` survives the stripper — and a file can lose an entire
+     * function BODY without losing a declaration, because a body has none.
+     *
+     * Which is what was happening. `scripts/pane-shots.mjs:704` read
+     * `page.route("https://appsforoffice.microsoft.com/**", …)`, and that `/*`
+     * opened a block comment for the stripper's regex. It closed at the next
+     * `*&#47;` 44 lines down, so the abort, the `goto`, the whole `evaluate`
+     * that renders the pane and the fixture-claims check were invisible to
+     * every guard reading this file through it — `dead-exports` among them.
+     * 533 characters. `scripts/mutants.mjs` lost 24 more the same way, inside
+     * `codeMask`, which is the one function here that gets literals right.
+     *
+     * `codeMask` is the oracle because it is a real masker: it knows comments,
+     * strings, template literals and regex literals apart, and `mutants.mjs`
+     * depends on it being right. So the claim is checkable — whatever the
+     * naive stripper deletes must be blank in the mask.
+     */
+    const files = ["src", "scripts", "test"].flatMap(sourceFiles);
+    const eaten: string[] = [];
+    for (const file of files) {
+      if (CONSTRUCTS_THE_CASE.includes(file.split(sep).join("/"))) continue;
+      const src = readFileSync(file, "utf8");
+      const mask = mutantMask(src) as string;
+      for (const m of src.matchAll(/\/\*[\s\S]*?\*\//g)) {
+        const code = [...mask.slice(m.index, m.index + m[0].length)].filter((c) => c.trim() !== "").length;
+        if (code > 0) {
+          eaten.push(`${file}:${src.slice(0, m.index).split("\n").length} — ${code} characters of code`);
+        }
+      }
+    }
+    expect(eaten, "the stripper ate code, so every guard reading that file is reading something else").toEqual([]);
+  });
 
   it("keeps every declaration a file makes outside a comment", () => {
     const files = ["src", "scripts", "test"].flatMap(sourceFiles);

@@ -656,6 +656,26 @@ top hit.
   `/` focuses search, Esc closes a menu, the preview or the search in that
   order. Focus draws the same ring as hover. A live region announces every
   outcome.
+
+  **None of it worked until 2026-09-22**, and the reason is a property of the
+  pane worth stating rather than a slip: `render` empties `#pane` and builds
+  fresh elements, so a redraw destroys whatever holds the focus. Focus landing
+  on a tile marks it chosen, marking it chosen redraws, and the redraw removed
+  the button that had just been reached — so Tab could not get past the first
+  tile and every arrow after that landed on tile 0, because the pane's own
+  `indexOf(document.activeElement)` was -1. `draw` restores the focus across
+  the render now, the way it already restored the search caret.
+
+  **And `draw()` calling `focus()` re-enters the pane's own focus handling.**
+  `focus()` raises `focusin`, which is the same event a user arriving at a tile
+  raises, so the restore looked like a fresh focus: it marked the tile chosen
+  (a redraw, calling itself) and armed the preview's third-of-a-second timer on
+  every redraw that had a tile focused. That second half is the one that hid:
+  it turned a one-shot into a cadence, and a late draw painted over a completed
+  insert — outcome, Undo and all — while the insert itself had plainly run. So
+  the restore is flagged and the focus handler returns under it. Anything that
+  focuses on render has to account for this, or it arms timers and redraws in a
+  loop.
 - **Touch**: the first tap on a tile shows the preview, the second inserts;
   nothing depends on hover.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
@@ -890,6 +910,48 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   and was wrong for "as a new slide": the first round put the same comment on
   two slides. Section 6's new-slide rule now drops comments the way it already
   dropped notes, measured again afterwards on the same host.
+
+  **Both halves of that rule were spelling-dependent, and both were wrong for
+  the other spelling** (found 2026-09-22 by reading, and reproduced in
+  `test/splice.test.ts` before either was changed). The clone kept whatever the
+  MARKUP named, and only a modern comment is named there:
+
+  - A **classic** `ppt/comments/commentN.xml`, which PowerPoint 2016 and 2019
+    write and which any deck not yet upgraded still carries, is named by its
+    relationship alone. So the rebuild dropped it, and the sentence above —
+    the one thing this add-in must not get wrong — did not hold for it. The
+    clone now keeps comment relationships of both spellings and leaves the
+    decision about a NEW slide to the one place that makes it.
+  - The new-slide rule removed the comment RELATIONSHIP and left the modern
+    comment's anchor in the slide's extension list. That anchor then named a
+    relationship that was gone — and, because deleting a relationship frees its
+    id, the next one the insert added took it, so the anchor came out resolving
+    to this add-in's own tag part. `blank()` now takes the reference out with
+    the relationship, which is the discipline `clone.ts` already applied and
+    the one place that deleted without it.
+
+  Neither is measured on a host: this container has no PowerPoint. Both are
+  held by the package the engine hands over, which is what the host reads.
+- **"As a new slide" emptied only the placeholders it knew how to empty, and
+  carried the rest of the user's content over** (found 2026-09-22 by reading,
+  and reproduced in `test/splice.test.ts` before it was changed). The rule is
+  "the clone keeps its placeholders, emptied; everything else goes", and
+  `blank()` read a placeholder as any top-level shape carrying a `<p:ph>`. A
+  table dropped into a content placeholder is a `<p:graphicFrame>` and a
+  picture in a picture placeholder is a `<p:pic>`: both carry the `<p:ph>`,
+  neither has a `<p:txBody>`, so the emptying pass stepped over them and left
+  them whole. A new slide could therefore arrive carrying the user's own
+  figures, under an element placed as if the slide were empty. A placeholder is
+  now kept only when it is a `<p:sp>`, which is how an EMPTY placeholder is
+  spelled — the layout's own prompt box, kept whether or not it has a
+  `<p:txBody>` to empty, which `test/splice-malformed.test.ts` already pinned
+  and which is what caught a first fix that removed those too. A placeholder
+  spelled any other way is one the user has FILLED, so it goes with the rest of
+  the content and PowerPoint draws the layout's prompt in its place. Both
+  shipped routes into `target: "new"` reach it: the
+  tile menu's "Insert as a new slide" and the footer's "Move to a new slide",
+  the second of which is OFFERED on `held > 0`, the very condition such content
+  creates. Not measured on a host, for the same reason as the pair above.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host. Worse again on

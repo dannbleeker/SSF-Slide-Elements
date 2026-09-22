@@ -396,6 +396,30 @@ describe("wrapping", () => {
     expect(wrapping(MARKER, SLIDE)).toEqual(atCursor(MARKER, SLIDE));
     expect(centreOf(wrapping(MARKER, SLIDE))).toEqual({ x: SLIDE.width / 2, y: SLIDE.height / 2 });
   });
+
+  it("centres on a selected LINE rather than wrapping it down to nothing", () => {
+    // A straight connector is stored with one side of its frame zero: a
+    // horizontal line is `<a:ext cx="…" cy="0"/>`, which the library's own
+    // decks are full of. Wrapping it multiplied that zero by the air factor and
+    // handed back a marker zero EMU tall — invisible on the slide, and hard to
+    // select in order to delete. It keeps its authored size and sits on the
+    // line, which is what the too-big branch already does at the other end of
+    // the same scale.
+    const flat: Rect = { x: 2000000, y: 3000000, cx: 4000000, cy: 0 };
+    const landed = wrapping(MARKER, SLIDE, flat);
+    expect({ cx: landed.cx, cy: landed.cy }, "a marker with no height is not a marker").toEqual({
+      cx: MARKER.cx,
+      cy: MARKER.cy,
+    });
+    expect(centreOf(landed)).toEqual(centreOf(flat));
+  });
+
+  it("does the same for a vertical line, whose width is the zero", () => {
+    const upright: Rect = { x: 2000000, y: 1000000, cx: 0, cy: 3000000 };
+    const landed = wrapping(MARKER, SLIDE, upright);
+    expect({ cx: landed.cx, cy: landed.cy }).toEqual({ cx: MARKER.cx, cy: MARKER.cy });
+    expect(centreOf(landed)).toEqual(centreOf(upright));
+  });
 });
 
 describe("underTitle", () => {
@@ -426,6 +450,32 @@ describe("underTitle", () => {
     expect(landed).toEqual({ x: 2415540, y: 3000000, cx: 7360920, cy: 3500000 });
     expect(landed.y, "clear of the title").toBeGreaterThanOrEqual(2865125);
     expect(landed.cx / landed.cy, "scaled, not squashed").toBeCloseTo(rect.cx / rect.cy, 5);
+  });
+
+  it("moves an element that FITS the room but sits above it down into the room", () => {
+    /**
+     * The gap between the two cases above. `fitInside` returns the rectangle
+     * UNCHANGED when it already fits its target — it only ever scales — so an
+     * element small enough for the room but positioned too high fell straight
+     * through: `inside` is false because it starts above the room, `fitInside`
+     * hands it back as it was, and `ontoSlide` clamps it to the SLIDE, which it
+     * was already inside. It stayed on top of the title.
+     *
+     * Which is the case this rule is named for. The taller-title case above
+     * only passes because its element is too BIG for the room, so `fitInside`
+     * has something to do; shrink it and the same overlap goes uncorrected.
+     */
+    const frames: Frames = { title: TITLE };
+    // Small enough for the room below the title, and sitting over the title.
+    const rect: Rect = { x: 838200, y: 400000, cx: 4000000, cy: 2000000 };
+    expect(rect.cy, "it fits the room's height").toBeLessThan(SLIDE.height - TITLE_BOTTOM);
+    expect(rect.y, "and it starts above the title's bottom").toBeLessThan(TITLE_BOTTOM);
+
+    const landed = underTitle(rect, SLIDE, frames);
+    expect(landed.y, "clear of the title").toBeGreaterThanOrEqual(TITLE_BOTTOM);
+    expect(landed.cx, "and not scaled, because it already fitted").toBe(rect.cx);
+    expect(landed.cy).toBe(rect.cy);
+    expect(onSlide(landed, SLIDE), "still on the slide").toBe(true);
   });
 
   it("measures the room from the title's bottom when the body placeholder starts above it", () => {

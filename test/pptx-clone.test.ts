@@ -38,6 +38,7 @@ const PKG_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships
 const P14_NS = "http://schemas.microsoft.com/office/powerpoint/2010/main";
 const CREATION_ID_URI = "{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E}";
 const MODERN_COMMENT = COMMENT_REL_TYPES[1] ?? "";
+const TAGS_REL = REL_TYPE.tags;
 
 async function deck(...args: Parameters<typeof makeDeck>): Promise<Pkg> {
   return Pkg.open(await makeDeck(...args));
@@ -748,19 +749,33 @@ describe("what a copy does not inherit", () => {
     expect(child(custData!, P_NS, "tags")).toBeUndefined();
   });
 
-  it("drops a comment the template carried, rather than sharing it or copying it", async () => {
+  it("KEEPS a comment the slide carried, in the spelling nothing in the markup names", async () => {
     /**
-     * A comment hangs off the SLIDE, so the wholesale rels copy hands every
-     * clone a relationship to the template's comment part — a reviewer's "check
-     * this with Legal" appearing on every copy, as one shared thread. Copying
-     * the part per clone would be worse rather than better: the same note, many
-     * times, deliberately.
+     * The one place this file departs from the SSF-Merge original it was ported
+     * from, and the reason is what each repo clones.
      *
-     * Dropping them is also what makes the two template routes AGREE. On a 1.10
-     * host `exportAsBase64Presentation` drops comments and `ppt/authors.xml`
+     * THERE a clone is a copy of a template slide, the template stays in the
+     * deck, and the wholesale rels copy hands all 240 merged copies one
+     * relationship to the template's comment part — a reviewer's "check this
+     * with Legal" on every row, as one shared thread. Dropping them was right,
+     * and it also made the two template routes agree: on a 1.10 host
+     * `exportAsBase64Presentation` drops comments and `ppt/authors.xml`
      * outright (office-js#6867, measured on that host 2026-08-28), so the
      * subset route was already producing comment-free clones while the file
      * route produced shared ones.
+     *
+     * HERE both callers — `splice`'s "onto this slide" and `removeElement` —
+     * clone the USER'S OWN slide and the original is removed by position
+     * straight afterwards. There is one copy at the end and it is the slide the
+     * comment was already on, so dropping it never prevented sharing: it lost
+     * the thread. `docs/DESIGN.md` section 6 is the rule it broke.
+     *
+     * The fixture is the shape that made the loss invisible for so long: a
+     * comment relationship with NO anchor in the slide's markup, which is how
+     * PowerPoint 2016 and 2019 write one and how the pass that removes
+     * "whatever nothing names" came to remove it. A modern, anchored comment
+     * was named by the extension list and survived, so the two spellings
+     * behaved differently and only the older one lost data.
      */
     const part = "ppt/comments/modernComment_101_AEAB9DA1.xml";
     const pkg = await editedDeck([{ paragraphs: [["Hello"]] }], async (zip) => {
@@ -778,13 +793,47 @@ describe("what a copy does not inherit", () => {
     ).toBeTruthy();
 
     const target = await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: () => 222 });
-    expect((await targetsByType(pkg, target)).get(MODERN_COMMENT)).toBeUndefined();
-    // The part itself stays: it is the template's, and the template still
-    // points at it.
+    expect(
+      (await targetsByType(pkg, target)).get(MODERN_COMMENT),
+      "the clone keeps the thread, because the clone IS that slide",
+    ).toEqual(["../comments/modernComment_101_AEAB9DA1.xml"]);
+    // The part itself stays, and so does the source slide's own reference to
+    // it: nothing here deletes a part out from under a relationship.
     expect(pkg.has(part)).toBe(true);
     expect((await targetsByType(pkg, "ppt/slides/slide1.xml")).get(MODERN_COMMENT)).toEqual([
       "../comments/modernComment_101_AEAB9DA1.xml",
     ]);
+  });
+
+  it("still drops an inherited TAG relationship nothing names, which is what this pass is for", async () => {
+    /**
+     * The pair of the case above, and the reason it is here: the change that
+     * made comments survive narrowed the pass to tags alone, and a narrowing is
+     * exactly the edit that can go one step too far. A template's own tag part
+     * must still not follow the copy — `writeSlideTags` would append this run's
+     * metadata to it, every copy would share one part, and the user's template
+     * would come out stamped as this add-in's output.
+     */
+    const part = "ppt/tags/tag7.xml";
+    const pkg = await editedDeck([{ paragraphs: [["Hello"]] }], async (zip) => {
+      zip.file(
+        part,
+        '<?xml version="1.0"?><p:tagLst xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>',
+      );
+      await spliceInto(
+        zip,
+        "ppt/slides/_rels/slide1.xml.rels",
+        "</Relationships>",
+        `<Relationship Id="rId8" Type="${TAGS_REL}" Target="../tags/tag7.xml"/>`,
+      );
+    });
+    expect((await targetsByType(pkg, "ppt/slides/slide1.xml")).get(TAGS_REL), "the fixture edit did not land").toEqual([
+      "../tags/tag7.xml",
+    ]);
+
+    const target = await cloneSlide(pkg, "ppt/slides/slide1.xml", { creationId: () => 223 });
+    expect((await targetsByType(pkg, target)).get(TAGS_REL)).toBeUndefined();
+    expect(pkg.has(part), "the template's own part is left exactly as it was").toBe(true);
   });
 });
 

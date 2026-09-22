@@ -42,6 +42,23 @@ export function coalescing(work: () => Promise<void>): () => void {
       } while (again);
     } finally {
       running = false;
+      // A RAISE may not drop the request either, and the `do` above cannot see
+      // to that: a rejection leaves the loop without testing its condition, so
+      // the event that arrived during the failed run was thrown away exactly
+      // the way the flag this module replaced threw one away. Same defect,
+      // reached through the error path instead of the drop.
+      //
+      // It matters because failing is ordinary here. `BUDGET.glance` is four
+      // seconds and `src/host/timeout.ts` records a selection read sitting
+      // unanswered for most of a budget while the host finishes writing the
+      // deck — so the run a click lands inside is the run most likely to fail,
+      // and the click is the one whose answer nobody else will supply.
+      //
+      // On the ordinary path the loop has already tested `again` and left it
+      // false, so nothing here fires twice. Kept to the `finally` rather than
+      // to a `catch` so it covers both ways out with one rule, and the
+      // rejection still reaches the caller below unchanged.
+      if (again) void run().catch(() => undefined);
     }
   };
 

@@ -133,6 +133,27 @@ describe("a table, whose frame lies about its size", () => {
     expect(measured?.w, "no columns, and no frame either").toBe(0);
     expect(measured?.h, "the one row").toBe(500000 / H);
   });
+
+  it("measures a GROUP by its own frame, not by a table nested inside it", () => {
+    // A table grouped with its caption — one gesture, and ordinary in a user's
+    // deck. `element` walks descendants, so asking any top-level shape for a
+    // table found this one and handed back its column widths. Those are in the
+    // group's own CHILD coordinate space: `chExt` here is ten times `ext`, the
+    // kind of scale a group routinely carries, so the sum below came out ten
+    // times too large and `Math.max` took it for the group's width. The preview
+    // card then drew a grey box wider than the slide it sits on.
+    const grouped =
+      `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="30" name="Table and caption"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+      `<p:grpSpPr><a:xfrm><a:off x="1000000" y="500000"/><a:ext cx="4000000" cy="1000000"/>` +
+      `<a:chOff x="0" y="0"/><a:chExt cx="40000000" cy="10000000"/></a:xfrm></p:grpSpPr>` +
+      `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="31" name="Table"/><p:cNvGraphicFramePr/><p:nvPr/>` +
+      `</p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="40000000" cy="10000000"/></p:xfrm>` +
+      `<a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="40000000"/></a:tblGrid>` +
+      `<a:tr h="10000000"/></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:grpSp>`;
+    const measured = boxOf(only(grouped), W, H);
+    expect(measured?.w, "the group's own ext, not the table's columns").toBe(4000000 / W);
+    expect(measured?.h, "the group's own ext, not the table's rows").toBe(1000000 / H);
+  });
 });
 
 describe("a rotated shape's extent", () => {
@@ -284,6 +305,45 @@ describe("what a slide already holds", () => {
     const empty = ph(`<p:txBody><a:bodyPr/><a:p/></p:txBody>`);
     expect(contentCount(slide(empty), W, H)).toBe(0);
     expect(occupiedBoxes(slide(empty), W, H)).toEqual([]);
+  });
+
+  it("counts the running furniture as furniture, not as content", () => {
+    /**
+     * A footer, a slide number and a date are on nearly every corporate slide,
+     * and none of them is something the user put there for this deck. They
+     * carry text — a company name, "2", today's date — so the empty-placeholder
+     * rule does not reach them, and they were counted.
+     *
+     * What that decides is the "Move to a new slide" offer: `held` is what
+     * `moveableAfter` reads, so an otherwise EMPTY slide with a footer and a
+     * slide number on it reported two things already there, and the pane
+     * offered to move the element off a slide that has nothing on it but its
+     * own furniture.
+     *
+     * `src/core/pptx/layout.ts` already knew this — it keeps `TITLES` and
+     * `CHROME` apart and excludes both — and `harvest.ts` has its own copy of
+     * the same set. This file had neither.
+     */
+    const furniture =
+      ph(`<p:txBody><a:bodyPr/><a:p><a:r><a:t>ACME A/S</a:t></a:r></a:p></p:txBody>`, ' type="ftr"') +
+      ph(
+        `<p:txBody><a:bodyPr/><a:p><a:fld id="{1}" type="slidenum"><a:t>2</a:t></a:fld></a:p></p:txBody>`,
+        ' type="sldNum"',
+      ) +
+      ph(
+        `<p:txBody><a:bodyPr/><a:p><a:fld id="{2}" type="datetime1"><a:t>22-09-2026</a:t></a:fld></a:p></p:txBody>`,
+        ' type="dt"',
+      );
+    expect(contentCount(slide(furniture), W, H), "a slide with only furniture on it is empty").toBe(0);
+  });
+
+  it("still counts a body placeholder beside the furniture", () => {
+    // The pair, so "ignore the furniture" cannot quietly become "ignore
+    // placeholders".
+    const mixed =
+      ph(`<p:txBody><a:bodyPr/><a:p><a:r><a:t>ACME A/S</a:t></a:r></a:p></p:txBody>`, ' type="ftr"') +
+      ph(`<p:txBody><a:bodyPr/><a:p><a:r><a:t>Real content</a:t></a:r></a:p></p:txBody>`);
+    expect(contentCount(slide(mixed), W, H)).toBe(1);
   });
 
   it("counts a placeholder holding a single character", () => {

@@ -7,6 +7,191 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed
+
+- **A new slide no longer arrives carrying your own table or picture.** "As a
+  new slide" copies the slide you are on and empties it, so the new one keeps
+  the same design. It emptied the text on it, but a table or a picture you had
+  dropped into one of the layout's own boxes was left standing — so an element
+  meant for a fresh slide arrived on top of your figures, and the figures were
+  on a slide you had not put them on. The new slide now starts from the layout,
+  as it says it does; your original slide is untouched either way.
+
+- **"Did you mean" no longer suggests something your filters would hide.** With
+  a tag or a category chip picked, a suggestion under "Nothing matches that."
+  could be an element those filters exclude — so taking the way out of the dead
+  end put you straight back in it, with the same message and the same
+  suggestion underneath. Suggestions now come from what your filters actually
+  leave.
+
+- **The question before "Remove from N slides" no longer strands the pane.**
+  The question is asked on the element's own tile, and while it is up the
+  Remove button is hidden on every tile. Searching or closing a category while
+  it was open took the tile — and the question with it — off the screen, and
+  left no Remove button anywhere with nothing on screen to say why. Anything
+  that takes the tile away now cancels the question with it.
+
+- **The line under the header keeps naming the slide you are on, even if the
+  add-in could not read your deck when it opened.** One failed read at startup
+  — a slow network, a very large presentation — stopped the pane listening for
+  you changing slides for the rest of the session, and nothing said so: the
+  line just went on showing whatever it said at the time.
+
+- **A marker dropped on a selected LINE is no longer invisible.** Markers wrap
+  the shape you have selected, and a straight line has no thickness to wrap, so
+  the marker came out with no height at all — impossible to see and hard to
+  click on in order to delete. It now lands on the line at its normal size, the
+  same as it does on a shape too big to wrap.
+
+- **A part that could not be fetched no longer reports itself as missing from
+  the library.** If the network failed while the add-in was collecting a
+  picture or a chart an element needs, the message said the library does not
+  have that file — which sends you looking for a broken add-in instead of
+  trying again. It now says what actually happened, and only says a file is
+  absent when the site says it is.
+
+- **A category you picked while searching no longer keeps filtering the
+  library after you delete the search.** The category chips appear only while
+  there is something in the search box, so backspacing the box empty left the
+  pick in force with no chip on screen to lift it — the library showed one
+  category and nothing said why. Clearing the box now lifts the pick, which is
+  what the Clear button and Escape already did.
+
+- **The pane no longer refuses to open over a setting it cannot read.** If
+  anything in the add-in's saved state for a deck was not the shape the pane
+  expected, the pane failed while drawing its first screen — and because the
+  value stayed saved, it failed again on every open. Whatever it cannot read is
+  now simply treated as not set.
+
+- **The preview card no longer draws a wildly oversized grey box for a table
+  you have grouped with something else.** The card sketches what your slide
+  already holds; a grouped table was measured by the table's own columns
+  instead of the group's size on the slide, which on a scaled group could come
+  out several times wider than the slide itself.
+
+- **A comment on the slide you insert onto is no longer lost.** Inserting an
+  element rebuilds the slide you are on, and a comment written by PowerPoint
+  2016 or 2019 — or by any deck not yet upgraded to the newer kind — went with
+  the slide it was on. Newer comments were never affected, which is why this
+  went unnoticed: the two are stored differently, and only the older kind was
+  dropped. Your reviewer's thread now survives an insert either way.
+
+- **A stamp or a marker no longer lands on a blank slide of its own** when the
+  gear is set to "As a new slide". That setting is meant for whole-slide
+  elements only, and the right-click menu already treated it that way; the
+  setting did not, so a stamp inserted with it switched on landed alone on an
+  empty slide wedged after yours, and your own slide kept nothing. A stamp
+  always lands on the slide you are on, as the preview card says it will.
+
+- **The pane no longer tells you to delete a slide it already deleted.** When
+  PowerPoint reported a problem tidying up after an insert but had in fact
+  tidied up, the footer said "delete slide N by hand" — and slide N was by then
+  the slide your element had just landed on. It now counts the deck to find out
+  what happened rather than believing the error, so it only asks you to delete
+  something when there really is something to delete.
+
+- **A new slide no longer carries a broken reference to a comment.** Making a
+  new slide from one that had a comment on it left the slide pointing at a
+  comment that had been taken off it, and that pointer could end up aimed at
+  the add-in's own bookkeeping instead. Nothing was visible to you; the file
+  was untidy in a way PowerPoint is entitled to complain about.
+
+- **"Move to a new slide" no longer loses the element instead of moving it.**
+  The move takes the insert back and makes it again on a new slide. If
+  PowerPoint reported a problem on the way but had in fact done the work, the
+  pane stopped after the first half — so the element was gone from the deck
+  altogether, under a message saying the undo had failed. It now checks the
+  deck's own size, the way the other half of the same step already did.
+
+- **"Remove from N slides" no longer leaves a copy behind and calls the deck
+  untouched.** If PowerPoint reported a problem on a step it had actually
+  completed, the run stopped and told you nothing had changed, while the deck
+  had gained a slide with the element on it twice. Each step is now judged by
+  what the deck is, not by whether an error was reported.
+
+- **A failed insert no longer claims the deck is untouched when it may not
+  be**, and no longer leaves an Undo armed that points at the previous insert.
+  If the pane cannot find out what happened after handing the slide over, it
+  now says so and tells you to check the end of the deck. A failure that
+  happens before anything is asked of PowerPoint is unchanged: it still says
+  the insert was refused, and an Undo you already had still works.
+
+- **An element that failed to load once is no longer stuck for the rest of the
+  session.** If the network dropped while the add-in was fetching an element,
+  every later click on that tile replayed the same failure without trying
+  again, and the only way back was closing the pane and reopening it. It now
+  fetches again on the next click, which is what the carried-parts half of the
+  same cache already did.
+
+- **The preview picture of a rotated stamp is no longer cut into.** The two
+  rotated stamps are masked to their own turned frame so the slide around them
+  does not show in the corners, and that mask was being turned as though the
+  page were square. On a 16:9 page it came out skewed by more than half the
+  stamp's own height, so the mask clipped the stamp instead of framing it.
+  Previews are rebuilt on release, so this arrives with the next one.
+
+- **"Used in this deck" no longer sends you to the wrong slide.** Each slide
+  number in that list is a button that takes you there. Inserting an element as
+  a new slide pushes everything after it one slide along, and the list was not
+  told — so a row still naming slide 5 took you to whatever slide 5 had become,
+  and said it had worked. The numbers now move with the deck, and move back
+  when the insert is undone.
+
+- **The keyboard can reach the tiles again.** Tab, the arrow keys and Enter are
+  meant to move between elements and insert the one you are on. They did not
+  work at all: the moment a tile took focus the pane redrew itself, which
+  removed the very button you had just reached, so Tab could not get past the
+  first tile and the arrow keys never moved. Focus now survives the redraw.
+
+- **Elements land on the slide on decks that are not the library's size.** The
+  library is drawn at one slide size, and an element inserted into a deck of a
+  different size kept the library's own coordinates instead of being scaled to
+  fit — so it could sit well off the edge of the slide, while the pane's
+  preview reported it as landing correctly. A stamp went about an inch past the
+  right edge and a white box two and a half inches, on PowerPoint's ordinary
+  ten-inch "On-screen Show (16:9)" deck. That size has the same 16:9 shape as
+  the library, so the pane never even said it was borrowing one.
+
+- **An element that would sit on top of your title is moved off it**, even when
+  it was already small enough to fit below. The rule that keeps library
+  elements clear of a taller title only ever resized them, so one that already
+  fitted was left exactly where it was — on top of the title, which is the one
+  thing that rule exists to prevent.
+
+- **The preview card no longer promises an insert that cannot happen.** When
+  PowerPoint will not say which slide you are on, the card said an element
+  would land on the first slide. Nothing does that: the insert stops and asks
+  you to click a slide. The card now says the same thing.
+
+- **Escape now clears the whole search, and the clearing sticks.** Pressing
+  Escape left the category you had picked still filtering the library — and the
+  category buttons are only on screen while a search is, so there was nothing
+  left to unpick and nothing saying why most of the library had gone. Clearing
+  the search also was not remembered, so the search you had just got rid of came
+  back the next time the pane opened.
+
+- **Your footer, slide number and date are left alone.** The add-in treated a
+  slide's running furniture as though you had put it there: an otherwise empty
+  slide with a footer on it was described as already holding something, so the
+  pane offered to move your element onto a slide of its own for no reason — and
+  a blank footer or date placeholder was removed from the slide the insert
+  rebuilt, which is part of your deck, not one of the "Click to add text"
+  ghosts an insert is meant to tidy away.
+
+- **A failed Undo no longer offers to run itself again.** Undo puts your
+  original slide back first and takes the rebuilt one away second, so if
+  PowerPoint stops between the two your deck holds both. The pane said only
+  "Undo did not work" — which reads as though nothing happened — and left the
+  Undo button armed. Pressing it again put your slide back a second time and
+  reported success, leaving you with two copies of it and the element gone. It
+  now says what it could not finish and where to look, and takes the button
+  away rather than letting it act on a deck it can no longer describe.
+
+- **The pane keeps answering after a reading fails.** If PowerPoint did not
+  answer when the pane asked which slide you were on, and you clicked another
+  slide while it was waiting, the pane could go on naming the slide you had
+  left. It now asks again.
+
 ## [0.1.0] - 2026-09-16
 
 The first release. Everything below is what the add-in does the day it ships:

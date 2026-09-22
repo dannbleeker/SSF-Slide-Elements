@@ -18,6 +18,7 @@
  * which is what lets the suite check every rewrite against a real element out
  * of the real library with no PowerPoint anywhere.
  */
+import { CHROME, TITLES } from "../pptx/layout.js";
 import { A_NS, P_NS, R_NS, child, children, parseXml } from "../pptx/xml.js";
 import type { Move, Rect } from "./landing.js";
 import { isIdentity } from "./landing.js";
@@ -396,7 +397,13 @@ export function emptyBodyPlaceholders(spTree: Element): Element[] {
     const ph = nvPr ? child(nvPr, P_NS, "ph") : undefined;
     if (!ph) continue;
     const type = ph.getAttribute("type") ?? "body";
-    if (type === "title" || type === "ctrTitle") continue;
+    // Titles stay, and so does the running furniture. `docs/DESIGN.md` section
+    // 6 says what this removes — the "Click to add text" GHOSTS behind a
+    // whole-slide element — and a footer, a slide number or a date is not a
+    // ghost. An empty one is empty because that slide carries no footer text,
+    // not because nobody has typed yet, and taking it off the rebuilt slide is
+    // the insert deleting part of the user's own deck.
+    if (TITLES.has(type) || CHROME.has(type)) continue;
     const txBody = child(shape, P_NS, "txBody");
     if (!txBody) continue;
     let text = "";

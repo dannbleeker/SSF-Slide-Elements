@@ -155,6 +155,40 @@ describe("what the user might have meant", () => {
     for (const suggestion of didYouMean(library, "stemp")) expect(names.has(suggestion)).toBe(true);
   });
 
+  it("offers nothing a picked TAG would throw away, because picking one cannot fail", () => {
+    // Picking a suggestion sets the query and leaves the tags picked. A name
+    // offered from the whole library could be one a picked tag excludes, so
+    // the route out of the dead end led straight back into it: the same
+    // "Nothing matches that." and the same suggestion under it. An honest dead
+    // end beats a dud route.
+    const tagged: Library = {
+      ...LIBRARY,
+      elements: [
+        element({ id: "a", name: "Confidential stamp", tags: ["stamp"] }),
+        element({ id: "b", name: "Confidence bands", tags: ["chart"] }),
+      ],
+    };
+    expect(
+      [...didYouMean(tagged, "confidental")].sort(),
+      "with nothing picked, both are near enough, or the case proves nothing",
+    ).toEqual(["Confidence bands", "Confidential stamp"]);
+    expect(didYouMean(tagged, "confidental", { tags: ["chart"] })).toEqual(["Confidence bands"]);
+    expect(didYouMean(tagged, "confidental", { tags: ["stamp"] })).toEqual(["Confidential stamp"]);
+    expect(didYouMean(tagged, "confidental", { tags: ["stamp", "chart"] }), "no element carries both").toEqual([]);
+  });
+
+  it("offers nothing outside a picked CATEGORY either, which narrows the same way", () => {
+    const split: Library = {
+      ...LIBRARY,
+      elements: [
+        element({ id: "a", name: "Confidential stamp", category: { key: "stamps", name: "Stamps" } }),
+        element({ id: "b", name: "Confidence bands", category: { key: "boxes", name: "White boxes" } }),
+      ],
+    };
+    expect(didYouMean(split, "confidental", { tags: [], category: "stamps" })).toEqual(["Confidential stamp"]);
+    expect(didYouMean(split, "confidental", { tags: [], category: "boxes" })).toEqual(["Confidence bands"]);
+  });
+
   it("says nothing for a query too short to be a typo of anything", () => {
     expect(didYouMean(library, "ab")).toEqual([]);
     expect(didYouMean(library, "  ")).toEqual([]);

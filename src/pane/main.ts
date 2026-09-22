@@ -65,7 +65,7 @@ import {
   type Library,
   type PaneState,
 } from "./steps.js";
-import { withInsert, withoutInsert } from "./used.js";
+import { renumbered, withInsert, withoutInsert } from "./used.js";
 
 let state: PaneState = { ...EMPTY };
 let index: Index | undefined;
@@ -169,10 +169,51 @@ function announce(text: string): void {
 }
 
 /** Where the search caret was, so a redraw does not throw it away. */
+/**
+ * A selector that finds the same control again after a redraw.
+ *
+ * `render` empties the pane and builds fresh elements, so nothing survives by
+ * reference — a control has to be found again by what it IS. The three data
+ * attributes are what distinguish one: the action, the element it is for, and
+ * which of the up-to-three tiles for that element this one is.
+ *
+ * Answers undefined for anything with no action, which is everything the pane
+ * does not own.
+ */
+function focusKey(el: Element): string | undefined {
+  if (!(el instanceof HTMLElement)) return undefined;
+  const action = el.dataset["action"];
+  if (action === undefined) return undefined;
+  const parts = [`[data-action="${CSS.escape(action)}"]`];
+  for (const name of ["id", "where", "value"] as const) {
+    const value = el.dataset[name];
+    if (value !== undefined) parts.push(`[data-${name}="${CSS.escape(value)}"]`);
+  }
+  return parts.join("");
+}
+
+/** Whether `draw` is putting the focus back, rather than the user moving it. */
+let restoringFocus = false;
+
 function draw(): void {
   const active = document.activeElement;
   const wasSearch = active instanceof HTMLInputElement && active.dataset["action"] === "search";
   const caret = wasSearch ? active.selectionStart : null;
+  /**
+   * What else held the focus, so the redraw does not throw it on the floor.
+   *
+   * `docs/DESIGN.md` section 9 promises the arrow keys move between the tiles
+   * and Enter inserts the one you are on, and none of it worked: focus landing
+   * on a tile calls `set({chosen})`, `set` redraws, and `render` starts by
+   * emptying the pane — so the button that had just taken focus was removed
+   * from the document and focus fell back to `<body>`. Tab could not get past
+   * the first tile, and every arrow after that landed on tile 0 forever,
+   * because `indexOf(document.activeElement)` was -1.
+   *
+   * The caret restore above is the same repair for the search box, written
+   * when the same redraw ate the caret. This is the rest of the pane.
+   */
+  const held = !wasSearch && active && root().contains(active) ? focusKey(active) : undefined;
 
   render(root(), state, stepFor(state));
   liveRegion();
@@ -183,6 +224,24 @@ function draw(): void {
     if (search) {
       search.focus();
       if (caret !== null) search.setSelectionRange(caret, caret);
+    }
+  } else if (held !== undefined) {
+    // Only when it is still there: a control the redraw legitimately removed —
+    // the menu that just closed, a tile a search filtered away — is not
+    // something to hunt for, and the browser's own fallback is right for it.
+    //
+    // Flagged, because `focus()` raises `focusin` and `onFocus` treats that as
+    // the USER arriving at a tile: it marks the tile chosen and arms the
+    // preview. Putting the focus back where it already was is neither. Without
+    // this the restore armed a third-of-a-second timer on every redraw that
+    // had a tile focused, so the pane kept redrawing itself long after
+    // anything had happened — measured as an insert's whole result being
+    // painted over by a later draw, outcome and Undo and all.
+    restoringFocus = true;
+    try {
+      root().querySelector<HTMLElement>(held)?.focus();
+    } finally {
+      restoringFocus = false;
     }
   }
   restoreScroll();
@@ -372,7 +431,18 @@ async function load(): Promise<void> {
   store = new Store(provisional.size);
 
   const shape = await deckShape();
-  if (!shape || !index) return;
+  if (!shape || !index) {
+    // The deck read failing is not a reason to stop following the SELECTION.
+    // The two are independent — one reads the file, the other subscribes to an
+    // event — and this early return took the subscription with it for the rest
+    // of the session, so the line under the header stayed on whatever it said
+    // at boot however much the user clicked. Silently: nothing on screen
+    // distinguishes a line that is right from one that stopped being asked.
+    // `follow` is idempotent, which is what lets this stand beside the call at
+    // the end without a second subscription.
+    void follow();
+    return;
+  }
   const library: Library = libraryFor(index, shape.width, shape.height);
   if (library.size !== provisional.size || library.borrowed !== provisional.borrowed) {
     store = new Store(library.size);
@@ -477,12 +547,23 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   const library = state.library;
   const element = elementOf(library, id);
   if (!library || !element || !store || !index || state.busy === true) return;
-  const target = once ?? state.settings.target;
+  // A PART ignores the insert target, whether the target came from the gear or
+  // from the right-click. `docs/DESIGN.md` section 5: "A part ignores the
+  // insert target: it always lands on the slide the user is on"; section 7
+  // says it again for the menu. `offersOtherTarget` keeps the menu to that
+  // rule and nothing kept the SETTING to it, so a gear left on "As a new
+  // slide" sent a stamp through the splice's blanking path: the stamp landed
+  // alone on an empty slide after the user's, the user's own slide kept
+  // nothing, the removal was skipped because the target was not "onto", and
+  // the footer reported plain success over it.
+  const target = element.kind === "part" ? "onto" : (once ?? state.settings.target);
 
   set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
   // Before the first await: from here on, any deck read running underneath this
   // is reading a deck this pane is in the middle of changing.
   deckEdits += 1;
+  /** Whether `insertSlidesFromBase64` was reached. See the catch at the end. */
+  let asked = false;
   try {
     const markup = await store.markup(element);
     const deck = await readDeck();
@@ -508,6 +589,12 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
         version: library.version,
         carried: carriedTypes(index, library.size),
         theme: themeColours(index, library.size),
+        // The LIBRARY's own slide, not this deck's: the element's shapes are
+        // drawn in those units, and the splice rebases them onto whatever this
+        // deck measures. `libraryFor` answers the catalogue's dimensions, so
+        // these are the library's even when the deck borrowed it.
+        width: library.width,
+        height: library.height,
       },
       store: (path) => (store as Store).part(path),
       ...(selection ? { selection } : {}),
@@ -529,6 +616,11 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       return;
     }
 
+    // From here the deck may have changed, whatever happens next. The catch
+    // below needs to tell that apart from a failure before this line, because
+    // the two want opposite things said and opposite things done with the undo
+    // that is already armed.
+    asked = true;
     const error = await insertPackage(report.base64, targetId);
     // Asked again until it agrees, because the count lags the insert: see
     // `countReaching`. One read here would report a landed insert as a no-op.
@@ -538,8 +630,22 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
-      const failure = await removeSlideAt(at);
-      removed = failure === undefined ? await countReaching(before) : inserted;
+      await removeSlideAt(at);
+      // The DELTA decides, in both arms, and the raise decides nothing.
+      //
+      // This read the raise instead: a refusal set `removed = inserted`, so a
+      // delete that raised AND LANDED — `CLAUDE.md`'s "a call can raise and
+      // still have done the work", measured on a sibling's insert that timed
+      // out with both slides in — came out as "The deck grew by one but the
+      // copy could not be removed: delete slide N by hand." over a deck that
+      // was already correct. A user who follows that instruction deletes the
+      // slide the element is now on, which is their own content, and the pane
+      // told them to.
+      //
+      // `outcomeOf` already answers `byHand` correctly when the count really
+      // is still `before + 1`, so the honest failure keeps its sentence and
+      // only the false one goes.
+      removed = await countReaching(before);
     }
 
     const outcome = outcomeOf({
@@ -578,7 +684,14 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // exactly what it just put where, and the read is the expensive half of
       // this feature. Untouched when nothing has been read — an insert is not a
       // reason to start claiming the deck has been looked at.
-      used: outcome.ok ? withInsert(state.used, element.id, landed) : state.used,
+      // Renumbered FIRST when the deck grew, then the new row added at the
+      // number it actually landed on. "As a new slide" pushes every element at
+      // or after that point one slide along, and those numbers are jump
+      // controls — a row left saying "slide 5" sends the user to whatever
+      // slide 5 has become. "Onto this slide" is net zero and shifts nothing.
+      used: outcome.ok
+        ? withInsert(target === "new" ? renumbered(state.used, landed, 1) : state.used, element.id, landed)
+        : state.used,
       // The card's grey boxes keep up the same way: the splice says where the
       // element landed, in EMU **on the user's slide**, so it is the USER's
       // slide size that turns it into a fraction. The library's size is a
@@ -597,11 +710,40 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     // ran. Ask once now.
     followSelection();
   } catch (e) {
-    state = {
-      ...state,
-      busy: false,
-      outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
-    };
+    // Two different failures reach here, and only one of them leaves the deck
+    // alone. Before `insertSlidesFromBase64` was reached — the markup fetch,
+    // the deck read, the splice — nothing was asked of the host, "refused" is
+    // honest, and an undo armed by an EARLIER insert still describes the deck
+    // and must survive.
+    //
+    // After it, the slide may be in the deck: the two calls that can throw
+    // there are count reads, and `withTimeout` rejects on the budget as
+    // readily as on a host raise. Saying "refused" then tells the user nothing
+    // changed while a rebuilt slide sits in their deck with the original still
+    // beside it — and the armed undo now points at the wrong insert, so
+    // pressing it would put a slide back against a deck this code has already
+    // misread. It is disarmed rather than left to do that.
+    if (asked) {
+      undoable = undefined;
+      state = {
+        ...state,
+        busy: false,
+        undo: 0,
+        moveable: undefined,
+        outcome: {
+          ok: false,
+          byHand: true,
+          name: element.name,
+          detail: `The insert did not confirm: ${readable(e)}. Check the end of the deck.`,
+        },
+      };
+    } else {
+      state = {
+        ...state,
+        busy: false,
+        outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
+      };
+    }
     delete state.notice;
     draw();
   }
@@ -620,6 +762,15 @@ async function undo(): Promise<boolean> {
   set({ busy: true, notice: "Undoing…" });
   deckEdits += 1;
   const plan = undoPlan(entry);
+  /**
+   * Whether the host has been asked to change the deck yet. See the catch.
+   *
+   * The same flag `insert` keeps, for the same reason and one step worse here:
+   * this function puts the user's original slide back FIRST and takes the
+   * rebuilt one away second, so a failure between the two leaves the deck
+   * holding both.
+   */
+  let asked = false;
   try {
     const before = await slideCount();
 
@@ -631,6 +782,9 @@ async function undo(): Promise<boolean> {
         throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
       }
       const original = await onlySlide(entry.before, entry.index);
+      // From here the deck may hold the user's original slide again, whatever
+      // happens next.
+      asked = true;
       const refused = await insertPackage(original.base64, targetId);
       const grown = await countReaching(plan.grownTo(before));
       if (grown !== plan.grownTo(before)) {
@@ -640,9 +794,19 @@ async function undo(): Promise<boolean> {
       }
     }
 
+    asked = true;
     const refused = await removeSlideAt(plan.remove);
-    const after = await countReaching(before - (plan.after === undefined ? 1 : 0));
-    if (refused !== undefined || after !== before - (plan.after === undefined ? 1 : 0)) {
+    const want = before - (plan.after === undefined ? 1 : 0);
+    const after = await countReaching(want);
+    // The count decides and the raise only supplies the MESSAGE, which is what
+    // the insert half ten lines above already does. This half tested `refused`
+    // first, so a delete that raised and landed threw over a deck that was
+    // correctly restored: the pane said "Undo did not work", `undoable` was
+    // never cleared, and "Move to a new slide" — which runs this undo and then
+    // inserts again — stopped after the undo. The element the user asked to
+    // MOVE was gone from the deck altogether, under a message saying the undo
+    // had failed.
+    if (after !== want) {
       throw new Error(refused ?? `the deck has ${after} slides, which is not what was expected`);
     }
 
@@ -658,7 +822,13 @@ async function undo(): Promise<boolean> {
       outcome: { ok: true, byHand: false, name: entry.name, detail: `Undone. The deck has ${after} slides.` },
       // The slide it was on is the user's own again, so whatever the insert put
       // there went with it — both in the list and in the card's grey boxes.
-      used: withoutInsert(state.used, entry.id, entry.landedOn),
+      // The mirror: the row for the slide that went, then everything after it
+      // back down by one. Only for a new slide — undoing an "onto" puts the
+      // user's own slide back in place and moves nothing.
+      used:
+        entry.target === "new"
+          ? renumbered(withoutInsert(state.used, entry.id, entry.landedOn), entry.landedOn + 1, -1)
+          : withoutInsert(state.used, entry.id, entry.landedOn),
       onSlide: entry.onSlide,
     };
     delete state.notice;
@@ -667,11 +837,39 @@ async function undo(): Promise<boolean> {
     followSelection();
     return true;
   } catch (e) {
-    state = {
-      ...state,
-      busy: false,
-      outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
-    };
+    // Disarmed once the host has been asked, because the entry no longer
+    // describes the deck.
+    //
+    // `undoPlan` is built from the insert's own index, and this function
+    // restores BEFORE it removes — so a failure in between leaves the deck
+    // holding the original and the rebuilt slide both. Pressing Undo again
+    // then re-runs the whole plan against that deck: the original goes in a
+    // second time, the rebuilt one comes out, the counts agree, and the pane
+    // reports "Undone." over two copies of the user's own slide with the
+    // element gone.
+    //
+    // Before the host was asked — `slideIdAt` refusing, `onlySlide` throwing —
+    // nothing changed and the entry is still exactly right, so it stays.
+    if (asked) {
+      undoable = undefined;
+      state = {
+        ...state,
+        busy: false,
+        undo: 0,
+        outcome: {
+          ok: false,
+          byHand: true,
+          name: entry.name,
+          detail: `Undo did not finish: ${readable(e)}. Check the deck around slide ${entry.landedOn}.`,
+        },
+      };
+    } else {
+      state = {
+        ...state,
+        busy: false,
+        outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
+      };
+    }
     delete state.notice;
     draw();
     return false;
@@ -850,11 +1048,16 @@ async function removeEverywhere(id: string): Promise<void> {
       const targetId = await slideIdAt(at);
       if (targetId === undefined) break;
       const report = await removeElement({ deck: deck.base64, slide: at, element: id });
-      const refused = await insertPackage(report.base64, targetId);
-      if (refused !== undefined) break;
+      // The raise is not consulted in either half of the cycle: the count on
+      // the line after each call already is, and it is the evidence. Breaking
+      // on the raise ahead of it stopped a cycle whose work had LANDED — the
+      // rebuilt slide in the deck, the original never taken away, `done` still
+      // zero, and the user told "The rest are as they were" over a deck now
+      // one slide longer with the element on both. A raise that really did
+      // nothing still stops the run, because the count then does not move.
+      await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
-      const failed = await removeSlideAt(at);
-      if (failed !== undefined) break;
+      await removeSlideAt(at);
       if ((await countReaching(before)) !== before) break;
       done += 1;
     }
@@ -1037,13 +1240,13 @@ function onClick(event: MouseEvent): void {
       break;
     case "tag":
       if (value) {
-        set({ tags: toggle(state.tags, value) });
+        set({ tags: toggle(state.tags, value), ...noQuestion });
         keep();
       }
       break;
     case "category":
       if (el.dataset["key"]) {
-        set({ open: toggle(state.open, el.dataset["key"]) });
+        set({ open: toggle(state.open, el.dataset["key"]), ...noQuestion });
         keep();
       }
       break;
@@ -1054,14 +1257,19 @@ function onClick(event: MouseEvent): void {
       keep();
       break;
     case "clear":
-      set({ query: "", tags: [], category: undefined });
+      set({ query: "", tags: [], category: undefined, ...noQuestion });
+      // Kept, like every keystroke that FILLED the box. Without it the deck's
+      // bucket holds the old search and the next open restores one the user
+      // explicitly got rid of — `docs/DESIGN.md` section 4 asks for the search
+      // back, not for a cleared search back.
+      keep();
       break;
     // Section 8's chips narrow a search to one category; picking the one
     // already picked widens it again.
     case "category-chip":
       if (el.dataset["key"]) {
         const key = el.dataset["key"];
-        set({ category: state.category === key ? undefined : key, previewing: undefined });
+        set({ category: state.category === key ? undefined : key, previewing: undefined, ...noQuestion });
       }
       break;
     // A "Did you mean" suggestion is a name the library really has, so putting
@@ -1074,10 +1282,28 @@ function onClick(event: MouseEvent): void {
   }
 }
 
+/**
+ * The question a tile is asking, dropped.
+ *
+ * Spread into every change that can take a tile OFF the screen, because the
+ * question is drawn on the tile and nowhere else — and while one is open the
+ * Remove button is suppressed on every tile. So a question whose tile was
+ * filtered away left no question on screen, no Remove button anywhere either,
+ * and only Escape to get out of a state nothing on screen was describing. A
+ * question about a tile does not outlive the tile.
+ */
+const noQuestion = { removing: undefined } as const;
+
 function onInput(event: Event): void {
   const target = event.target;
   if (!(target instanceof HTMLInputElement) || target.dataset["action"] !== "search") return;
-  set({ query: target.value });
+  // A category chip narrows a SEARCH, and section 8 draws the chips only while
+  // there is one. So a category left picked over a box the user backspaced to
+  // empty goes on filtering the whole library down to that one category, with
+  // nothing on screen saying so and no chip left to unpick it. Clear and Escape
+  // already drop it; emptying the box by hand is the same gesture typed out.
+  const query = target.value;
+  set(query.trim() === "" ? { query, category: undefined, ...noQuestion } : { query, ...noQuestion });
   // Per keystroke, and deliberately not debounced: `keep` is one small
   // synchronous `setItem`, and a debounce would mean the pane forgetting
   // whatever was typed in the last moment before it was closed — which is
@@ -1121,7 +1347,17 @@ function onKey(event: KeyboardEvent): void {
         set({ gear: false });
         break;
       case "search":
-        set({ query: "", tags: [] });
+        // The CATEGORY goes too, and is kept, which is what the `clear` action
+        // a few lines up already does. `steps.ts` states the rule — the picked
+        // category is not carried across a cleared search — and this rung is
+        // the half a user actually presses.
+        //
+        // What it left behind was invisible: `render` draws the chips only
+        // while there IS a search, so a category still picked after Escape
+        // narrowed the library to one section with no control on screen to
+        // lift it and nothing saying why.
+        set({ query: "", tags: [], category: undefined });
+        keep();
         break;
     }
     return;
@@ -1131,9 +1367,10 @@ function onKey(event: KeyboardEvent): void {
   const next = to === undefined ? undefined : tiles[to];
   if (next) {
     event.preventDefault();
+    // `focus` raises `focusin`, and `onFocus` marks the tile chosen — so the
+    // `set` that used to follow this line was a second redraw for a state that
+    // had already been set by the first.
     next.focus();
-    const id = next.dataset["id"];
-    if (id) set({ chosen: id });
   }
 }
 
@@ -1177,10 +1414,18 @@ function onOver(event: MouseEvent): void {
 }
 
 function onFocus(event: FocusEvent): void {
+  // The focus `draw` just put back is not the user arriving anywhere.
+  if (restoringFocus) return;
   const found = actionOf(event.target);
   if (found?.action === "tile" && found.el.dataset["id"]) {
     const id = found.el.dataset["id"];
-    set({ chosen: id });
+    // Only when it CHANGED. `set` redraws, `draw` puts the focus back where it
+    // was, and putting it back raises `focusin` again — so setting
+    // unconditionally here is a redraw calling itself for as long as the stack
+    // allows. It is also what `render`'s own comment asks for a line away: a
+    // redraw the user did not ask for is a redraw that can take the focus off
+    // whatever they were on.
+    if (state.chosen !== id) set({ chosen: id });
     // Focus previews too, so the card is not a thing only a mouse can reach.
     previewAfterDelay(id);
     return;

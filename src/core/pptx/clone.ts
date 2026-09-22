@@ -29,7 +29,7 @@
  */
 import { Pkg } from "./pkg.js";
 import { P_NS, child, element, elements, relationshipIdsIn } from "./xml.js";
-import { COMMENT_REL_TYPES, REL_TYPE } from "./parts.js";
+import { REL_TYPE } from "./parts.js";
 
 const SLIDE_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
 const PKG_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -111,22 +111,26 @@ async function freshCreationId(pkg: Pkg, draw: () => number): Promise<number> {
  * nothing. A notes slide is the exception, because it is per-slide content and
  * a shared one means two slides editing the same notes page.
  *
- * COMMENTS are dropped rather than shared or copied, and the two routes are why.
- * A comment hangs off the slide, so the wholesale rels copy above hands every
- * clone a relationship to the TEMPLATE's comment part — measured: three slides,
- * one `modernComment_101_AEAB9DA1.xml`. A reviewer's "check this with Legal"
- * then appears on all 240 merged slides, as one shared thread.
+ * COMMENTS ARE KEPT, and that is this repo's answer rather than the one it was
+ * ported with. SSF-Merge drops them here, for a reason that is sound THERE: its
+ * clone is a copy of a TEMPLATE slide, the template stays in the deck, and the
+ * wholesale rels copy above would hand all 240 merged slides one relationship
+ * to the template's comment part — measured there: three slides, one
+ * `modernComment_101_AEAB9DA1.xml`, a reviewer's "check this with Legal" on
+ * every row as one shared thread.
  *
- * Copying them per clone would be worse, not better: it is the same note 240
- * times, deliberately. A comment is an annotation about the template, not
- * content the template produces.
+ * Neither half of that holds here. This add-in clones the USER'S OWN slide and
+ * the original is removed by position straight afterwards, so there is one copy
+ * at the end and it is the slide the comment was already on. Dropping it did
+ * not prevent sharing; it lost the reviewer's thread, which `docs/DESIGN.md`
+ * section 6 names as the thing that must not happen and `test/splice.test.ts`
+ * calls the worst thing this add-in could quietly do.
  *
- * And dropping them is what makes the two template routes AGREE. On a 1.10 host
- * `exportAsBase64Presentation` drops comments and `ppt/authors.xml` outright —
- * office-js#6867, measured on this host on 2026-08-28, four comment parts in and
- * none out — so the subset route was already producing comment-free clones while
- * the file route produced shared ones. Two routes, two different decks, from the
- * same template.
+ * `dropInheritedTags` below carries the rest of the reasoning, including why
+ * the loss was invisible: it fell only on the CLASSIC spelling, which nothing
+ * in the markup names. A slide that is meant to be new still carries no
+ * comment — `blank()` in `src/core/splice/splice.ts` takes them off it, which
+ * is the one place that decision belongs.
  */
 export async function cloneSlide(pkg: Pkg, sourcePath: string, opts: CloneOptions = {}): Promise<string> {
   const n = pkg.nextSlideNumber();
@@ -286,6 +290,28 @@ export async function creationIdOf(pkg: Pkg, slidePath: string): Promise<number 
  *
  * The relationship and the reference both go. The template's own tag part is
  * left exactly as it was — it belongs to the template.
+ *
+ * **Comments are NOT dropped here, and the reason is what this repo clones.**
+ * This pass arrived from SSF-Merge taking comment relationships with the tags,
+ * against a measured failure of the MERGE: there a clone is a copy of a
+ * TEMPLATE slide, the template stays in the deck, and 240 copies sharing one
+ * reviewer's thread is the outcome. Neither half of that holds here. Both
+ * callers — `splice`'s "onto this slide" and `removeElement` — clone the
+ * USER'S OWN slide and the original is removed straight afterwards, so there
+ * is exactly one copy at the end and it is the slide the comment was already
+ * on.
+ *
+ * Dropping it there did not prevent sharing; it lost the thread. And it did so
+ * asymmetrically, which is why nothing noticed: the pass removes what the
+ * MARKUP does not name, a modern comment is anchored from the slide's own
+ * extension list and so survived, and a CLASSIC `ppt/comments/commentN.xml` —
+ * PowerPoint 2016 and 2019, and any deck not yet upgraded — is named by its
+ * relationship alone and so did not. `docs/DESIGN.md` section 6 states the rule
+ * this now keeps: a comment survives its slide being rebuilt.
+ *
+ * A slide that is meant to be NEW still carries none: `blank()` in
+ * `src/core/splice/splice.ts` takes the comment relationships off it outright,
+ * which is the one place that decision belongs.
  */
 async function dropInheritedTags(pkg: Pkg, slidePath: string): Promise<void> {
   const doc = await pkg.doc(slidePath);
@@ -320,7 +346,7 @@ async function dropInheritedTags(pkg: Pkg, slidePath: string): Promise<void> {
   const named = relationshipIdsIn(doc);
   for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
     const type = rel.getAttribute("Type") ?? "";
-    if (type !== REL_TYPE.tags && !COMMENT_REL_TYPES.includes(type)) continue;
+    if (type !== REL_TYPE.tags) continue;
     const id = rel.getAttribute("Id") ?? "";
     if (named.has(id)) continue;
     rel.parentNode?.removeChild(rel);
