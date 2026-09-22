@@ -378,6 +378,22 @@ function showFirstCategory(pane: HTMLElement): void {
   if (head?.getAttribute("aria-expanded") === "false") head.click();
 }
 
+/**
+ * Wait until the pane is not in the middle of anything.
+ *
+ * `state.busy` is not reachable from a case, and the tile's `disabled` is the
+ * same flag drawn: `render.ts` disables every tile while an insert runs. A case
+ * that stops before this leaves an insert in flight, and the `keep()` at the
+ * end of it writes localStorage during whatever case runs next.
+ */
+async function idle(pane: HTMLElement): Promise<void> {
+  await waitFor(
+    "the pane to stop being busy",
+    () => !Array.from(pane.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')).some((t) => t.disabled),
+  );
+  await settle();
+}
+
 /** Every category open, for a case whose element is not in the first one. */
 function showEveryCategory(pane: HTMLElement): void {
   for (const head of Array.from(pane.querySelectorAll<HTMLElement>('[data-action="category"]'))) {
@@ -962,6 +978,53 @@ describe("a host that raises after the work landed", () => {
     expect(host.removed, "and the removal really was attempted").toContain(0);
   });
 
+  it("does not say REFUSED, or keep a stale Undo, when the insert may have landed", async () => {
+    /**
+     * The count read straight after `insertSlidesFromBase64` can fail — it is
+     * `withTimeout`, which rejects on the budget as readily as on a host
+     * raise, and `timeout.ts` records this host taking 40 s for a 40 KB read
+     * on a session that had been through a timeout reload.
+     *
+     * Two things were then wrong at once. The pane said "The insert was
+     * refused" with `byHand: false` — nothing changed, nothing to put right —
+     * while the rebuilt slide may be in the deck with the original still
+     * beside it. And the Undo left armed still described the PREVIOUS insert,
+     * so pressing it would put a slide back against a deck this code has
+     * already admitted it cannot measure.
+     */
+    const pane = await insertOnce();
+    expect(pane.querySelector('[data-action="undo"]'), "the first insert armed an undo").not.toBeNull();
+
+    host.countRaises = true;
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the second insert to answer", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("did not confirm"),
+    );
+    await settle();
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "a call that may have landed was not refused").not.toContain("refused");
+    expect(pane.querySelector('[data-action="undo"]'), "the stale undo is disarmed").toBeNull();
+  });
+
+  it("still calls it refused when nothing was ever asked of the host", async () => {
+    // The pair, and the half that must NOT change: a failure before
+    // `insertSlidesFromBase64` — the markup fetch, the deck read, the splice —
+    // leaves the deck alone, so "refused" is honest and an undo armed by an
+    // earlier insert still describes the deck and has to survive.
+    const pane = await insertOnce();
+    expect(pane.querySelector('[data-action="undo"]')).not.toBeNull();
+
+    // The deck read is the first await of the next insert, and it rejects with
+    // no deck to read.
+    deckBase64 = undefined;
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the second insert to answer", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("refused"),
+    );
+    await settle();
+    expect(pane.querySelector('[data-action="undo"]'), "the earlier insert is still undoable").not.toBeNull();
+  });
+
   it("still says so when the copy really is still there", async () => {
     // The pair. `refuseAt` makes `countReaching` answer the deck's own size
     // rather than the one asked for, so the second read finds `before + 1` and
@@ -1386,14 +1449,50 @@ describe("moving the last insert to a new slide", () => {
 
   it("stops at the undo when the undo does not work, rather than inserting a second copy", async () => {
     // The one outcome a user asking to MOVE something cannot have meant.
+    //
+    // The undo has to actually fail for this to be about anything, and a host
+    // RAISE is not that: `undo`'s removal half reads the deck's size after the
+    // delete, so a delete that raised and landed is a delete that worked. The
+    // count is what has to miss. `missCountAt` is the undo's own removal read:
+    // the insert this case starts from spends two, and the undo's insert half
+    // spends the third.
     const pane = await inserted(1);
     const before = spliced.length;
     host.refuseRemoval = true;
+    host.missCountAt = host.countCalls + 2;
     pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
     await settle();
     await settle();
     expect(spliced.length).toBe(before);
     expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not work");
+  });
+
+  it("finishes the move when the delete raised but the deck's own size says it worked", async () => {
+    /**
+     * The pair, and the case the rule above used to swallow. `CLAUDE.md`: a
+     * call can raise and still have done the work, and the delta is the
+     * evidence. `undo`'s INSERT half already worked that way — the count
+     * decides and the raise only supplies the message — and its removal half
+     * tested the raise first, so a delete that raised and landed threw over a
+     * correctly restored deck.
+     *
+     * What that cost is worse than a wrong sentence: "Move to a new slide"
+     * runs this undo and then inserts again, so it stopped after the undo and
+     * the element the user asked to MOVE was gone from the deck altogether,
+     * under a message saying the undo had failed.
+     */
+    const pane = await inserted(1);
+    const before = spliced.length;
+    host.refuseRemoval = true;
+    pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
+    // Waited out to the END of the second insert, not just to the splice it
+    // asks for. The insert writes the deck's bucket when it finishes, and a
+    // case that returns while it is still running leaves that write to land in
+    // the NEXT case — which is how this file's own storage cases started
+    // failing one run in four.
+    await waitFor("the move to ask for its second splice", () => spliced.length > before);
+    await idle(pane);
+    expect(spliced.map((s) => s.target)).toEqual(["onto", "new"]);
   });
 
   it("withdraws the offer once the insert has simply been undone", async () => {

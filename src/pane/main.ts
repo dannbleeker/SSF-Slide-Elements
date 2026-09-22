@@ -492,6 +492,8 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   // Before the first await: from here on, any deck read running underneath this
   // is reading a deck this pane is in the middle of changing.
   deckEdits += 1;
+  /** Whether `insertSlidesFromBase64` was reached. See the catch at the end. */
+  let asked = false;
   try {
     const markup = await store.markup(element);
     const deck = await readDeck();
@@ -538,6 +540,11 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       return;
     }
 
+    // From here the deck may have changed, whatever happens next. The catch
+    // below needs to tell that apart from a failure before this line, because
+    // the two want opposite things said and opposite things done with the undo
+    // that is already armed.
+    asked = true;
     const error = await insertPackage(report.base64, targetId);
     // Asked again until it agrees, because the count lags the insert: see
     // `countReaching`. One read here would report a landed insert as a no-op.
@@ -620,11 +627,40 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     // ran. Ask once now.
     followSelection();
   } catch (e) {
-    state = {
-      ...state,
-      busy: false,
-      outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
-    };
+    // Two different failures reach here, and only one of them leaves the deck
+    // alone. Before `insertSlidesFromBase64` was reached — the markup fetch,
+    // the deck read, the splice — nothing was asked of the host, "refused" is
+    // honest, and an undo armed by an EARLIER insert still describes the deck
+    // and must survive.
+    //
+    // After it, the slide may be in the deck: the two calls that can throw
+    // there are count reads, and `withTimeout` rejects on the budget as
+    // readily as on a host raise. Saying "refused" then tells the user nothing
+    // changed while a rebuilt slide sits in their deck with the original still
+    // beside it — and the armed undo now points at the wrong insert, so
+    // pressing it would put a slide back against a deck this code has already
+    // misread. It is disarmed rather than left to do that.
+    if (asked) {
+      undoable = undefined;
+      state = {
+        ...state,
+        busy: false,
+        undo: 0,
+        moveable: undefined,
+        outcome: {
+          ok: false,
+          byHand: true,
+          name: element.name,
+          detail: `The insert did not confirm: ${readable(e)}. Check the end of the deck.`,
+        },
+      };
+    } else {
+      state = {
+        ...state,
+        busy: false,
+        outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
+      };
+    }
     delete state.notice;
     draw();
   }
@@ -664,8 +700,17 @@ async function undo(): Promise<boolean> {
     }
 
     const refused = await removeSlideAt(plan.remove);
-    const after = await countReaching(before - (plan.after === undefined ? 1 : 0));
-    if (refused !== undefined || after !== before - (plan.after === undefined ? 1 : 0)) {
+    const want = before - (plan.after === undefined ? 1 : 0);
+    const after = await countReaching(want);
+    // The count decides and the raise only supplies the MESSAGE, which is what
+    // the insert half ten lines above already does. This half tested `refused`
+    // first, so a delete that raised and landed threw over a deck that was
+    // correctly restored: the pane said "Undo did not work", `undoable` was
+    // never cleared, and "Move to a new slide" — which runs this undo and then
+    // inserts again — stopped after the undo. The element the user asked to
+    // MOVE was gone from the deck altogether, under a message saying the undo
+    // had failed.
+    if (after !== want) {
       throw new Error(refused ?? `the deck has ${after} slides, which is not what was expected`);
     }
 
@@ -873,11 +918,16 @@ async function removeEverywhere(id: string): Promise<void> {
       const targetId = await slideIdAt(at);
       if (targetId === undefined) break;
       const report = await removeElement({ deck: deck.base64, slide: at, element: id });
-      const refused = await insertPackage(report.base64, targetId);
-      if (refused !== undefined) break;
+      // The raise is not consulted in either half of the cycle: the count on
+      // the line after each call already is, and it is the evidence. Breaking
+      // on the raise ahead of it stopped a cycle whose work had LANDED — the
+      // rebuilt slide in the deck, the original never taken away, `done` still
+      // zero, and the user told "The rest are as they were" over a deck now
+      // one slide longer with the element on both. A raise that really did
+      // nothing still stops the run, because the count then does not move.
+      await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
-      const failed = await removeSlideAt(at);
-      if (failed !== undefined) break;
+      await removeSlideAt(at);
       if ((await countReaching(before)) !== before) break;
       done += 1;
     }

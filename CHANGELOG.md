@@ -36,6 +36,26 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   the add-in's own bookkeeping instead. Nothing was visible to you; the file
   was untidy in a way PowerPoint is entitled to complain about.
 
+- **"Move to a new slide" no longer loses the element instead of moving it.**
+  The move takes the insert back and makes it again on a new slide. If
+  PowerPoint reported a problem on the way but had in fact done the work, the
+  pane stopped after the first half — so the element was gone from the deck
+  altogether, under a message saying the undo had failed. It now checks the
+  deck's own size, the way the other half of the same step already did.
+
+- **"Remove from N slides" no longer leaves a copy behind and calls the deck
+  untouched.** If PowerPoint reported a problem on a step it had actually
+  completed, the run stopped and told you nothing had changed, while the deck
+  had gained a slide with the element on it twice. Each step is now judged by
+  what the deck is, not by whether an error was reported.
+
+- **A failed insert no longer claims the deck is untouched when it may not
+  be**, and no longer leaves an Undo armed that points at the previous insert.
+  If the pane cannot find out what happened after handing the slide over, it
+  now says so and tells you to check the end of the deck. A failure that
+  happens before anything is asked of PowerPoint is unchanged: it still says
+  the insert was refused, and an Undo you already had still works.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
