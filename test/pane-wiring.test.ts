@@ -387,10 +387,12 @@ function showFirstCategory(pane: HTMLElement): void {
  * end of it writes localStorage during whatever case runs next.
  */
 async function idle(pane: HTMLElement): Promise<void> {
-  await waitFor(
-    "the pane to stop being busy",
-    () => !Array.from(pane.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')).some((t) => t.disabled),
-  );
+  await waitFor("the pane to stop being busy", () => {
+    const tiles = Array.from(pane.querySelectorAll<HTMLButtonElement>('[data-action="tile"]'));
+    // At least one, or this is a `some` over an empty list answering "not
+    // busy" for a pane that has not drawn yet — a wait that cannot wait.
+    return tiles.length > 0 && !tiles.some((t) => t.disabled);
+  });
   await settle();
 }
 
@@ -963,7 +965,10 @@ describe("a host that raises after the work landed", () => {
     showEveryCategory(pane);
     (pane.querySelector(`[data-action="tile"][data-id="${id}"]`) as HTMLElement).click();
     await waitFor("the splice to be asked for", () => spliced.length > 0);
-    await settle();
+    // To the END of the insert. The splice is the third of its awaits, and the
+    // `keep()` that writes the deck's bucket is the last — a helper that
+    // returns between them leaves that write for whatever case runs next.
+    await idle(pane);
     return pane;
   }
 
@@ -1001,6 +1006,7 @@ describe("a host that raises after the work landed", () => {
       (pane.querySelector(".outcome")?.textContent ?? "").includes("did not confirm"),
     );
     await settle();
+    await idle(pane);
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome, "a call that may have landed was not refused").not.toContain("refused");
     expect(pane.querySelector('[data-action="undo"]'), "the stale undo is disarmed").toBeNull();
@@ -1021,7 +1027,7 @@ describe("a host that raises after the work landed", () => {
     await waitFor("the second insert to answer", () =>
       (pane.querySelector(".outcome")?.textContent ?? "").includes("refused"),
     );
-    await settle();
+    await idle(pane);
     expect(pane.querySelector('[data-action="undo"]'), "the earlier insert is still undoable").not.toBeNull();
   });
 
