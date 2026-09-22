@@ -169,10 +169,51 @@ function announce(text: string): void {
 }
 
 /** Where the search caret was, so a redraw does not throw it away. */
+/**
+ * A selector that finds the same control again after a redraw.
+ *
+ * `render` empties the pane and builds fresh elements, so nothing survives by
+ * reference — a control has to be found again by what it IS. The three data
+ * attributes are what distinguish one: the action, the element it is for, and
+ * which of the up-to-three tiles for that element this one is.
+ *
+ * Answers undefined for anything with no action, which is everything the pane
+ * does not own.
+ */
+function focusKey(el: Element): string | undefined {
+  if (!(el instanceof HTMLElement)) return undefined;
+  const action = el.dataset["action"];
+  if (action === undefined) return undefined;
+  const parts = [`[data-action="${CSS.escape(action)}"]`];
+  for (const name of ["id", "where", "value"] as const) {
+    const value = el.dataset[name];
+    if (value !== undefined) parts.push(`[data-${name}="${CSS.escape(value)}"]`);
+  }
+  return parts.join("");
+}
+
+/** Whether `draw` is putting the focus back, rather than the user moving it. */
+let restoringFocus = false;
+
 function draw(): void {
   const active = document.activeElement;
   const wasSearch = active instanceof HTMLInputElement && active.dataset["action"] === "search";
   const caret = wasSearch ? active.selectionStart : null;
+  /**
+   * What else held the focus, so the redraw does not throw it on the floor.
+   *
+   * `docs/DESIGN.md` section 9 promises the arrow keys move between the tiles
+   * and Enter inserts the one you are on, and none of it worked: focus landing
+   * on a tile calls `set({chosen})`, `set` redraws, and `render` starts by
+   * emptying the pane — so the button that had just taken focus was removed
+   * from the document and focus fell back to `<body>`. Tab could not get past
+   * the first tile, and every arrow after that landed on tile 0 forever,
+   * because `indexOf(document.activeElement)` was -1.
+   *
+   * The caret restore above is the same repair for the search box, written
+   * when the same redraw ate the caret. This is the rest of the pane.
+   */
+  const held = !wasSearch && active && root().contains(active) ? focusKey(active) : undefined;
 
   render(root(), state, stepFor(state));
   liveRegion();
@@ -183,6 +224,24 @@ function draw(): void {
     if (search) {
       search.focus();
       if (caret !== null) search.setSelectionRange(caret, caret);
+    }
+  } else if (held !== undefined) {
+    // Only when it is still there: a control the redraw legitimately removed —
+    // the menu that just closed, a tile a search filtered away — is not
+    // something to hunt for, and the browser's own fallback is right for it.
+    //
+    // Flagged, because `focus()` raises `focusin` and `onFocus` treats that as
+    // the USER arriving at a tile: it marks the tile chosen and arms the
+    // preview. Putting the focus back where it already was is neither. Without
+    // this the restore armed a third-of-a-second timer on every redraw that
+    // had a tile focused, so the pane kept redrawing itself long after
+    // anything had happened — measured as an insert's whole result being
+    // painted over by a later draw, outcome and Undo and all.
+    restoringFocus = true;
+    try {
+      root().querySelector<HTMLElement>(held)?.focus();
+    } finally {
+      restoringFocus = false;
     }
   }
   restoreScroll();
@@ -1217,9 +1276,10 @@ function onKey(event: KeyboardEvent): void {
   const next = to === undefined ? undefined : tiles[to];
   if (next) {
     event.preventDefault();
+    // `focus` raises `focusin`, and `onFocus` marks the tile chosen — so the
+    // `set` that used to follow this line was a second redraw for a state that
+    // had already been set by the first.
     next.focus();
-    const id = next.dataset["id"];
-    if (id) set({ chosen: id });
   }
 }
 
@@ -1263,10 +1323,18 @@ function onOver(event: MouseEvent): void {
 }
 
 function onFocus(event: FocusEvent): void {
+  // The focus `draw` just put back is not the user arriving anywhere.
+  if (restoringFocus) return;
   const found = actionOf(event.target);
   if (found?.action === "tile" && found.el.dataset["id"]) {
     const id = found.el.dataset["id"];
-    set({ chosen: id });
+    // Only when it CHANGED. `set` redraws, `draw` puts the focus back where it
+    // was, and putting it back raises `focusin` again — so setting
+    // unconditionally here is a redraw calling itself for as long as the stack
+    // allows. It is also what `render`'s own comment asks for a line away: a
+    // redraw the user did not ask for is a redraw that can take the focus off
+    // whatever they were on.
+    if (state.chosen !== id) set({ chosen: id });
     // Focus previews too, so the card is not a thing only a mouse can reach.
     previewAfterDelay(id);
     return;

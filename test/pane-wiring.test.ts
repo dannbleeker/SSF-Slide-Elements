@@ -496,6 +496,14 @@ function quiet(still = 60, cap = 3000): Promise<void> {
 }
 
 afterEach(async () => {
+  // Cancel a pending preview FIRST. Focusing or hovering a tile arms
+  // `previewAfterDelay`, which is a third of a second — five times `quiet`'s
+  // still-window — so the pane can be perfectly still, this teardown can run,
+  // and the timer then fires into the NEXT case, redrawing its pane from a
+  // dead one's state. The pane binds `mouseleave` on `document` to
+  // `closePreview`, which is exactly the cancel, so this asks it the way a
+  // user leaving the pane would rather than reaching into the module.
+  document.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
   // BEFORE the teardown, so a pane still finishing its boot draws into its own
   // case's DOM and writes its own case's storage, rather than the next one's.
   await quiet();
@@ -1031,6 +1039,56 @@ describe("what the menu actually inserts", () => {
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await ran();
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+  });
+});
+
+describe("the keyboard reaching the tiles", () => {
+  /**
+   * `docs/DESIGN.md` section 9 and `docs/MANUAL.md` both promise it: "Tab
+   * reaches the tiles; the arrow keys move between them and Enter or Space
+   * inserts the one you are on."
+   *
+   * None of it worked. Focus landing on a tile calls `set({chosen})`, `set`
+   * redraws, and `render` opens with `root.textContent = ""` — so the button
+   * that had just taken focus was removed from the document and focus fell back
+   * to `<body>`. Tab could not get past the first tile, every arrow key landed
+   * on tile 0 forever because `indexOf(document.activeElement)` was -1, and
+   * Enter had nothing under it to insert.
+   *
+   * `draw` already puts the SEARCH caret back across the same redraw, and for
+   * the same reason. This is that, for everything else.
+   */
+  async function browsing(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    return pane;
+  }
+
+  const focused = (): string | undefined => (document.activeElement as HTMLElement | null)?.dataset["id"];
+
+  it("keeps the focus on a tile that has just taken it", async () => {
+    const pane = await browsing();
+    const first = pane.querySelector<HTMLElement>('[data-action="tile"]')!;
+    const id = first.dataset["id"];
+    first.focus();
+    await settle();
+    expect(focused(), "the redraw threw the focus on the floor").toBe(id);
+  });
+
+  it("moves to the next tile on an arrow, and stays there", async () => {
+    const pane = await browsing();
+    const tiles = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')];
+    expect(tiles.length, "more than one tile, or this case proves nothing").toBeGreaterThan(1);
+    const second = tiles[1]!.dataset["id"];
+    tiles[0]!.focus();
+    await settle();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    await settle();
+    expect(focused(), "the arrow moved the focus and the redraw kept it").toBe(second);
   });
 });
 

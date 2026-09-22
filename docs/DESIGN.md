@@ -656,6 +656,26 @@ top hit.
   `/` focuses search, Esc closes a menu, the preview or the search in that
   order. Focus draws the same ring as hover. A live region announces every
   outcome.
+
+  **None of it worked until 2026-09-22**, and the reason is a property of the
+  pane worth stating rather than a slip: `render` empties `#pane` and builds
+  fresh elements, so a redraw destroys whatever holds the focus. Focus landing
+  on a tile marks it chosen, marking it chosen redraws, and the redraw removed
+  the button that had just been reached — so Tab could not get past the first
+  tile and every arrow after that landed on tile 0, because the pane's own
+  `indexOf(document.activeElement)` was -1. `draw` restores the focus across
+  the render now, the way it already restored the search caret.
+
+  **And `draw()` calling `focus()` re-enters the pane's own focus handling.**
+  `focus()` raises `focusin`, which is the same event a user arriving at a tile
+  raises, so the restore looked like a fresh focus: it marked the tile chosen
+  (a redraw, calling itself) and armed the preview's third-of-a-second timer on
+  every redraw that had a tile focused. That second half is the one that hid:
+  it turned a one-shot into a cadence, and a late draw painted over a completed
+  insert — outcome, Undo and all — while the insert itself had plainly run. So
+  the restore is flagged and the focus handler returns under it. Anything that
+  focuses on render has to account for this, or it arms timers and redraws in a
+  loop.
 - **Touch**: the first tap on a tile shows the preview, the second inserts;
   nothing depends on hover.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,

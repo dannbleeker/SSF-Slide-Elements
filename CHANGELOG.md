@@ -77,6 +77,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   and said it had worked. The numbers now move with the deck, and move back
   when the insert is undone.
 
+- **The keyboard can reach the tiles again.** Tab, the arrow keys and Enter are
+  meant to move between elements and insert the one you are on. They did not
+  work at all: the moment a tile took focus the pane redrew itself, which
+  removed the very button you had just reached, so Tab could not get past the
+  first tile and the arrow keys never moved. Focus now survives the redraw.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
