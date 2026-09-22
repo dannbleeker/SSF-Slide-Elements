@@ -9,6 +9,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A new slide no longer arrives carrying your own table or picture.** "As a
+  new slide" copies the slide you are on and empties it, so the new one keeps
+  the same design. It emptied the text on it, but a table or a picture you had
+  dropped into one of the layout's own boxes was left standing — so an element
+  meant for a fresh slide arrived on top of your figures, and the figures were
+  on a slide you had not put them on. The new slide now starts from the layout,
+  as it says it does; your original slide is untouched either way.
+
 - **A comment on the slide you insert onto is no longer lost.** Inserting an
   element rebuilds the slide you are on, and a comment written by PowerPoint
   2016 or 2019 — or by any deck not yet upgraded to the newer kind — went with

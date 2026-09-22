@@ -205,8 +205,10 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
  * one it follows — and a slide whose layout is not in the deck is a slide
  * PowerPoint has to invent a design for.
  *
- * Placeholders stay and are emptied; everything else goes. So do the notes page
- * and the COMMENTS, and both for the same reason: a new slide carrying the
+ * EMPTY placeholders stay, and the text ones among them are emptied; everything
+ * else goes, including a placeholder the user has filled with something that is
+ * not text. So do the notes page and the COMMENTS, and both for the same
+ * reason: a new slide carrying the
  * previous slide's speaker notes or somebody's review thread is a surprise
  * nobody asked for. The parts they point at are left in the package as orphans,
  * which `scripts/package-integrity.mjs` treats as weight rather than damage and
@@ -224,8 +226,18 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
 async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   const spTree = await spTreeOf(pkg, slidePath);
   for (const shape of slideShapes(spTree)) {
-    const isPlaceholder = placeholderIn(shape);
-    if (!isPlaceholder) {
+    // A placeholder is kept only when it is a `<p:sp>`. That is the spelling of
+    // an EMPTY placeholder — the layout's own prompt box, which a new slide
+    // should keep, whether or not it has a `<p:txBody>` to empty. A placeholder
+    // the user has FILLED is spelled differently: a table is a
+    // `<p:graphicFrame>` and a picture is a `<p:pic>`, both carrying their
+    // `<p:ph>` in their own non-visual properties. They read as placeholders
+    // and have no `<p:txBody>`, so the emptying pass below stepped over them
+    // and left the user's own figures standing on a slide that is meant to be
+    // new. They go with the rest of the content, and PowerPoint draws the
+    // layout's prompt in their place.
+    const keep = placeholderIn(shape) && shape.namespaceURI === P_NS && shape.localName === "sp";
+    if (!keep) {
       shape.parentNode?.removeChild(shape);
       continue;
     }

@@ -932,6 +932,26 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
 
   Neither is measured on a host: this container has no PowerPoint. Both are
   held by the package the engine hands over, which is what the host reads.
+- **"As a new slide" emptied only the placeholders it knew how to empty, and
+  carried the rest of the user's content over** (found 2026-09-22 by reading,
+  and reproduced in `test/splice.test.ts` before it was changed). The rule is
+  "the clone keeps its placeholders, emptied; everything else goes", and
+  `blank()` read a placeholder as any top-level shape carrying a `<p:ph>`. A
+  table dropped into a content placeholder is a `<p:graphicFrame>` and a
+  picture in a picture placeholder is a `<p:pic>`: both carry the `<p:ph>`,
+  neither has a `<p:txBody>`, so the emptying pass stepped over them and left
+  them whole. A new slide could therefore arrive carrying the user's own
+  figures, under an element placed as if the slide were empty. A placeholder is
+  now kept only when it is a `<p:sp>`, which is how an EMPTY placeholder is
+  spelled — the layout's own prompt box, kept whether or not it has a
+  `<p:txBody>` to empty, which `test/splice-malformed.test.ts` already pinned
+  and which is what caught a first fix that removed those too. A placeholder
+  spelled any other way is one the user has FILLED, so it goes with the rest of
+  the content and PowerPoint draws the layout's prompt in its place. Both
+  shipped routes into `target: "new"` reach it: the
+  tile menu's "Insert as a new slide" and the footer's "Move to a new slide",
+  the second of which is OFFERED on `held > 0`, the very condition such content
+  creates. Not measured on a host, for the same reason as the pair above.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host. Worse again on
