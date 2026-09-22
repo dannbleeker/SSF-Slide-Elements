@@ -88,7 +88,10 @@ vi.mock("../src/office/powerpoint.js", () => ({
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
-  onSlideChange: () => Promise.resolve(false),
+  onSlideChange: () => {
+    host.followed += 1;
+    return Promise.resolve(false);
+  },
   insertPackage: () => {
     host.cycles += 1;
     return Promise.resolve(undefined);
@@ -225,6 +228,8 @@ const host = {
   missCountAt: 0,
   /** The URL the host gives for the open deck; undefined is an unsaved one. */
   url: undefined as string | undefined,
+  /** How many times the pane asked to be told about a slide change. */
+  followed: 0,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -532,6 +537,7 @@ afterEach(async () => {
   host.missCountAt = 0;
   host.url = undefined;
   host.holdRead = undefined;
+  host.followed = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -881,6 +887,35 @@ describe("when it does arrive", () => {
       (head) => head.getAttribute("aria-expanded") === "true",
     );
     expect(open.map((head) => head.dataset["key"])).toEqual(["stamps"]);
+  });
+
+  it("follows the selection even when the deck could not be read at boot", async () => {
+    // The two are independent: one reads the FILE, the other subscribes to an
+    // EVENT. `load` returned early on a deck read it could not do and took the
+    // subscription with it, so the line under the header stayed on whatever it
+    // said at boot for the rest of the session however much the user clicked —
+    // silently, because nothing on screen tells a line that is right from one
+    // that stopped being asked. A deck read is the likelier of the two to fail:
+    // section 13's sixth open question is how long one takes on a 50 MB deck.
+    indexMode = "ok";
+    deckBase64 = undefined; // so `readDeck` rejects and `deckShape` answers nothing
+    const pane = await openPane();
+    await settle();
+    expect(pane.querySelector("h1")?.textContent, "the library still arrived").toBe("Slide elements");
+    expect(host.followed, "the pane stopped listening for slide changes").toBeGreaterThan(0);
+  });
+
+  it("subscribes exactly once when the deck DID read, because both call sites are the same one", async () => {
+    // The pair: `follow` is idempotent, which is what lets the failure path
+    // above stand beside the call at the end of `load`.
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    await openPane();
+    await waitFor("the boot chain to reach the subscription", () => host.followed > 0);
+    // And no second one after everything else has had a chance to run.
+    await settle();
+    expect(host.followed).toBe(1);
   });
 });
 

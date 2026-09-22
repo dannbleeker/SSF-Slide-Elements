@@ -431,7 +431,18 @@ async function load(): Promise<void> {
   store = new Store(provisional.size);
 
   const shape = await deckShape();
-  if (!shape || !index) return;
+  if (!shape || !index) {
+    // The deck read failing is not a reason to stop following the SELECTION.
+    // The two are independent — one reads the file, the other subscribes to an
+    // event — and this early return took the subscription with it for the rest
+    // of the session, so the line under the header stayed on whatever it said
+    // at boot however much the user clicked. Silently: nothing on screen
+    // distinguishes a line that is right from one that stopped being asked.
+    // `follow` is idempotent, which is what lets this stand beside the call at
+    // the end without a second subscription.
+    void follow();
+    return;
+  }
   const library: Library = libraryFor(index, shape.width, shape.height);
   if (library.size !== provisional.size || library.borrowed !== provisional.borrowed) {
     store = new Store(library.size);

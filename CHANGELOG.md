@@ -17,6 +17,25 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   on a slide you had not put them on. The new slide now starts from the layout,
   as it says it does; your original slide is untouched either way.
 
+- **The line under the header keeps naming the slide you are on, even if the
+  add-in could not read your deck when it opened.** One failed read at startup
+  — a slow network, a very large presentation — stopped the pane listening for
+  you changing slides for the rest of the session, and nothing said so: the
+  line just went on showing whatever it said at the time.
+
+- **A marker dropped on a selected LINE is no longer invisible.** Markers wrap
+  the shape you have selected, and a straight line has no thickness to wrap, so
+  the marker came out with no height at all — impossible to see and hard to
+  click on in order to delete. It now lands on the line at its normal size, the
+  same as it does on a shape too big to wrap.
+
+- **A part that could not be fetched no longer reports itself as missing from
+  the library.** If the network failed while the add-in was collecting a
+  picture or a chart an element needs, the message said the library does not
+  have that file — which sends you looking for a broken add-in instead of
+  trying again. It now says what actually happened, and only says a file is
+  absent when the site says it is.
+
 - **A category you picked while searching no longer keeps filtering the
   library after you delete the search.** The category chips appear only while
   there is something in the search box, so backspacing the box empty left the

@@ -69,15 +69,37 @@ export function previewUrl(size: string, id: string, version: string): string {
   return `${ROOT}/${dirOf(size)}/previews/${encodeURIComponent(id)}.png?v=${encodeURIComponent(version)}`;
 }
 
+/**
+ * A GET the site ANSWERED, with a status that was not ok.
+ *
+ * The status is carried rather than only written into the message, because one
+ * caller has to tell two failures apart and reading a number back out of a
+ * sentence is not telling them apart. A `fetch` that never got a status at all
+ * — a dropped connection, a proxy, a blocked origin — rejects with its own
+ * error and is not one of these.
+ */
+class Refused extends Error {
+  readonly status: number;
+  constructor(path: string, status: number) {
+    super(`ssf-slide-elements: ${path} answered ${status}`);
+    this.status = status;
+  }
+}
+
+/** Whether a failure was the site saying there is no such file, rather than not saying anything. */
+function missing(e: unknown): boolean {
+  return e instanceof Refused && e.status === 404;
+}
+
 async function getText(path: string): Promise<string> {
   const response = await fetch(path);
-  if (!response.ok) throw new Error(`ssf-slide-elements: ${path} answered ${response.status}`);
+  if (!response.ok) throw new Refused(path, response.status);
   return response.text();
 }
 
 async function getBytes(path: string): Promise<Uint8Array> {
   const response = await fetch(path);
-  if (!response.ok) throw new Error(`ssf-slide-elements: ${path} answered ${response.status}`);
+  if (!response.ok) throw new Refused(path, response.status);
   return new Uint8Array(await response.arrayBuffer());
 }
 
@@ -189,10 +211,18 @@ export class Store {
   /**
    * One carried part, by the path the library knew it by.
    *
-   * Answers undefined rather than throwing when the part is not there, because
+   * Answers undefined rather than throwing when the part is NOT THERE, because
    * that is what `PartStore` in the splice is documented to do — and the splice
    * turns it into a named refusal with the part's path in it, which is a better
    * sentence than a bare 404.
+   *
+   * Only for "not there". Every other failure is raised on, because they are
+   * not the same fact and the splice's sentence is only true of one of them:
+   * answering undefined for a 503 or a dropped connection told the user "the
+   * catalogue has no part X, which this element needs" about a part the
+   * catalogue does have, and sent them looking for a broken add-in instead of a
+   * flaky minute. The forgetting below is unchanged and applies to both — the
+   * next insert asks again either way.
    */
   async part(path: string): Promise<Part | undefined> {
     const held = this.parts.get(path);
@@ -202,11 +232,12 @@ export class Store {
     this.parts.set(path, work);
     try {
       return await work;
-    } catch {
+    } catch (e) {
       // Forgotten, so a part missed because the network dropped is tried again
       // on the next insert rather than being remembered as absent forever.
       this.parts.delete(path);
-      return undefined;
+      if (missing(e)) return undefined;
+      throw e;
     }
   }
 }

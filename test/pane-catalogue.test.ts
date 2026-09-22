@@ -211,6 +211,30 @@ describe("the store", () => {
     expect(await store.part("ppt/media/x.png")).toBeInstanceOf(Uint8Array);
   });
 
+  it("raises rather than answering undefined when the site did not say it is absent", async () => {
+    // `undefined` is the splice's "the catalogue has no part X, which this
+    // element needs". That sentence is true of a 404 and false of a 503 — the
+    // catalogue does have the part, the pane could not be handed it — and the
+    // user was sent looking for a broken add-in instead of a flaky minute.
+    serve({ "./catalogue/16x9/parts/ppt/media/x.png": { status: 503 } });
+    await expect(new Store("16:9").part("ppt/media/x.png")).rejects.toThrow(/answered 503/);
+  });
+
+  it("raises for a request that never got a status at all", async () => {
+    // A dropped connection, a proxy, a blocked origin: `fetch` rejects with its
+    // own error and there is no status to read. Not absent either.
+    vi.stubGlobal("fetch", () => Promise.reject(new Error("Failed to fetch")));
+    await expect(new Store("16:9").part("ppt/media/x.png")).rejects.toThrow(/Failed to fetch/);
+  });
+
+  it("still forgets the part it raised over, so the next insert asks again", async () => {
+    serve({ "./catalogue/16x9/parts/ppt/media/x.png": { status: 503 } });
+    const store = new Store("16:9");
+    await expect(store.part("ppt/media/x.png")).rejects.toThrow();
+    serve({ "./catalogue/16x9/parts/ppt/media/x.png": { body: new Uint8Array([9]) } });
+    expect(await store.part("ppt/media/x.png"), "the failure was remembered as the answer").toBeInstanceOf(Uint8Array);
+  });
+
   it("escapes each path segment separately, so the slashes survive", async () => {
     serve({ "./catalogue/16x9/parts/ppt/media/a%20b.png": { body: new Uint8Array([1]) } });
     await new Store("16:9").part("ppt/media/a b.png");

@@ -396,6 +396,30 @@ describe("wrapping", () => {
     expect(wrapping(MARKER, SLIDE)).toEqual(atCursor(MARKER, SLIDE));
     expect(centreOf(wrapping(MARKER, SLIDE))).toEqual({ x: SLIDE.width / 2, y: SLIDE.height / 2 });
   });
+
+  it("centres on a selected LINE rather than wrapping it down to nothing", () => {
+    // A straight connector is stored with one side of its frame zero: a
+    // horizontal line is `<a:ext cx="…" cy="0"/>`, which the library's own
+    // decks are full of. Wrapping it multiplied that zero by the air factor and
+    // handed back a marker zero EMU tall — invisible on the slide, and hard to
+    // select in order to delete. It keeps its authored size and sits on the
+    // line, which is what the too-big branch already does at the other end of
+    // the same scale.
+    const flat: Rect = { x: 2000000, y: 3000000, cx: 4000000, cy: 0 };
+    const landed = wrapping(MARKER, SLIDE, flat);
+    expect({ cx: landed.cx, cy: landed.cy }, "a marker with no height is not a marker").toEqual({
+      cx: MARKER.cx,
+      cy: MARKER.cy,
+    });
+    expect(centreOf(landed)).toEqual(centreOf(flat));
+  });
+
+  it("does the same for a vertical line, whose width is the zero", () => {
+    const upright: Rect = { x: 2000000, y: 1000000, cx: 0, cy: 3000000 };
+    const landed = wrapping(MARKER, SLIDE, upright);
+    expect({ cx: landed.cx, cy: landed.cy }).toEqual({ cx: MARKER.cx, cy: MARKER.cy });
+    expect(centreOf(landed)).toEqual(centreOf(upright));
+  });
 });
 
 describe("underTitle", () => {
