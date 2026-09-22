@@ -65,7 +65,7 @@ import {
   type Library,
   type PaneState,
 } from "./steps.js";
-import { renumbered, withInsert, withoutInsert } from "./used.js";
+import { holds, renumbered, withInsert, withoutInsert } from "./used.js";
 
 let state: PaneState = { ...EMPTY };
 let index: Index | undefined;
@@ -93,6 +93,15 @@ interface Undoable {
   id: string;
   /** Which slide it landed on, counting from ONE, for the same reason. */
   landedOn: number;
+  /**
+   * Whether "Used in this deck" already had this element on that slide.
+   *
+   * Asked before the insert, because afterwards nothing can tell: the list
+   * keeps one number per slide, so a second copy leaves the row unchanged.
+   * Undo restores the slide as it was BEFORE this insert, which still holds
+   * the earlier copy — so the row has to stay.
+   */
+  alreadyThere: boolean;
   /** What the pane knew the destination slide held BEFORE the insert. */
   onSlide: PaneState["onSlide"];
 }
@@ -667,6 +676,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
           name: element.name,
           id: element.id,
           landedOn: landed,
+          alreadyThere: target === "onto" && holds(state.used, element.id, landed),
           onSlide: state.onSlide,
         }
       : undefined;
@@ -828,7 +838,9 @@ async function undo(): Promise<boolean> {
       used:
         entry.target === "new"
           ? renumbered(withoutInsert(state.used, entry.id, entry.landedOn), entry.landedOn + 1, -1)
-          : withoutInsert(state.used, entry.id, entry.landedOn),
+          : entry.alreadyThere
+            ? state.used
+            : withoutInsert(state.used, entry.id, entry.landedOn),
       onSlide: entry.onSlide,
     };
     delete state.notice;

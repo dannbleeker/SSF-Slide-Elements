@@ -137,10 +137,31 @@ export function renumbered(used: DeckUsage[] | undefined, from: number, by: numb
 }
 
 /**
+ * Whether the list already puts this element on this slide.
+ *
+ * Asked BEFORE an insert, and carried on the undo entry, because
+ * `withoutInsert` below cannot work it out afterwards. `withInsert` keeps one
+ * number per slide — a second copy on a slide already listed leaves the row
+ * exactly as it was — so by the time the undo runs there is nothing to say
+ * whether this insert is what put the element there.
+ */
+export function holds(used: DeckUsage[] | undefined, element: string, slide: number): boolean {
+  return used?.some((u) => u.element === element && u.slides.includes(slide)) ?? false;
+}
+
+/**
  * The deck's usage with an insert taken back out.
  *
  * Undo puts the user's own slide back, so whatever the insert added to THAT
  * slide is gone with it. An element still on other slides keeps those.
+ *
+ * Only for an insert that PUT it there. Undo restores the slide as it was
+ * before this insert, and if the element was already on it then it is on it
+ * still — so striking the number would report an element the pane can see in
+ * the deck as absent: "Nothing from the library is in this deck yet" over a
+ * slide holding it, and the "Remove from N slides" button gone with the row.
+ * Two clicks on one tile reach it. `holds` above is what the caller asks
+ * first, because this function cannot tell the two cases apart.
  */
 export function withoutInsert(used: DeckUsage[] | undefined, element: string, slide: number): DeckUsage[] | undefined {
   if (used === undefined) return undefined;

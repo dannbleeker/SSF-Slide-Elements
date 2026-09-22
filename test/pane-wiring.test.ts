@@ -637,6 +637,36 @@ describe("what this deck already uses", () => {
     expect(where, "and the new one is named too").toContain("2");
   });
 
+  it("keeps the row when the undone insert was not what put the element there", async () => {
+    /**
+     * `withInsert` keeps ONE number per slide, so inserting an element onto a
+     * slide it is already on leaves the list identical — and the undo then
+     * struck that number, reporting an element the pane can still see in the
+     * deck as absent. "Nothing from the library is in this deck yet" over a
+     * slide holding it, and the "Remove from 1 slide" button gone with the row.
+     *
+     * Two clicks on one tile reach it: the stamp is on slide 1, the user is
+     * standing on slide 1, the gear is on "onto this slide".
+     */
+    deckBase64 = await deckWithOneBox();
+    host.current = { index: 0, id: "256" };
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".used-where")?.textContent, "the stamp starts on slide 1").toBe("slide 1");
+
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+    expect(pane.querySelector(".used-where")?.textContent, "a second copy on a listed slide").toBe("slide 1");
+
+    (pane.querySelector('[data-action="undo"]') as HTMLElement).click();
+    await waitFor("the undo to reach a positional delete", () => host.removed.length > 0);
+    await idle(pane);
+
+    expect(pane.querySelector(".used-list"), "the row went with the undo").not.toBeNull();
+    expect(pane.querySelector(".used-where")?.textContent, "and it still names the slide").toBe("slide 1");
+  });
+
   it("says the deck holds nothing rather than showing an empty space", async () => {
     // "Asked and empty" and "not asked" are different facts, and the pane has
     // to be able to tell the user which one it is.

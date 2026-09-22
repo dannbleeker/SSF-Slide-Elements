@@ -82,10 +82,32 @@ describe("an insert that did not land", () => {
     expect(out.ok).toBe(false);
   });
 
-  it("treats a deck that SHRANK the same way, rather than reporting a negative", () => {
+  it("says what a deck that SHRANK actually holds, rather than the count it used to", () => {
+    // This case used to assert `toContain("nothing was changed")`, which is the
+    // sentence above — and that sentence names `before`. Over a deck of 11 it
+    // read "the deck still has 12 slides, nothing was changed": a count the
+    // deck does not have, and a claim the delta refutes, in the one function
+    // whose purpose is to say no more than the count supports.
+    //
+    // Reachable without any host misbehaving. The pane locks itself, not
+    // PowerPoint, and on the web the insert plus its confirming count takes
+    // seconds, so a user deleting a slide in that window produces it.
     const out = outcomeOf({ ...base, inserted: 11, removed: undefined });
     expect(out.ok).toBe(false);
-    expect(out.detail).toContain("nothing was changed");
+    expect(out.detail).toBe(
+      "The insert did not confirm: the deck has 11 slides where it had 12. Check the deck before inserting again.",
+    );
+    expect(out.detail, "the count the deck no longer has").not.toContain("12 slides,");
+    expect(out.byHand, "only the user can say what went").toBe(true);
+  });
+
+  it("keeps the no-op sentence for a deck that is exactly the size it was", () => {
+    // The pair. `landed === 0` is the silent no-op and its sentence is quoted
+    // word for word in `docs/DESIGN.md` section 10; only the negative delta
+    // moved.
+    const out = outcomeOf({ ...base, inserted: 12, removed: undefined });
+    expect(out.detail).toBe("The insert did not confirm: the deck still has 12 slides, nothing was changed.");
+    expect(out.byHand).toBe(false);
   });
 });
 

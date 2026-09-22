@@ -734,6 +734,16 @@ happened and what to do.
   slides, nothing was changed", and "The deck grew by one but the copy could
   not be removed: delete slide N by hand". A call can raise and still have done
   the work, so every one of these is written from the measured delta.
+
+  A deck that SHRANK gets its own: "The insert did not confirm: the deck has N
+  slides where it had M. Check the deck before inserting again." It used to
+  fall into the no-op sentence above, which names the count from BEFORE — so
+  over a deck of 11 it read "the deck still has 12 slides, nothing was
+  changed", a count the deck does not have and a claim the delta refutes. It
+  needs no misbehaving host: the pane locks itself and not PowerPoint, and on
+  the web the insert and its confirming count take seconds, so a user deleting
+  a slide in that window produces it. The pane cannot know whether the insert
+  also landed, so the sentence stops at the two counts it took.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 

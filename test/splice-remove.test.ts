@@ -230,7 +230,12 @@ describe("a stamp the user has since grouped with a shape of their own", () => {
    * alone in the group, which is the deck they are left with after grouping and
    * then deleting the other shape.
    */
-  async function afterGrouping(deck: string, withTheirs: boolean): Promise<{ base64: string; slide: number }> {
+  async function afterGrouping(
+    deck: string,
+    withTheirs: boolean,
+    /** An extension list on the user's group, which is what PowerPoint writes on one it is co-authoring. */
+    withExtLst = false,
+  ): Promise<{ base64: string; slide: number }> {
     const pkg = await Pkg.open(deck);
     const path = (await pkg.slidePaths())[0] as string;
     const tagged = (await readShapeTags(pkg, path)).filter((t) => t.element === ID);
@@ -280,6 +285,15 @@ describe("a stamp the user has since grouped with a shape of their own", () => {
       group.appendChild(shape);
     }
     expect(anchored, "no tagged shape was found to move into the group").toBe(true);
+    if (withExtLst) {
+      // LAST, which is where CT_GroupShape puts it and where PowerPoint writes
+      // it. The uri is the one PowerPoint uses for a group's own extension.
+      const extLst = doc.createElementNS(P_NS, "p:extLst");
+      const ext = doc.createElementNS(P_NS, "p:ext");
+      ext.setAttribute("uri", "{FAA26D3D-D897-4be2-8F04-BA451C77F1D7}");
+      extLst.appendChild(ext);
+      group.appendChild(extLst);
+    }
     return { base64: await pkg.toBase64(), slide: 0 };
   }
 
@@ -313,6 +327,36 @@ describe("a stamp the user has since grouped with a shape of their own", () => {
     const xml = await after.text(report.slidePath);
     expect(xml, "an empty group was left on the slide").not.toContain("Brugerens gruppe");
     expect(await slidesHolding(after, ID)).toEqual([]);
+    expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
+  });
+
+  it("takes it even when the group carries an extension list of its own", async () => {
+    // The case above, with the one thing PowerPoint adds to a group it is
+    // CO-AUTHORING. `slideShapes` excluded `<p:nvGrpSpPr>` and `<p:grpSpPr>`
+    // and not `<p:extLst>`, so a group whose only remaining child was its own
+    // extension list answered "one shape" and read as still occupied — and the
+    // empty `<p:grpSp>` above stayed on the user's slide. The route is a user's
+    // deck rather than anything this add-in writes: neither library deck nor
+    // the validators deck carries a shape-level extension list, which is why
+    // the case above could not see it.
+    const grouped = await afterGrouping(await afterInserting(ID), false, true);
+    const report = await removeElement({ deck: grouped.base64, slide: grouped.slide, element: ID });
+    const after = await Pkg.open(report.base64);
+    const xml = await after.text(report.slidePath);
+    expect(xml, "an empty group was left on the slide").not.toContain("Brugerens gruppe");
+    expect(await slidesHolding(after, ID)).toEqual([]);
+    expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
+  });
+
+  it("keeps a group the extension list is not the only thing left in", async () => {
+    // The pair: "ignore the extension list when counting" must not become
+    // "remove a group that still holds the user's own shape".
+    const grouped = await afterGrouping(await afterInserting(ID), true, true);
+    const report = await removeElement({ deck: grouped.base64, slide: grouped.slide, element: ID });
+    const after = await Pkg.open(report.base64);
+    const xml = await after.text(report.slidePath);
+    expect(xml, "the user's own shape went with it").toContain("Min egen kasse");
+    expect(xml, "the group the user made was taken apart").toContain("Brugerens gruppe");
     expect(packageProblems(await partsOf(await after.toBytes()))).toEqual([]);
   });
 });

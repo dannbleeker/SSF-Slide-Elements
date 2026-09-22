@@ -9,6 +9,35 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **An empty group is no longer left behind when you remove a part you had
+  grouped with something of your own.** If the group was one PowerPoint had
+  written its own bookkeeping onto — which it does to a group in a shared,
+  co-authored deck — taking the element out left the group standing with
+  nothing in it.
+
+- **"Used in this deck" no longer forgets an element that is still there.**
+  Inserting the same element twice onto one slide and then pressing Undo took
+  the slide off the list entirely, so the pane reported nothing from the
+  library in a deck holding it — and the "Remove from N slides" button went
+  with the row. The earlier copy is still on the slide, and the list now says
+  so.
+
+- **The add-in uses far less memory while reading a deck.** Reading what a deck
+  already uses kept part of every slide that carries a tag in memory for the
+  rest of the session, so the cost grew with the length of your presentation.
+  Measured on the library deck: 44 held down to 1, and now flat however long
+  the deck is.
+
+- **A failed insert that finds the deck SMALLER than it was now says so.** It
+  used to report the size the deck had before and add that nothing had
+  changed — neither of which was true of a deck that had lost a slide.
+
+- **A tag can no longer be written over the wrong part of your deck.** If a
+  shape's bookkeeping reference pointed at something that was not a tag file —
+  a slide layout, say — the add-in would have overwritten it, and every slide
+  on that layout would have lost its design. It now checks what the reference
+  leads to first.
+
 - **A new slide no longer arrives carrying your own table or picture.** "As a
   new slide" copies the slide you are on and empties it, so the new one keeps
   the same design. It emptied the text on it, but a table or a picture you had
