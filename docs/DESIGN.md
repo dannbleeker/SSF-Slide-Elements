@@ -92,6 +92,29 @@ PowerPoint would settle.
   placeholders when it takes the library slide's shapes
   (`src/core/splice/shapes.ts`), for a new slide as well as onto the current
   one — so a Danish title cannot reach a user's deck by either route.
+- **A shape PowerPoint does not draw is not part of an element.** A top-level
+  shape marked `hidden="1"` in the Selection Pane is skipped by the harvest,
+  the way layout chrome and an empty placeholder are. Not a tidiness rule:
+  think-cell parks an invisible OLE frame at the slide origin on every slide it
+  has touched, and the 4:3 library deck has been through it — 41 of its 106
+  slides carry one. Measured on the committed catalogue on 2026-09-23, before
+  the rule existed:
+  - it joined the element's BOX, which is a union, so **42 elements** came out
+    anchored at x=0.0002 and about 93% of the slide wide, against the same
+    element in the 16:9 deck at x=0.0573 and 88%. The box is what the landing
+    places from, what the preview crops to, and the frame `authored` rebases
+    from, so all three were computed for a rectangle nearly the size of the
+    slide;
+  - it was serialised into the MARKUP, so **41 of the shipped 4:3 elements**
+    put think-cell's frame into the user's deck on every insert;
+  - and it dragged its payload: **49 OLE binaries** published under
+    `4x3/parts/ppt/embeddings/` and copied into the user's presentation with
+    the element. After the rule: 8, which are the owner's own charts, and the
+    4:3 deck's carried parts fall from 215 to 122.
+
+  The check is on the TOP-LEVEL shape only, which is where the harvest decides
+  what content is. A hidden shape inside a group the owner drew is the owner's
+  artwork and is carried as authored.
 - **An element that comes in several sizes is one tile with a stepper.** A run
   of elements that differ only by one count (process flows with 1 to 6 boxes,
   hierarchies with 2 to 5 boxes, matrices with 2 to 5 rows, and so on) is

@@ -9,6 +9,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Elements from the 4:3 library land where they should, and no longer bring
+  an invisible object into your deck.** The 4:3 library deck had been through
+  think-cell, which leaves an invisible frame in the corner of every slide it
+  touches. The add-in was treating that frame as part of the element: it
+  stretched 42 elements' measurements to the corner of the slide — so they were
+  placed and cropped as if they were nearly slide-sized — and it copied
+  think-cell's invisible object, and the file behind it, into your presentation
+  on every insert. Nothing you could see, and 0.7 MB of it across the library. Shapes
+  PowerPoint does not draw are now left out of the library, and the 4:3
+  elements carry 122 files where they carried 215.
+
 - **A deck written by another tool is read the way the rest of the add-in
   reads it.** Where a deck referred to one of its own files with a doubled or
   trailing slash, the add-in worked out a name the file does not have and then

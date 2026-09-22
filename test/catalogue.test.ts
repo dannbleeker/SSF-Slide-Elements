@@ -248,6 +248,71 @@ describe("headings and elements", () => {
   });
 });
 
+describe("a shape PowerPoint does not draw", () => {
+  /**
+   * `hidden="1"` in the Selection Pane. think-cell parks an invisible OLE frame
+   * at the slide origin on every slide it has touched, and the 4:3 library deck
+   * has been through it — 41 of its 106 slides carry one.
+   *
+   * Harvested as content it did three things, all measured on the committed
+   * catalogue on 2026-09-23. It joined the element's BOX, which is a union, so
+   * 42 elements came out anchored at x=0.0002 and about 93% of the slide wide
+   * against the same element in the 16:9 deck at x=0.0573 and 88% — and the
+   * box is what the landing places from, what the preview crops to, and the
+   * frame `authored` rebases from. It was serialised into the MARKUP, so 41 of
+   * the shipped 4:3 elements put think-cell's frame into the user's deck on
+   * every insert. And it dragged its payload: 49 OLE binaries published under
+   * `4x3/parts/ppt/embeddings/`, copied into the user's presentation with the
+   * element. After the fix: 1 element at the origin (a full-width breadcrumb
+   * bar and a full-width triangle, both authored that way), 0 markups carrying
+   * a hidden shape, 8 binaries — the owner's own charts.
+   */
+  it("leaves a hidden shape out of the box, the markup and the carried parts", async () => {
+    const visible = rect(2000000, 1000000, 3000000, 2000000, { id: 30, name: "Synlig kasse" });
+    const ghost =
+      `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="31" name="Objekt 41" hidden="1"/>` +
+      `<p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>` +
+      `<p:xfrm><a:off x="1000" y="1000"/><a:ext cx="100" cy="100"/></p:xfrm>` +
+      `<a:graphic><a:graphicData/></a:graphic></p:graphicFrame>`;
+    const { catalogue } = await harvested([
+      heading("Kasser"),
+      { paragraphs: [["a"]], title: "Kasse, 2 vertikale", noBody: true, shapes: [visible, ghost] },
+    ]);
+    const el = catalogue.elements[0];
+    expect(el?.shapes, "the hidden frame was counted as one of the element's shapes").toBe(1);
+    // The visible rectangle alone, rounded the way the catalogue stores it.
+    // Without the fix the hidden frame's `<a:off x="1000" y="1000"/>` drags x
+    // and y to 0.0001 and widens the box to reach it, which is exactly the
+    // shape of what the 4:3 library shipped.
+    expect(el?.box, "the box was stretched to the slide origin by a shape nobody can see").toEqual({
+      x: 0.164,
+      y: 0.1458,
+      w: 0.2461,
+      h: 0.2916,
+    });
+    expect(el?.markup.xml, "the hidden frame went into the user's deck with the element").not.toContain('hidden="1"');
+    expect(el?.markup.xml).toContain("Synlig kasse");
+  });
+
+  it("keeps a hidden shape INSIDE a group the owner drew", async () => {
+    // The pair. The rule is about what counts as one of the slide's own
+    // elements, not about editing the owner's artwork: a group with something
+    // hidden in it is carried exactly as authored.
+    const grouped =
+      `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="40" name="Ejerens gruppe"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+      `<p:grpSpPr><a:xfrm><a:off x="2000000" y="1000000"/><a:ext cx="3000000" cy="2000000"/>` +
+      `<a:chOff x="2000000" y="1000000"/><a:chExt cx="3000000" cy="2000000"/></a:xfrm></p:grpSpPr>` +
+      `<p:sp><p:nvSpPr><p:cNvPr id="41" name="Skjult indeni" hidden="1"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="2000000" y="1000000"/><a:ext cx="100" cy="100"/></a:xfrm></p:spPr></p:sp>` +
+      `</p:grpSp>`;
+    const { catalogue } = await harvested([
+      heading("Kasser"),
+      { paragraphs: [["a"]], title: "Kasse, 2 vertikale", noBody: true, shapes: [grouped] },
+    ]);
+    expect(catalogue.elements[0]?.markup.xml, "the owner's own artwork was edited").toContain("Skjult indeni");
+  });
+});
+
 describe("collection slides", () => {
   const marker = "SSF: ét element pr. figur";
   const stampSlide = (title: string, notes?: string): SlideSpec => ({

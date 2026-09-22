@@ -1,5 +1,5 @@
 {
-  "version": "90e77084aa68",
+  "version": "687b01ff3cd3",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -3090,13 +3090,13 @@
           "slide": 6,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9329,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8505,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 5,
+          "shapes": 4,
           "tags": [
             "boxes",
             "columns",
@@ -3114,13 +3114,13 @@
           "slide": 7,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9329,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.2284,
+            "w": 0.8505,
+            "h": 0.651
           },
           "landing": "layout",
-          "shapes": 5,
+          "shapes": 4,
           "tags": [
             "boxes",
             "columns",
@@ -3167,13 +3167,13 @@
           "slide": 9,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9329,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8505,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 8,
+          "shapes": 7,
           "tags": [
             "boxes",
             "causality",
@@ -3192,13 +3192,13 @@
           "slide": 10,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9329,
-            "h": 0.8778
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8505,
+            "h": 0.651
           },
           "landing": "layout",
-          "shapes": 3,
+          "shapes": 2,
           "tags": [
             "boxes",
             "white"
@@ -3215,13 +3215,13 @@
           "slide": 11,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9251,
-            "h": 0.9737
+            "x": 0.0813,
+            "y": 0.2795,
+            "w": 0.8439,
+            "h": 0.6944
           },
           "landing": "layout",
-          "shapes": 15,
+          "shapes": 14,
           "tags": [
             "boxes",
             "weighing",
@@ -3240,13 +3240,13 @@
           "slide": 12,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9251,
-            "h": 0.9737
+            "x": 0.0813,
+            "y": 0.227,
+            "w": 0.8439,
+            "h": 0.7469
           },
           "landing": "layout",
-          "shapes": 15,
+          "shapes": 14,
           "tags": [
             "boxes",
             "weighing",
@@ -3265,13 +3265,13 @@
           "slide": 13,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9251,
-            "h": 0.9737
+            "x": 0.0813,
+            "y": 0.227,
+            "w": 0.8439,
+            "h": 0.7469
           },
           "landing": "layout",
-          "shapes": 15,
+          "shapes": 14,
           "tags": [
             "boxes",
             "weighing",
@@ -3290,13 +3290,13 @@
           "slide": 14,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9723,
-            "h": 0.8792
+            "x": 0.0748,
+            "y": 0.227,
+            "w": 0.8977,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "columns",
@@ -3319,13 +3319,13 @@
           "slide": 15,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9881,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.9056,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "causality",
@@ -3344,13 +3344,13 @@
           "slide": 16,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9723,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8899,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "causality",
@@ -3369,13 +3369,13 @@
           "slide": 17,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9723,
-            "h": 0.8988
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8899,
+            "h": 0.672
           },
           "landing": "layout",
-          "shapes": 14,
+          "shapes": 13,
           "tags": [
             "boxes",
             "process",
@@ -3394,13 +3394,13 @@
           "slide": 18,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9881,
-            "h": 0.8988
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.9056,
+            "h": 0.672
           },
           "landing": "layout",
-          "shapes": 12,
+          "shapes": 11,
           "tags": [
             "boxes",
             "process",
@@ -3419,13 +3419,13 @@
           "slide": 19,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9487,
-            "h": 0.8792
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8662,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "arrows",
@@ -3448,13 +3448,13 @@
           "slide": 20,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9506,
-            "h": 0.88
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8682,
+            "h": 0.6532
           },
           "landing": "layout",
-          "shapes": 6,
+          "shapes": 5,
           "tags": [
             "boxes",
             "arrows",
@@ -3477,13 +3477,13 @@
           "slide": 21,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9628,
-            "h": 0.9618
+            "x": 0.0826,
+            "y": 0.1893,
+            "w": 0.8803,
+            "h": 0.7727
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "matrix",
@@ -3507,13 +3507,13 @@
           "slide": 22,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9628,
-            "h": 0.9606
+            "x": 0.0826,
+            "y": 0.1893,
+            "w": 0.8803,
+            "h": 0.7715
           },
           "landing": "layout",
-          "shapes": 5,
+          "shapes": 4,
           "tags": [
             "boxes",
             "matrix",
@@ -3537,13 +3537,13 @@
           "slide": 23,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9628,
-            "h": 0.9561
+            "x": 0.0826,
+            "y": 0.1893,
+            "w": 0.8803,
+            "h": 0.767
           },
           "landing": "layout",
-          "shapes": 6,
+          "shapes": 5,
           "tags": [
             "boxes",
             "matrix",
@@ -3567,13 +3567,13 @@
           "slide": 24,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9628,
-            "h": 0.9662
+            "x": 0.0826,
+            "y": 0.1893,
+            "w": 0.8803,
+            "h": 0.7772
           },
           "landing": "layout",
-          "shapes": 7,
+          "shapes": 6,
           "tags": [
             "boxes",
             "matrix",
@@ -3597,13 +3597,13 @@
           "slide": 25,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9762,
-            "h": 0.9653
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.9252,
+            "h": 0.7491
           },
           "landing": "layout",
-          "shapes": 9,
+          "shapes": 8,
           "tags": [
             "boxes",
             "hierarchy",
@@ -3626,13 +3626,13 @@
           "slide": 26,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9762,
-            "h": 0.9548
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.9252,
+            "h": 0.7386
           },
           "landing": "layout",
-          "shapes": 12,
+          "shapes": 11,
           "tags": [
             "boxes",
             "hierarchy",
@@ -3655,13 +3655,13 @@
           "slide": 27,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9762,
-            "h": 0.9601
+            "x": 0.0511,
+            "y": 0.2165,
+            "w": 0.9252,
+            "h": 0.7438
           },
           "landing": "layout",
-          "shapes": 15,
+          "shapes": 14,
           "tags": [
             "boxes",
             "hierarchy",
@@ -3684,13 +3684,13 @@
           "slide": 28,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9762,
-            "h": 0.9669
+            "x": 0.0511,
+            "y": 0.2375,
+            "w": 0.9252,
+            "h": 0.7297
           },
           "landing": "layout",
-          "shapes": 18,
+          "shapes": 17,
           "tags": [
             "boxes",
             "hierarchy",
@@ -3713,13 +3713,13 @@
           "slide": 29,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9998,
-            "h": 1.0071
+            "x": 0.0511,
+            "y": 0.227,
+            "w": 0.9488,
+            "h": 0.7803
           },
           "landing": "layout",
-          "shapes": 27,
+          "shapes": 26,
           "tags": [
             "boxes",
             "hierarchy",
@@ -3737,13 +3737,13 @@
           "slide": 30,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9998,
-            "h": 1.0071
+            "x": 0.0511,
+            "y": 0.227,
+            "w": 0.9488,
+            "h": 0.7803
           },
           "landing": "layout",
-          "shapes": 23,
+          "shapes": 22,
           "tags": [
             "boxes",
             "hierarchy",
@@ -4087,13 +4087,13 @@
           "slide": 44,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9606,
-            "h": 0.8792
+            "x": 0.0801,
+            "y": 0.227,
+            "w": 0.8807,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "lines",
             "columns",
@@ -4146,13 +4146,13 @@
           "slide": 46,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9723,
-            "h": 0.8792
+            "x": 0.0801,
+            "y": 0.227,
+            "w": 0.8924,
+            "h": 0.6524
           },
           "landing": "layout",
-          "shapes": 6,
+          "shapes": 5,
           "tags": [
             "lines",
             "causality",
@@ -4697,13 +4697,13 @@
           "slide": 66,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.9198
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7228
           },
           "landing": "layout",
-          "shapes": 3,
+          "shapes": 2,
           "tags": [
             "boxes",
             "process",
@@ -4726,13 +4726,13 @@
           "slide": 67,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.9303
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7333
           },
           "landing": "layout",
-          "shapes": 4,
+          "shapes": 3,
           "tags": [
             "boxes",
             "process",
@@ -4755,13 +4755,13 @@
           "slide": 68,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.9408
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7438
           },
           "landing": "layout",
-          "shapes": 5,
+          "shapes": 4,
           "tags": [
             "boxes",
             "process",
@@ -4784,13 +4784,13 @@
           "slide": 69,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.9408
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7438
           },
           "landing": "layout",
-          "shapes": 6,
+          "shapes": 5,
           "tags": [
             "boxes",
             "process",
@@ -4813,13 +4813,13 @@
           "slide": 70,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.9513
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7543
           },
           "landing": "layout",
-          "shapes": 7,
+          "shapes": 6,
           "tags": [
             "boxes",
             "process",
@@ -4842,13 +4842,13 @@
           "slide": 71,
           "kind": "slide",
           "box": {
-            "x": 0.0002,
-            "y": 0.0002,
-            "w": 0.9125,
-            "h": 0.946
+            "x": 0.0511,
+            "y": 0.1972,
+            "w": 0.8615,
+            "h": 0.7491
           },
           "landing": "layout",
-          "shapes": 8,
+          "shapes": 7,
           "tags": [
             "boxes",
             "process",
@@ -5227,13 +5227,13 @@
           "slide": 92,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9252,
-            "h": 0.9125
+            "x": 0.0866,
+            "y": 0.2185,
+            "w": 0.8387,
+            "h": 0.6941
           },
           "landing": "layout",
-          "shapes": 11,
+          "shapes": 9,
           "tags": [
             "boxes",
             "grey"
@@ -5250,13 +5250,13 @@
           "slide": 93,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9252,
-            "h": 0.9111
+            "x": 0.0866,
+            "y": 0.2185,
+            "w": 0.8387,
+            "h": 0.6926
           },
           "landing": "layout",
-          "shapes": 11,
+          "shapes": 9,
           "tags": [
             "boxes",
             "grey"
@@ -5273,13 +5273,13 @@
           "slide": 94,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9252,
-            "h": 0.9111
+            "x": 0.0866,
+            "y": 0.2185,
+            "w": 0.8387,
+            "h": 0.6926
           },
           "landing": "layout",
-          "shapes": 14,
+          "shapes": 12,
           "tags": [
             "boxes",
             "grey"
@@ -5296,13 +5296,13 @@
           "slide": 95,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9252,
-            "h": 0.9111
+            "x": 0.0866,
+            "y": 0.2185,
+            "w": 0.8387,
+            "h": 0.6926
           },
           "landing": "layout",
-          "shapes": 11,
+          "shapes": 9,
           "tags": [
             "boxes",
             "grey"
@@ -5319,13 +5319,13 @@
           "slide": 96,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9485,
-            "h": 0.9086
+            "x": 0.0792,
+            "y": 0.2225,
+            "w": 0.8693,
+            "h": 0.6861
           },
           "landing": "layout",
-          "shapes": 28,
+          "shapes": 26,
           "tags": [
             "boxes",
             "rows",
@@ -5343,13 +5343,13 @@
           "slide": 97,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9882,
-            "h": 0.8943
+            "x": 0.0511,
+            "y": 0.2334,
+            "w": 0.9371,
+            "h": 0.661
           },
           "landing": "layout",
-          "shapes": 41,
+          "shapes": 39,
           "tags": [
             "boxes",
             "columns",
@@ -5372,13 +5372,13 @@
           "slide": 98,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9725,
-            "h": 0.9739
+            "x": 0.0826,
+            "y": 0.227,
+            "w": 0.8899,
+            "h": 0.7469
           },
           "landing": "layout",
-          "shapes": 20,
+          "shapes": 18,
           "tags": [
             "boxes",
             "arrows",
@@ -5396,13 +5396,13 @@
           "slide": 99,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9213,
-            "h": 0.8937
+            "x": 0.0748,
+            "y": 0.2154,
+            "w": 0.8466,
+            "h": 0.6782
           },
           "landing": "layout",
-          "shapes": 18,
+          "shapes": 16,
           "tags": [
             "boxes",
             "columns",
@@ -5425,13 +5425,13 @@
           "slide": 100,
           "kind": "slide",
           "box": {
-            "x": 0,
-            "y": 0,
-            "w": 0.9213,
-            "h": 0.8937
+            "x": 0.0748,
+            "y": 0.2154,
+            "w": 0.8466,
+            "h": 0.6782
           },
           "landing": "layout",
-          "shapes": 15,
+          "shapes": 13,
           "tags": [
             "boxes",
             "grey"
@@ -5776,54 +5776,13 @@
         "ppt/charts/_rels/chart1.xml.rels": "application/vnd.openxmlformats-package.relationships+xml",
         "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
         "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "ppt/embeddings/oleObject1.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject10.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject11.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject12.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject13.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject14.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject15.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject16.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject17.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject18.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject19.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject2.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject20.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject21.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject22.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject23.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject24.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject25.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject26.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject27.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject28.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject29.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject3.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject30.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject31.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject32.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject33.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject34.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject35.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject36.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject37.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject38.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject39.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject4.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject40.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject41.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject42.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject43.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject44.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject45.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject46.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject47.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/embeddings/oleObject48.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject5.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject6.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject7.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject8.bin": "application/vnd.openxmlformats-officedocument.oleObject",
-        "ppt/embeddings/oleObject9.bin": "application/vnd.openxmlformats-officedocument.oleObject",
         "ppt/media/image1.png": "image/png",
         "ppt/media/image10.emf": "image/x-emf",
         "ppt/media/image11.emf": "image/x-emf",
@@ -5833,15 +5792,12 @@
         "ppt/media/image15.emf": "image/x-emf",
         "ppt/media/image16.emf": "image/x-emf",
         "ppt/media/image17.emf": "image/x-emf",
-        "ppt/media/image2.emf": "image/x-emf",
-        "ppt/media/image3.emf": "image/x-emf",
         "ppt/media/image4.jpeg": "image/jpeg",
         "ppt/media/image5.jpeg": "image/jpeg",
         "ppt/media/image6.jpeg": "image/jpeg",
         "ppt/media/image7.png": "image/png",
         "ppt/media/image8.emf": "image/x-emf",
         "ppt/media/image9.emf": "image/x-emf",
-        "ppt/tags/tag10.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag100.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag101.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag102.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5852,7 +5808,6 @@
         "ppt/tags/tag107.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag108.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag109.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag11.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag110.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag111.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag112.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5863,7 +5818,6 @@
         "ppt/tags/tag117.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag118.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag119.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag12.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag120.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag121.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag122.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5874,7 +5828,6 @@
         "ppt/tags/tag127.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag128.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag129.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag13.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag130.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag131.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag132.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5885,7 +5838,6 @@
         "ppt/tags/tag137.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag138.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag139.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag14.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag140.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag141.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag142.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5895,45 +5847,12 @@
         "ppt/tags/tag146.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag147.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag148.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag15.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag16.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag17.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag18.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag19.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag2.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag20.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag21.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag22.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag23.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag24.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag25.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag26.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag27.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag28.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag29.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag3.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag30.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag31.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag32.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag33.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag34.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag35.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag36.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag37.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag38.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag39.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag4.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag40.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag41.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag42.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag43.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag44.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag45.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag46.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag47.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag48.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag49.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag5.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag50.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag51.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag52.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5944,9 +5863,6 @@
         "ppt/tags/tag57.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag58.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag59.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag6.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag60.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag61.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag62.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag63.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag64.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5955,7 +5871,6 @@
         "ppt/tags/tag67.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag68.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag69.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag7.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag70.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag71.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag72.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5966,18 +5881,12 @@
         "ppt/tags/tag77.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag78.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag79.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag8.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag80.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag81.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag82.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag83.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag84.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag85.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag86.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag87.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag88.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag89.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag9.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag90.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag91.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag92.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
@@ -5985,9 +5894,7 @@
         "ppt/tags/tag94.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag95.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
         "ppt/tags/tag96.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag97.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag98.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml",
-        "ppt/tags/tag99.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml"
+        "ppt/tags/tag97.xml": "application/vnd.openxmlformats-officedocument.presentationml.tags+xml"
       }
     }
   }

@@ -19,7 +19,7 @@
 import { XMLSerializer } from "@xmldom/xmldom";
 import { Pkg } from "../pptx/pkg.js";
 import { coloursOf, themeChain } from "../pptx/theme.js";
-import { A_NS, P_NS, PKG_REL_NS, R_NS, elements, element } from "../pptx/xml.js";
+import { A_NS, P_NS, PKG_REL_NS, R_NS, child, elements, element } from "../pptx/xml.js";
 import { boxOf, offSlide, rotationOf, rounded, topLevelShapes, union } from "./boxes.js";
 import { sizeRuns } from "./runs.js";
 import { tagsFor } from "./tags.js";
@@ -54,6 +54,39 @@ export class HarvestError extends Error {
     super(message);
     this.name = "HarvestError";
   }
+}
+
+/**
+ * A shape PowerPoint does not draw, marked `hidden="1"` in the Selection Pane.
+ *
+ * Not content, and not the owner's either: think-cell parks an invisible OLE
+ * frame at the slide origin on every slide it has touched, and the 4:3 library
+ * deck has been through it. 41 of its 106 slides carry one — 50 shapes — and
+ * the 16:9 deck carries a single one.
+ *
+ * Harvested as content it did three things, all measured on the committed
+ * catalogue on 2026-09-23. It joined the element's BOX, which is a union: 42
+ * elements came out anchored to x=0.0002, y=0.0002 and about 93% of the slide
+ * wide, against the same element in the 16:9 deck at x=0.0573 and 88% — so the
+ * landing, the preview crop and the frame `authored` rebases from were all
+ * computed for a rectangle nearly the size of the slide. It was SERIALISED into
+ * the element's markup, so 41 of the shipped 4:3 elements carry think-cell's
+ * frame and put it into the user's deck on every insert. And it dragged its
+ * payload along: 48 relationships to an embedded object, and 49 OLE binaries
+ * published under `4x3/parts/ppt/embeddings/`, copied into the user's
+ * presentation with the element.
+ *
+ * Checked on the top-level shape only, which is where `content` is decided. A
+ * hidden shape INSIDE a group the owner drew is the owner's business and is
+ * carried as authored.
+ */
+function isHidden(shape: Element): boolean {
+  for (const node of Array.from(shape.childNodes)) {
+    if (node.nodeType !== 1) continue;
+    const cNvPr = child(node as Element, P_NS, "cNvPr");
+    if (cNvPr) return cNvPr.getAttribute("hidden") === "1";
+  }
+  return false;
 }
 
 /** Layout chrome, or a placeholder with nothing in it: not content. A table or a picture in a content placeholder is content. */
@@ -231,7 +264,7 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     const title = titleOf(doc);
     const content: { shape: Element; box: Box | undefined }[] = [];
     for (const shape of topLevelShapes(doc)) {
-      if (isChrome(shape)) continue;
+      if (isChrome(shape) || isHidden(shape)) continue;
       const box = boxOf(shape, width, height);
       if (box && offSlide(box)) continue;
       content.push({ shape, box });
