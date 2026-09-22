@@ -17,6 +17,25 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   on a slide you had not put them on. The new slide now starts from the layout,
   as it says it does; your original slide is untouched either way.
 
+- **A category you picked while searching no longer keeps filtering the
+  library after you delete the search.** The category chips appear only while
+  there is something in the search box, so backspacing the box empty left the
+  pick in force with no chip on screen to lift it — the library showed one
+  category and nothing said why. Clearing the box now lifts the pick, which is
+  what the Clear button and Escape already did.
+
+- **The pane no longer refuses to open over a setting it cannot read.** If
+  anything in the add-in's saved state for a deck was not the shape the pane
+  expected, the pane failed while drawing its first screen — and because the
+  value stayed saved, it failed again on every open. Whatever it cannot read is
+  now simply treated as not set.
+
+- **The preview card no longer draws a wildly oversized grey box for a table
+  you have grouped with something else.** The card sketches what your slide
+  already holds; a grouped table was measured by the table's own columns
+  instead of the group's size on the slide, which on a scaled group could come
+  out several times wider than the slide itself.
+
 - **A comment on the slide you insert onto is no longer lost.** Inserting an
   element rebuilds the slide you are on, and a comment written by PowerPoint
   2016 or 2019 — or by any deck not yet upgraded to the newer kind — went with

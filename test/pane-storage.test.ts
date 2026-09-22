@@ -190,10 +190,67 @@ describe("telling a deck nobody has opened from one whose user shut everything",
     expect(firstVisit({ open: ["boxes"] })).toBe(false);
   });
 
+  it("says YES for a bucket whose open is not a list at all", () => {
+    // Nothing this pane wrote puts anything but a list here, so a bucket
+    // holding something else is as good as never written. Saying no left the
+    // deck opening with every category shut and nothing to open one.
+    expect(firstVisit({ open: "boxes" as unknown as string[] })).toBe(true);
+    expect(firstVisit({ open: 3 as unknown as string[] })).toBe(true);
+  });
+
   it("asks the field the pane always writes, so any saved deck answers no", () => {
     // `writes` puts `open` in on every save whatever its value, which is what
     // makes its absence mean "never written" rather than "nothing was open".
     const [, deck] = writes("deck-1", { ...EMPTY, open: [] }, 0);
     expect(firstVisit((deck?.[1] ?? {}) as Parameters<typeof firstVisit>[0])).toBe(false);
+  });
+});
+
+describe("a bucket holding something the pane never wrote", () => {
+  /**
+   * Nothing validates what goes INTO storage — the pane writes its own state
+   * and reads it back, and this file is the only check between the two. The
+   * four list fields were read with `??`, which catches `undefined` and `null`
+   * and lets every other shape through.
+   *
+   * That is not a cosmetic hole. `PaneState` says all four are `string[]`, and
+   * the pane reads them as lists on the FIRST draw: `state.tags.every` in
+   * `search.ts`, `state.favourites.includes` in `render.ts`. A string answers
+   * `.includes` and quietly answers wrong; a number or an object answers
+   * neither, and the raise takes the pane down before it has drawn anything —
+   * with the bad value still in storage, so it does it again on the next open.
+   */
+  const notLists: [string, unknown][] = [
+    ["a string", "one-box"],
+    ["a number", 7],
+    ["an object", { "one-box": true }],
+    ["a boolean", true],
+  ];
+
+  for (const [what, value] of notLists) {
+    it(`answers with an empty list when favourites is ${what}`, () => {
+      const got = restored({ favourites: value as string[] }, {});
+      expect(Array.isArray(got.favourites), "the pane reads this with .includes on its first draw").toBe(true);
+      expect(got.favourites).toEqual([]);
+    });
+
+    it(`answers with an empty list when tags is ${what}`, () => {
+      const got = restored({}, { tags: value as string[] });
+      expect(Array.isArray(got.tags), "search.ts reads this with .every before anything is drawn").toBe(true);
+      expect(got.tags).toEqual([]);
+    });
+  }
+
+  it("empties recent and open the same way", () => {
+    const got = restored({}, { recent: "one-box" as unknown as string[], open: 0 as unknown as string[] });
+    expect(got.recent).toEqual([]);
+    expect(got.open).toEqual([]);
+  });
+
+  it("keeps the ids in a list that is mostly good, and drops only what is not one", () => {
+    // Five favourites and one number is five favourites, not none. Throwing the
+    // list away over one bad entry would lose the user's stars to a typo.
+    const got = restored({ favourites: ["one-box", 7, "marker", null, "stamp"] as unknown as string[] }, {});
+    expect(got.favourites).toEqual(["one-box", "marker", "stamp"]);
   });
 });

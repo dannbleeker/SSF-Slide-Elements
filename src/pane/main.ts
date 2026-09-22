@@ -1274,7 +1274,13 @@ function onClick(event: MouseEvent): void {
 function onInput(event: Event): void {
   const target = event.target;
   if (!(target instanceof HTMLInputElement) || target.dataset["action"] !== "search") return;
-  set({ query: target.value });
+  // A category chip narrows a SEARCH, and section 8 draws the chips only while
+  // there is one. So a category left picked over a box the user backspaced to
+  // empty goes on filtering the whole library down to that one category, with
+  // nothing on screen saying so and no chip left to unpick it. Clear and Escape
+  // already drop it; emptying the box by hand is the same gesture typed out.
+  const query = target.value;
+  set(query.trim() === "" ? { query, category: undefined } : { query });
   // Per keystroke, and deliberately not debounced: `keep` is one small
   // synchronous `setItem`, and a debounce would mean the pane forgetting
   // whatever was typed in the last moment before it was closed — which is

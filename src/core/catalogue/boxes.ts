@@ -52,8 +52,30 @@ function frameOf(shape: Element): Frame | undefined {
   return { x, y, w, h, rot: (numberAttr(xfrm, "rot") ?? 0) / 60000 };
 }
 
-/** A table's drawn size: its columns and rows added up. Undefined when the frame holds no table. */
+/**
+ * A table's drawn size: its columns and rows added up. Undefined when the shape
+ * is not a table frame.
+ *
+ * Only a `<p:graphicFrame>`, because `element` walks DESCENDANTS and a table is
+ * only ever inside one. Asking any top-level shape found a table nested deep
+ * inside a GROUP and handed back its column widths — which are in the group's
+ * own child coordinate space, not slide EMU. A group is routinely scaled
+ * several times over between `chExt` and `ext`, so `Math.max` below then took a
+ * number three or more times too large and called it the group's width: the
+ * preview card drew a grey box off the edge of its slide for a table somebody
+ * had grouped with its caption. The group's own frame is already its drawn size
+ * and is now what decides, which may understate a grouped table the way a bare
+ * frame understates a loose one — not measured either way, and not guessed at
+ * here.
+ *
+ * Neither library deck contains one: measured 2026-09-22 over all 109 slides of
+ * `template/library-16x9.pptx` and all 107 of `template/library-4x3.pptx`, no
+ * top-level shape other than a `<p:graphicFrame>` holds an `<a:tbl>`. So the
+ * committed catalogue is unaffected; the user's own deck, which
+ * `occupiedBoxes` and `contentCount` read, is where this was reachable.
+ */
 function tableSize(shape: Element): { w: number; h: number } | undefined {
+  if (shape.localName !== "graphicFrame") return undefined;
   const tbl = element(shape, A_NS, "tbl");
   if (!tbl) return undefined;
   const grid = element(tbl, A_NS, "tblGrid");

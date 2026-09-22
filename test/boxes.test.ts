@@ -133,6 +133,27 @@ describe("a table, whose frame lies about its size", () => {
     expect(measured?.w, "no columns, and no frame either").toBe(0);
     expect(measured?.h, "the one row").toBe(500000 / H);
   });
+
+  it("measures a GROUP by its own frame, not by a table nested inside it", () => {
+    // A table grouped with its caption — one gesture, and ordinary in a user's
+    // deck. `element` walks descendants, so asking any top-level shape for a
+    // table found this one and handed back its column widths. Those are in the
+    // group's own CHILD coordinate space: `chExt` here is ten times `ext`, the
+    // kind of scale a group routinely carries, so the sum below came out ten
+    // times too large and `Math.max` took it for the group's width. The preview
+    // card then drew a grey box wider than the slide it sits on.
+    const grouped =
+      `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="30" name="Table and caption"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+      `<p:grpSpPr><a:xfrm><a:off x="1000000" y="500000"/><a:ext cx="4000000" cy="1000000"/>` +
+      `<a:chOff x="0" y="0"/><a:chExt cx="40000000" cy="10000000"/></a:xfrm></p:grpSpPr>` +
+      `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="31" name="Table"/><p:cNvGraphicFramePr/><p:nvPr/>` +
+      `</p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="40000000" cy="10000000"/></p:xfrm>` +
+      `<a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="40000000"/></a:tblGrid>` +
+      `<a:tr h="10000000"/></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:grpSp>`;
+    const measured = boxOf(only(grouped), W, H);
+    expect(measured?.w, "the group's own ext, not the table's columns").toBe(4000000 / W);
+    expect(measured?.h, "the group's own ext, not the table's rows").toBe(1000000 / H);
+  });
 });
 
 describe("a rotated shape's extent", () => {

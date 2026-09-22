@@ -24,7 +24,9 @@ import { DEFAULT_SETTINGS, type PaneState } from "./steps.js";
  *
  * `Partial<PaneState>` is what it is MEANT to be. It is whatever JSON was
  * there, so every field is read defensively below — a hand-edited value, or
- * one written by an older build, must not take the pane down on open.
+ * one written by an older build, must not take the pane down on open. Nothing
+ * validates what goes in: the pane writes its own state and reads it back, and
+ * the only check between the two is this file.
  */
 export type Stored = Partial<PaneState> & { scroll?: unknown };
 
@@ -66,29 +68,56 @@ export function storedScroll(deck: Stored): number {
  * into `[]` and has to: `PaneState.open` is a list, not a list-or-nothing. The
  * distinction still matters to exactly one caller, the first-visit open, which
  * would otherwise re-open the top category every time somebody closed it.
+ *
+ * Anything that is not a LIST is "nothing was ever stored" for the same reason
+ * an absent one is: the pane only ever writes a list here, so a bucket holding
+ * something else was not written by this pane. Asking `=== undefined` instead
+ * left such a deck opening with every category shut and no first visit to open
+ * one, which is the pane at its least useful.
  */
 export function firstVisit(deck: Stored): boolean {
-  return deck.open === undefined;
+  return !Array.isArray(deck.open);
+}
+
+/**
+ * A stored list of element ids, or nothing at all.
+ *
+ * `??` was doing this job and only catches `undefined` and `null`. Every other
+ * shape went straight through: `PaneState` says these four are `string[]`, and
+ * the pane reads them as lists on the FIRST draw — `state.tags.every` in
+ * `search.ts`, `state.favourites.includes` in `render.ts`. A string has
+ * `.includes` and would quietly answer wrong; a number or an object has
+ * neither, and the raise takes the whole pane down before it has drawn
+ * anything, with the bad value still in storage, so it does it again on every
+ * open. The file's own docstring promised this was read defensively; for these
+ * four it was not.
+ *
+ * Entries that are not strings are dropped rather than the list with them: a
+ * bucket holding five good ids and one number is five favourites, not none.
+ */
+function ids(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
 }
 
 export function restored(machine: Stored, deck: Stored): Partial<PaneState> {
   return {
-    favourites: machine.favourites ?? [],
+    favourites: ids(machine.favourites),
     coached: machine.coached === true,
     // No fallback on this one: a missing `settings` spreads to nothing, which
     // is exactly what a `?? {}` would have contributed. The `??`s around it are
     // not the same thing — those fill a VALUE, and without one the field comes
     // back `undefined` rather than empty.
     settings: { ...DEFAULT_SETTINGS, ...deck.settings },
-    recent: deck.recent ?? [],
-    open: deck.open ?? [],
+    recent: ids(deck.recent),
+    open: ids(deck.open),
     // Section 4 asks for the search and the tags back too, and for the size
     // picked in a stepper — which is `chosen`. It is written only by the
     // operations that already persist, so what comes back is the step last
     // INSERTED rather than wherever the keyboard was left: the pane marks both
     // with the same field, and a focus cursor is not a pick.
     query: typeof deck.query === "string" ? deck.query : "",
-    tags: deck.tags ?? [],
+    tags: ids(deck.tags),
     ...(typeof deck.chosen === "string" ? { chosen: deck.chosen } : {}),
   };
 }

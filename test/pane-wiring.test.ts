@@ -1090,6 +1090,33 @@ describe("Escape and the category chip", () => {
     await settle();
     expect(lit(pane), "Escape left a category filtering with nothing to unpick it").toBe(0);
   });
+
+  it("lifts it when the box is backspaced to empty, which no button was pressed for", async () => {
+    // The route Escape and Clear do not cover, and the one a user actually
+    // takes: delete the search rather than press anything. The chips are drawn
+    // only while there is a query, so a category surviving this narrows the
+    // whole library to one category with nothing on screen to say so and no
+    // chip left to unpick it.
+    const pane = await searched();
+    (pane.querySelector('[data-action="category-chip"]') as HTMLElement).click();
+    await settle();
+    expect(lit(pane), "a category is picked").toBe(1);
+
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.value = "";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    // With no query the chips are gone either way, so the evidence is the
+    // library itself: every category the pane knows about is drawn again.
+    const headings = pane.querySelectorAll('[data-action="category"]').length;
+    expect(headings, "the emptied box left the library filtered to one category").toBeGreaterThan(1);
+
+    // And typing again does not bring the old pick back with it.
+    box.value = "e";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+    expect(lit(pane), "the category outlived the search it was narrowing").toBe(0);
+  });
 });
 
 describe("the keyboard reaching the tiles", () => {
