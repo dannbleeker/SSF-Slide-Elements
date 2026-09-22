@@ -83,6 +83,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   removed the very button you had just reached, so Tab could not get past the
   first tile and the arrow keys never moved. Focus now survives the redraw.
 
+- **Elements land on the slide on decks that are not the library's size.** The
+  library is drawn at one slide size, and an element inserted into a deck of a
+  different size kept the library's own coordinates instead of being scaled to
+  fit — so it could sit well off the edge of the slide, while the pane's
+  preview reported it as landing correctly. A stamp went about an inch past the
+  right edge and a white box two and a half inches, on PowerPoint's ordinary
+  ten-inch "On-screen Show (16:9)" deck. That size has the same 16:9 shape as
+  the library, so the pane never even said it was borrowing one.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had

@@ -90,10 +90,25 @@ export interface SpliceRequest {
   /**
    * What the catalogue knows that this element's own entry does not: the
    * version stamped into every inserted shape's tag, the content type of every
-   * carried part, and the library theme's colour map the "As in the library"
-   * setting pins to.
+   * carried part, the library theme's colour map the "As in the library"
+   * setting pins to, and the LIBRARY DECK'S OWN SLIDE SIZE.
+   *
+   * That last one is not decoration. An element's `box` is a fraction of the
+   * library's slide and its shapes carry the library deck's absolute EMU, so
+   * the frame `applyMove` moves them FROM has to be in their own units. It was
+   * computed from the destination's size, which is the same rectangle only when
+   * the two decks happen to be the same size — and then every shape kept its
+   * library coordinates on a slide that is not the library's.
    */
-  catalogue: { version: string; carried: Record<string, string>; theme?: Record<string, string> };
+  catalogue: {
+    version: string;
+    carried: Record<string, string>;
+    theme?: Record<string, string>;
+    /** The library deck's slide width in EMU, which its shapes are drawn in. */
+    width: number;
+    /** The library deck's slide height in EMU. */
+    height: number;
+  };
   store: PartStore;
   /** The selected shape's rectangle, when the host could name one. */
   selection?: Rect;
@@ -386,7 +401,20 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
   // rotated shape's rotated extent (`docs/DESIGN.md` section 3), which is the
   // ink the user sees. Landing the ink where the rule says is the promise;
   // landing the unrotated frame there would put a 29° stamp off the edge.
-  const from = authored(request.element.box, size);
+  // The element's own frame, in the units its SHAPES are drawn in — the
+  // library deck's, not this deck's. `place` below works in the destination's
+  // units, and `moveFrom` between the two is what rebases the shapes: the
+  // scale is destination-over-library, which is the "scaled to fit"
+  // `docs/DESIGN.md` section 3 promises a deck of another shape.
+  //
+  // Built from the destination size until 2026-09-22, which is identical
+  // whenever the deck matches the library and wrong otherwise. Measured on an
+  // ordinary ten-inch "On-screen Show (16:9)" deck, 9144000 x 5143500 — whose
+  // RATIO matches, so the pane calls it an exact library and shows no
+  // "borrowed" line: the Confidential stamp's right edge landed at 10024466 on
+  // a 9144000-wide slide, and a white box 2.5 inches past it, while
+  // `SpliceReport.landed` reported a rectangle wholly on the slide.
+  const from = authored(request.element.box, { width: request.catalogue.width, height: request.catalogue.height });
   const landed = place({
     box: request.element.box,
     landing: request.element.landing,

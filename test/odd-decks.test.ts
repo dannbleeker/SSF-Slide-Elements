@@ -45,7 +45,13 @@ async function put(deck: string | Uint8Array, id: string, slide: number, target:
     slide,
     element: { id: el.id, name: el.name, kind: el.kind, box: el.box, landing: el.landing, markup: el.markup },
     options: { target, group: true, colours: "deck" },
-    catalogue: { version: "v1", carried: library.catalogue.carried, theme: library.catalogue.theme },
+    catalogue: {
+      version: "v1",
+      carried: library.catalogue.carried,
+      theme: library.catalogue.theme,
+      width: 12192000,
+      height: 6858000,
+    },
     store: (path) => Promise.resolve(library.parts.get(path)),
   });
 }

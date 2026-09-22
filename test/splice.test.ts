@@ -9,7 +9,7 @@ import type { Catalogue, Element as CatalogueElement, Names } from "../src/core/
 import { readShapeTags, TAG_CATALOGUE, TAG_ELEMENT } from "../src/core/pptx/tags.js";
 import { A_NS, P_NS, R_NS, child, children, elements, parseXml, serializeXml } from "../src/core/pptx/xml.js";
 import { removeElement, slidesHolding } from "../src/core/splice/remove.js";
-import { highestShapeId } from "../src/core/splice/shapes.js";
+import { highestShapeId, slideShapes, unionOf } from "../src/core/splice/shapes.js";
 import { onlySlide, splice, type SpliceElement } from "../src/core/splice/splice.js";
 import { makeDeck } from "./fixtures/deck.js";
 
@@ -105,8 +105,23 @@ const store = (path: string): Promise<Uint8Array | string | undefined> => Promis
 
 const CATALOGUE = { version: "test-version", carried: {} as Record<string, string> };
 
-function catalogueFor(): { version: string; carried: Record<string, string>; theme: Record<string, string> } {
-  return { version: CATALOGUE.version, carried: library.catalogue.carried, theme: library.catalogue.theme };
+function catalogueFor(): {
+  version: string;
+  carried: Record<string, string>;
+  theme: Record<string, string>;
+  width: number;
+  height: number;
+} {
+  return {
+    version: CATALOGUE.version,
+    carried: library.catalogue.carried,
+    theme: library.catalogue.theme,
+    // The LIBRARY deck's own slide, which is the space its elements' shapes are
+    // drawn in. Taken from the harvested catalogue rather than written out, so
+    // a case that harvests the 4:3 deck gets 4:3 here without saying so twice.
+    width: library.catalogue.width,
+    height: library.catalogue.height,
+  };
 }
 
 async function spliceOne(
@@ -869,6 +884,85 @@ describe("where an element lands, through the whole splice", () => {
   });
 });
 
+describe("a deck whose slide size is not the library's", () => {
+  /**
+   * `docs/DESIGN.md` section 3: a deck of another shape "borrows the nearest
+   * library, scaled to fit". The catalogue's boxes are FRACTIONS of the library
+   * slide, and the element's shapes carry the library deck's ABSOLUTE EMU — so
+   * the frame those shapes are moved from has to be in their own units. It was
+   * built from the DESTINATION size instead, which is the same rectangle only
+   * when the two decks happen to be the same size.
+   *
+   * 9144000 x 5143500 is the ordinary ten-inch "On-screen Show (16:9)". Its
+   * RATIO is exactly 16:9, so `libraryFor` calls it an exact match and the pane
+   * shows no "borrowed" line at all — the case least likely to be noticed and
+   * most likely to be met.
+   */
+  const SMALL = { cx: 9144000, cy: 5143500 };
+
+  async function smallDeck(): Promise<Uint8Array> {
+    return makeDeck(
+      [{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }, { paragraphs: [["Third"]] }],
+      {},
+      SMALL,
+    );
+  }
+
+  async function landedShapes(
+    base64: string,
+    slidePath: string,
+  ): Promise<{ x: number; y: number; cx: number; cy: number }> {
+    const out = await Pkg.open(base64);
+    const doc = await out.doc(slidePath);
+    const cSld = child(doc.documentElement, P_NS, "cSld");
+    const spTree = cSld ? child(cSld, P_NS, "spTree") : undefined;
+    if (!spTree) throw new Error("the rebuilt slide has no shape tree");
+    const union = unionOf(slideShapes(spTree));
+    if (!union) throw new Error("nothing on the rebuilt slide has a frame");
+    return union;
+  }
+
+  for (const id of ["confidential", "hvid-kasse-2x1-vertikale"]) {
+    it(`${id}: the shapes land on the slide, not off the edge of it`, async () => {
+      const report = await splice({
+        deck: await smallDeck(),
+        slide: 1,
+        element: asSplice(element(id)),
+        options: { target: "onto", group: false, colours: "deck" },
+        catalogue: catalogueFor(),
+        store,
+      });
+      const union = await landedShapes(report.base64, report.slidePath);
+      expect(union.x, "left edge").toBeGreaterThanOrEqual(0);
+      expect(union.y, "top edge").toBeGreaterThanOrEqual(0);
+      expect(union.x + union.cx, "right edge past the slide").toBeLessThanOrEqual(SMALL.cx);
+      expect(union.y + union.cy, "bottom edge past the slide").toBeLessThanOrEqual(SMALL.cy);
+    });
+  }
+
+  it("reports a landing the file actually has", async () => {
+    // `SpliceReport.landed` is what the pane's card draws in grey and what the
+    // footer's sentence is built from. A report that disagrees with the file is
+    // the pane telling the user where the element is not.
+    const report = await splice({
+      deck: await smallDeck(),
+      slide: 1,
+      element: asSplice(element("confidential")),
+      options: { target: "onto", group: false, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const union = await landedShapes(report.base64, report.slidePath);
+    // Generous: the reported rectangle is the element's BOX, which for a
+    // rotated stamp is its turned bounding box rather than the raw union of its
+    // shapes. Being on the same part of the slide is the claim here, not being
+    // identical to the EMU.
+    const near = (a: number, b: number): boolean => Math.abs(a - b) < SMALL.cx * 0.1;
+    expect(near(union.x, report.landed.x), `x ${union.x} vs reported ${report.landed.x}`).toBe(true);
+    expect(near(union.y, report.landed.y), `y ${union.y} vs reported ${report.landed.y}`).toBe(true);
+  });
+});
+
 describe("a slide that carries a comment", () => {
   /**
    * A modern comment as PowerPoint for the web writes one.
@@ -1134,7 +1228,13 @@ describe("the sweep the one above leaves out", () => {
             slide: 1,
             element: asSplice(el),
             options,
-            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            catalogue: {
+              version: "sweep",
+              carried: lib.catalogue.carried,
+              theme: lib.catalogue.theme,
+              width: 12192000,
+              height: 6858000,
+            },
             store: (path) => Promise.resolve(lib.parts.get(path)),
           });
           const out = await Pkg.open(report.base64);
@@ -1212,7 +1312,13 @@ describe("what the user does to the element afterwards", () => {
             slide: 1,
             element: asSplice(el),
             options: { target: "onto", group: true, colours: "deck" },
-            catalogue: { version: "sweep", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+            catalogue: {
+              version: "sweep",
+              carried: lib.catalogue.carried,
+              theme: lib.catalogue.theme,
+              width: 12192000,
+              height: 6858000,
+            },
             store: (path) => Promise.resolve(lib.parts.get(path)),
           });
 

@@ -72,7 +72,13 @@ async function put(
     slide,
     element: asSplice(el),
     options,
-    catalogue: { version: "v1", carried: library.catalogue.carried, theme: library.catalogue.theme },
+    catalogue: {
+      version: "v1",
+      carried: library.catalogue.carried,
+      theme: library.catalogue.theme,
+      width: 12192000,
+      height: 6858000,
+    },
     store,
   });
 }

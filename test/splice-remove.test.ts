@@ -55,7 +55,13 @@ async function afterInserting(id: string, slide = 1, deck?: Uint8Array): Promise
     slide,
     element: asSplice(element(id)),
     options: { target: "onto", group: true, colours: "deck" },
-    catalogue: { version: "test", carried: library.catalogue.carried, theme: library.catalogue.theme },
+    catalogue: {
+      version: "test",
+      carried: library.catalogue.carried,
+      theme: library.catalogue.theme,
+      width: 12192000,
+      height: 6858000,
+    },
     store,
   });
   // The package the host would be handed lists one slide; what the USER then
@@ -193,7 +199,13 @@ describe("taking it off", () => {
       slide: 0,
       element: asSplice(element("markeringer-1")),
       options: { target: "onto", group: true, colours: "deck" },
-      catalogue: { version: "test", carried: library.catalogue.carried, theme: library.catalogue.theme },
+      catalogue: {
+        version: "test",
+        carried: library.catalogue.carried,
+        theme: library.catalogue.theme,
+        width: 12192000,
+        height: 6858000,
+      },
       store,
     });
     const report = await removeElement({ deck: both.base64, slide: 0, element: ID });

@@ -1708,7 +1708,13 @@ describe("removing a part from every slide it is on", () => {
           markup: el.markup,
         },
         options: { target: "onto", group: true, colours: "deck" },
-        catalogue: { version: "v1", carried: lib.catalogue.carried, theme: lib.catalogue.theme },
+        catalogue: {
+          version: "v1",
+          carried: lib.catalogue.carried,
+          theme: lib.catalogue.theme,
+          width: 12192000,
+          height: 6858000,
+        },
         store: (path: string) => Promise.resolve(lib.parts.get(path)),
       });
       deck = report.base64;

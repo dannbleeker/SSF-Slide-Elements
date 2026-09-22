@@ -578,6 +578,12 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
         version: library.version,
         carried: carriedTypes(index, library.size),
         theme: themeColours(index, library.size),
+        // The LIBRARY's own slide, not this deck's: the element's shapes are
+        // drawn in those units, and the splice rebases them onto whatever this
+        // deck measures. `libraryFor` answers the catalogue's dimensions, so
+        // these are the library's even when the deck borrowed it.
+        width: library.width,
+        height: library.height,
       },
       store: (path) => (store as Store).part(path),
       ...(selection ? { selection } : {}),
