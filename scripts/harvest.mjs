@@ -22,7 +22,7 @@
  * script only touches the file system. It needs `npm run build:lib` first.
  */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Pkg, harvest, HarvestError } from "../dist-lib/core/index.js";
 import { catalogueHtml } from "./catalogue-page.mjs";
@@ -36,6 +36,8 @@ const OUT = "public/catalogue";
 const names = JSON.parse(readFileSync("template/names.en.json", "utf8"));
 const sizes = {};
 const written = [];
+/** Every element's markup, rolled up for the version hash below. */
+const markupHash = createHash("sha256");
 
 rmSync(OUT, { recursive: true, force: true });
 for (const [size, file, dir] of DECKS) {
@@ -52,10 +54,14 @@ for (const [size, file, dir] of DECKS) {
     throw error;
   }
   const { catalogue, parts } = result;
+  sizes[size] ??= { ...catalogue, elements: [] };
   for (const el of catalogue.elements) {
     const { markup, ...rest } = el;
-    write(join(OUT, dir, "elements", `${el.id}.json`), JSON.stringify(markup, null, 2) + "\n");
-    sizes[size] ??= { ...catalogue, elements: [] };
+    const body = JSON.stringify(markup, null, 2) + "\n";
+    write(join(OUT, dir, "elements", `${el.id}.json`), body);
+    // The markup goes into the VERSION even though it is written to its own
+    // file: see the hash below for what it is a cache key for.
+    markupHash.update(`${dir}/${el.id}\u0000${body}`);
     sizes[size].elements.push(rest);
   }
   for (const [path, content] of parts) write(join(OUT, dir, "parts", path), content);
@@ -80,8 +86,59 @@ if (missing.length) {
   process.exit(2);
 }
 
-// The version is a hash of the content, so it changes exactly when the catalogue does and never otherwise.
-const body = JSON.stringify(sizes);
+// The same elements is not the same CATALOGUE. The check above compares keys
+// only, so the two decks can file one element under different categories — and
+// the pane's chips, the summary count and `catalogue.html` all come straight
+// from `library.categories`, which is per size.
+//
+// Measured on the committed catalogue, 2026-09-23: 16:9 carries 11 categories
+// and 4:3 carries 10, "Hvide kasser med sorte overskrifter" exists only in
+// 16:9, and five elements sit under a different heading in the two decks. A
+// user on a 4:3 deck sees a different library from a user on a 16:9 one.
+//
+// Reported rather than refused, deliberately: this is the owner's DECK content
+// and only they can move a slide between collections, so failing here would
+// block every harvest until the decks are re-cut. It is loud, it names every
+// one, and it is written down in `docs/BACKLOG.md`.
+const catsOf = (size) => new Set(sizes[size].categories.map((c) => c.key));
+const cats = { "16:9": catsOf("16:9"), "4:3": catsOf("4:3") };
+const filedUnder = (size) => Object.fromEntries(sizes[size].elements.map((e) => [e.key, e.category.key]));
+const at169 = filedUnder("16:9");
+const drift = [
+  ...[...cats["16:9"]].filter((k) => !cats["4:3"].has(k)).map((k) => `category "${k}" is only in the 16:9 deck`),
+  ...[...cats["4:3"]].filter((k) => !cats["16:9"].has(k)).map((k) => `category "${k}" is only in the 4:3 deck`),
+  ...sizes["4:3"].elements
+    .filter((e) => at169[e.key] !== undefined && at169[e.key] !== e.category.key)
+    .map((e) => `"${e.key}" is under "${at169[e.key]}" at 16:9 and "${e.category.key}" at 4:3`),
+];
+if (drift.length) {
+  console.error(`harvest: WARNING — the two decks disagree about ${drift.length} categorisation(s):`);
+  for (const d of drift) console.error(`  - ${d}`);
+  console.error("  The pane shows a different library depending on the deck's shape. Fix the decks, not the code.");
+}
+
+// The version is a hash of the content, so it changes exactly when the
+// catalogue does and never otherwise.
+//
+// It hashed `sizes` alone, which is the INDEX — every element without its
+// markup. That is not what the version is used for. `previewUrl` in
+// `src/pane/catalogue.ts` makes it the `?v=` on every preview picture, and the
+// header of `scripts/build-previews.mjs` says why: the preview name is derived
+// from the element's id rather than hashed, so the version is the only thing
+// that can retire a cached one. A deck edit that changes PIXELS but no metadata
+// — a recolour, a corrected typo inside a shape, a line weight — left every
+// committed field untouched, so the version did not move and a returning user
+// kept the old picture. The markup is not covered by it either, and is fetched
+// with no cache key at all.
+//
+// So the markup rolls in above, and the print stamps here: those carry the SHA
+// of the deck each PDF was printed from, which is the closest thing the tree
+// has to "the pixels changed".
+for (const [, file] of DECKS) {
+  const stamp = `template/${file.replace(/\.pptx$/, ".print.json")}`;
+  if (existsSync(stamp)) markupHash.update(readFileSync(stamp));
+}
+const body = JSON.stringify(sizes) + "\u0000" + markupHash.digest("hex");
 const version = createHash("sha256").update(body).digest("hex").slice(0, 12);
 write(join(OUT, "catalogue.json"), JSON.stringify({ version, sizes }, null, 2) + "\n");
 

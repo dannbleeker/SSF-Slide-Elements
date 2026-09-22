@@ -45,6 +45,34 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
+### The two library decks disagree about their categories
+
+**The owner's decks, not the code**, and the only item here nobody but the
+owner can close. Found 2026-09-23 by a finder over `scripts/harvest.mjs`, whose
+cross-deck gate compares element KEYS only and so has never seen it.
+
+Measured on the committed catalogue the same day:
+
+- the 16:9 deck carries **11** categories and the 4:3 deck **10**;
+- `Hvide kasser med sorte overskrifter` exists only in the 16:9 deck;
+- **five elements** sit under a different heading in the two decks — the three
+  `Kommentering af indholdselement…` elements and
+  `To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser`
+  move from that missing category into `Hvide kasser`, and
+  `[ KPI definition – skriv navn som overskrift ]` from `One-page templates`
+  into `Hvide kasser`.
+
+The pane's chips, the summary count and `public/catalogue.html` all come from
+`library.categories`, which is per size — so a user on a 4:3 deck sees a
+different library from a user on a 16:9 one, with the same elements filed
+somewhere else.
+
+`npm run harvest` now REPORTS every one of them and names them, loudly, and
+carries on. It does not refuse: only the owner can move a slide between
+collections in a deck, and failing the harvest would block every build until
+that happened. Fix the decks and the warning goes; there is nothing to change
+in the code.
+
 ### Widen what the mutation sweep changes
 
 The one open item **this repo can finish on its own**, and the only one that is

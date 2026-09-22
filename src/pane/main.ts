@@ -198,7 +198,31 @@ function focusKey(el: Element): string | undefined {
     const value = el.dataset[name];
     if (value !== undefined) parts.push(`[data-${name}="${CSS.escape(value)}"]`);
   }
+  // The three attributes do not always tell two controls apart. The gear is
+  // drawn TWICE — the ⚙ button at the top and the settings line in the footer —
+  // and both carry `data-action="gear"` and nothing else, so pressing the
+  // footer line put the focus on the button at the top of the pane, past the
+  // search box, the chips and the whole list. `:nth-of-type` cannot help,
+  // because the two are not siblings; the position among the matches is
+  // appended instead, and only when there is more than one to tell apart.
+  const selector = parts.join("");
+  const all = [...root().querySelectorAll(selector)];
+  const at = all.indexOf(el);
+  return all.length > 1 && at >= 0 ? `${selector}\u0000${at}` : selector;
   return parts.join("");
+}
+
+/**
+ * The control a `focusKey` names, if the redraw still has it.
+ *
+ * The position after the `\u0000` is only there when `focusKey` found more than
+ * one match, so an ordinary key is still a plain selector.
+ */
+function focusedBy(key: string): HTMLElement | null {
+  const [selector, at] = key.split("\u0000");
+  if (selector === undefined) return null;
+  const all = [...root().querySelectorAll<HTMLElement>(selector)];
+  return (at === undefined ? all[0] : all[Number(at)]) ?? null;
 }
 
 /** Whether `draw` is putting the focus back, rather than the user moving it. */
@@ -226,7 +250,15 @@ function draw(): void {
 
   render(root(), state, stepFor(state));
   liveRegion();
-  announce(state.notice ?? "");
+  // The notice when there IS one, and otherwise the region is left alone.
+  //
+  // This announced `state.notice ?? ""`, so every redraw with no notice — which
+  // is nearly all of them — wiped the region. An outcome announced just before
+  // one of those was gone before anything could read it, which is why section
+  // 9's "a live region announces every outcome" held only for an outcome that
+  // happened to be the last word the pane said. Blanking bought nothing
+  // either: a live region is read on CHANGE, so stale text sits there unread.
+  if (state.notice !== undefined) announce(state.notice);
 
   if (wasSearch) {
     const search = root().querySelector<HTMLInputElement>('[data-action="search"]');
@@ -248,7 +280,7 @@ function draw(): void {
     // painted over by a later draw, outcome and Undo and all.
     restoringFocus = true;
     try {
-      root().querySelector<HTMLElement>(held)?.focus();
+      focusedBy(held)?.focus();
     } finally {
       restoringFocus = false;
     }
@@ -756,6 +788,11 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     }
     delete state.notice;
     draw();
+    // `docs/DESIGN.md` section 9: "A live region announces every outcome." The
+    // success path a few lines up does; neither failure path did — so the one
+    // case where the deck may be holding a slide too many was the one a screen
+    // reader was told nothing about.
+    announce(state.outcome?.detail ?? "");
   }
 }
 
@@ -884,6 +921,8 @@ async function undo(): Promise<boolean> {
     }
     delete state.notice;
     draw();
+    // Announced, for the reason the insert's catch gives.
+    announce(state.outcome?.detail ?? "");
     return false;
   }
 }
@@ -1224,7 +1263,11 @@ function onClick(event: MouseEvent): void {
       break;
     case "star":
       if (id) {
-        set({ favourites: toggle(state.favourites, id) });
+        // `noQuestion` for the same reason the search and the categories carry
+        // it: un-starring empties the Favourites section, and a question open
+        // on a tile THERE goes with it — leaving the Remove button suppressed
+        // on every other tile and nothing on screen saying why.
+        set({ favourites: toggle(state.favourites, id), ...noQuestion });
         keep();
       }
       break;

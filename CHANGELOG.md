@@ -9,6 +9,23 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Preview pictures update when the library decks change.** The address a
+  preview is fetched from carries a version that only changed when an
+  element's name, size or position did — so a deck edit that changed how
+  something LOOKS, and nothing else, left you seeing the old picture.
+
+- **The pane says what went wrong out loud.** A failed insert and a failed
+  Undo were shown in the footer but never announced, so a screen reader user
+  was told nothing on the one failure where the deck may be holding an extra
+  slide.
+
+- **Keyboard focus stays where you put it.** Pressing the settings line at the
+  bottom of the pane moved the focus to the gear button at the top, past the
+  search box and the whole list.
+
+- **Un-starring an element no longer strands the pane** while its "Remove from
+  N slides" question is open on the Favourites tile.
+
 - **The arrow keys work in the search box again.** Pressing Left or Right to
   fix a typo moved the focus onto the first tile instead of the caret — and
   since a tile is a button, the next Enter inserted that element. Left and

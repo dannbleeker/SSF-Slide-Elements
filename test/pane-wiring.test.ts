@@ -1314,6 +1314,28 @@ describe("the keyboard reaching the tiles", () => {
     expect((document.activeElement as HTMLElement | null)?.dataset["action"]).toBe("tile");
   });
 
+  it("puts the focus back on the SETTINGS LINE, not the gear at the top of the pane", async () => {
+    /**
+     * The gear is drawn twice — the ⚙ button above the list and the settings
+     * line in the footer — and both carry `data-action="gear"` and nothing
+     * else. `focusKey` built its selector from the three data attributes
+     * alone, so the restore after the redraw took the FIRST match: a keyboard
+     * user pressing the footer line was thrown to the top of the pane, past
+     * the search box, the chips and the whole list, and the next Tab carried
+     * on from there.
+     */
+    const pane = await browsing();
+    const gears = [...pane.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+    expect(gears.length, "only one gear on screen, so the case proves nothing").toBeGreaterThan(1);
+    const footer = gears[gears.length - 1] as HTMLElement;
+    footer.focus();
+    footer.click();
+    await settle();
+
+    const after = [...pane.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+    expect(document.activeElement, "the focus went to the gear at the top").toBe(after[after.length - 1]);
+  });
+
   it("keeps the focus on a tile that has just taken it", async () => {
     const pane = await browsing();
     const first = pane.querySelector<HTMLElement>('[data-action="tile"]')!;
@@ -1398,6 +1420,11 @@ describe("a host that raises after the work landed", () => {
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome, "a call that may have landed was not refused").not.toContain("refused");
     expect(pane.querySelector('[data-action="undo"]'), "the stale undo is disarmed").toBeNull();
+    // `docs/DESIGN.md` section 9: "A live region announces every outcome." The
+    // success path announced and this one did not — so the one failure where
+    // the deck may be holding a slide too many was the one a screen reader was
+    // told nothing about.
+    expect(document.getElementById("announcer")?.textContent, "the failure was never announced").toBe(outcome);
   });
 
   it("still calls it refused when nothing was ever asked of the host", async () => {
@@ -2106,6 +2133,20 @@ describe("removing a part from every slide it is on", () => {
     // suppressing everywhere.
     expect(pane.querySelector('[data-action="remove"]'), "no tile offered Remove any more").not.toBeNull();
     expect(host.cycles, "and nothing was removed on the way").toBe(0);
+  });
+
+  it("drops it when the star that drew the tile is pressed", async () => {
+    // The Favourites section is drawn from `state.favourites`, so un-starring
+    // empties it — and a question open on a tile THERE goes with it, leaving
+    // the Remove button suppressed on every other tile and nothing on screen
+    // saying why. The star sits on the same tile as the Remove button and
+    // stays enabled while the question is up.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask")).not.toBeNull();
+    (pane.querySelector('[data-action="star"]') as HTMLElement).click();
+    await settle();
+    expect(pane.querySelector(".tile-ask"), "the question outlived the tile it was on").toBeNull();
+    expect(pane.querySelector('[data-action="remove"]'), "and it was still suppressing Remove").not.toBeNull();
   });
 
   it("drops it when the category it is in is collapsed, which hides the tile too", async () => {
