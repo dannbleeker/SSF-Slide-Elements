@@ -1137,19 +1137,23 @@ describe("Escape and the category chip", () => {
     await settle();
     expect(lit(pane), "a category is picked").toBe(1);
 
-    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
-    box.value = "";
-    box.dispatchEvent(new Event("input", { bubbles: true }));
-    await settle();
+    // Re-queried each time: every `set` rebuilds the pane's children, so a box
+    // held across a redraw is a detached node whose events reach nothing.
+    const type = async (text: string): Promise<void> => {
+      const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+      box.value = text;
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+      await settle();
+    };
+
+    await type("");
     // With no query the chips are gone either way, so the evidence is the
     // library itself: every category the pane knows about is drawn again.
     const headings = pane.querySelectorAll('[data-action="category"]').length;
     expect(headings, "the emptied box left the library filtered to one category").toBeGreaterThan(1);
 
     // And typing again does not bring the old pick back with it.
-    box.value = "e";
-    box.dispatchEvent(new Event("input", { bubbles: true }));
-    await settle();
+    await type("e");
     expect(lit(pane), "the category outlived the search it was narrowing").toBe(0);
   });
 });
@@ -1944,6 +1948,53 @@ describe("removing a part from every slide it is on", () => {
     const pane = await askedToRemove();
     (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
     expect(pane.querySelector(".tile-ask")).toBeNull();
+    expect(host.cycles).toBe(0);
+  });
+
+  it("drops the question when a search takes its tile off the screen", async () => {
+    // The question is drawn ON the tile and nowhere else, and while one is open
+    // the Remove button is suppressed on EVERY tile. So a search that filtered
+    // the tile away left the pane with no question on screen, no Remove button
+    // anywhere, and only Escape — which nothing on screen said — to get out of
+    // it. A question about a tile does not outlive the tile.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask"), "the question is up to begin with").not.toBeNull();
+
+    // Re-queried between the two: every `set` rebuilds the pane's children, so
+    // the box held across a redraw is a detached node whose events reach
+    // nothing.
+    const type = async (text: string): Promise<void> => {
+      const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+      box.value = text;
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+      await settle();
+    };
+    await type("zzzzzz");
+    await type("");
+
+    expect(pane.querySelector(".tile-ask"), "the question survived its tile").toBeNull();
+    // The category is still open, so the tile is back on screen — and it
+    // carries its Remove button again, which is what the open question was
+    // suppressing everywhere.
+    expect(pane.querySelector('[data-action="remove"]'), "no tile offered Remove any more").not.toBeNull();
+    expect(host.cycles, "and nothing was removed on the way").toBe(0);
+  });
+
+  it("drops it when the category it is in is collapsed, which hides the tile too", async () => {
+    // Collapsing hides the question either way, since the question is drawn on
+    // the tile — so the evidence has to be what is left AFTER the category is
+    // opened again: the question gone rather than waiting there, and the Remove
+    // button it was suppressing back on the tile.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask")).not.toBeNull();
+    const stamps = (): HTMLElement | undefined =>
+      [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')].find((c) => c.dataset["key"] === "stamps");
+    stamps()?.click();
+    await settle();
+    stamps()?.click();
+    await settle();
+    expect(pane.querySelector(".tile-ask"), "the question was waiting where it was left").toBeNull();
+    expect(pane.querySelector('[data-action="remove"]'), "and it was still suppressing Remove").not.toBeNull();
     expect(host.cycles).toBe(0);
   });
 

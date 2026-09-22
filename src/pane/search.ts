@@ -248,6 +248,16 @@ function distance(a: string, b: string): number {
  * this turns it into a route, and it only ever offers names the library really
  * has, so picking one cannot fail.
  *
+ * "Cannot fail" is why `filters` is asked for. Picking a suggestion sets the
+ * QUERY and leaves the tags and the category picked, so a name this offered
+ * from the whole library could be one a picked tag excludes — and the route out
+ * of the dead end led straight back into it, with the same "Nothing matches
+ * that." and the same suggestion underneath. The comment on `distance` above
+ * already named this as the only way a query equal to a whole name reaches
+ * here, so the case was known to be live. A name the current filters would
+ * throw away is not a suggestion; offering nothing is an honest dead end and
+ * offering a dud is not.
+ *
  * Measured against each WORD of a name as well as the whole of it, because a
  * query is usually one word and "triangel" should reach "Triangle, simple, with
  * text at the corners" — which as a whole string is 30 edits away from it.
@@ -255,13 +265,20 @@ function distance(a: string, b: string): number {
  * The threshold grows with the query: one edit for a short word, more for a
  * long one. Without that, a three-letter typo would reach half the library.
  */
-export function didYouMean(library: Library, query: string, limit = 3): string[] {
+export function didYouMean(
+  library: Library,
+  query: string,
+  filters: Pick<PaneState, "tags" | "category"> = { tags: [] },
+  limit = 3,
+): string[] {
   const q = query.trim().toLowerCase();
   if (q.length < 3) return [];
   const allowed = Math.max(1, Math.floor(q.length / 3));
 
   const scored: { name: string; cost: number }[] = [];
   for (const element of library.elements) {
+    if (!filters.tags.every((tag) => element.tags.includes(tag))) continue;
+    if (filters.category !== undefined && element.category.key !== filters.category) continue;
     const name = element.name;
     const words = name
       .toLowerCase()

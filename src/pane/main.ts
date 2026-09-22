@@ -1240,13 +1240,13 @@ function onClick(event: MouseEvent): void {
       break;
     case "tag":
       if (value) {
-        set({ tags: toggle(state.tags, value) });
+        set({ tags: toggle(state.tags, value), ...noQuestion });
         keep();
       }
       break;
     case "category":
       if (el.dataset["key"]) {
-        set({ open: toggle(state.open, el.dataset["key"]) });
+        set({ open: toggle(state.open, el.dataset["key"]), ...noQuestion });
         keep();
       }
       break;
@@ -1257,7 +1257,7 @@ function onClick(event: MouseEvent): void {
       keep();
       break;
     case "clear":
-      set({ query: "", tags: [], category: undefined });
+      set({ query: "", tags: [], category: undefined, ...noQuestion });
       // Kept, like every keystroke that FILLED the box. Without it the deck's
       // bucket holds the old search and the next open restores one the user
       // explicitly got rid of — `docs/DESIGN.md` section 4 asks for the search
@@ -1269,7 +1269,7 @@ function onClick(event: MouseEvent): void {
     case "category-chip":
       if (el.dataset["key"]) {
         const key = el.dataset["key"];
-        set({ category: state.category === key ? undefined : key, previewing: undefined });
+        set({ category: state.category === key ? undefined : key, previewing: undefined, ...noQuestion });
       }
       break;
     // A "Did you mean" suggestion is a name the library really has, so putting
@@ -1282,6 +1282,18 @@ function onClick(event: MouseEvent): void {
   }
 }
 
+/**
+ * The question a tile is asking, dropped.
+ *
+ * Spread into every change that can take a tile OFF the screen, because the
+ * question is drawn on the tile and nowhere else — and while one is open the
+ * Remove button is suppressed on every tile. So a question whose tile was
+ * filtered away left no question on screen, no Remove button anywhere either,
+ * and only Escape to get out of a state nothing on screen was describing. A
+ * question about a tile does not outlive the tile.
+ */
+const noQuestion = { removing: undefined } as const;
+
 function onInput(event: Event): void {
   const target = event.target;
   if (!(target instanceof HTMLInputElement) || target.dataset["action"] !== "search") return;
@@ -1291,7 +1303,7 @@ function onInput(event: Event): void {
   // nothing on screen saying so and no chip left to unpick it. Clear and Escape
   // already drop it; emptying the box by hand is the same gesture typed out.
   const query = target.value;
-  set(query.trim() === "" ? { query, category: undefined } : { query });
+  set(query.trim() === "" ? { query, category: undefined, ...noQuestion } : { query, ...noQuestion });
   // Per keystroke, and deliberately not debounced: `keep` is one small
   // synchronous `setItem`, and a debounce would mean the pane forgetting
   // whatever was typed in the last moment before it was closed — which is

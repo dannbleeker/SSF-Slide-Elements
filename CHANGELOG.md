@@ -17,6 +17,20 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   on a slide you had not put them on. The new slide now starts from the layout,
   as it says it does; your original slide is untouched either way.
 
+- **"Did you mean" no longer suggests something your filters would hide.** With
+  a tag or a category chip picked, a suggestion under "Nothing matches that."
+  could be an element those filters exclude — so taking the way out of the dead
+  end put you straight back in it, with the same message and the same
+  suggestion underneath. Suggestions now come from what your filters actually
+  leave.
+
+- **The question before "Remove from N slides" no longer strands the pane.**
+  The question is asked on the element's own tile, and while it is up the
+  Remove button is hidden on every tile. Searching or closing a category while
+  it was open took the tile — and the question with it — off the screen, and
+  left no Remove button anywhere with nothing on screen to say why. Anything
+  that takes the tile away now cancels the question with it.
+
 - **The line under the header keeps naming the slide you are on, even if the
   add-in could not read your deck when it opened.** One failed read at startup
   — a slow network, a very large presentation — stopped the pane listening for
