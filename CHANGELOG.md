@@ -118,6 +118,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   rebuilt, which is part of your deck, not one of the "Click to add text"
   ghosts an insert is meant to tidy away.
 
+- **A failed Undo no longer offers to run itself again.** Undo puts your
+  original slide back first and takes the rebuilt one away second, so if
+  PowerPoint stops between the two your deck holds both. The pane said only
+  "Undo did not work" — which reads as though nothing happened — and left the
+  Undo button armed. Pressing it again put your slide back a second time and
+  reported success, leaving you with two copies of it and the element gone. It
+  now says what it could not finish and where to look, and takes the button
+  away rather than letting it act on a deck it can no longer describe.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had

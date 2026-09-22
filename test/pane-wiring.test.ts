@@ -1695,7 +1695,67 @@ describe("moving the last insert to a new slide", () => {
     await settle();
     await settle();
     expect(spliced.length).toBe(before);
-    expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not work");
+    // "did not finish" rather than "did not work": this case fails AFTER the
+    // restoring insert landed, so the deck holds the original and the rebuilt
+    // slide both, and a sentence implying nothing happened would be untrue.
+    // The "did not work" wording is still there for a failure before the host
+    // was asked, which the case below holds.
+    expect(pane.querySelector(".outcome")?.textContent).toContain("Undo did not finish");
+  });
+
+  it("disarms Undo when the undo itself failed after putting the slide back", async () => {
+    /**
+     * The sibling of `insert()`'s catch, and it was not fixed with it.
+     *
+     * `undo()` puts the user's original slide back FIRST and takes the rebuilt
+     * one away second. If the first half lands and the second does not, the
+     * deck holds both — and the catch said only "Undo did not work", left
+     * `undoable` set and left `state.undo` at 1. So the button was still on
+     * screen, still armed, over a deck that had already changed.
+     *
+     * Pressing it again re-runs the whole plan against that deck: the original
+     * goes in a SECOND time, the rebuilt slide comes out, the counts agree, and
+     * the pane reports "Undone." The user is left with two copies of their own
+     * slide, the element gone, and a success message.
+     *
+     * `insert()`'s own catch already carries the rule — after the host has been
+     * asked, the undo no longer describes the deck and is disarmed rather than
+     * left to act on it.
+     */
+    const pane = await inserted(1);
+    expect(pane.querySelector('[data-action="undo"]'), "the insert armed an undo").not.toBeNull();
+
+    host.refuseRemoval = true;
+    host.missCountAt = host.countCalls + 2;
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    await waitFor("the undo to report", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("Undo did not finish"),
+    );
+    await idle(pane);
+
+    const said = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(said, "and it names where to look, rather than implying nothing happened").toContain("Check the deck");
+    expect(
+      pane.querySelector('[data-action="undo"]'),
+      "Undo stayed armed over a deck the undo had already changed",
+    ).toBeNull();
+  });
+
+  it("keeps Undo armed when the undo failed before the host was asked", async () => {
+    // The pair, and the half that must NOT change. `slideIdAt` answering
+    // undefined stops `undo` before `insertSlidesFromBase64`, so the deck is
+    // untouched and the entry still describes it exactly.
+    const pane = await inserted(1);
+    host.namesSlides = false;
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    await waitFor("the undo to report", () =>
+      (pane.querySelector(".outcome")?.textContent ?? "").includes("Undo did not work"),
+    );
+    await idle(pane);
+    expect(
+      pane.querySelector('[data-action="undo"]'),
+      "nothing was asked of the host, so the undo still describes the deck",
+    ).not.toBeNull();
   });
 
   it("finishes the move when the delete raised but the deck's own size says it worked", async () => {

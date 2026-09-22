@@ -751,6 +751,15 @@ async function undo(): Promise<boolean> {
   set({ busy: true, notice: "Undoing…" });
   deckEdits += 1;
   const plan = undoPlan(entry);
+  /**
+   * Whether the host has been asked to change the deck yet. See the catch.
+   *
+   * The same flag `insert` keeps, for the same reason and one step worse here:
+   * this function puts the user's original slide back FIRST and takes the
+   * rebuilt one away second, so a failure between the two leaves the deck
+   * holding both.
+   */
+  let asked = false;
   try {
     const before = await slideCount();
 
@@ -762,6 +771,9 @@ async function undo(): Promise<boolean> {
         throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
       }
       const original = await onlySlide(entry.before, entry.index);
+      // From here the deck may hold the user's original slide again, whatever
+      // happens next.
+      asked = true;
       const refused = await insertPackage(original.base64, targetId);
       const grown = await countReaching(plan.grownTo(before));
       if (grown !== plan.grownTo(before)) {
@@ -771,6 +783,7 @@ async function undo(): Promise<boolean> {
       }
     }
 
+    asked = true;
     const refused = await removeSlideAt(plan.remove);
     const want = before - (plan.after === undefined ? 1 : 0);
     const after = await countReaching(want);
@@ -813,11 +826,39 @@ async function undo(): Promise<boolean> {
     followSelection();
     return true;
   } catch (e) {
-    state = {
-      ...state,
-      busy: false,
-      outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
-    };
+    // Disarmed once the host has been asked, because the entry no longer
+    // describes the deck.
+    //
+    // `undoPlan` is built from the insert's own index, and this function
+    // restores BEFORE it removes — so a failure in between leaves the deck
+    // holding the original and the rebuilt slide both. Pressing Undo again
+    // then re-runs the whole plan against that deck: the original goes in a
+    // second time, the rebuilt one comes out, the counts agree, and the pane
+    // reports "Undone." over two copies of the user's own slide with the
+    // element gone.
+    //
+    // Before the host was asked — `slideIdAt` refusing, `onlySlide` throwing —
+    // nothing changed and the entry is still exactly right, so it stays.
+    if (asked) {
+      undoable = undefined;
+      state = {
+        ...state,
+        busy: false,
+        undo: 0,
+        outcome: {
+          ok: false,
+          byHand: true,
+          name: entry.name,
+          detail: `Undo did not finish: ${readable(e)}. Check the deck around slide ${entry.landedOn}.`,
+        },
+      };
+    } else {
+      state = {
+        ...state,
+        busy: false,
+        outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
+      };
+    }
     delete state.notice;
     draw();
     return false;
