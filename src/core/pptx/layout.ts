@@ -37,9 +37,19 @@ export interface Rect {
  */
 export type Want = "title" | "body";
 
-const TITLES = new Set(["title", "ctrTitle"]);
-/** Never content: the running furniture along the bottom of a slide. */
-const CHROME = new Set(["ftr", "sldNum", "dt"]);
+/** A slide's title, in both spellings PowerPoint writes. */
+export const TITLES = new Set(["title", "ctrTitle"]);
+/**
+ * Never content: the running furniture along the bottom of a slide.
+ *
+ * Exported because two other passes each grew their own narrower idea of what
+ * is not content — `contentCount` in `catalogue/boxes.ts` and
+ * `emptyBodyPlaceholders` in `splice/shapes.ts` both knew about titles and
+ * nothing else — and an engine that disagrees with itself about the word
+ * "content" gets two different answers about the same slide. `harvest.ts` has
+ * a third copy, folded together with the titles because that pass wants both.
+ */
+export const CHROME = new Set(["ftr", "sldNum", "dt"]);
 
 /** The `<p:ph>` of a shape, if it claims to be a placeholder. */
 function placeholderOf(shape: Element): Element | undefined {

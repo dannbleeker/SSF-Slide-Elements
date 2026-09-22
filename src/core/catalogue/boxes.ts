@@ -7,6 +7,7 @@
  * than the table PowerPoint draws, so a table's box is the sum of its columns
  * and rows when that is larger than the frame.
  */
+import { CHROME, TITLES } from "../pptx/layout.js";
 import { A_NS, P_NS, element, elements, children } from "../pptx/xml.js";
 import { placeholderType, textOf } from "./text.js";
 import type { Box } from "./types.js";
@@ -224,7 +225,14 @@ export function contentCount(slide: Document, width: number, height: number): nu
   let held = 0;
   for (const shape of topLevelShapes(slide)) {
     const ph = placeholderType(shape);
-    if (ph === "title" || ph === "ctrTitle") continue;
+    // The title, and the running furniture with it. A footer, a slide number
+    // and a date carry text — a company name, "2", today's date — so the
+    // empty-placeholder rule below never reaches them, and they were counted
+    // as things the user had put on the slide. `held` is what decides the
+    // "Move to a new slide" offer, so an otherwise empty slide with a footer
+    // and a slide number on it offered to move the element off a slide that
+    // holds nothing but its own furniture.
+    if (ph !== undefined && (TITLES.has(ph) || CHROME.has(ph))) continue;
     if (isEmptyPlaceholder(shape)) continue;
     const box = boxOf(shape, width, height);
     if (box && offSlide(box)) continue;

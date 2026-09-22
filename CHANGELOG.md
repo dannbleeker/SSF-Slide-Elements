@@ -110,6 +110,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   the search also was not remembered, so the search you had just got rid of came
   back the next time the pane opened.
 
+- **Your footer, slide number and date are left alone.** The add-in treated a
+  slide's running furniture as though you had put it there: an otherwise empty
+  slide with a footer on it was described as already holding something, so the
+  pane offered to move your element onto a slide of its own for no reason — and
+  a blank footer or date placeholder was removed from the slide the insert
+  rebuilt, which is part of your deck, not one of the "Click to add text"
+  ghosts an insert is meant to tidy away.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
