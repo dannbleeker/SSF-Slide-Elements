@@ -88,6 +88,67 @@ describe("the checker itself", () => {
     expect(problems(parts).join("\n")).toContain("which is not in the package");
   });
 
+  it("reads a .rels written with explicit end tags, rather than inventing problems", async () => {
+    // `relationshipsOf` matched SELF-CLOSING `<Relationship …/>` only, so a
+    // `.rels` from a producer that writes end tags parsed to an EMPTY map — and
+    // the checker then reported every reference in the owning part as
+    // unresolvable while silently losing the dangling-target rule. A sound
+    // package, condemned: the invented-problem direction this file's own header
+    // says it can least afford. PowerPoint writes self-closing and so does the
+    // engine, which is why nothing committed could see it.
+    const parts = await goodParts();
+    const slide = slideOf(parts);
+    const rels = `ppt/slides/_rels/${slide.split("/").pop()}.rels`;
+    const expanded = (parts.get(rels) as string).replace(
+      /<Relationship\b([^>]*)\/>/g,
+      "<Relationship$1></Relationship>",
+    );
+    expect(expanded, "the fixture's rels were not self-closing, so nothing was rewritten").toContain("</Relationship>");
+    parts.set(rels, expanded);
+    expect(problems(parts)).toEqual([]);
+  });
+
+  it("reads a Default declaration whichever order its attributes are in", async () => {
+    // Every other attribute here is read order-independently; this one pattern
+    // required `Extension` before `ContentType`. A package that writes them the
+    // other way came back with "no content type covers it" for every part of
+    // that extension, on a file PowerPoint opens without a word.
+    const parts = await goodParts();
+    const types = parts.get("[Content_Types].xml") as string;
+    const swapped = types.replace(
+      /<Default Extension="([^"]*)" ContentType="([^"]*)"\s*\/>/g,
+      '<Default ContentType="$2" Extension="$1"/>',
+    );
+    expect(swapped, "the fixture writes Extension second already, so nothing was swapped").not.toBe(types);
+    parts.set("[Content_Types].xml", swapped);
+    expect(problems(parts)).toEqual([]);
+  });
+
+  it("names a character XML cannot carry in its ENTITY spelling too", async () => {
+    // The docstring on `XML_FORBIDDEN` already says it: "not raw, and not as a
+    // numeric entity either — `&#11;` is exactly as ill-formed as the
+    // character". Only the raw half was implemented, so a part carrying the
+    // entity passed clean and PowerPoint condemned the whole file.
+    const parts = await goodParts();
+    const slide = slideOf(parts);
+    parts.set(slide, (parts.get(slide) as string).replace("<p:sld", "<!-- Line&#11;break --><p:sld"));
+    expect(problems(parts).join("\n")).toContain("XML cannot carry");
+
+    const hex = await goodParts();
+    hex.set(slide, (hex.get(slide) as string).replace("<p:sld", "<!-- Line&#xB;break --><p:sld"));
+    expect(problems(hex).join("\n"), "the hexadecimal spelling is the same fault").toContain("XML cannot carry");
+  });
+
+  it("leaves a LEGAL numeric entity alone", async () => {
+    // The pair, and the one this could most easily get wrong: a tab, a newline
+    // and an emoji written as entities are all perfectly legal, and a check
+    // that fired on them would condemn sound decks.
+    const parts = await goodParts();
+    const slide = slideOf(parts);
+    parts.set(slide, (parts.get(slide) as string).replace("<p:sld", "<!-- a&#9;b&#10;c&#x1F600; --><p:sld"));
+    expect(problems(parts)).toEqual([]);
+  });
+
   it("names markup that references a relationship the part does not have", async () => {
     // SSF-Merge #124: the relationship deleted out from under live markup.
     const parts = await goodParts();

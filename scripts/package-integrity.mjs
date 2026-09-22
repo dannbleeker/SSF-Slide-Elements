@@ -183,7 +183,13 @@ export function relsPathFor(part) {
 export function relationshipsOf(relsXml) {
   const out = new Map();
   if (!relsXml) return out;
-  for (const m of relsXml.matchAll(/<Relationship\b[^>]*\/>/g)) {
+  // `[^>]*>` rather than `[^>]*\/>`: a `.rels` written with explicit end tags —
+  // `<Relationship …></Relationship>` — parsed to an EMPTY map, which silenced
+  // the dangling-target rule and reported every reference in the owning part as
+  // unresolvable. A sound package came back with a list of invented problems,
+  // which this file's own header says is the direction it can least afford.
+  // `</Relationship>` cannot match: the pattern anchors on `<Relationship`.
+  for (const m of relsXml.matchAll(/<Relationship\b[^>]*>/g)) {
     const tag = m[0];
     const id = /\bId="([^"]*)"/.exec(tag)?.[1];
     if (!id) continue;
@@ -331,6 +337,36 @@ export function expectedTypeOf(ref) {
 // eslint-disable-next-line no-control-regex
 const XML_FORBIDDEN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|\p{Surrogate}/u;
 
+/**
+ * The first numeric character reference naming a code point XML refuses.
+ *
+ * The other half of the rule above, which its own docstring states and nothing
+ * implemented: `&#11;` is exactly as ill-formed as a raw U+000B, and a parser
+ * refuses the part for it just the same. Decimal and hexadecimal both, because
+ * a producer may write either.
+ *
+ * @param {string} body
+ * @returns {{ at: number, written: string, code: string } | undefined}
+ */
+function forbiddenEntity(body) {
+  for (const m of body.matchAll(/&#(x[0-9a-fA-F]+|\d+);/g)) {
+    const written = m[1] ?? "";
+    const n = written.startsWith("x") || written.startsWith("X") ? parseInt(written.slice(1), 16) : Number(written);
+    if (!Number.isInteger(n)) continue;
+    const forbidden =
+      (n >= 0x0 && n <= 0x8) ||
+      n === 0xb ||
+      n === 0xc ||
+      (n >= 0xe && n <= 0x1f) ||
+      (n >= 0xd800 && n <= 0xdfff) ||
+      n === 0xfffe ||
+      n === 0xffff;
+    if (!forbidden) continue;
+    return { at: m.index ?? 0, written, code: n.toString(16).toUpperCase().padStart(4, "0") };
+  }
+  return undefined;
+}
+
 export function packageProblems(parts) {
   const problems = [];
   const names = new Set(parts.keys());
@@ -374,7 +410,17 @@ export function packageProblems(parts) {
   }
 
   const types = text("[Content_Types].xml") ?? "";
-  const defaults = new Set([...types.matchAll(/Default Extension="([^"]*)"/g)].map((m) => (m[1] ?? "").toLowerCase()));
+  // The TAG first, then its Extension — not one pattern that requires
+  // `Extension` to be written before `ContentType`. Every other attribute in
+  // this file is read order-independently, and a package whose `<Default>`
+  // writes `ContentType` first came back with "no content type covers it" for
+  // every part of that extension, on a file PowerPoint opens without a word.
+  const defaults = new Set(
+    [...types.matchAll(/<Default\b[^>]*>/g)]
+      .map((m) => /\bExtension="([^"]*)"/.exec(m[0])?.[1] ?? "")
+      .filter(Boolean)
+      .map((e) => e.toLowerCase()),
+  );
   // EVERY Override, then the absolute ones — not a pattern that requires the
   // leading slash, which is how the defect below hid. See `RELATIVE OVERRIDE`.
   const declared = [...types.matchAll(/PartName="([^"]*)"/g)].map((m) => m[1] ?? "");
@@ -402,9 +448,21 @@ export function packageProblems(parts) {
     const body = text(name);
     if (body === undefined) continue;
     const at = body.search(XML_FORBIDDEN);
-    if (at < 0) continue;
-    const code = body.charCodeAt(at).toString(16).padStart(4, "0");
-    problems.push(`${name}: holds U+${code.toUpperCase()} at offset ${at}, which XML cannot carry`);
+    if (at >= 0) {
+      const code = body.charCodeAt(at).toString(16).padStart(4, "0");
+      problems.push(`${name}: holds U+${code.toUpperCase()} at offset ${at}, which XML cannot carry`);
+      continue;
+    }
+    // And the ENTITY spelling, which the paragraph above already calls "exactly
+    // as ill-formed as the character" and which nothing here looked for. A part
+    // carrying `&#11;` passed clean and PowerPoint condemned the whole file —
+    // the outcome this check exists to catch before a package is handed over.
+    const entity = forbiddenEntity(body);
+    if (entity) {
+      problems.push(
+        `${name}: holds &#${entity.written}; at offset ${entity.at}, which is U+${entity.code} and XML cannot carry it`,
+      );
+    }
   }
   return problems;
 }
