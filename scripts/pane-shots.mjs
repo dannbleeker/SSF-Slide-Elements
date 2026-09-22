@@ -701,7 +701,14 @@ for (const { width, theme, forced } of PASSES) {
       // is being measured here — `render` is called directly. Refused rather
       // than waited on: on a machine that cannot reach it, every one of these
       // pages otherwise spends its connect timeout before drawing anything.
-      await page.route("https://appsforoffice.microsoft.com/**", (route) => route.abort());
+      // A RegExp rather than a glob, and not for matching: the glob spelling
+      // ends `.com/**`, and that `/*` opens a block comment for the naive
+      // stripper in `scripts/without-prose.mjs`. It closed at the next `*/` 44
+      // lines down, so everything between — this abort, the `goto`, the whole
+      // `evaluate` that renders the pane, and the fixture-claims check — was
+      // invisible to every guard that reads this file through it, including
+      // `dead-exports`. 533 characters of code, measured 2026-09-22.
+      await page.route(/appsforoffice\.microsoft\.com/, (route) => route.abort());
       await page.goto(`http://localhost:${PORT}/taskpane.html`);
       await page.evaluate(
         async ({ state, step, theme }) => {

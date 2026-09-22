@@ -833,8 +833,12 @@ export function codeMask(text) {
       at = end === -1 ? text.length : end;
       continue;
     }
-    if (two === "/*") {
-      const end = text.indexOf("*/", at + 2);
+    // Split, both of them: spelled whole they are a `/*` and a `*/` in the
+    // source, so the naive stripper in `without-prose.mjs` reads them as a
+    // comment and eats the 24 characters between — inside the one function in
+    // this repo that gets string literals right.
+    if (two === "/" + "*") {
+      const end = text.indexOf("*" + "/", at + 2);
       const stop = end === -1 ? text.length : end + 2;
       blank(at, stop);
       at = stop;
