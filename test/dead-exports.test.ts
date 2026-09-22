@@ -86,4 +86,36 @@ describe("every export in src is reached by something that ships", () => {
     expect(reported).not.toContain("src/pane/catalogue.ts::nameOfRatio");
     expect(reported).not.toContain("src/pane/catalogue.ts::carriedTypes");
   });
+
+  it("is not fooled by another module's private function of the same name", () => {
+    /**
+     * The third way this sweep could not fail, found 2026-09-23. Liveness was
+     * decided by counting the NAME anywhere in a non-test file, which cannot
+     * tell a use of the export from an unrelated private function that happens
+     * to share it — and two were hidden that way at once.
+     *
+     * `src/core/splice/shapes.ts` exports `relIdsIn` and nothing but
+     * `test/splice-shapes.test.ts` reaches it, while
+     * `src/core/catalogue/harvest.ts` has a private `relIdsIn` of its own; and
+     * `src/host/probe.ts` exports `summarizeParts` against the generated
+     * snippet's own copy of the name. The sweep printed "0 unexcused" over
+     * both. Each is a deliberate export with a reason, so each is now in
+     * `ALLOWED` — the point of this case is that the sweep SEES them.
+     *
+     * Asserted against the shape of the collision as well as the verdict: if
+     * harvest.ts ever stops declaring its own `relIdsIn`, the collision is gone
+     * and this case has stopped proving anything.
+     */
+    const harvest = readFileSync("src/core/catalogue/harvest.ts", "utf8");
+    expect(harvest, "the name collision this case is about is gone").toMatch(/^function relIdsIn\b/m);
+    const shapes = readFileSync("src/core/splice/shapes.ts", "utf8");
+    expect(shapes, "the export it hid is gone").toMatch(/^export function relIdsIn\b/m);
+
+    for (const key of ["src/core/splice/shapes.ts::relIdsIn", "src/host/probe.ts::summarizeParts"]) {
+      expect(Object.keys(ALLOWED), `${key} is no longer excused`).toContain(key);
+      const row = deadExports().find((r) => keyOf(r) === key);
+      expect(row, `the sweep no longer sees ${key} at all`).toBeDefined();
+      expect(row?.reach, "reached by something other than a test").toBe("tests");
+    }
+  });
 });

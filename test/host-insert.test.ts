@@ -101,6 +101,29 @@ describe("an insert that did not land", () => {
     expect(out.byHand, "only the user can say what went").toBe(true);
   });
 
+  it("says the deck shrank even when the host ALSO raised", () => {
+    // The raise was tested first, so an insert that both raised and left the
+    // deck smaller came out as "The insert was refused: …" with
+    // `byHand: false` — the mildest sentence the pane has, over a deck that had
+    // lost a slide, with nothing telling the user to look. The raise does not
+    // make the delta untrue, and the delta is the more serious of the two
+    // facts, so it is asked about first and the reason is carried along.
+    const out = outcomeOf({ ...base, inserted: 11, removed: undefined, error: "RichApi.Error: timeout" });
+    expect(out.detail).toBe(
+      "The insert was refused: RichApi.Error: timeout — and the deck has 11 slides where it had 12. " +
+        "Check the deck before inserting again.",
+    );
+    expect(out.byHand, "the pane said nothing was worth looking at").toBe(true);
+  });
+
+  it("keeps the plain refusal when the deck is exactly the size it was", () => {
+    // The pair: a raise with no delta behind it is still just a refusal, and
+    // that sentence is quoted word for word in `docs/DESIGN.md` section 10.
+    const out = outcomeOf({ ...base, inserted: 12, removed: undefined, error: "InvalidArgument" });
+    expect(out.detail).toBe("The insert was refused: InvalidArgument");
+    expect(out.byHand).toBe(false);
+  });
+
   it("keeps the no-op sentence for a deck that is exactly the size it was", () => {
     // The pair. `landed === 0` is the silent no-op and its sentence is quoted
     // word for word in `docs/DESIGN.md` section 10; only the negative delta

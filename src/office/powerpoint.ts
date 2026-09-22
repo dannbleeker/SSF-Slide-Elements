@@ -231,7 +231,14 @@ export async function currentSlide(within: number = BUDGET.read): Promise<Curren
         await context.sync();
         const first = selected.items[0]?.id;
         if (first === undefined) return undefined;
-        if (!whole(all.items.length, count.value)) return undefined;
+        // `null`, not `undefined`. The two are different answers in this file:
+        // **undefined is the host SAYING there is no selection, null is the
+        // host not answering** — and a collection read that came back short is
+        // the second. Answered as `undefined` it made `followSelection` wipe a
+        // good slide number off the line under the header while a slide was
+        // plainly selected, where the same failure arriving as a timeout
+        // correctly leaves the last number standing.
+        if (!whole(all.items.length, count.value)) return null;
         // `sameSlideId`, not `===`. A selection id can lack the `#suffix` the
         // deck's own list carries (office-js#2474, Windows desktop, closed not
         // planned), and `src/host/jump.ts` owns that comparison — this compared
@@ -481,7 +488,17 @@ export function openExternal(url: string): boolean {
     // `noopener` because the opened page must not get a handle on the pane:
     // it is our own page today, and a window handle into a task pane holding
     // somebody's presentation is not a thing to hand out on trust.
-    return window.open(url, "_blank", "noopener,noreferrer") !== null;
+    //
+    // The answer is DISCARDED, and that is the fix rather than an oversight.
+    // `window.open` with `noopener` returns null BY SPECIFICATION whether or
+    // not the tab opened, so `!== null` was a test that could only ever be
+    // false: on every host without `OpenBrowserWindowApi` the pane said
+    // "PowerPoint would not open a window" over a tab it had just opened.
+    // Not throwing is the only signal this path has, and `noopener` is not
+    // given up to get a better one — a window handle into a task pane holding
+    // somebody's presentation is not a thing to hand out on trust.
+    window.open(url, "_blank", "noopener,noreferrer");
+    return true;
   } catch {
     return false;
   }

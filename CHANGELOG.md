@@ -9,6 +9,20 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **"Browse the catalogue on the site" no longer claims it failed.** On every
+  PowerPoint that opens the page through a plain browser window, the add-in
+  reported "PowerPoint would not open a window" over a tab it had just
+  opened.
+
+- **The line under the header keeps the slide number when PowerPoint answers a
+  read only partly.** It used to blank the number as though nothing were
+  selected, where the same failure arriving as a timeout correctly left the
+  last number standing.
+
+- **A failed insert that finds the deck shorter says so even when PowerPoint
+  also reported an error.** The error used to be the only thing mentioned, in
+  the pane's mildest wording, over a deck that had lost a slide.
+
 - **Preview pictures update when the library decks change.** The address a
   preview is fetched from carries a version that only changed when an
   element's name, size or position did — so a deck edit that changed how

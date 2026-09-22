@@ -84,9 +84,15 @@ export function outcomeOf(attempt: Attempt): Outcome {
     // said anything, and BOTH are honest: a refusal names the reason, and a
     // silent no-op says plainly that the deck is untouched, because "it did
     // not work" without a count leaves the user wondering what to undo.
-    if (attempt.error !== undefined) {
-      return { ok: false, detail: `The insert was refused: ${attempt.error}`, byHand: false };
-    }
+    // The SHRINK is asked about first, because it is the more serious of the
+    // two facts and the raise does not make it untrue. This tested `error`
+    // first, so an insert that both raised and left the deck smaller came out
+    // as "The insert was refused: …" with `byHand: false` — the pane's mildest
+    // sentence over a deck that had lost a slide, with nothing telling the user
+    // to look. Both halves are reachable in one go: `insertPackage` answers a
+    // reason instead of throwing, and `countReaching` then answers whatever it
+    // last saw, so an insert that ran out of budget while the user deleted a
+    // slide in the same window supplies exactly this.
     if (landed < 0) {
       // A deck that SHRANK. This used to fall into the sentence below, which
       // then stated a count the deck does not have — "the deck still has 12
@@ -102,9 +108,15 @@ export function outcomeOf(attempt: Attempt): Outcome {
       // the insert also landed, so it says what it measured and stops.
       return {
         ok: false,
-        detail: `The insert did not confirm: the deck has ${inserted} slides where it had ${before}. Check the deck before inserting again.`,
+        detail:
+          attempt.error === undefined
+            ? `The insert did not confirm: the deck has ${inserted} slides where it had ${before}. Check the deck before inserting again.`
+            : `The insert was refused: ${attempt.error} — and the deck has ${inserted} slides where it had ${before}. Check the deck before inserting again.`,
         byHand: true,
       };
+    }
+    if (attempt.error !== undefined) {
+      return { ok: false, detail: `The insert was refused: ${attempt.error}`, byHand: false };
     }
     return {
       ok: false,

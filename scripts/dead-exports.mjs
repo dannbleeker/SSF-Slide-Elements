@@ -51,6 +51,14 @@ const SKIP = new Set(["node_modules", "dist", "dist-lib", ".git", "coverage", "p
 export const ALLOWED = {
   "src/core/pptx/clone.ts::notesPathFor":
     "the sibling merge reaches it; this repo's clone writes the notes path itself",
+  "src/core/splice/shapes.ts::relIdsIn":
+    "one of the two readers test/splice-shapes.test.ts holds against each other over all 212 elements — the " +
+    "harvest's own relationship scan is the other, and the point is that they were written independently. Hidden " +
+    "until 2026-09-23 by harvest.ts's private function of the same name, which made the sweep count it alive",
+  "src/host/probe.ts::summarizeParts":
+    "the reference the GENERATED probe snippet is held to: probe/probe-snippet.ts carries its own copy, and " +
+    "test/probe.test.ts transpiles that copy and compares it against this one over the same input. Hidden by the " +
+    "snippet's copy sharing the name",
   "src/core/pptx/theme.ts::themeColoursFor":
     "one call over the chain, for the test that holds the two libraries to the same palette; the harvest needs the chain's parts separately and calls them apart",
   "src/pane/steps.ts::STEPS":
@@ -112,6 +120,29 @@ function walk(dir, out = []) {
  */
 function mentions(code, name) {
   return (code.match(new RegExp("\\b" + name + "\\b", "g")) ?? []).length;
+}
+
+/**
+ * Whether a file declares this name ITSELF, so its mentions are its own.
+ *
+ * Liveness was decided by counting the NAME anywhere in a non-test file, which
+ * cannot tell a use of the export from an unrelated private function that
+ * happens to share it. One is hiding an export right now: `relIdsIn` is
+ * exported from `src/core/splice/shapes.ts` and reached by nothing but
+ * `test/splice-shapes.test.ts`, while `src/core/catalogue/harvest.ts` has a
+ * private `relIdsIn` of its own — so the sweep counted the export alive and
+ * printed "0 unexcused". Exactly the class the header above says this exists to
+ * catch.
+ *
+ * A file cannot both import a name and declare it, so discounting a
+ * self-declaring file can only ever make the sweep report MORE, never less.
+ *
+ * @param {string} code
+ * @param {string} name
+ * @returns {boolean}
+ */
+function declaresItself(code, name) {
+  return new RegExp(`^\\s*(?:export\\s+)?(?:async\\s+)?(?:function|const|let|var|class)\\s+${name}\\b`, "m").test(code);
 }
 
 /**
@@ -184,7 +215,9 @@ export function deadExports(root = ".") {
     for (const { name, cls } of classMethods(text)) declared.set(name, `method on ${cls}`);
     for (const [name, kind] of declared) {
       if (mentions(text, name) > 1) continue; // dispatched or re-used inside its own file
-      const elsewhere = [...code].filter(([other, body]) => other !== file && mentions(body, name) > 0).map(([f]) => f);
+      const elsewhere = [...code]
+        .filter(([other, body]) => other !== file && mentions(body, name) > 0 && !declaresItself(body, name))
+        .map(([f]) => f);
       const product = elsewhere.filter((f) => !f.startsWith("test/"));
       if (product.length > 0) continue;
       out.push({ file, name, kind, reach: elsewhere.length > 0 ? "tests" : "nothing" });
