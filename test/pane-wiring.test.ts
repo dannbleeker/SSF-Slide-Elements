@@ -58,7 +58,22 @@ vi.mock("../src/office/powerpoint.js", () => ({
   // exports before anyone noticed.
   slideCount: () => Promise.resolve(host.slides),
   // The count the pane is waiting for, unless this run is refusing.
-  countReaching: (want: number) => Promise.resolve(host.cycles === host.refuseAt ? host.slides : want),
+  countReaching: (want: number) => {
+    host.countCalls += 1;
+    // A count read that RAISES, which is not the same as one that disagrees.
+    // `withTimeout` rejects on the budget and on any host raise alike, and
+    // `timeout.ts` records this host taking 40 s for a 40 KB read on a session
+    // that had been through a timeout reload — so this is the ordinary way the
+    // read after a landed insert fails, not an exotic one.
+    if (host.countRaises) return Promise.reject(new Error("gave up waiting for counting the deck's slides"));
+    // One NAMED read that does not reach what it was asked for, counted from
+    // one. `refuseAt` beside it keys off `cycles`, which only the insert
+    // moves, so it cannot single out the SECOND read of one insert — and the
+    // second read is the removal's, which is the one a case about a removal
+    // that did not land has to miss.
+    if (host.missCountAt === host.countCalls) return Promise.resolve(host.slides + 1);
+    return Promise.resolve(host.cycles === host.refuseAt ? host.slides : want);
+  },
   readDeck: () => {
     // Only the FIRST call waits, and the field is cleared synchronously so the
     // second caller does not join the queue. That is what lets a case hold the
@@ -202,6 +217,12 @@ const host = {
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
   refuseRemoval: false,
+  /** Whether the confirming count read raises rather than answering. */
+  countRaises: false,
+  /** How many times `countReaching` has been asked this case. */
+  countCalls: 0,
+  /** Which of those reads answers the deck's grown size instead of the one asked for. */
+  missCountAt: 0,
   /** The URL the host gives for the open deck; undefined is an unsaved one. */
   url: undefined as string | undefined,
 };
@@ -357,6 +378,13 @@ function showFirstCategory(pane: HTMLElement): void {
   if (head?.getAttribute("aria-expanded") === "false") head.click();
 }
 
+/** Every category open, for a case whose element is not in the first one. */
+function showEveryCategory(pane: HTMLElement): void {
+  for (const head of Array.from(pane.querySelectorAll<HTMLElement>('[data-action="category"]'))) {
+    if (head.getAttribute("aria-expanded") === "false") head.click();
+  }
+}
+
 /**
  * Every listener a booted pane put on `document`, so each case starts alone.
  *
@@ -426,6 +454,9 @@ afterEach(() => {
   host.held = 0;
   host.removed.length = 0;
   host.refuseRemoval = false;
+  host.countRaises = false;
+  host.countCalls = 0;
+  host.missCountAt = 0;
   host.url = undefined;
   host.holdRead = undefined;
   // The scroll cases fake this, and a value left behind is the next case's
@@ -896,6 +927,102 @@ describe("what the menu actually inserts", () => {
     (pane.querySelector('[data-action="tile"]') as HTMLElement).click();
     await ran();
     expect(spliced.map((s) => s.target)).toEqual(["onto"]);
+  });
+});
+
+describe("a host that raises after the work landed", () => {
+  /**
+   * `CLAUDE.md`, twice: **a call can raise and still have done the work**, and
+   * **the deck DELTA is the evidence, never the absence of an error**. The
+   * second sentence is the one that gets quoted; this is the first one, and
+   * the pane read the raise instead of the delta in three places.
+   */
+  async function insertOnce(id = "one-box"): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = 1;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    (pane.querySelector(`[data-action="tile"][data-id="${id}"]`) as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await settle();
+    return pane;
+  }
+
+  it("does not tell the user to delete a slide the removal already took", async () => {
+    // The removal raises and the count says the deck came back to its old
+    // size, which means it landed. Telling the user to delete slide 1 by hand
+    // here is telling them to delete the slide the element is now ON.
+    host.refuseRemoval = true;
+    const pane = await insertOnce();
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "the count says the copy went").not.toContain("by hand");
+    expect(host.removed, "and the removal really was attempted").toContain(0);
+  });
+
+  it("still says so when the copy really is still there", async () => {
+    // The pair. `refuseAt` makes `countReaching` answer the deck's own size
+    // rather than the one asked for, so the second read finds `before + 1` and
+    // the copy genuinely did not go.
+    host.refuseRemoval = true;
+    host.missCountAt = 2;
+    const pane = await insertOnce();
+    expect(pane.querySelector(".outcome")?.textContent ?? "").toContain("by hand");
+  });
+});
+
+describe("what the insert target means for a PART", () => {
+  /**
+   * `docs/DESIGN.md` section 5: "A part ignores the insert target: it always
+   * lands on the slide the user is on", and section 7 again: "A part offers
+   * nothing. A stamp or a marker ignores the insert target".
+   *
+   * `offersOtherTarget` in `src/pane/steps.ts` keeps that rule for the
+   * right-click menu — it answers false for anything that is not a whole slide
+   * — and the GEAR was never held to it. So the menu obeyed the record and the
+   * setting did not, which is the half a user actually leaves switched on.
+   *
+   * What it costs is not cosmetic. "As a new slide" makes the splice BLANK the
+   * clone, so a stamp set that way lands alone on an empty slide wedged after
+   * the user's, the user's own slide keeps nothing, and the footer reports
+   * plain success — while the preview card has just promised the element would
+   * land on the shape they have selected.
+   */
+  async function paneWithTargetNew(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="target"][data-value="new"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    return pane;
+  }
+
+  it("splices a part ONTO the slide even with the gear set to a new slide", async () => {
+    const pane = await paneWithTargetNew();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="markeringer-1"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await settle();
+    expect(
+      spliced.map((s) => s.target),
+      "a part ignores the insert target",
+    ).toEqual(["onto"]);
+  });
+
+  it("still honours the gear for a whole-slide element, which is what it is for", async () => {
+    // The pair, so "a part ignores the target" cannot quietly become "nothing
+    // reads the target".
+    const pane = await paneWithTargetNew();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await settle();
+    expect(spliced.map((s) => s.target)).toEqual(["new"]);
   });
 });
 

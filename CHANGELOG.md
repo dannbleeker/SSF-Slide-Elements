@@ -7,6 +7,40 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed
+
+- **A comment on the slide you insert onto is no longer lost.** Inserting an
+  element rebuilds the slide you are on, and a comment written by PowerPoint
+  2016 or 2019 — or by any deck not yet upgraded to the newer kind — went with
+  the slide it was on. Newer comments were never affected, which is why this
+  went unnoticed: the two are stored differently, and only the older kind was
+  dropped. Your reviewer's thread now survives an insert either way.
+
+- **A stamp or a marker no longer lands on a blank slide of its own** when the
+  gear is set to "As a new slide". That setting is meant for whole-slide
+  elements only, and the right-click menu already treated it that way; the
+  setting did not, so a stamp inserted with it switched on landed alone on an
+  empty slide wedged after yours, and your own slide kept nothing. A stamp
+  always lands on the slide you are on, as the preview card says it will.
+
+- **The pane no longer tells you to delete a slide it already deleted.** When
+  PowerPoint reported a problem tidying up after an insert but had in fact
+  tidied up, the footer said "delete slide N by hand" — and slide N was by then
+  the slide your element had just landed on. It now counts the deck to find out
+  what happened rather than believing the error, so it only asks you to delete
+  something when there really is something to delete.
+
+- **A new slide no longer carries a broken reference to a comment.** Making a
+  new slide from one that had a comment on it left the slide pointing at a
+  comment that had been taken off it, and that pointer could end up aimed at
+  the add-in's own bookkeeping instead. Nothing was visible to you; the file
+  was untidy in a way PowerPoint is entitled to complain about.
+
+- **The pane keeps answering after a reading fails.** If PowerPoint did not
+  answer when the pane asked which slide you were on, and you clicked another
+  slide while it was waiting, the pane could go on naming the slide you had
+  left. It now asks again.
+
 ## [0.1.0] - 2026-09-16
 
 The first release. Everything below is what the add-in does the day it ships:

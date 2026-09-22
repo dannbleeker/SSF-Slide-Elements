@@ -31,7 +31,7 @@ import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, taggable, writeShapeTags } from "../pptx/tags.js";
-import { A_NS, PKG_REL_NS, P_NS, child, children, elements } from "../pptx/xml.js";
+import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
 import { keepOnly } from "./listing.js";
 import { pinColoursInXml, pinSchemeColours } from "./colours.js";
@@ -236,9 +236,65 @@ async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   const relsPath = Pkg.relsPathFor(slidePath);
   if (!pkg.has(relsPath)) return;
   const rels = await pkg.doc(relsPath);
+  const dropped = new Set<string>();
   for (const rel of elements(rels, PKG_REL_NS, "Relationship")) {
     const type = rel.getAttribute("Type") ?? "";
-    if (type === REL_TYPE.notesSlide || COMMENT_REL_TYPES.includes(type)) rel.parentNode?.removeChild(rel);
+    if (type !== REL_TYPE.notesSlide && !COMMENT_REL_TYPES.includes(type)) continue;
+    const id = rel.getAttribute("Id");
+    if (id) dropped.add(id);
+    rel.parentNode?.removeChild(rel);
+  }
+  // And whatever in the slide's own markup NAMED them, because a relationship
+  // is only half of a reference.
+  //
+  // A modern comment is anchored from the slide's extension list as
+  // `<p188:commentRel r:id="…"/>`. Removing the relationship and leaving that
+  // behind is the failure `clone.ts` records as its reason for reading the
+  // markup first, reproduced here by the one pass that deletes without
+  // reading: the anchor names a relationship that is gone, and — worse —
+  // deleting a relationship FREES ITS ID, so the next one this run adds takes
+  // it and the comment anchor comes out of the insert resolving to this
+  // add-in's own tag part.
+  if (dropped.size > 0) await dropReferences(pkg, slidePath, dropped);
+}
+
+/**
+ * Take out every element whose `r:` attribute names one of `ids`.
+ *
+ * Scoped to the relationship ids just removed, so nothing else on the slide is
+ * touched. An emptied `<p:ext>` goes with its last child, and an emptied
+ * `<p:extLst>` with its last `<p:ext>`: both require at least one child, and a
+ * slide carrying an empty one is this add-in producing the schema-invalid
+ * markup it refuses to produce elsewhere.
+ */
+async function dropReferences(pkg: Pkg, slidePath: string, ids: Set<string>): Promise<void> {
+  const doc = await pkg.doc(slidePath);
+  const root = doc.documentElement;
+  if (!root) return;
+  const doomed: Element[] = [];
+  const walk = (node: Element): void => {
+    const named = node.getAttributeNS(R_NS, "id");
+    if (named !== null && named !== "" && ids.has(named)) {
+      doomed.push(node);
+      return;
+    }
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 1) walk(child as Element);
+    }
+  };
+  walk(root);
+  for (const node of doomed) {
+    const parent = node.parentNode as Element | null;
+    parent?.removeChild(node);
+    // Upwards while the removal is what emptied it, and only through the two
+    // elements that may not be empty.
+    let up = parent;
+    while (up && up.namespaceURI === P_NS && (up.localName === "ext" || up.localName === "extLst")) {
+      if (up.firstChild) break;
+      const next = up.parentNode as Element | null;
+      next?.removeChild(up);
+      up = next;
+    }
   }
 }
 

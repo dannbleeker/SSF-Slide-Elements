@@ -928,6 +928,91 @@ describe("a slide that carries a comment", () => {
     expect(await commentsOn(report.base64, report.slidePath)).toHaveLength(1);
   });
 
+  /**
+   * A CLASSIC comment, as PowerPoint 2016 and 2019 write one — and as any deck
+   * not yet upgraded to modern comments still carries.
+   *
+   * The difference that matters is not the part name but the ANCHOR: a modern
+   * comment is named from the slide's own extension list, and a classic one is
+   * named by nothing at all. It hangs off the slide under the relationship and
+   * that is the whole of the link. `cloneSlide`'s drop pass removes what the
+   * markup does not name, so the spelling the project already knows about in
+   * `COMMENT_REL_TYPES` and in `test/probe-deck.test.ts` is exactly the one
+   * that pass cannot see.
+   */
+  const CLASSIC_COMMENT_REL = `${R_NS}/comments`;
+  const CLASSIC_COMMENT_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml";
+
+  async function deckWithClassicComment(): Promise<Uint8Array> {
+    const pkg = await Pkg.open(await destination());
+    const slide = (await pkg.slidePaths())[1] as string;
+    const part = "ppt/comments/comment2.xml";
+    pkg.setText(part, `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<p:cmLst xmlns:p="${P_NS}"/>`);
+    await pkg.addContentTypeOverride(`/${part}`, CLASSIC_COMMENT_TYPE);
+    // The relationship and nothing else. No anchor: that is what makes it
+    // classic, and what made it invisible to the pass that decides what stays.
+    await pkg.addRel(slide, CLASSIC_COMMENT_REL, "../comments/comment2.xml");
+    return pkg.toBytes();
+  }
+
+  it("keeps a CLASSIC comment when the slide is rebuilt, though nothing in the markup names it", async () => {
+    // The same rule as the modern case above and the same stakes, reached by
+    // the spelling the drop pass cannot see. Rebuilding the user's slide is
+    // not a reason to lose their reviewer's thread, whichever PowerPoint wrote
+    // it.
+    const report = await splice({
+      deck: await deckWithClassicComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toHaveLength(1);
+  });
+
+  it("takes a classic comment away for a NEW slide, like the modern one", async () => {
+    // The pair, so "keep classic comments" cannot quietly become "keep them
+    // everywhere": a slide that is meant to be new must not arrive carrying
+    // somebody's review thread.
+    const report = await splice({
+      deck: await deckWithClassicComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    expect(await commentsOn(report.base64, report.slidePath)).toEqual([]);
+  });
+
+  it("takes the comment ANCHOR with the relationship, so a new slide names nothing that is gone", async () => {
+    /**
+     * `blank()` removes the comment RELATIONSHIP and leaves the slide's own
+     * `<p188:commentRel r:id="…"/>` behind, which is the half nobody sees.
+     *
+     * Two things follow, and the second is worse. The anchor names a
+     * relationship that is not there; and deleting a relationship FREES ITS
+     * ID, so the next one this run adds — a tag part, a carried picture —
+     * takes it, and the comment anchor comes out of the insert resolving to
+     * somebody else's part. `clone.ts` records that exact failure as the
+     * reason its own drop pass reads the markup first; `blank()` deletes
+     * without reading it.
+     */
+    const report = await splice({
+      deck: await deckWithComment(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const doc = await out.doc(report.slidePath);
+    const anchors = elements(doc, "http://schemas.microsoft.com/office/powerpoint/2018/8/main", "commentRel");
+    expect(anchors, "a new slide carries no comment anchor").toHaveLength(0);
+  });
+
   it("drops it for a NEW slide, so a review thread is not duplicated", async () => {
     const report = await splice({
       deck: await deckWithComment(),

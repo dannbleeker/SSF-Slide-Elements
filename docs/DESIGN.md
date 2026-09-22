@@ -890,6 +890,28 @@ under `docs/host-answers/`; `docs/PROBE.md` says what each reads as.
   and was wrong for "as a new slide": the first round put the same comment on
   two slides. Section 6's new-slide rule now drops comments the way it already
   dropped notes, measured again afterwards on the same host.
+
+  **Both halves of that rule were spelling-dependent, and both were wrong for
+  the other spelling** (found 2026-09-22 by reading, and reproduced in
+  `test/splice.test.ts` before either was changed). The clone kept whatever the
+  MARKUP named, and only a modern comment is named there:
+
+  - A **classic** `ppt/comments/commentN.xml`, which PowerPoint 2016 and 2019
+    write and which any deck not yet upgraded still carries, is named by its
+    relationship alone. So the rebuild dropped it, and the sentence above —
+    the one thing this add-in must not get wrong — did not hold for it. The
+    clone now keeps comment relationships of both spellings and leaves the
+    decision about a NEW slide to the one place that makes it.
+  - The new-slide rule removed the comment RELATIONSHIP and left the modern
+    comment's anchor in the slide's extension list. That anchor then named a
+    relationship that was gone — and, because deleting a relationship frees its
+    id, the next one the insert added took it, so the anchor came out resolving
+    to this add-in's own tag part. `blank()` now takes the reference out with
+    the relationship, which is the discipline `clone.ts` already applied and
+    the one place that deleted without it.
+
+  Neither is measured on a host: this container has no PowerPoint. Both are
+  held by the package the engine hands over, which is what the host reads.
 - `getFileAsync` answered a 34 KB deck in 874 ms on a healthy session and took
   40 seconds for 40 KB on one that had been through a session-timeout reload.
   Both are facts about a minute rather than about the host. Worse again on

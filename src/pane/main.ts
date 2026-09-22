@@ -477,7 +477,16 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   const library = state.library;
   const element = elementOf(library, id);
   if (!library || !element || !store || !index || state.busy === true) return;
-  const target = once ?? state.settings.target;
+  // A PART ignores the insert target, whether the target came from the gear or
+  // from the right-click. `docs/DESIGN.md` section 5: "A part ignores the
+  // insert target: it always lands on the slide the user is on"; section 7
+  // says it again for the menu. `offersOtherTarget` keeps the menu to that
+  // rule and nothing kept the SETTING to it, so a gear left on "As a new
+  // slide" sent a stamp through the splice's blanking path: the stamp landed
+  // alone on an empty slide after the user's, the user's own slide kept
+  // nothing, the removal was skipped because the target was not "onto", and
+  // the footer reported plain success over it.
+  const target = element.kind === "part" ? "onto" : (once ?? state.settings.target);
 
   set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
   // Before the first await: from here on, any deck read running underneath this
@@ -538,8 +547,22 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
-      const failure = await removeSlideAt(at);
-      removed = failure === undefined ? await countReaching(before) : inserted;
+      await removeSlideAt(at);
+      // The DELTA decides, in both arms, and the raise decides nothing.
+      //
+      // This read the raise instead: a refusal set `removed = inserted`, so a
+      // delete that raised AND LANDED — `CLAUDE.md`'s "a call can raise and
+      // still have done the work", measured on a sibling's insert that timed
+      // out with both slides in — came out as "The deck grew by one but the
+      // copy could not be removed: delete slide N by hand." over a deck that
+      // was already correct. A user who follows that instruction deletes the
+      // slide the element is now on, which is their own content, and the pane
+      // told them to.
+      //
+      // `outcomeOf` already answers `byHand` correctly when the count really
+      // is still `before + 1`, so the honest failure keeps its sentence and
+      // only the false one goes.
+      removed = await countReaching(before);
     }
 
     const outcome = outcomeOf({
