@@ -56,6 +56,20 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   happens before anything is asked of PowerPoint is unchanged: it still says
   the insert was refused, and an Undo you already had still works.
 
+- **An element that failed to load once is no longer stuck for the rest of the
+  session.** If the network dropped while the add-in was fetching an element,
+  every later click on that tile replayed the same failure without trying
+  again, and the only way back was closing the pane and reopening it. It now
+  fetches again on the next click, which is what the carried-parts half of the
+  same cache already did.
+
+- **The preview picture of a rotated stamp is no longer cut into.** The two
+  rotated stamps are masked to their own turned frame so the slide around them
+  does not show in the corners, and that mask was being turned as though the
+  page were square. On a 16:9 page it came out skewed by more than half the
+  stamp's own height, so the mask clipped the stamp instead of framing it.
+  Previews are rebuilt on release, so this arrives with the next one.
+
 - **The pane keeps answering after a reading fails.** If PowerPoint did not
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had

@@ -158,6 +158,32 @@ describe("the store", () => {
     expect(asked).toEqual(["./catalogue/16x9/elements/one-box.json"]);
   });
 
+  it("forgets an element's markup it could not fetch, so a dropped network is retried", async () => {
+    /**
+     * The pair of "forgets a part it could not fetch" below, and the half that
+     * was missing.
+     *
+     * `markup` put the PROMISE in the map and never took it out again, so a
+     * fetch that rejected was remembered as a rejected promise: every later
+     * click on that tile got the same old failure handed straight back, with
+     * no request going out. One bad minute made that element un-insertable for
+     * the rest of the session, and the only way back was closing the pane.
+     * `part` beside it already forgot on failure and says why in its own
+     * comment; this is the same rule, applied to the fetch that decides whether
+     * an insert can happen at all.
+     */
+    serve({});
+    const store = new Store("16:9");
+    const element = { id: "one-box" } as never;
+    await expect(store.markup(element)).rejects.toThrow();
+
+    const markup = { xml: "<p:sp/>", rels: [], parts: [] };
+    serve({ "./catalogue/16x9/elements/one-box.json": { body: JSON.stringify(markup) } });
+    expect(await store.markup(element), "the second click fetches again rather than replaying the failure").toEqual(
+      markup,
+    );
+  });
+
   it("reads an XML part as text and a picture as bytes, which is what the splice needs", async () => {
     serve({
       "./catalogue/16x9/parts/ppt/tags/tag1.xml": { body: "<p:tagLst/>" },

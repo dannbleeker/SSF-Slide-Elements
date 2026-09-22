@@ -64,7 +64,13 @@ const report = [];
 
 for (const deck of DECKS) {
   const elements = catalogue.sizes[deck.size].elements;
-  const cuts = cutsFor(elements);
+  // The page's own proportions, so a rotated element's mask is turned in
+  // PHYSICAL space rather than in fractions of a page that is not square.
+  // Without this the mask is sheared: measured 2026-09-22 on the 16:9 page, a
+  // 211x38pt stamp at -29° had every corner 23.5pt out, which is the mask
+  // cutting into the very element it exists to frame.
+  const size = catalogue.sizes[deck.size];
+  const cuts = cutsFor(elements, undefined, size.width / size.height);
   const dir = `${OUT}/${deck.dir}/previews`;
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });

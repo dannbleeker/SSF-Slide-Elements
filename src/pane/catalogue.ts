@@ -175,6 +175,13 @@ export class Store {
     if (held) return held;
     const path = `${ROOT}/${dirOf(this.size)}/elements/${encodeURIComponent(key)}.json`;
     const work = getText(path).then((text) => JSON.parse(text) as Markup);
+    // Forgotten on failure, the way `part` below already does it. What this map
+    // holds is a PROMISE, so a fetch that rejected stayed in it as a rejected
+    // one: every later click on that tile was handed the same old failure back
+    // without a request going out, and one bad minute made that element
+    // un-insertable until the pane was closed. The rejection still reaches the
+    // caller — this only stops it being the answer to every future ask.
+    work.catch(() => this.elements.delete(key));
     this.elements.set(key, work);
     return work;
   }

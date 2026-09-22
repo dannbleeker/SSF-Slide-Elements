@@ -91,8 +91,26 @@ export function intersect(a: Box, b: Box): Box | undefined {
  * `rot` is degrees clockwise, the direction PowerPoint's `<a:xfrm rot>` counts
  * in once it is divided by 60000. The y axis runs down the page, so a clockwise
  * rotation on screen is the ordinary positive direction here.
+ *
+ * **`aspect` is the page's width over its height, and leaving it out is only
+ * right for a square page.** Everything in this file is FRACTIONS of the page,
+ * so an offset `(dx, dy)` means `dx` of the width and `dy` of the height —
+ * different physical distances on any page that is not square. Turning such a
+ * pair with a plain rotation matrix is a shear, not a rotation: the corners
+ * come back somewhere a rotated rectangle's corners are not.
+ *
+ * Measured 2026-09-22 against the two stamps the owner's library actually
+ * carries, on the 16:9 print's 960x540pt page: a 211x38pt frame at -29° had
+ * every corner **23.5pt** away from where it belongs, which is more than half
+ * that frame's height. `MASK_AIR` is 10% of the frame — under 4pt there — so
+ * it never had a chance of covering the difference, and the 10% in its own
+ * docstring was tuned against this skew rather than against the outline
+ * overshoot it describes.
+ *
+ * So the rotation happens in physical space and comes back as fractions:
+ * multiply the offsets out by the page, turn, divide back.
  */
-export function rotatedCorners(frame: Box, rot: number): Point[] {
+export function rotatedCorners(frame: Box, rot: number, aspect = 1): Point[] {
   const t = (rot * Math.PI) / 180;
   const cos = Math.cos(t);
   const sin = Math.sin(t);
@@ -104,7 +122,13 @@ export function rotatedCorners(frame: Box, rot: number): Point[] {
     [frame.w / 2, frame.h / 2],
     [-frame.w / 2, frame.h / 2],
   ];
-  return corners.map(([dx, dy]) => ({ x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos }));
+  // A physical offset is `(dx * W, dy * H)`. Turning that and dividing back by
+  // the page gives `dx*cos - (dy/a)*sin` across and `dx*a*sin + dy*cos` down,
+  // where `a` is W/H. At `aspect === 1` it is the plain rotation it replaces.
+  return corners.map(([dx, dy]) => ({
+    x: cx + dx * cos - (dy / aspect) * sin,
+    y: cy + dx * aspect * sin + dy * cos,
+  }));
 }
 
 /**
@@ -114,7 +138,7 @@ export function rotatedCorners(frame: Box, rot: number): Point[] {
  * content, so the things around it are the layout chrome the crop already
  * excludes, and painting over another element's box would white out its own.
  */
-export function cutFor(element: Element, all: readonly Element[], air = AIR): Cut {
+export function cutFor(element: Element, all: readonly Element[], air = AIR, aspect = 1): Cut {
   const crop = withAir(element.box, air);
 
   const whiteOut: Box[] = [];
@@ -135,12 +159,12 @@ export function cutFor(element: Element, all: readonly Element[], air = AIR): Cu
     // to the bare frame shaved the ends off both stamps' ellipses. The mask is
     // here to remove what the slide has in the CORNERS of a rotated element's
     // box, not to trim the element.
-    cut.mask = rotatedCorners(withAir(element.rotation.frame, MASK_AIR), element.rotation.deg);
+    cut.mask = rotatedCorners(withAir(element.rotation.frame, MASK_AIR), element.rotation.deg, aspect);
   }
   return cut;
 }
 
 /** The cut for every element in a catalogue, in catalogue order. */
-export function cutsFor(elements: readonly Element[], air = AIR): Cut[] {
-  return elements.map((e) => cutFor(e, elements, air));
+export function cutsFor(elements: readonly Element[], air = AIR, aspect = 1): Cut[] {
+  return elements.map((e) => cutFor(e, elements, air, aspect));
 }
