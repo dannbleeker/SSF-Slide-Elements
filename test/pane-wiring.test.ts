@@ -451,7 +451,54 @@ function detachPanes(): void {
   for (const [type, fn] of boundToWindow.splice(0)) window.removeEventListener(type, fn);
 }
 
-afterEach(() => {
+/**
+ * Wait until nothing is still DRAWING into the pane.
+ *
+ * `main.ts` resolves its root with `document.getElementById("pane")` at draw
+ * time rather than capturing it at boot, which is right for the add-in — there
+ * is only ever one pane — and is the thing that leaks here. `openPane` builds a
+ * fresh body and re-imports the module, so a case can leave a previous pane's
+ * `load()` chain in flight; when it finishes it calls `set` → `draw` → `root()`
+ * and finds the NEXT case's `#pane`, which it then empties and redraws with its
+ * own state. `detachPanes` cannot stop that: it unbinds listeners, and this is
+ * not a listener.
+ *
+ * What that looked like: the storage cases failing about one full-suite run in
+ * five with `expected '' to be 'boxes'`, while the store demonstrably held
+ * `"query":"boxes"` under that deck's own key at the moment of the assertion.
+ * The search box was on screen and empty because a DEAD pane had drawn it.
+ *
+ * Waited on the effect rather than on a delay: the observer resets a short
+ * window on every mutation of the pane, so this returns once the drawing has
+ * actually stopped, however long the boot took on a busy machine. The cap is
+ * there so a case that genuinely never settles fails as itself rather than
+ * hanging the file.
+ */
+function quiet(still = 60, cap = 3000): Promise<void> {
+  const node = document.getElementById("pane");
+  if (!node) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    let timer: ReturnType<typeof setTimeout>;
+    const observer = new MutationObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(done, still);
+    });
+    const hard = setTimeout(done, cap);
+    function done(): void {
+      clearTimeout(timer);
+      clearTimeout(hard);
+      observer.disconnect();
+      resolve();
+    }
+    timer = setTimeout(done, still);
+    observer.observe(node, { childList: true, subtree: true, attributes: true, characterData: true });
+  });
+}
+
+afterEach(async () => {
+  // BEFORE the teardown, so a pane still finishing its boot draws into its own
+  // case's DOM and writes its own case's storage, rather than the next one's.
+  await quiet();
   detachPanes();
   vi.unstubAllGlobals();
   document.documentElement.removeAttribute("data-theme");
