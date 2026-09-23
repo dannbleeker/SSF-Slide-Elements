@@ -31,7 +31,7 @@ import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
 import { TAG_CATALOGUE, TAG_ELEMENT, taggable, writeShapeTags } from "../pptx/tags.js";
-import { A_NS, PKG_REL_NS, P_NS, R_NS, child, children, elements } from "../pptx/xml.js";
+import { A_NS, MC_NS, PKG_REL_NS, P_NS, R_NS, child, children, elements } from "../pptx/xml.js";
 import { carry, type PartStore } from "./carry.js";
 import { keepOnly } from "./listing.js";
 import { pinColoursInXml, pinSchemeColours } from "./colours.js";
@@ -223,6 +223,63 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
  * "onto this slide" — the user's comment survives their slide being rebuilt —
  * and wrong for a slide that is meant to be new.
  */
+/**
+ * Take the animations and the transition off a slide, in both spellings.
+ *
+ * `<p:timing>` and `<p:transition>` are siblings of `<p:cSld>` under
+ * `<p:sld>`, so a walk of the shape tree never reaches them. That much was
+ * known. What a walk of the DIRECT CHILDREN still misses is the spelling
+ * PowerPoint actually writes for a modern transition:
+ *
+ *     <mc:AlternateContent>
+ *       <mc:Choice Requires="p14"><p:transition p14:dur="2000">…</p:transition></mc:Choice>
+ *       <mc:Fallback><p:transition>…</p:transition></mc:Fallback>
+ *     </mc:AlternateContent>
+ *
+ * The direct child is `mc:AlternateContent`, and the transition is a
+ * grandchild. Measured on PowerPoint 16.0.20326.20158 on 2026-09-23: a slide
+ * inserted "as a new slide" came back carrying its source slide's transition
+ * inside exactly that wrapper, while the source's plain `<p:timing>` had been
+ * removed correctly — so the behaviour the changelog promised was half true,
+ * and no gate could see it because the fixture used the bare spelling.
+ *
+ * The wrapper goes only when emptying it leaves nothing: an
+ * `<mc:AlternateContent>` that carries something else is somebody else's
+ * compatibility branch and none of this function's business, and an empty one
+ * left on every new slide would be litter of our own making.
+ */
+function dropTimingAndTransition(sld: Element): void {
+  const isTimingOrTransition = (el: Element): boolean =>
+    el.namespaceURI === P_NS && (el.localName === "timing" || el.localName === "transition");
+
+  for (const node of Array.from(sld.childNodes)) {
+    if (node.nodeType !== 1) continue;
+    const el = node as Element;
+    if (isTimingOrTransition(el)) {
+      sld.removeChild(el);
+      continue;
+    }
+    if (el.namespaceURI !== MC_NS || el.localName !== "AlternateContent") continue;
+
+    let removed = false;
+    let left = 0;
+    for (const branchNode of Array.from(el.childNodes)) {
+      if (branchNode.nodeType !== 1) continue;
+      const branch = branchNode as Element;
+      for (const innerNode of Array.from(branch.childNodes)) {
+        if (innerNode.nodeType !== 1) continue;
+        const inner = innerNode as Element;
+        if (isTimingOrTransition(inner)) {
+          branch.removeChild(inner);
+          removed = true;
+        }
+      }
+      left += Array.from(branch.childNodes).filter((n) => n.nodeType === 1).length;
+    }
+    if (removed && left === 0) sld.removeChild(el);
+  }
+}
+
 async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   // The ANIMATIONS and the TRANSITION first, because they are not in the shape
   // tree: `<p:timing>` and `<p:transition>` are siblings of `<p:cSld>` under
@@ -246,15 +303,7 @@ async function blank(pkg: Pkg, slidePath: string): Promise<void> {
   // that half.
   const slide = await pkg.doc(slidePath);
   const sld = slide.documentElement;
-  if (sld) {
-    for (const node of Array.from(sld.childNodes)) {
-      if (node.nodeType !== 1) continue;
-      const el = node as Element;
-      if (el.namespaceURI === P_NS && (el.localName === "timing" || el.localName === "transition")) {
-        sld.removeChild(el);
-      }
-    }
-  }
+  if (sld) dropTimingAndTransition(sld);
 
   const spTree = await spTreeOf(pkg, slidePath);
   for (const shape of slideShapes(spTree)) {

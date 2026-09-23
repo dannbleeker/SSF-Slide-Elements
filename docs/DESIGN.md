@@ -1546,6 +1546,28 @@ claim and the inventory is what settles it.
   categories in the same order with the same counts, a bare `73` on the count
   line, and `KPI definition` under One-page templates on both.
 
+**A transition survived "as a new slide", and the gate could not see it.**
+Measured on Windows on 2026-09-23 against `380700f`, on a deck whose slide 2
+carried both a transition and an entrance animation: the new slide came back
+with **no `<p:timing>`** — correct — and **with the transition**. The reason is
+the spelling. `blank()` walked the direct children of `<p:sld>`, and PowerPoint
+writes a modern transition wrapped:
+
+```xml
+<mc:AlternateContent>
+  <mc:Choice Requires="p14"><p:transition p14:dur="2000">…</p:transition></mc:Choice>
+  <mc:Fallback><p:transition>…</p:transition></mc:Fallback>
+</mc:AlternateContent>
+```
+
+so the direct child is `mc:AlternateContent` and the transition is a
+grandchild. The suite's fixture used the bare spelling, which is why every gate
+was green over it — a fixture that cannot fail the way the real thing fails.
+`dropTimingAndTransition` now handles both, drops the wrapper only when
+emptying it leaves nothing, and `test/splice.test.ts` holds both spellings in
+both directions. A wrapped `<p:timing>` is covered too; that half is defensive
+rather than measured, and the code says so.
+
 **One `Ctrl+Z` does not take back an "onto this slide" insert; two do.**
 Measured the same day, and it does not contradict question 5 above — that
 answer is about a BARE `insertSlidesFromBase64`, which is one operation. This
