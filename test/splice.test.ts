@@ -410,6 +410,92 @@ describe("as a new slide", () => {
     expect(texts.join(" ")).not.toContain("Second");
   });
 
+  /**
+   * A slide's ANIMATIONS and its transition live in `<p:timing>` and
+   * `<p:transition>`, which are siblings of `<p:cSld>` — not inside the shape
+   * tree. `blank()` walks `spTreeOf`, so it never reached either, and nothing
+   * in `src/` mentioned timing, spTgt, bldLst, bldP or transition at all.
+   *
+   * That is worse than a leftover. `highestShapeId` is read AFTER `blank()` has
+   * deleted the shapes, so the maximum falls back to the kept placeholders and
+   * `renumber()` re-issues exactly the ids that were just freed. A real slide's
+   * title is id 2 or 3 and its content is 4, 5, 6…, so the surviving
+   * `<p:spTgt spid="9"/>` does not dangle — it RE-BINDS to whatever the splice
+   * inserts as id 9. An entrance animation authored for the user's deleted
+   * shape then names the inserted element, and an entrance in the mainSeq means
+   * the target is hidden until it runs: the user asks for an element on a new
+   * slide and gets a slide that looks empty.
+   *
+   * Neither `packageProblems()` nor `test/package-valid.test.ts` reads
+   * `<p:timing>`, so no gate in the repo could see it.
+   */
+  const animated = async (): Promise<Uint8Array> => {
+    const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]);
+    const pkg = await Pkg.open(deck);
+    const path = "ppt/slides/slide2.xml";
+    const xml = await pkg.text(path);
+    // A shape the user animated, and the timeline that names it by id — the
+    // shape of it PowerPoint writes, plus a transition on the same slide.
+    const shape =
+      `<p:sp><p:nvSpPr><p:cNvPr id="9" name="Box"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="100" y="100"/><a:ext cx="100" cy="100"/></a:xfrm></p:spPr></p:sp>`;
+    const timing =
+      `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">` +
+      `<p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"/>` +
+      `<p:prevCondLst/><p:nextCondLst/></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst>` +
+      `<p:bldLst><p:bldP spid="9" grpId="0"/></p:bldLst></p:timing>`;
+    const target = `<p:tgtEl><p:spTgt spid="9"/></p:tgtEl>`;
+    pkg.setText(
+      path,
+      xml
+        .replace("</p:spTree>", `${shape}</p:spTree>`)
+        .replace(
+          "</p:sld>",
+          `<p:transition spd="slow"><p:fade/></p:transition>${timing.replace("<p:bldLst>", `${target}<p:bldLst>`)}</p:sld>`,
+        ),
+    );
+    return pkg.toBytes();
+  };
+
+  it("does not carry the previous slide's animations, which would re-bind to the inserted element", async () => {
+    const report = await splice({
+      deck: await animated(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const slide = await out.text(report.slidePath);
+    expect(slide, "the timeline survived the blanking").not.toContain("<p:timing>");
+    expect(slide, "the transition survived the blanking").not.toContain("<p:transition");
+    // The sharp end: no surviving spid can name a shape the splice inserted.
+    expect(slide).not.toContain('spid="9"');
+  });
+
+  it("KEEPS them on the slide the user is on, where their shapes are still there", async () => {
+    /**
+     * The pair case, and the reason the fix is `blank()` and not the clone.
+     * "Onto this slide" rebuilds the user's own slide and keeps its shapes, so
+     * ids are not freed and nothing re-binds — and the user's animations are
+     * theirs. A fix that dropped `<p:timing>` from every rebuilt slide would
+     * silently delete the animation work on every insert.
+     */
+    const report = await splice({
+      deck: await animated(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const slide = await (await Pkg.open(report.base64)).text(report.slidePath);
+    expect(slide, "the user's own animation was deleted by an insert").toContain("<p:timing>");
+    expect(slide).toContain('spid="9"');
+    expect(slide).toContain("<p:transition");
+  });
+
   it("does not carry the previous slide's speaker notes", async () => {
     const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]], notes: "private note" }]);
     const report = await splice({

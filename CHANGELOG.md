@@ -9,6 +9,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A new slide no longer arrives carrying the previous slide's animations, or
+  its transition.** "As a new slide" copies the slide you are on and empties
+  it, but a slide's animation timeline is stored beside its shapes rather than
+  among them, so it was left behind — pointing at shapes that had just been
+  removed. Because the numbering of the new slide's shapes started again from
+  the top, those pointers did not go nowhere: they landed on the element you
+  had just inserted. An entrance animation written for one of your old shapes
+  would then be applied to the new element, which in PowerPoint means it is
+  hidden until the animation runs — so you could ask for an element and get a
+  slide that looks empty. The slide you are on is untouched either way: an
+  insert onto your own slide keeps your animations, because they are yours.
+
 - **An element whose chart names its workbook with a space in it now inserts.**
   A file name is written one way inside a PowerPoint file and stored another,
   and the add-in read the two spellings differently — so an element carrying a
