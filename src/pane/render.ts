@@ -235,7 +235,10 @@ function tile(state: PaneState, library: Library, element: Element, where: strin
   if (state.busy === true) pick.disabled = true;
   pick.appendChild(picture(element, library));
   pick.appendChild(el("span", "tile-name", element.name));
-  if (state.busy === true && state.chosen === element.id) {
+  // `busyWith`, not `busy`: the Undo and the deck-wide removal set `busy` too,
+  // and this painted "Inserting…" on the tile while the add-in was taking a
+  // slide back OUT of the deck.
+  if (state.busy === true && state.busyWith === "insert" && state.chosen === element.id) {
     pick.appendChild(el("span", "tile-busy", "Inserting…"));
   }
   item.appendChild(pick);
@@ -333,9 +336,30 @@ function tile(state: PaneState, library: Library, element: Element, where: strin
   return item;
 }
 
+/**
+ * The id the two gear controls point at, and the panel that answers to it.
+ *
+ * The gear is drawn TWICE — the ⚙ above the list and the settings line in the
+ * footer — and both run the same toggle. Only the first reported any state, and
+ * neither said what it opened. A screen-reader user pressing the footer line
+ * heard a plain button whose own name is computed from the settings, so it does
+ * not change either; the panel appeared at the top of the pane, outside their
+ * reading position, and nothing was announced. A second press collapsed it in
+ * the same silence, which makes the control indistinguishable from a status
+ * line that does nothing.
+ */
+const GEAR_PANEL = "gear-panel";
+
+/** Both gear controls say the same thing about the same panel. */
+function gearState(gear: HTMLElement, open: boolean): void {
+  gear.setAttribute("aria-expanded", open ? "true" : "false");
+  gear.setAttribute("aria-controls", GEAR_PANEL);
+}
+
 /** The gear's panel: the settings, and the links that leave the pane. */
 function gearPanel(state: PaneState): HTMLElement {
   const panel = el("div", "gear-panel");
+  panel.id = GEAR_PANEL;
   panel.setAttribute("role", "group");
   panel.setAttribute("aria-label", "Options");
 
@@ -487,7 +511,9 @@ function footer(state: PaneState): HTMLElement {
     actions.appendChild(undo);
   }
   if (actions.childNodes.length > 0) bar.appendChild(actions);
-  bar.appendChild(button("gear", "settings-line", settingsLine(state.settings)));
+  const line = button("gear", "settings-line", settingsLine(state.settings));
+  gearState(line, state.gear === true);
+  bar.appendChild(line);
   return bar;
 }
 
@@ -520,7 +546,7 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
   tools.appendChild(search);
   const gear = button("gear", "gear", "⚙");
   gear.setAttribute("aria-label", "Options");
-  gear.setAttribute("aria-expanded", state.gear === true ? "true" : "false");
+  gearState(gear, state.gear === true);
   tools.appendChild(gear);
   main.appendChild(tools);
 
@@ -582,7 +608,19 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
 
   const found = groups(library, state);
   const count = tileCount(found);
-  const summary = el("p", "count", count === 0 ? "Nothing matches that." : `${count} of ${library.elements.length}`);
+  // TILES against TILES. The denominator was `library.elements.length`, which
+  // is a different unit: a sized run is one tile with a stepper, so the
+  // fraction could never reach its own denominator — the committed 16:9
+  // library read "73 of 106" with an empty search box, which says 33 elements
+  // are being withheld when nothing at all is filtered. (They are not
+  // withheld; they are behind their run's stepper.) And when nothing is
+  // filtered the fraction says nothing either, so only the count is drawn.
+  const whole = tileCount(groups(library, { ...state, query: "", tags: [], category: undefined }));
+  const summary = el(
+    "p",
+    "count",
+    count === 0 ? "Nothing matches that." : count === whole ? `${count}` : `${count} of ${whole}`,
+  );
   if (offersOpenAll(state, library)) {
     // Section 4 puts it beside the count, so the two share a row rather than
     // the button taking a line of its own in a 320px pane.

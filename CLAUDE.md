@@ -186,7 +186,8 @@ counter dated.
   2026-08-13 to 2026-09-04, none silent), never on desktop evidence — so the
   pane reads the selection back after every call and claims only what it saw.
   Probe question 7 measures the call, and it is answered on both platforms with
-  sheets: the web on 2026-09-14 (1,146 ms and 567 ms, twelve minutes apart) and
+  sheets: the web on 2026-09-14 (998 ms and 1,146 ms, twelve minutes apart, the next
+  read answering in 590 ms and 567 ms) and
   Windows the same day (7 ms, selection put back, the next read answering in 58
   ms). On Mac and iPad the jump is still borrowed, and must say so.
 - **Shape tags do not survive cut/paste on the web.** Say so in the docs; do
@@ -299,6 +300,27 @@ a refactor, and a check that guessed would be noise.
   progress. `git add -A` commits whatever else is touching the tree; stage paths
   when anything else is running, and check `git status` before a commit you did
   not build file by file.
+
+  **The whole gate is `.github/workflows/ci.yml`'s `test` job, in its order**,
+  and it is longer than the obvious four. Read it off the workflow rather than
+  from memory; it cannot be one npm script, because a script that nests
+  `npm run` is blocked by AppLocker on the owner's box:
+
+  ```
+  format:check · lint · typecheck · build:lib · harvest
+  git diff --exit-code -- public/catalogue/catalogue.json public/catalogue.html
+  probe · git diff --exit-code -- probe/probe-snippet.ts
+  build · coverage · test:count
+  git diff --exit-code -- test/fixtures/test-count.json
+  ```
+
+  `format:check` is the FIRST step, and it was missed on 2026-09-23: a branch
+  went red on Prettier with typecheck, lint, test, test:count, coverage and
+  dead-exports all green locally.
+
+- **Read a gate by its EXIT CODE, never by the tail of its output.** `npm run
+  lint | tail -1` prints a blank line on failure, which reads as success. That
+  shipped a lint error to CI on 2026-09-23.
 
 - **Flag manifest re-installs to the owner.** The add-in is hosted on Pages, so
   code, pane and catalogue changes ship through `main` with **no** re-install.

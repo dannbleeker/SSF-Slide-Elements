@@ -185,10 +185,29 @@ describe("browsing", () => {
   });
 
   it("says Inserting on the tile that is going, and disables the rest", () => {
-    render(root, { ...browsing, chosen: "one-box", busy: true }, "browse");
+    // `busyWith` as well as `busy`, because the pane always sets the two
+    // together and a state built by hand should be one the pane can produce.
+    render(root, { ...browsing, chosen: "one-box", busy: true, busyWith: "insert" }, "browse");
     expect(root.textContent).toContain("Inserting…");
     for (const tile of root.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')) {
       expect(tile.disabled).toBe(true);
+    }
+  });
+
+  it("does NOT say Inserting while it is undoing or removing", () => {
+    /**
+     * Three things set `busy` — the insert, the Undo and the deck-wide removal
+     * — and this badge read `busy` alone. So the tile said "Inserting…" while
+     * the add-in was taking a slide back OUT of the deck, beside a notice that
+     * said "Undoing…". The lock still holds for all three; only the sentence
+     * was wrong.
+     */
+    for (const what of ["undo", "remove"] as const) {
+      render(root, { ...browsing, chosen: "one-box", busy: true, busyWith: what }, "browse");
+      expect(root.textContent, what).not.toContain("Inserting…");
+      const tiles = [...root.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')];
+      expect(tiles.length, "no tiles to check").toBeGreaterThan(0);
+      for (const tile of tiles) expect(tile.disabled, `${what} must still lock the pane`).toBe(true);
     }
   });
 
@@ -222,6 +241,53 @@ describe("browsing", () => {
     expect(root.querySelector(".count")?.textContent).toMatch(/nothing matches/i);
     expect(actions()).toContain("clear");
     expect(root.querySelectorAll('[data-action="tile"]').length).toBe(0);
+  });
+
+  it("counts tiles against tiles, and drops the fraction when nothing is filtered", () => {
+    /**
+     * The line was `${tileCount(found)} of ${library.elements.length}`: a
+     * numerator in TILES against a denominator in ELEMENTS. A sized run is one
+     * tile with a stepper, so the two are different units and the fraction
+     * could never reach its own denominator — the committed 16:9 library drew
+     * "73 of 106" with an empty search box, which reads as 33 elements being
+     * withheld when nothing at all is filtered.
+     *
+     * This fixture is the same shape in miniature: three elements, two of them
+     * one run, so two tiles.
+     */
+    render(root, browsing, "browse");
+    expect(root.querySelector(".count")?.textContent, "the unfiltered line still reads as a fraction").toBe("2");
+    // Filtered, the fraction comes back — and both halves are tiles.
+    render(root, { ...browsing, tags: ["flow"] }, "browse");
+    expect(root.querySelector(".count")?.textContent).toBe("1 of 2");
+  });
+
+  it("gives BOTH gear controls the panel's state, and says which panel", () => {
+    /**
+     * The gear is drawn twice: the ⚙ above the list and the settings line in
+     * the footer. Both run the same toggle, and only the first reported any
+     * state — so a screen-reader user pressing the footer line heard a plain
+     * button whose own name is computed from the settings and therefore does
+     * not change, with a panel opening at the top of the pane, outside their
+     * reading position, and nothing announced. Pressing it again collapsed the
+     * panel with the same silence: the control was indistinguishable from a
+     * status line that does nothing.
+     *
+     * `aria-controls` is the other half — neither gear pointed at the panel,
+     * and the panel had no id to point at.
+     */
+    for (const open of [false, true]) {
+      render(root, { ...browsing, gear: open }, "browse");
+      const gears = [...root.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+      expect(gears.length, "the gear is drawn twice, by the search and in the footer").toBe(2);
+      for (const gear of gears) {
+        expect(gear.getAttribute("aria-expanded"), `${gear.className} reported no state`).toBe(String(open));
+        expect(gear.getAttribute("aria-controls"), `${gear.className} pointed at no panel`).toBe("gear-panel");
+      }
+      const panel = root.querySelector(".gear-panel");
+      expect(panel === null, "the panel is drawn only while it is open").toBe(!open);
+      if (panel) expect(panel.id).toBe("gear-panel");
+    }
   });
 
   it("opens the gear into a panel of pressable options", () => {

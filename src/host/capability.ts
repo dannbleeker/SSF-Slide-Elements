@@ -53,6 +53,15 @@ export function checkFloor(supports: Supports): Readiness {
   }
   return {
     ok: false,
-    detail: `SSF Slide Elements needs PowerPointApi ${API_FLOOR} and this host does not have it. Reading the deck and inserting an element into it both need it; without it there is nothing the add-in can do.`,
+    // NAMING THE FIX, which `docs/DESIGN.md` section 10 requires of this
+    // message and which it did not do until 2026-09-23: `main.ts` renders this
+    // detail verbatim as the WHOLE pane on a host below the floor, so nothing
+    // downstream can add the remedy. The user was told the add-in is useless
+    // here and given no version to move to — on the one screen that is the
+    // entire product for them.
+    detail:
+      `SSF Slide Elements needs PowerPointApi ${API_FLOOR} and this host does not have it. ` +
+      `Reading the deck and inserting an element into it both need it; without it there is nothing ` +
+      `the add-in can do. A current Microsoft 365, PowerPoint 2021, or PowerPoint on the web has it.`,
   };
 }

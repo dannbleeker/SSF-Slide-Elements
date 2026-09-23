@@ -73,6 +73,23 @@ collections in a deck, and failing the harvest would block every build until
 that happened. Fix the decks and the warning goes; there is nothing to change
 in the code.
 
+### Highlight the matched words inside a name
+
+Section 8 of the design record asserted this as built until 2026-09-23. It is
+not, and never was: every name reaches the DOM through `el()`, which sets
+`textContent`, and `matches()` in `src/pane/search.ts` answers a boolean, so it
+does not report WHICH words hit. There is no data a highlighter could use.
+
+Four draw sites would need it — the tile name, the preview card's name, the
+"Did you mean" chips and the "Used in this deck" rows — and `matches` would
+have to return spans rather than a yes. The section is corrected rather than
+the code, because it is a pane change whose only evidence is visual and
+`npm run pane-shots` needs a browser: the contrast of a highlight in both
+themes, and what it does under forced colours, is the whole question and cannot
+be answered from a test.
+
+No user-facing document promised it, so nothing else is out of step.
+
 ### Widen what the mutation sweep changes
 
 The one open item **this repo can finish on its own**, and the only one that is

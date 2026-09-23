@@ -19,6 +19,7 @@ import {
   union,
 } from "../src/core/index.js";
 import { A_NS, P_NS, element } from "../src/core/pptx/xml.js";
+import { parseFragment, topLevel } from "../src/core/splice/shapes.js";
 import type { Names } from "../src/core/index.js";
 import { makeDeck, type SlideSpec } from "./fixtures/deck.js";
 
@@ -1195,26 +1196,42 @@ describe("the figures the prose quotes about the committed library", () => {
     ] as const) {
       const ids = index.sizes[size]?.elements.map((e) => e.id) ?? [];
       let frames = 0;
+      let topFrames = 0;
       let alternates = 0;
       for (const id of ids) {
         const body = readFileSync(`public/catalogue/${dir}/elements/${id}.json`, "utf8");
         if (body.includes("graphicFrame")) frames += 1;
         if (body.includes("mc:AlternateContent")) alternates += 1;
+        // TOP-LEVEL is the count the prose about `frameOf` and `rectOf` needs,
+        // and it is not the same number: both are only ever handed a shape out
+        // of `topLevel`, so a `<p:graphicFrame>` nested inside a group is not a
+        // case either one meets. Four 16:9 elements are exactly that, which is
+        // how a comment came to quote 58 for a function that meets 54.
+        const xml = (JSON.parse(body) as { xml?: string }).xml ?? "";
+        if (topLevel(parseFragment(xml)).some((shape) => shape.localName === "graphicFrame")) topFrames += 1;
       }
-      counted[size] = { elements: ids.length, frames, alternates };
+      counted[size] = { elements: ids.length, frames, topFrames, alternates };
     }
-    // Quoted in: src/core/splice/shapes.ts (58 of 106, all 212),
-    // src/core/pptx/tags.ts (106), src/pane/steps.ts and search.ts (212, 106),
-    // test/splice-shapes.test.ts (9 of 212, 115 of 212), test/listing.test.ts,
-    // test/catalogue-page.test.ts, test/package-valid.test.ts.
+    // Quoted in: src/core/splice/shapes.ts (54 of 106 top-level, 58 anywhere,
+    // 57 at 4:3, 111 across both, all 212), src/core/pptx/tags.ts (106),
+    // src/pane/steps.ts and search.ts (212, 106), test/splice-shapes.test.ts
+    // (9 of 212, 111 and 115 of 212), test/listing.test.ts,
+    // test/catalogue-page.test.ts, test/package-valid.test.ts,
+    // docs/DESIGN.md section 15.
     expect(counted).toEqual({
-      "16:9": { elements: 106, frames: 58, alternates: 5 },
-      "4:3": { elements: 106, frames: 57, alternates: 4 },
+      "16:9": { elements: 106, frames: 58, topFrames: 54, alternates: 5 },
+      "4:3": { elements: 106, frames: 57, topFrames: 57, alternates: 4 },
     });
     const total = (key: string): number => (counted["16:9"]?.[key] ?? 0) + (counted["4:3"]?.[key] ?? 0);
-    expect({ elements: total("elements"), frames: total("frames"), alternates: total("alternates") }).toEqual({
+    expect({
+      elements: total("elements"),
+      frames: total("frames"),
+      topFrames: total("topFrames"),
+      alternates: total("alternates"),
+    }).toEqual({
       elements: 212,
       frames: 115,
+      topFrames: 111,
       alternates: 9,
     });
   });

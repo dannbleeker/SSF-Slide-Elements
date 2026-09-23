@@ -196,12 +196,18 @@ PowerPoint would settle.
   "the print has changed since it was stamped … re-stamp it", and a byte
   appended to the committed deck gives "the deck has changed since the print was
   taken … re-print it".
-  **Both prints are committed**, `template/library-16x9.pdf` (110 pages,
-  2,218,863 bytes) and `template/library-4x3.pdf` (108 pages, 2,307,900 bytes),
-  re-taken on 2026-09-11 after the placeholder text went English, from the decks
-  as they stand. Section 14's remaining deck edits have not happened, so both
-  need retaking again after that pass, and the cutting code does not exist yet
-  either — nothing downstream is holding a stale cut. `*.pdf` is
+  **Both prints are committed**, `template/library-16x9.pdf` (109 pages,
+  2,186,758 bytes) and `template/library-4x3.pdf` (107 pages, 2,274,248 bytes),
+  re-taken on **2026-09-16** through COM after the Icons slide left the library
+  (section 14, item 4) and stamped into `template/*.print.json`, which is what
+  `test/print.test.ts` holds them to. Those figures supersede the 2026-09-11
+  dialog print — 110 and 108 pages — which section 15 keeps as the record of
+  that round. Section 14's items 2 and 3 have not happened, so both prints need
+  retaking again after that pass, and the cut IS downstream of them now:
+  `src/core/catalogue/cut.ts` and `npm run previews` take every tile's picture
+  out of exactly these two files, so a deck edited without a re-print and a
+  re-stamp is caught by the gate rather than quietly cut from the wrong page.
+  `*.pdf` is
   declared `binary` in `.gitattributes` for the same reason `*.pptx` is — the
   repo's `* text=auto eol=lf` would otherwise leave a print to git's binary
   heuristic.
@@ -408,7 +414,13 @@ PowerPoint would settle.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
   already had content, **Undo (n)**), then a line with the current
-  settings that opens the gear. Built in that order, which is this list's:
+  settings that opens the gear — and shuts it again, since it is the same
+  disclosure control as the ⚙ above the list. Both carry `aria-expanded` and
+  point at the panel by id, which the footer's did not until 2026-09-23: a
+  screen-reader user pressing it heard a plain button whose own name comes from
+  the settings and so does not change, while a panel opened at the top of the
+  pane outside their reading position with nothing announced.
+  Built in that order, which is this list's:
   measured on 2026-09-12, the row wraps to two lines at 320 px with Undo alone
   on the second whichever way round the first two go, so the order is the
   record's and nothing more.
@@ -486,7 +498,42 @@ exception for width.
   title.
 - A part ignores the insert target: it always lands on the slide the user is
   on. A stamp or a label with several slides selected lands on every selected
-  slide in one insert.
+  slide.
+
+  **Built 2026-09-23, and NOT "in one insert", which is what this line said
+  from the day it was written and until the day it was built.** That cannot be
+  done: `insertSlidesFromBase64` puts every slide of its package CONTIGUOUSLY
+  after one `targetSlideId` — `CLAUDE.md` records a real run that put 37
+  generated slides ahead of a title slide — so rebuilt copies of slides 2, 5
+  and 9 would arrive as a block and the deck's own order would be gone. Keeping
+  the order means aiming each copy at its own slide, and that is one insert
+  each.
+
+  So it is `removeEverywhere`'s shape with a different payload: one deck read
+  for the whole run, one insert-then-positional-delete cycle per slide, each
+  confirmed by the DELTA before the next starts, the positional delete guarded
+  by reading the target id back, and the first step that cannot be confirmed
+  stops the run with the footer saying how far it got. The slides are worked
+  through in ascending order, which matters because each cycle is net zero on
+  the slide count — so a later slide is still at the index this code computed
+  only once the earlier ones have been put back.
+
+  **The pane's Undo is disarmed and the footer says so.** It is one insert deep
+  and positional, so it cannot take back several; a button silently gone is
+  worse than a sentence. PowerPoint's own Ctrl+Z reverts an insert (question 5,
+  measured on the web and on Windows), and the sentence names it. Unlike a
+  removal this is not asked first, because it adds rather than takes away.
+
+  One selected slide, or a host that will not say, runs the ordinary
+  single-slide insert with its ordinary Undo — `stampTargets` answers the empty
+  list under two slides, which is what hands that path back. A whole-slide
+  element is untouched by any of this: three selected slides would be three
+  copies of a slide the user asked for once.
+
+  **Not measured on a real host.** The cycle shape is the one the removal has
+  run on PowerPoint for the web (2026-09-13); this payload has not, and
+  `selectedSlides` — the read behind it — has never been asked of a real
+  PowerPoint for more than its first item.
 
 ## 6. Inserting
 
@@ -571,6 +618,21 @@ exception for width.
     edge as often as not; and the tile's name is at its bottom, so a menu there
     hides which element it belongs to. Nothing about where the pointer was
     reaches the pane's state, which is also what lets the shot audit draw it.
+  - **A question does not outlive its tile, an insert included.** The question
+    is drawn on the tile and nowhere else, and while one is open the Remove
+    button is suppressed on every tile — so a question whose tile has gone
+    leaves the pane in a state nothing on screen describes. Every change that
+    can take a tile off the screen drops it: search, tags, category, star,
+    clear, chip, and the insert, which rewrites Recent through `remember` and
+    so can drop the oldest entry's tile out from under a question opened there.
+  - **One thing open at a time, refused at the OPENING end.** A right-click
+    while a removal question is up leaves the browser's own menu alone. The
+    pane used to cancel the event and set the menu anyway, while the renderer
+    refused to draw one over a question — so the gesture did nothing at all,
+    and the menu it had set arrived later out of nowhere, on the redraw after
+    the Escape that answered the question. The two tiles can never be the same
+    tile, since a question is only ever on a part and a menu only ever on a
+    whole-slide element, so this is a rule about the pane, not about one tile.
 - **Deck-wide stamps.** A stamp already in the deck can be removed from every
   slide it is on with one click, found by the tag written at insert. The manual
   says that shape tags do not survive cut and paste on the web.
@@ -682,11 +744,19 @@ exception for width.
 ## 8. Search
 
 Matches the English name, the Danish key (and later every locale's name), the
-category and the tags. Matches are highlighted in the names. While searching,
+category and the tags. While searching,
 the categories that have hits appear as chips with counts to narrow the search,
 and a sized tile greys out the counts that do not match. A query with no hits
 offers "Did you mean …" from the nearest names. Not doing: Enter inserting the
 top hit.
+
+**Highlighting the match inside the name is NOT built**, and this section
+claimed it was until 2026-09-23. Nothing anywhere draws one: every name reaches
+the DOM through `el()`, which sets `textContent`, and `matches()` answers a
+boolean rather than saying WHICH words hit — so there is no data a highlighter
+could use even if one were added. It is in `docs/BACKLOG.md` now, which is where
+a thing that is not done belongs. No user-facing document ever promised it, so
+nobody was told to expect it.
 
 ## 9. Accessibility and platforms
 
@@ -694,6 +764,25 @@ top hit.
   `/` focuses search, Esc closes a menu, the preview or the search in that
   order. Focus draws the same ring as hover. A live region announces every
   outcome.
+
+  **The arrows belong to the TILES, and to the search box on the way out of
+  it.** Pressed anywhere else they are left to the browser, which is what
+  scrolls the list. They used to be taken everywhere: the handler ran
+  `arrowTo(key, tiles.indexOf(activeElement), n)` whatever the focus was on,
+  `indexOf` answers -1 for anything that is not a tile, and `arrowTo` clamps
+  -1 to 0 — so an arrow pressed on the gear, a category heading, a tag chip,
+  the size stepper, the star or the primary button was cancelled and threw the
+  focus to the first tile at the top of the list. In a 320 px pane that also
+  took away the only key a mouse user has for scrolling it.
+
+  **Closing something puts the focus back on the control that opened it.** The
+  tile menu goes back to its tile, the removal question to that tile's Remove
+  button, the gear to whichever of its two controls was pressed. Without it
+  each of those landed on `<body>`, because the control the focus was on is
+  inside the surface being closed and the redraw removes it — the one case
+  `draw`'s restore deliberately hands to the browser's fallback. The fallback
+  is right for a tile a search filtered away, which has no owner to go back to;
+  a dismissed surface has exactly one, and it is still on screen.
 
   **None of it worked until 2026-09-22**, and the reason is a property of the
   pane worth stating rather than a slip: `render` empties `#pane` and builds
@@ -822,6 +911,17 @@ happened and what to do.
   because the positions this code holds are exactly the ones that just went
   stale, and naming one off a stale index is what sent a user to delete their
   own content before.
+- The deck-wide removal runs an insert-then-delete cycle per slide, and its two
+  stopping points do NOT share a sentence. When the insert never lands the deck
+  is untouched and "Removed from N of M slides. The rest are as they were — try
+  again, or take them off by hand." is true. When the insert lands and the
+  delete does not, it is false: that slide's original is still there with the
+  element on it and an element-free copy sits beside it. That case says
+  "Removed from N of M slides, and the deck has a slide too many: the copy was
+  made but the original could not be taken away. Check the deck before trying
+  again — trying again would add another." It names no slide number, for the
+  reason the reorder sentence above gives, and it withdraws the invitation to
+  retry because each failed cycle strands another copy.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 
@@ -1316,7 +1416,11 @@ The rest of this section is about the DECKS and the print rather than Office.js.
   carry no comments, no ink and no hidden slides, so every non-default switch
   the print needs is a no-op — but it cannot show which options were used, only
   what came out.
-- **Both decks print correctly, and the prints are committed.** Taken through
+- **Both decks printed correctly on 2026-09-11, through the dialog.** This is
+  the record of that round, not of the committed prints: the pair described here
+  was superseded on 2026-09-16 by a COM re-print of both decks, after the Icons
+  slide left the library, and section 3 carries the committed figures (109 and
+  107 pages). Taken through
   **File → Export → Create PDF/XPS → Options** from the decks at their committed
   paths, with Range all, Publish what Slides, Frame slides off, Include hidden
   slides on, Include comments off, Include ink off, and Optimise for Standard —
@@ -1334,10 +1438,16 @@ The rest of this section is about the DECKS and the print rather than Office.js.
   match the deck the harvest checks it against would pass the slide-count check
   while being cut from the wrong file.
 
-Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
-them parts of four collection slides, twelve runs of sizes, 42 whole-slide
-elements without a group; the stamps are rotated 29° and 35°; a table's frame is
-narrower than the table PowerPoint draws.
+Measured against the committed catalogue on 2026-09-23: the 16:9 library has
+106 named elements, 10 of them parts of two collection slides (103 and 104),
+twelve runs of sizes over 45 members, 62 whole-slide elements carrying no group;
+the stamps are rotated 29° and 35°; a table's frame is narrower than the table
+PowerPoint draws. The 4:3 library is the same 106, 10 and 12, over collection
+slides 102 and 103. The figures this line used to give — 118 elements, 21 parts,
+four collection slides, 42 without a group — were taken before the removals of
+\#105 and \#107 and were never restated; 118 was the count in
+`template/names.en.json`, not in the catalogue, and nothing here reproduces 42
+under any definition of "group" the record states.
 
 **Borrowed, dated, and read back rather than trusted:** `setSelectedSlides`,
 the one selection write this add-in makes (the jump in section 4). No sheet of

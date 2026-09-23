@@ -227,6 +227,32 @@ export function stillThere(expected: string | undefined, atIndex: string | undef
 }
 
 /**
+ * Which slides a PART lands on, given what the host says is selected.
+ *
+ * `docs/DESIGN.md` section 5: "A part ignores the insert target: it always
+ * lands on the slide the user is on. A stamp or a label with several slides
+ * selected lands on every selected slide." The record asserted this as built
+ * from the start and nothing implemented it — `currentSlide` kept only
+ * `selected.items[0]` and the insert drove exactly one cycle, so a user who
+ * selected slides 2, 5 and 9 and clicked the Confidential stamp got it on
+ * slide 2 and plain success reported over the two that were untouched.
+ *
+ * The answer is a list of INDICES, counting from zero, sorted and with
+ * duplicates gone — the host's own order is the deck's, but nothing in the
+ * record says the selection is sorted, and the cycles below rely on it being
+ * so to reason about what a positional delete shifts.
+ *
+ * `current` is the fallback and not a member: when the host answers nothing,
+ * or answers one slide, the part lands where it always did, and the caller runs
+ * the ordinary single-slide path rather than a loop of one. Answering an empty
+ * list is what says "there is nothing here the loop should take over".
+ */
+export function stampTargets(selected: number[] | undefined): number[] {
+  if (selected === undefined || selected.length < 2) return [];
+  return [...new Set(selected)].sort((a, b) => a - b);
+}
+
+/**
  * Whether a positional delete may be attempted at all.
  *
  * The insert is confirmed first, and this is that rule as a function rather

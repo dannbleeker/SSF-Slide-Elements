@@ -17,7 +17,7 @@ font, colour and placement intact.
 - [What it does](#what-it-does)
 - [The pane](#the-pane)
 - [Adding an element to the library](#adding-an-element-to-the-library)
-- [Installing it](#installing-it) — [what needs re-installing](#what-needs-re-installing-and-what-does-not), [which PowerPoint](#why-it-does-not-say-which-powerpoint-it-needs)
+- [Installing it](#installing-it) — [what needs re-installing](#what-needs-re-installing-and-what-does-not), [which PowerPoint](#why-the-version-it-needs-is-checked-when-the-pane-opens)
 - [When something goes wrong](#when-something-goes-wrong)
 - [Limits](#limits)
 
@@ -42,6 +42,7 @@ small file that says where that page is.
 | Used in this deck | Which library elements are already in the open deck, and which slides they are on | built |
 | What your slide already has | The preview card shows the shapes already on your slide, in grey, behind where the element would land | built |
 | Remove from N slides | Taking a stamp off every slide it is on, in one click, after asking | built, and run on PowerPoint for the web on 2026-09-13 |
+| Stamping several slides | Select several slides and a stamp lands on every one of them | built, not yet run on a real PowerPoint |
 | Jumping to a slide | Clicking a slide number in **Used in this deck** to go to that slide | built, and run on the web on 2026-09-13; PowerPoint's answer is checked on every click |
 | Installing from AppSource | Finding the add-in under Insert → Add-ins instead of sideloading a manifest | planned |
 
@@ -79,7 +80,7 @@ fetched only when you insert it.
   shapes arrive **as one group** or **loose**, and whether its colours follow
   **this deck's theme** or come out **as in the library**. The line at the
   bottom of the pane always says what those are set to, and opens the gear when
-  clicked;
+  clicked — clicking it again shuts it, like the ⚙ itself;
 - **two links out of the gear.** **Report a problem** opens the support page in
   your browser with the build code, the app and the platform already filled in,
   so a report says which version was running without you looking anything up.
@@ -100,6 +101,13 @@ fetched only when you insert it.
   slide** when you are set to a new one. It does not change the setting, and
   `Esc` closes it. Stamps and markers offer nothing, because they always land on
   the slide you are on whatever the setting says;
+- **stamping several slides at once.** Select more than one slide in the slide
+  strip, then click a stamp or a marker: it lands on every slide you selected,
+  one at a time, and the footer says how many it reached. If a step cannot be
+  confirmed the run stops there and the footer says how far it got, so you
+  always know what the deck holds. The pane cannot undo this one — PowerPoint's
+  own `Ctrl+Z` can — and it says so when it finishes. Selecting one slide, or
+  clicking a whole-slide element, works exactly as it always has;
 - **Remove from N slides**, on a stamp or a marker the deck already holds. It
   appears under the tile once you have asked what the deck uses, and clicking it
   asks first — naming the slides, and saying that the pane cannot undo it.
@@ -171,7 +179,7 @@ fetched only when you insert it.
 says what happened. That is almost always the network rather than the add-in.
 
 If your PowerPoint is below the floor (see
-[which PowerPoint](#why-it-does-not-say-which-powerpoint-it-needs)) the pane
+[which PowerPoint](#why-the-version-it-needs-is-checked-when-the-pane-opens)) the pane
 says so instead, and draws no button at all.
 
 If the pane shows its header and nothing else, PowerPoint could not fetch
@@ -181,9 +189,12 @@ Microsoft's `office.js` library — see
 ### The keyboard
 
 `/` focuses the search box. `Esc` shuts the preview card, then the gear, then clears the search and
-the tags. `Tab` reaches the tiles; the arrow keys move between them and `Enter`
-or `Space` inserts the one you are on. Every outcome is announced to a screen
-reader as well as shown.
+the tags, and puts the focus back on whatever you opened — the tile a menu
+belongs to, the button that asked a removal question, the gear you pressed.
+`Tab` reaches the tiles; the arrow keys move between them and `Enter`
+or `Space` inserts the one you are on. Anywhere other than the tiles and the
+search box the arrow keys are the browser's, so they still scroll the list.
+Every outcome is announced to a screen reader as well as shown.
 
 ### What the pane remembers
 
@@ -347,7 +358,7 @@ The **manifest** is the exception. Re-sideload only when the manifest itself
 changes: the ribbon button, the permissions, the display name, the icons, or the
 page the button opens. Those changes are called out in the changelog.
 
-### Why it does not say which PowerPoint it needs
+### Why the version it needs is checked when the pane opens
 
 The manifest declares no `<Requirements>` block, deliberately. SSF Slide
 Elements needs **PowerPointApi 1.2** — reading the deck and inserting into it —
@@ -356,7 +367,9 @@ and that is checked when the pane opens, not declared in the manifest.
 A declared requirement set that your PowerPoint does not meet makes the add-in
 **vanish from the ribbon** with no message at all: nothing to see, nothing to
 report, nothing to search for. The runtime check can tell you which version is
-missing and what it costs you, which is worth more than a silent absence.
+missing, what it costs you, and which PowerPoint has it — a current Microsoft
+365, PowerPoint 2021, or PowerPoint on the web — which is worth more than a
+silent absence.
 
 **The cost of that choice, stated plainly.** Because the manifest declares
 nothing, Microsoft's own validator reports the add-in as installable on every
@@ -374,7 +387,9 @@ there.
   rule on your side rather than a fault in the add-in; check that address is
   reachable, then close and reopen the pane.
 - **The pane says your PowerPoint does not have PowerPointApi 1.2.** There is
-  no way around that one short of a newer PowerPoint.
+  no way around that one short of a newer PowerPoint: a current Microsoft 365,
+  PowerPoint 2021, or PowerPoint on the web. The message on screen names them
+  too.
 - **Anything else:** note the build code in the pane's header and write to
   [support](https://ssf-slide-elements.struktureretsundfornuft.dk/support.html).
 

@@ -19,6 +19,7 @@ import {
   remember,
   removableFrom,
   removalOutcome,
+  stampOutcome,
   removeLabel,
   removeQuestion,
   settingsLine,
@@ -400,6 +401,53 @@ describe("taking a part off the slides it is on", () => {
     expect(short.detail).toContain("as they were");
   });
 
+  it("says how many slides a stamp reached, and that the pane cannot take it back", () => {
+    /**
+     * `docs/DESIGN.md` section 5's several-slide stamp. It is ADDITIVE, so it
+     * is not asked first the way a removal is — but the pane's Undo is one
+     * insert deep and positional, so it cannot take back several, and the
+     * button is gone when it lands. A user left to notice that for themselves
+     * is a user who does not know whether the pane thinks it worked.
+     *
+     * PowerPoint's own Ctrl+Z does revert an insert — question 5, measured on
+     * the web and on Windows — which is the route that does exist, so the
+     * sentence names it.
+     */
+    const all = stampOutcome("Confidential", 3, 3);
+    expect(all.ok).toBe(true);
+    expect(all.byHand).toBe(false);
+    expect(all.detail).toContain("Stamped 3 slides");
+    expect(all.detail, "it did not say the pane cannot undo it").toMatch(/pane cannot undo/i);
+    expect(all.detail, "and did not name the Undo that does work").toMatch(/PowerPoint's own Undo/i);
+
+    expect(stampOutcome("Confidential", 1, 1).detail).toContain("Stamped 1 slide.");
+
+    const short = stampOutcome("Confidential", 1, 3);
+    expect(short.ok).toBe(false);
+    expect(short.byHand).toBe(true);
+    expect(short.detail).toContain("Stamped 1 of 3 slides");
+    expect(short.detail).toContain("as they were");
+  });
+
+  it("does not say the rest are as they were when a stamp cycle left its copy behind", () => {
+    /**
+     * The insert landed and the delete did not: the slide's ORIGINAL is still
+     * there without the stamp, and a stamped copy sits beside it. "The rest are
+     * as they were" is false of that slide, and inviting the user to try again
+     * is worse than false — each failed cycle leaves another copy, so a user
+     * following that advice grows their deck one slide at a time. The removal
+     * path learned this the same way.
+     */
+    const stranded = stampOutcome("Confidential", 1, 3, true);
+    expect(stranded.ok).toBe(false);
+    expect(stranded.byHand).toBe(true);
+    expect(stranded.detail).toContain("a slide too many");
+    expect(stranded.detail, "it still claimed the rest were untouched").not.toContain("as they were");
+    // No slide number: the positions this code holds are the ones the failed
+    // cycle just moved.
+    expect(stranded.detail).not.toMatch(/slide \d/);
+  });
+
   it("says nothing changed when there was nothing left to remove", () => {
     /**
      * Reachable, and reachable BECAUSE of a fix. The removal re-reads which
@@ -504,5 +552,120 @@ describe("where an arrow key moves the focus", () => {
     expect(arrowTo("ArrowRight", 0, 1)).toBe(0);
     expect(arrowTo("ArrowLeft", 0, 1)).toBe(0);
     expect(arrowTo("ArrowDown", -1, 1)).toBe(0);
+  });
+});
+
+describe("what the pane says it is busy WITH", () => {
+  /**
+   * `busy` alone said only "something is running", and three things set it: the
+   * insert, the Undo and the deck-wide removal. Everything that read it assumed
+   * the first.
+   *
+   * So pressing Undo drew "One insert at a time. This one is still going."
+   * directly above its own "Undoing…" notice — `render` draws the blocked line
+   * and the notice one after the other — and painted "Inserting…" on the tile
+   * while the add-in was taking a slide back OUT of the deck. On the web these
+   * take seconds (`CLAUDE.md`: the count sat at its old value for 2.8 s), so
+   * both contradictory sentences are on screen long enough to read.
+   *
+   * The only busy case in this file was an insert, which is why nothing caught
+   * it.
+   */
+  it("names the operation rather than assuming an insert", () => {
+    const busy = { ...browsing, chosen: "one-box", busy: true } as PaneState;
+    expect(blockedReason({ ...busy, busyWith: "insert" }, "browse")).toBe(
+      "One insert at a time. This one is still going.",
+    );
+    expect(blockedReason({ ...busy, busyWith: "undo" }, "browse"), "said an insert was running").toContain(
+      "Taking the last insert back",
+    );
+    expect(blockedReason({ ...busy, busyWith: "remove" }, "browse"), "said an insert was running").toContain(
+      "Taking the element off the deck",
+    );
+  });
+
+  it("still blocks the button whichever it is", () => {
+    // The lock is the point and it is not weakened: one thing at a time,
+    // whatever the thing is. `CLAUDE.md` records two inserts 0.4 s apart
+    // killing a sibling's tab.
+    for (const what of ["insert", "undo", "remove"] as const) {
+      expect(primary({ ...browsing, chosen: "one-box", busy: true, busyWith: what }, "browse").disabled, what).toBe(
+        true,
+      );
+    }
+  });
+});
+
+describe("a remembered choice the library no longer carries", () => {
+  /**
+   * `chosen` is restored from the per-deck bucket at boot and nothing
+   * revalidated it against the library. The remembered LISTS were already
+   * guarded this way — `render.ts` maps `recent` and `favourites` through
+   * `elementOf` and drops the misses — but the one that decides whether the
+   * primary button works was not.
+   *
+   * The library really does lose elements between releases: 80dd869 took a
+   * whole category out of both decks and e43f689 removed the Scales. After such
+   * a harvest the pane came back with the button ENABLED, no sentence beside it
+   * and no tile marked; pressing it reached `insert`, whose `elementOf`
+   * answered undefined, and it returned — no notice, no outcome, nothing
+   * announced. `docs/DESIGN.md` section 10 forbids exactly that.
+   */
+  it("is not a choice: the button is blocked and says why", () => {
+    const gone = { ...browsing, chosen: "an-element-the-harvest-dropped" } as PaneState;
+    expect(primary(gone, "browse").disabled, "the button was live with nothing behind it").toBe(true);
+    expect(blockedReason(gone, "browse"), "and it said nothing about why").toContain("Choose an element");
+  });
+
+  it("and one the library DOES carry still works", () => {
+    // The pair: this must not block a real choice, which is the whole feature.
+    const real = { ...browsing, chosen: "one-box" } as PaneState;
+    expect(primary(real, "browse").disabled).toBe(false);
+    expect(blockedReason(real, "browse")).toBe("");
+  });
+});
+
+describe("a removal cycle that left its copy behind", () => {
+  /**
+   * The removal runs an insert-then-positional-delete per slide. Two breaks can
+   * stop it and only one leaves the deck alone:
+   *
+   * - the INSERT did not land — nothing changed, and "The rest are as they
+   *   were" is true;
+   * - the insert landed and the DELETE did not — the deck now carries both the
+   *   original, still holding the element, and the element-free copy.
+   *
+   * The second reported the first's sentence. It is false of that slide, and
+   * its invitation to "try again" is worse than false: each failed cycle
+   * strands another copy, so a user following it grows their deck one slide at
+   * a time.
+   *
+   * `removeEverywhere`'s own comment names this exact wrong sentence and fixes
+   * only the other path that reaches it — breaking on the raise. The
+   * count-based break kept producing it.
+   */
+  it("says the deck is a slide longer, and does not invite another go", () => {
+    const out = removalOutcome("Confidential stamp", 0, 1, true);
+    expect(out.ok).toBe(false);
+    expect(out.byHand, "nothing told the user to look").toBe(true);
+    expect(out.detail).toContain("a slide too many");
+    expect(out.detail, "claimed the untouched slides were untouched").not.toContain("The rest are as they were");
+    expect(out.detail, "would grow the deck on every press").toContain("trying again would add another");
+  });
+
+  it("keeps the ordinary partial sentence when nothing was stranded", () => {
+    // The pair. A run that simply stopped — the insert never landed — leaves
+    // the deck as it was, and that sentence is right. A fix that answered
+    // "stranded" for every partial removal would lose it.
+    const out = removalOutcome("Confidential stamp", 1, 3, false);
+    expect(out.detail).toContain("The rest are as they were");
+    expect(out.detail).not.toContain("a slide too many");
+  });
+
+  it("still says nothing changed when the element was already gone", () => {
+    // The `wanted === 0` arm is answered before either, and a stranded flag
+    // cannot reach it: there were no cycles to strand anything.
+    expect(removalOutcome("x", 0, 0, true).ok).toBe(true);
+    expect(removalOutcome("x", 0, 0, true).detail).toContain("nothing changed");
   });
 });

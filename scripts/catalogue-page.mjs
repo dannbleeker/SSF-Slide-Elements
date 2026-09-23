@@ -8,7 +8,7 @@
  * the result the way it diffs the index: the page cannot fall behind the decks
  * without the build saying so.
  *
- * Static HTML with no script in it at all. The page is 234 pictures on a
+ * Static HTML with no script in it at all. The page is 212 pictures on a
  * publicly reachable site, and every line of JavaScript on it would be a line
  * somebody has to audit against `SECURITY.md`'s promise that this project
  * sends nothing anywhere. The two sizes are two sections with a jump link,

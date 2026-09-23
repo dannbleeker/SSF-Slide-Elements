@@ -12,7 +12,92 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - **The tag line has its chevron.** It shows one row of tags and the chevron at
   its right opens the rest, which is what the pane was always meant to do.
 
+- **A stamp on several slides at once.** Select more than one slide in the
+  slide strip, then click a stamp or a marker: it lands on every slide you
+  selected, and the footer says how many it reached. If a step cannot be
+  confirmed the run stops there and says how far it got, so you always know
+  what the deck holds. The pane cannot undo this one — PowerPoint's own
+  `Ctrl+Z` can — and it says so when it finishes. Selecting one slide, or
+  clicking a whole-slide element, works exactly as before.
+
 ### Fixed
+
+- **The pane now names a PowerPoint you can move to when it cannot run.** On a
+  PowerPoint too old for the add-in, the one screen you get said what was
+  missing and what it cost you, and left you to work out what to do about it.
+  It now names the versions that have it: a current Microsoft 365, PowerPoint
+  2021, or PowerPoint on the web.
+
+- **A question about removing an element no longer survives the insert that
+  takes its tile away.** With six elements in Recent, opening "Remove from N
+  slides" on the oldest one's Recent tile and then inserting anything else left
+  the question drawn nowhere at all — and with a question notionally open, the
+  Remove button was hidden on every tile, with nothing on screen saying why or
+  how to get out of it. Inserting now closes the question, as searching,
+  starring and picking a category already did.
+
+- **The count above the list no longer reads as though something were
+  filtered.** With an empty search box it said "73 of 106" — a count of tiles
+  over a count of elements, two different things, since an element that comes in
+  several sizes is one tile with a stepper. The fraction could never reach its
+  own denominator. It now counts the same thing on both sides, and shows just
+  the number when nothing is filtered.
+
+- **The settings line at the bottom of the pane now announces itself as the
+  control it is.** It opens and shuts the same options panel the ⚙ does, but a
+  screen reader heard a plain button with no state and no link to the panel, so
+  there was no way to tell whether pressing it had opened or closed anything.
+  Both controls now say which panel they open and whether it is open.
+
+- **The arrow keys no longer jump to the top of the list from wherever you
+  are.** Pressing an arrow anywhere that was not a tile — the gear, a category
+  heading, a tag chip, the size numbers, the star, the Insert button — threw
+  the focus to the first tile and scrolled the list back to the top. It also
+  meant the arrow keys could not scroll the pane at all. They now belong to the
+  tiles, and to the search box on the way down into them; everywhere else they
+  scroll, as they do on any other page.
+
+- **Closing something puts you back where you were.** Escape out of a tile's
+  right-click menu, out of the question before a removal, or out of the gear
+  used to drop the focus onto nothing at all, so the next Tab started again at
+  the top of the pane. It now goes back to the tile, the Remove button or the
+  gear you opened it from. "Keep them" does the same.
+
+- **A right-click while a removal question is open no longer does nothing, and
+  then something.** The pane took the right-click, suppressed Windows' own menu
+  and showed nothing — and the menu then appeared by itself later, on a
+  different tile, when you pressed Escape to answer the question. The
+  right-click is now left to the browser while a question is up.
+
+- **An element inserted while the add-in was still measuring your deck no
+  longer takes its pictures from the wrong library.** The tiles go live before
+  the deck's shape has been read, and picking one straight away could give an
+  element from the widescreen library a picture, chart or workbook from the 4:3
+  one — silently, with the wrong thing on the slide — or stop with "the
+  catalogue has no part", naming a part it does have. An insert now keeps the
+  library it started in, whatever the deck turns out to be.
+
+- **Taking an element off every slide no longer claims nothing else changed
+  when it did.** The removal rebuilds each slide without the element and then
+  takes the original away. If the second half failed, the pane said "The rest
+  are as they were — try again" — but that slide now had both your original,
+  element and all, and a copy without it. Pressing "try again" added another
+  copy each time. It now says the deck has a slide too many, and tells you to
+  look before trying again.
+
+- **The pane no longer says it is inserting while it is undoing.** Pressing
+  Undo, or taking an element off every slide it is on, showed "One insert at a
+  time. This one is still going." directly above its own "Undoing…" — and put
+  an "Inserting…" badge on the tile while the add-in was in fact taking a slide
+  back out of your deck. On the web these take seconds, so both sentences were
+  on screen long enough to read. It now names what it is actually doing.
+
+- **The Insert button is no longer live with nothing behind it.** The pane
+  remembers the last element you inserted into a deck. If a later version of
+  the library no longer had that element, the button came back enabled with
+  nothing selected and no explanation, and pressing it did nothing at all —
+  no message, no sign anything had happened. It now treats a remembered choice
+  the library has lost as no choice, and says so.
 
 - **The keyboard no longer loses its place every time you insert.** Inserting
   greys out every tile while it runs, and the pane could not put the keyboard

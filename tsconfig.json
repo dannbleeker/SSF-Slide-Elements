@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
+    "allowUnreachableCode": false,
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": false,
     "forceConsistentCasingInFileNames": true,

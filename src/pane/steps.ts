@@ -14,6 +14,12 @@
  * broken screen, and every message says what happened and what to do.
  */
 import type { Box, Element, SlideSize } from "../core/catalogue/types.js";
+// A VALUE import from `search.ts`, which imports only TYPES back from here, so
+// there is no runtime cycle — the type import is erased. Taken rather than
+// re-implementing the lookup: `CLAUDE.md` records that a rule reimplemented
+// inline "looks tidier and rots quietly", and this is the rule for whether the
+// library still has an element.
+import { elementOf } from "./search.js";
 import { slideList, type DeckUsage } from "./used.js";
 
 export type StepId = "loading" | "browse" | "problem";
@@ -99,6 +105,19 @@ export interface PaneState {
   settings: Settings;
   /** True while an insert runs: the pane locks and the chosen tile says so. */
   busy?: boolean;
+  /**
+   * WHICH long operation `busy` is holding the pane for.
+   *
+   * `busy` alone said only "something is running", and three things set it:
+   * the insert, the Undo and the deck-wide removal. Everything that read it
+   * assumed the first. So pressing Undo drew "One insert at a time. This one is
+   * still going." directly above its own "Undoing…" notice, and painted
+   * "Inserting…" on the tile while the add-in was taking a slide back OUT of
+   * the deck. On the web these take seconds — `CLAUDE.md` records the count
+   * sitting at its old value for 2.8 s — so the two contradictory sentences are
+   * on screen long enough to read.
+   */
+  busyWith?: "insert" | "undo" | "remove";
   outcome?: Outcome;
   /** The slide the user is on, counting from one, when the host would say. */
   slide?: number;
@@ -262,15 +281,44 @@ export function blockedReason(state: PaneState, step: StepId): string {
       "The library did not load. That is usually the network rather than a fault in the add-in, so try again."
     );
   }
-  if (state.busy === true) return "One insert at a time. This one is still going.";
-  if (state.chosen === undefined) return "Choose an element to insert it, or use the arrow keys and press Enter.";
+  if (state.busy === true) {
+    if (state.busyWith === "undo") return "Taking the last insert back. One thing at a time.";
+    if (state.busyWith === "remove") return "Taking the element off the deck. One thing at a time.";
+    return "One insert at a time. This one is still going.";
+  }
+  // A remembered `chosen` the library no longer carries is not a choice. It is
+  // restored from the per-deck bucket at boot and nothing revalidated it, so
+  // after a harvest that drops an element — commit 80dd869 took a whole
+  // category out of both decks, e43f689 removed the Scales — the pane came back
+  // with the button ENABLED, no sentence beside it and no tile marked. Pressing
+  // it reached `insert`, whose `elementOf` answered undefined, and it returned:
+  // no notice, no outcome, nothing announced. `docs/DESIGN.md` section 10 says
+  // the pane never shows a broken screen and every message says what happened.
+  // The remembered LISTS were already guarded this way in `render.ts`; this one
+  // was not.
+  if (chosenElement(state) === undefined)
+    return "Choose an element to insert it, or use the arrow keys and press Enter.";
   return "";
 }
 
 /** The one primary control per screen: what it says, and whether it can be pressed. */
 export function primary(state: PaneState, step: StepId): { label: string; disabled: boolean } {
   if (step === "problem") return { label: "Try again", disabled: false };
-  return { label: "Insert an element", disabled: step !== "browse" || state.busy === true || !state.chosen };
+  return {
+    label: "Insert an element",
+    disabled: step !== "browse" || state.busy === true || chosenElement(state) === undefined,
+  };
+}
+
+/**
+ * The element `state.chosen` names, when the library actually has it.
+ *
+ * The one place the two questions "is something chosen" and "can it be
+ * inserted" are answered together, so `primary` and `blockedReason` cannot
+ * drift apart on it again.
+ */
+export function chosenElement(state: PaneState): Element | undefined {
+  return state.chosen === undefined ? undefined : elementOf(state.library, state.chosen);
 }
 
 /**
@@ -461,6 +509,54 @@ export function removeQuestion(element: Element, slides: number[]): string {
 }
 
 /**
+ * How far a several-slide stamp got, for the footer.
+ *
+ * `docs/DESIGN.md` section 5 asks for a stamp with several slides selected to
+ * land on every selected slide. It cannot be one `insertSlidesFromBase64`,
+ * whatever the record used to say: that call puts every slide of its package
+ * CONTIGUOUSLY after one `targetSlideId` — `CLAUDE.md` records a run that put
+ * 37 generated slides ahead of a title slide — so copies of slides 2, 5 and 9
+ * would arrive in a block and the deck's own order would be gone. Order is
+ * kept by aiming each rebuilt copy at its own slide, which is one cycle each,
+ * the shape `removeEverywhere` already uses and has run on a real host.
+ *
+ * So the sentence is the removal's, from the other end, and it carries the
+ * same third answer for a cycle that left its copy behind. The stamp is
+ * ADDITIVE, unlike a removal, which is why it is not asked first — but the
+ * pane's Undo is one insert deep and cannot take back several, so the
+ * successful sentence says so rather than leaving a user to find the Undo
+ * button gone with no explanation. PowerPoint's own Ctrl+Z reverts an insert
+ * (question 5, measured on the web and on Windows), which is the route that
+ * does exist.
+ */
+export function stampOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
+  const ok = done === wanted;
+  if (!ok && strandedCopy) {
+    // The insert landed and the delete did not: this slide's ORIGINAL is still
+    // there without the stamp, and a stamped copy sits beside it. No slide
+    // number, for the reason `outcomeOf`'s reorder branch gives — the positions
+    // this code holds are the ones the failed cycle just moved.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Stamped ${done} of ${wanted} slides, and the deck has a slide too many: ` +
+        `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
+  return {
+    ok,
+    byHand: !ok,
+    name: element,
+    detail: ok
+      ? `Stamped ${done === 1 ? "1 slide" : `${done} slides`}. The pane cannot undo this one; PowerPoint's own Undo can.`
+      : `Stamped ${done} of ${wanted} slides. The rest are as they were — try again, or stamp them one at a time.`,
+  };
+}
+
+/**
  * How far a removal got, for the footer.
  *
  * Three answers, not two. "All of them" and "some of them" are the obvious
@@ -477,11 +573,34 @@ export function removeQuestion(element: Element, slides: number[]): string {
  * do and nothing went wrong — so it says so, and offers no by-hand advice for
  * work that is already done.
  */
-export function removalOutcome(element: string, done: number, wanted: number): Outcome {
+export function removalOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
   if (wanted === 0) {
     return { ok: true, byHand: false, name: element, detail: "It is not on any slide any more, so nothing changed." };
   }
   const ok = done === wanted;
+  if (!ok && strandedCopy) {
+    // The removal runs an insert-then-delete cycle per slide, and this is the
+    // half where the insert LANDED and the delete did not: the deck carries
+    // both the original, still holding the element, and the element-free copy.
+    //
+    // "The rest are as they were" is false of that slide, and the invitation to
+    // "try again" is worse than false — each failed cycle leaves another copy,
+    // so a user following it grows their deck one slide at a time. The comment
+    // above the break in `removeEverywhere` named this exact sentence and fixed
+    // only the OTHER path that reaches it.
+    //
+    // No slide number, for the reason `outcomeOf`'s reorder branch gives: the
+    // positions this code holds are the ones the failed cycle just moved.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Removed from ${done} of ${wanted} slides, and the deck has a slide too many: ` +
+        `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
   return {
     ok,
     byHand: !ok,
