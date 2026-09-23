@@ -26,6 +26,7 @@ import {
   isOpen,
   offersOpenAll,
   runOf,
+  shown,
   stepMatches,
   tagsOf,
   tileCount,
@@ -495,6 +496,23 @@ function footer(state: PaneState): HTMLElement {
     bar.appendChild(el("p", report.byHand ? "outcome by-hand" : "outcome", report.detail));
   }
   const actions = el("div", "actions");
+  // STOP, first and enabled, while a run of several cycles is going.
+  //
+  // Everything else in the pane is disabled while `busy`, deliberately — one
+  // thing at a time. This is the exception, because the thing it interrupts is
+  // the one operation that can hold the pane for minutes: a stamp is bounded
+  // only by how many slides the user selected, and each cycle is a splice, an
+  // insert, two count reads that back off through the web's 2.8-second lag and
+  // a positional delete. Without it the only way out is closing the task pane
+  // mid-edit.
+  //
+  // It says how far it has got, so pressing it is a decision rather than a
+  // guess: the same numbers the notice carries, on the control that acts on
+  // them.
+  if (state.running) {
+    const stop = button("stop", "secondary stop", `Stop (${state.running.done} of ${state.running.total} done)`);
+    actions.appendChild(stop);
+  }
   if (report.move) {
     // First, which is the order `docs/DESIGN.md` section 6 lists the three in.
     // Not for the wrap: at 320 px the row wraps to two lines with Undo alone on
@@ -657,7 +675,12 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
     { key: "favourites", name: "Favourites", ids: state.favourites },
     { key: "recent", name: "Recent", ids: state.recent },
   ]) {
-    const elements = list.ids.map((id) => elementOf(library, id)).filter((e): e is Element => e !== undefined);
+    const elements = list.ids
+      .map((id) => elementOf(library, id))
+      // `shown`, the same predicate the list below uses: the search box, the
+      // tag chips and the category chip. Without it a search narrowed the
+      // categories and left these two showing everything ever starred.
+      .filter((e): e is Element => e !== undefined && shown(e, state));
     if (elements.length === 0) continue;
     const section = el("section", "category");
     section.appendChild(el("h2", "category-name", list.name));

@@ -12,6 +12,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - **The tag line has its chevron.** It shows one row of tags and the chevron at
   its right opens the rest, which is what the pane was always meant to do.
 
+- **A running job can be stopped.** Stamping or removing across several slides
+  works through them one at a time and can take minutes on a big deck, with the
+  pane locked while it goes. A **Stop** button now sits at the bottom while one
+  is running, saying how far it has got. It finishes the slide it is on and
+  leaves the rest exactly as they were — so stopping is safe, and the message
+  afterwards says how many it reached rather than reporting a failure.
+
+- **Favourites and Recent now follow the search.** Typing in the search box
+  narrowed the list below but left your starred and recently used elements
+  showing everything, while the count above them counted only the matches. They
+  narrow with everything else now, including when you pick a tag or a section.
+
 - **A stamp on several slides at once.** Select more than one slide in the
   slide strip, then click a stamp or a marker: it lands on every slide you
   selected, and the footer says how many it reached. If a step cannot be

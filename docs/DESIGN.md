@@ -533,8 +533,26 @@ exception for width.
 
   **It says which slide it is on and how far through it is**, rather than one
   sentence for the whole run: the pane locks itself, not PowerPoint, and a run
-  over many slides is minutes. Nothing caps it — `docs/BACKLOG.md` carries that
-  question, because a cap needs a number and the number is a judgement.
+  over many slides is minutes.
+
+  **And it can be STOPPED.** A Stop control sits in the footer while a run of
+  several cycles is going, carrying the same numbers the notice does, and it is
+  the one control left enabled while the pane is busy — everything else is
+  disabled deliberately, one thing at a time, but the thing this interrupts can
+  hold the pane for minutes and the only other way out is closing the task pane
+  mid-edit. Added 2026-09-23, on the owner's ask.
+
+  **The stop takes effect BETWEEN cycles, never inside one.** A cycle is an
+  insert of a rebuilt slide followed by a positional delete of the original,
+  and stopping between those two leaves the deck one slide longer carrying
+  both — the stranded state this whole path exists to avoid. So the cycle in
+  flight finishes, which is what lets the outcome say "Stopped after 2 of 9
+  slides. The rest are as they were." and mean it. A stop is NOT a failure: it
+  does not mark the outcome as the user's to finish by hand, because there is
+  nothing to check.
+
+  Nothing caps the run instead — a cap would need a number, and stopping it is
+  the answer that needs none.
 
   One selected slide, or a host that will not say, runs the ordinary
   single-slide insert with its ordinary Undo — `stampTargets` answers the empty

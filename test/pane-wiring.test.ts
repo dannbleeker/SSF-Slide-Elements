@@ -2512,6 +2512,93 @@ describe("removing a part from every slide it is on", () => {
     expect(notices[2]).toContain("3 of 3");
   });
 
+  it("stops a several-slide run between cycles when Stop is pressed, leaving the rest untouched", async () => {
+    /**
+     * The pane locks itself for the whole of one of these, and a stamp is
+     * bounded only by how many slides the user selected — so without a way out
+     * the only way out is closing the task pane in the middle of an edit.
+     *
+     * BETWEEN cycles and never inside one. A cycle is an insert of a rebuilt
+     * slide followed by a positional delete of the original, and stopping
+     * between those two leaves the deck one slide longer carrying both — the
+     * stranded state this whole path exists to avoid. So the cycle in flight
+     * finishes, which is what lets the outcome say "the rest are as they were"
+     * and mean it.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [0, 2, 4, 6];
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    // Hold the FIRST splice, so the run is provably mid-flight when Stop is
+    // pressed rather than already finished.
+    let releaseSplice = (): void => undefined;
+    host.spliceHold = new Promise<void>((r) => {
+      releaseSplice = r;
+    });
+
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await waitFor("the first cycle to reach its splice", () => spliced.length > 0);
+
+    const stop = pane.querySelector<HTMLElement>('[data-action="stop"]');
+    expect(stop, "no way to stop a run that holds the pane for minutes").not.toBeNull();
+    stop?.click();
+    releaseSplice();
+    await idle(pane);
+
+    // The cycle in flight FINISHED — one slide stamped and taken back down to
+    // size — and the other three were never begun.
+    expect(spliced.length, "it stopped inside a cycle, or carried on past the press").toBe(1);
+    expect(host.removed, "the cycle in flight was left half done").toEqual([0]);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome).toContain("Stopped after 1 of 4 slides");
+    expect(outcome, "a deliberate stop read as a failure").toContain("as they were");
+    // Stopping is not a failure, so it does not send the user off to check the
+    // deck by hand the way a stranded copy does.
+    expect(pane.querySelector(".outcome.by-hand"), "a stop was marked as the user's to finish").toBeNull();
+  });
+
+  it("does not carry a Stop press into the next run", async () => {
+    // The flag is cleared where the run ENDS, so a press arriving as the last
+    // cycle completes cannot stop a run the user starts afterwards.
+    indexMode = "ok";
+    host.selectedSlides = [0, 2];
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stampTile = (): HTMLElement =>
+      [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+        (t) => t.dataset["id"] === "markeringer-1",
+      ) as HTMLElement;
+
+    // The first run is STOPPED — without a press there is no stale flag to
+    // leave behind, and the case would prove nothing.
+    let releaseSplice = (): void => undefined;
+    host.spliceHold = new Promise<void>((r) => {
+      releaseSplice = r;
+    });
+    stampTile().click();
+    await waitFor("the first run to reach its splice", () => spliced.length > 0);
+    pane.querySelector<HTMLElement>('[data-action="stop"]')?.click();
+    releaseSplice();
+    await idle(pane);
+    expect(spliced.length, "the first run was not stopped, so there is no stale flag to test").toBe(1);
+
+    // A second run, with no press of its own, which must go the whole way.
+    const before = spliced.length;
+    stampTile().click();
+    await idle(pane);
+    expect(spliced.length - before, "a stale Stop stopped a run nobody asked to stop").toBe(2);
+  });
+
   it("leaves one selected slide to the ordinary insert, Undo and all", async () => {
     // `stampTargets` answers the empty list under two slides, which is what
     // hands the ordinary path back: a loop of one would report a different
