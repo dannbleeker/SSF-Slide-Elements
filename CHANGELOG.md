@@ -14,6 +14,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The keyboard no longer loses its place every time you insert.** Inserting
+  greys out every tile while it runs, and the pane could not put the keyboard
+  back on a tile that was greyed out — so it fell to the top of the page and
+  stayed there, even after the insert had finished. The next arrow key took you
+  back to the very first element in the library instead of leaving you near the
+  one you had just used, and anyone using a screen reader lost their place in
+  the list entirely. The pane now waits until the tile can take the keyboard
+  again, and gives it back.
+
 - **Half the tags were unreachable.** The tag line drew only the first twelve
   of the library's twenty-four, so the rest could not be picked as filters at
   all — and the only thing that unfolded the line was opening the settings,
