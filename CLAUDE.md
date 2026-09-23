@@ -121,6 +121,19 @@ second time on a deck whose every slide carries its own label, where one press
 left **two slides both reading `SLIDE-05`** — so `docs/MANUAL.md` now says to
 press it twice for an "onto this slide" insert.
 
+**A fourth round on 2026-09-23, against `bd91527`**, verified the id-based runs
+on the host. A stamp over 39 selected slides with a slide dragged from position
+30 to 5 mid-run: **39 labels gained exactly one** stamp, the dragged one among
+them, the unselected slide untouched, nothing doubled, nothing lost, and the
+pane's count matching the deck — where the positional code had reported 59 over
+58. A removal over the same 39 with another drag: every stamp gone, the deck
+still 40 slides, no label lost. Regression the same round: insert, the pane's
+Undo returning the deck identical to baseline by id and label, Stop at cycle 6
+of 39 leaving exactly six changed, "Used in this deck" naming those six, and a
+removal putting every slide back to where it started. **Not settled:** a slide
+DELETED mid-run, which `test/pane-wiring.test.ts` covers and no round has yet
+caught a host doing — `docs/BACKLOG.md` says why and what it found instead.
+
 **A third round on 2026-09-23, against `faf101e`**, verified the transition fix
 on the host (a new slide off a slide carrying a transition and an animation came
 back with neither, its source keeping both) and settled the mid-run reorder: the

@@ -1631,6 +1631,38 @@ cycles, over a fake deck that has a real order to be reordered; both cases were
 run red against the positional code first, on the assertion about which index
 was deleted.
 
+**Verified against a real PowerPoint on 2026-09-23**, against `bd91527`, on the
+40-slide deck whose every slide carries its own label. The property the fix
+promises does not depend on when the drag lands, which is what makes it
+checkable without hitting a 150 ms window:
+
+- **A stamp over 39 selected slides, with a slide dragged from position 30 to
+  position 5 while it ran.** Thirty-nine labels gained **exactly one** stamp —
+  every selected slide, the dragged one among them. `SLIDE-01`, the one slide
+  not selected, was untouched; nothing gained two; nothing was lost; and the
+  pane's "Stamped 39 slides" matched the deck. The same scenario against the
+  positional code reported 59 where 58 had gained one.
+- **A removal over the same 39 slides, with a slide dragged from 28 to 3 while
+  it ran.** All thirty-nine stamps gone, the deck still forty slides, **no
+  label lost**. This is the path that takes content out of a deck.
+- **Regression in the same round**: insert onto a slide (`40 → 41 → 40`); the
+  pane's Undo returning the deck **identical to baseline by id, label and shape
+  count**; Stop at cycle 6 of 39 leaving exactly `SLIDE-02`…`SLIDE-07` changed
+  and 34 untouched; "Used in this deck" naming exactly those six; and a removal
+  putting every slide back to the shape count it started with.
+
+**What the round did NOT settle.** The skip path — a slide DELETED while the
+run is going, which must be passed over rather than deleted into — was not
+cleanly measured. Two attempts were defeated by timing: the first deletion
+landed after the run had already reached that slide, and the second landed
+inside a cycle's count confirmation, where the deck shrinking by one is
+indistinguishable to the pane from its own delete having failed. The run then
+stopped and said "the deck has a slide too many", which is the conservative
+answer and tells the user to look — but the deck had no extra slide, so the
+sentence names the wrong cause. Nothing was lost in either attempt, and the
+unit cases in `test/pane-wiring.test.ts` do cover the skip; what is missing is
+the host's own word for it.
+
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
 neither device, so the validators' report is the first measurement for both
