@@ -45,7 +45,44 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### The two library decks disagree about their categories
+### The two library decks: edited, waiting on a re-print
+
+**The edits are made and the disagreement is closed.** What is left is a
+PowerPoint job nobody in a container can do.
+
+Both decks now harvest to the same 10 categories in the same order, 106
+elements each, and **zero elements filed differently** — `npm run harvest` no
+longer prints its categorisation warning at all. The owner settled the two
+content questions on 2026-09-23: 16:9 over-divided, so its
+`Hvide kasser med sorte overskrifter` heading went and those four elements fell
+into `Hvide kasser`; and `[ KPI definition … ]` belongs under
+`One-page templates`, so the 4:3 deck's copy moved there.
+
+**Left, and only the owner can do it:** re-print both decks and re-stamp.
+
+1. Open each deck in PowerPoint and print it to PDF over
+   `template/library-16x9.pdf` and `template/library-4x3.pdf`, the way
+   `docs/DESIGN.md` section 3 records.
+2. `npm run print-stamp --powerpoint <version>`.
+3. Commit the PDFs and the sidecars.
+
+Until then `test/print.test.ts` fails three cases and CI is red, which is the
+gate doing its job:
+
+```
+library-16x9: the deck has changed since the print was taken — re-print it
+library-16x9: sidecar says 109 slides, the deck has 108
+library-16x9: 109 pages for 108 slides — the cuts land on the wrong page
+library-4x3:  the deck has changed since the print was taken — re-print it
+```
+
+**The 4:3 line is why this cannot be waved through.** That deck still has 107
+slides and its print still has 107 pages, so only the SHA catches it — and
+`npm run previews` cuts every tile picture out of the PDF **by page**. Shipping
+the reorder without a re-print would put the wrong picture on every tile from
+the moved slide onwards, on the live site, silently.
+
+### The two library decks disagreed about their categories — settled, see above
 
 **The owner's decks, not the code**, and the only item here nobody but the
 owner can close. Found 2026-09-23 by a finder over `scripts/harvest.mjs`, whose
