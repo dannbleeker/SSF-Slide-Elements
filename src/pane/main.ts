@@ -705,7 +705,21 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   // the footer reported plain success over it.
   const target = element.kind === "part" ? "onto" : (once ?? state.settings.target);
 
-  set({ busy: true, busyWith: "insert", chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
+  // `noQuestion`: an insert rewrites `state.recent` through `remember`, which
+  // DROPS the oldest id once the list is six long — so a question open on that
+  // element's Recent tile was left drawn nowhere, with the Remove button
+  // suppressed on every tile because one was notionally open and nothing on
+  // screen saying why. The rule `noQuestion` states is the general one, and an
+  // insert is a state change like any of the others that spread it.
+  set({
+    busy: true,
+    busyWith: "insert",
+    chosen: id,
+    notice: INSERTING,
+    outcome: undefined,
+    menuFor: undefined,
+    ...noQuestion,
+  });
   // Before the first await: from here on, any deck read running underneath this
   // is reading a deck this pane is in the middle of changing.
   deckEdits += 1;

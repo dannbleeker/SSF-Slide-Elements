@@ -583,6 +583,13 @@ exception for width.
     edge as often as not; and the tile's name is at its bottom, so a menu there
     hides which element it belongs to. Nothing about where the pointer was
     reaches the pane's state, which is also what lets the shot audit draw it.
+  - **A question does not outlive its tile, an insert included.** The question
+    is drawn on the tile and nowhere else, and while one is open the Remove
+    button is suppressed on every tile — so a question whose tile has gone
+    leaves the pane in a state nothing on screen describes. Every change that
+    can take a tile off the screen drops it: search, tags, category, star,
+    clear, chip, and the insert, which rewrites Recent through `remember` and
+    so can drop the oldest entry's tile out from under a question opened there.
   - **One thing open at a time, refused at the OPENING end.** A right-click
     while a removal question is up leaves the browser's own menu alone. The
     pane used to cancel the event and set the menu anyway, while the renderer

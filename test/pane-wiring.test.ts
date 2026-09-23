@@ -2308,6 +2308,44 @@ describe("removing a part from every slide it is on", () => {
     expect(host.cycles).toBe(0);
   });
 
+  it("does not let the question outlive an insert", async () => {
+    /**
+     * `noQuestion` is spread into every handler that can take a tile off the
+     * screen — search, tags, category, star, clear, chip — and `insert` was not
+     * one of them, although a successful insert rewrites `state.recent` through
+     * `remember(…, RECENT_DEPTH)`, which DROPS the oldest id once the list is
+     * six long. Tiles are not disabled while a question is open, so inserting
+     * with one up is an ordinary thing to do.
+     *
+     * With Recent full and the question open on the oldest entry's Recent tile,
+     * an insert of a seventh element left no tile with that key: the question
+     * was drawn nowhere, the Remove button was suppressed on every tile because
+     * one was notionally open, and nothing on screen said why or how to leave.
+     * Escape was the only exit that is ABOUT the question, and the user had no
+     * reason to reach for it.
+     *
+     * The rule is the one `noQuestion` already states — a question about a tile
+     * does not outlive the tile — so an insert drops it, whether or not this
+     * particular insert would have dropped that particular tile.
+     */
+    const pane = await askedToRemove();
+    showEveryCategory(pane);
+    expect(pane.querySelector(".tile-ask"), "the question is up to begin with").not.toBeNull();
+    expect(pane.querySelector('[data-action="remove"]'), "and Remove is suppressed while it is").toBeNull();
+
+    const tile = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "one-box",
+    ) as HTMLElement;
+    tile.click();
+    await idle(pane);
+
+    expect(pane.querySelector(".tile-ask"), "the question survived an insert").toBeNull();
+    expect(
+      pane.querySelector('[data-action="remove"]'),
+      "and it was still suppressing Remove on every tile, with nothing on screen to lift it",
+    ).not.toBeNull();
+  });
+
   it("refuses a right-click while the question is open, rather than hiding a menu behind it", async () => {
     /**
      * `onContextMenu` did not look at `state.removing`. It called

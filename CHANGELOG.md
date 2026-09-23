@@ -14,6 +14,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A question about removing an element no longer survives the insert that
+  takes its tile away.** With six elements in Recent, opening "Remove from N
+  slides" on the oldest one's Recent tile and then inserting anything else left
+  the question drawn nowhere at all — and with a question notionally open, the
+  Remove button was hidden on every tile, with nothing on screen saying why or
+  how to get out of it. Inserting now closes the question, as searching,
+  starring and picking a category already did.
+
 - **The count above the list no longer reads as though something were
   filtered.** With an empty search box it said "73 of 106" — a count of tiles
   over a count of elements, two different things, since an element that comes in
