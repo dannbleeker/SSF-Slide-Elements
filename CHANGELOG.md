@@ -509,6 +509,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   must build its package — drawn from nothing. It now says which arm is
   unanswered and asks for it to be re-run.
 
+### Changed — the toolchain
+
+- The linter moved forward one minor version. Nothing a user installs changed:
+  it does not reach the add-in itself.
+
 ## [0.1.0] - 2026-09-16
 
 The first release. Everything below is what the add-in does the day it ships:
