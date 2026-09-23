@@ -131,32 +131,31 @@ is written down rather than guessed at.
 The one open item **this repo can finish on its own**, and the only one that is
 code.
 
-`scripts/mutants.mjs` now runs **seven** operators — boundary, operands,
-boolean, negation, fallback, guard, off-by-one — over `src/core`, `src/host`
-and `src/pane`. Every survivor they can find is closed: 48 recorded
+`scripts/mutants.mjs` now runs **eight** operators — boundary, operands,
+boolean, negation, fallback, guard, off-by-one, field — over `src/core`,
+`src/host` and `src/pane`. Every survivor they can find is closed: 48 recorded
 equivalents, and the last sweep of each left nothing alive.
 
-**`operands` was added on 2026-09-14 and found nothing, which is the result.**
-It swaps a comparison's operands — `rect.cx <= room.x` becomes
-`room.x <= rect.cx` — which moves a comparison's SENSE where `boundary` only
-moves its EDGE. 81 sites, **81 killed, 0 surviving**. Two were checked by hand
-rather than trusted to the counter, because a mutant that fails to parse also
-counts as killed: the overlap test in `cut.ts` went red on "paints out a part
-that intrudes on the crop" (1 box expected, 0 produced), and the export-loss
-comparison in `probe.ts` went red on "names what the export dropped" with the
-verdict flipping `yes` to `no`. Both are behaviour, not syntax.
+**`field` was added on 2026-09-23 and left no survivor.** It empties each
+top-level field of a returned object literal to `undefined`, asking whether any
+test READS a value where the other seven ask whether it is computed right. 323
+sites over 20 of the 35 files; the `--what field` sweep took 1 h 57 m on
+2026-09-23 and answered **265 killed by a test, 58 type-killed, 0 surviving, 0
+hung**.
 
-So the suite already distinguishes the direction of every comparison the
-operator can reach, and **that lowers the expected value of the three
-candidates left**, which were ranked on the same reasoning this one was:
-dropping an argument at a call, replacing a returned object's field with its
-zero value, and exchanging `&&`/`||` chains' grouping. Of those, only the
-returned-field one asks a question the seven do not — an argument dropped at a
-call is mostly a type error, which the type checker already refuses. Worth
-doing when something else is not more valuable; not worth doing next simply
-because it is here.
+The 58 are worth one sentence, because a type-kill is a mutant the TESTS did
+not notice. They are required fields — 42 of them `verdict` and `detail` in
+`src/host/probe.ts`, 11 in `src/pane/steps.ts`'s outcomes — whose presence the
+type checker guarantees and whose VALUE no test asserts at that return. By this
+script's own rule that is caught by `npm run typecheck` in CI and is not a hole;
+it is written down so that "the tests pin every probe sentence" is not what
+anybody concludes from the clean result.
 
-Each needs the same treatment every operator here has had — a gate in
+What is left is **exchanging `&&`/`||` chains' grouping**, the one candidate
+still asking a question none of the eight does. Worth doing when something else
+is not more valuable.
+
+Each operator needs the same treatment every one here has had — a gate in
 `test/mutants.test.ts` that is **proven to fail without it**, and a `FAST` row
 if it makes a file expensive. `--what <operator>` sweeps one operator alone,
 which is what makes adding one cost minutes rather than a whole sweep.
@@ -284,6 +283,11 @@ call.
   siblings on every toolchain major, pointed its CNAME at a different subdomain,
   and measured nothing against a host. The increments above are rebuilt from
   the siblings, not from it.
+- **A mutation operator that drops an argument at a call.** Rejected by the
+  owner on 2026-09-23 with the `field` operator's plan: a dropped argument is
+  almost always a type error, which `tsc` already refuses and which every
+  survivor is already put through, so the sweep would spend its time producing
+  type-kills.
 - **Twelve pane ideas the owner turned down** on 2026-09-08, listed in the
   decisions log of `docs/DESIGN.md`: among them an authored tag vocabulary, a
   per-element description, a "New" chip, swapping the element already on the

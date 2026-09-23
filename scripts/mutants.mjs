@@ -25,7 +25,8 @@
  * The pure decision code — `src/host` and the flat pure files of `src/pane` —
  * AND the engine, `src/core`. Nothing that talks to Office.js. 1,156 mutations
  * across 35 files as of 2026-09-16: 804 in `src/core`, 180 in `src/pane`, 172
- * in `src/host`.
+ * in `src/host`. The `field` operator added 323 more on 2026-09-23, counted
+ * alone: 97 in `src/core`, 61 in `src/pane`, 165 in `src/host`.
  *
  * This paragraph said "nothing in `src/core`, whose tests are the slow half of
  * the suite" until 2026-09-16, three days after `TARGETS` below gained the
