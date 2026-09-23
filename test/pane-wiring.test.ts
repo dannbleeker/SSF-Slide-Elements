@@ -87,6 +87,7 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
+  selectedSlides: () => Promise.resolve(host.selectedSlides),
   slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
   onSlideChange: () => {
     host.followed += 1;
@@ -159,12 +160,16 @@ async function waitFor(what: string, done: () => unknown, ticks = WAIT_TICKS): P
   }
   throw new Error(`waited ${(ticks * 5) / 1000}s for ${what}, and it never happened`);
 }
-const spliced: { target: string }[] = [];
+const spliced: { target: string; slide: number }[] = [];
 /** Every store fetch, with the library size the store answering it was built for. */
 const storeFetches: { size: string; what: string }[] = [];
 vi.mock("../src/core/splice/splice.js", () => ({
-  splice: async (request: { options: { target: string }; store: (path: string) => Promise<unknown> }) => {
-    spliced.push({ target: request.options.target });
+  splice: async (request: {
+    slide: number;
+    options: { target: string };
+    store: (path: string) => Promise<unknown>;
+  }) => {
+    spliced.push({ target: request.options.target, slide: request.slide });
     // The real splice fetches every carried part through this closure, from
     // inside `carry`, several awaits deep. The hold lets a case put that fetch
     // AFTER something else has happened — which is the whole race here.
@@ -243,6 +248,8 @@ const host = {
   url: undefined as string | undefined,
   /** How many times the pane asked to be told about a slide change. */
   followed: 0,
+  /** What `selectedSlides` answers: every selected slide, counting from zero. */
+  selectedSlides: undefined as number[] | undefined,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -562,6 +569,7 @@ afterEach(async () => {
   host.holdRead = undefined;
   host.spliceHold = undefined;
   host.followed = 0;
+  host.selectedSlides = undefined;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -2306,6 +2314,125 @@ describe("removing a part from every slide it is on", () => {
     (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
     expect(pane.querySelector(".tile-ask")).toBeNull();
     expect(host.cycles).toBe(0);
+  });
+
+  it("stamps every selected slide, one cycle each, in the deck's own order", async () => {
+    /**
+     * `docs/DESIGN.md` section 5 has asserted "a stamp or a label with several
+     * slides selected lands on every selected slide" since the record was
+     * written, and nothing implemented it: `currentSlide` kept only
+     * `selected.items[0]` and `insert` drove exactly one splice, one insert and
+     * one removal. Selecting slides 2, 5 and 9 and clicking the Confidential
+     * stamp put it on slide 2, left the other two untouched, and reported plain
+     * success over all three.
+     *
+     * NOT one insert, whatever the record used to say.
+     * `insertSlidesFromBase64` puts every slide of its package CONTIGUOUSLY
+     * after one `targetSlideId` — `CLAUDE.md` records a run that put 37
+     * generated slides ahead of a title slide — so rebuilt copies of scattered
+     * slides would arrive in a block and the deck's order would be gone. One
+     * cycle per slide, each aimed at its own target, is what keeps it.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [4, 1, 8];
+    host.current = { index: 1, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    // SORTED, and one cycle each. Ascending matters: every cycle is net zero on
+    // the slide count, so a later slide is still at the index this code
+    // computed only if the earlier ones have already been put back.
+    expect(spliced.map((one) => one.slide), "it did not splice into every selected slide, in order").toEqual([1, 4, 8]);
+    expect(
+      spliced.every((one) => one.target === "onto"),
+      "a part went through the new-slide path",
+    ).toBe(true);
+    expect(host.removed, "each original was not taken away at its own position").toEqual([1, 4, 8]);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome).toContain("Stamped 3 slides");
+    // The pane's Undo is one insert deep and positional, so it cannot take back
+    // three — and a button silently gone is worse than a sentence.
+    expect(pane.querySelector('[data-action="undo"]'), "it offered an Undo it cannot honour").toBeNull();
+    expect(outcome, "and did not say so").toMatch(/pane cannot undo/i);
+  });
+
+  it("leaves one selected slide to the ordinary insert, Undo and all", async () => {
+    // `stampTargets` answers the empty list under two slides, which is what
+    // hands the ordinary path back: a loop of one would report a different
+    // sentence and disarm an Undo that works perfectly well.
+    indexMode = "ok";
+    host.selectedSlides = [1];
+    host.current = { index: 1, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    expect(spliced.length, "one selected slide went round the several-slide loop").toBe(1);
+    expect(pane.querySelector(".outcome")?.textContent ?? "").not.toContain("Stamped");
+    expect(pane.querySelector('[data-action="undo"]'), "the ordinary insert lost its Undo").not.toBeNull();
+  });
+
+  it("leaves a WHOLE-SLIDE element alone however many slides are selected", async () => {
+    // Section 5 gives the several-slide landing to a stamp or a label — a
+    // PART. A whole-slide element with three slides selected would be three
+    // copies of a slide the user asked for once.
+    indexMode = "ok";
+    host.selectedSlides = [0, 1, 2];
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const tile = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "one-box",
+    ) as HTMLElement;
+    tile.click();
+    await idle(pane);
+
+    expect(spliced.length, "a whole-slide element was stamped onto every selected slide").toBe(1);
+    expect(pane.querySelector('[data-action="undo"]'), "and lost its Undo with it").not.toBeNull();
+  });
+
+  it("stops at the first cycle it cannot confirm, and says how far it got", async () => {
+    // The insert landed and the count would not come back, so this slide's
+    // original is still there without the stamp and a stamped copy sits beside
+    // it. "The rest are as they were" is false of that slide, and trying again
+    // would add another copy.
+    indexMode = "ok";
+    host.selectedSlides = [1, 4];
+    host.current = { index: 1, id: "256" };
+    // The SECOND cycle's removal check: each cycle asks twice, so reads 1 and 2
+    // are the first slide's and read 4 is the second slide's removal.
+    host.missCountAt = 4;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome).toContain("Stamped 1 of 2 slides");
+    expect(outcome, "it claimed the rest were untouched over a deck one slide longer").toContain("a slide too many");
+    expect(outcome).not.toContain("as they were");
   });
 
   it("does not let the question outlive an insert", async () => {

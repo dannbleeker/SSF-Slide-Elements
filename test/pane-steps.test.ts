@@ -19,6 +19,7 @@ import {
   remember,
   removableFrom,
   removalOutcome,
+  stampOutcome,
   removeLabel,
   removeQuestion,
   settingsLine,
@@ -398,6 +399,53 @@ describe("taking a part off the slides it is on", () => {
     expect(short.byHand).toBe(true);
     expect(short.detail).toContain("Removed from 2 of 3 slides");
     expect(short.detail).toContain("as they were");
+  });
+
+  it("says how many slides a stamp reached, and that the pane cannot take it back", () => {
+    /**
+     * `docs/DESIGN.md` section 5's several-slide stamp. It is ADDITIVE, so it
+     * is not asked first the way a removal is — but the pane's Undo is one
+     * insert deep and positional, so it cannot take back several, and the
+     * button is gone when it lands. A user left to notice that for themselves
+     * is a user who does not know whether the pane thinks it worked.
+     *
+     * PowerPoint's own Ctrl+Z does revert an insert — question 5, measured on
+     * the web and on Windows — which is the route that does exist, so the
+     * sentence names it.
+     */
+    const all = stampOutcome("Confidential", 3, 3);
+    expect(all.ok).toBe(true);
+    expect(all.byHand).toBe(false);
+    expect(all.detail).toContain("Stamped 3 slides");
+    expect(all.detail, "it did not say the pane cannot undo it").toMatch(/pane cannot undo/i);
+    expect(all.detail, "and did not name the Undo that does work").toMatch(/PowerPoint's own Undo/i);
+
+    expect(stampOutcome("Confidential", 1, 1).detail).toContain("Stamped 1 slide.");
+
+    const short = stampOutcome("Confidential", 1, 3);
+    expect(short.ok).toBe(false);
+    expect(short.byHand).toBe(true);
+    expect(short.detail).toContain("Stamped 1 of 3 slides");
+    expect(short.detail).toContain("as they were");
+  });
+
+  it("does not say the rest are as they were when a stamp cycle left its copy behind", () => {
+    /**
+     * The insert landed and the delete did not: the slide's ORIGINAL is still
+     * there without the stamp, and a stamped copy sits beside it. "The rest are
+     * as they were" is false of that slide, and inviting the user to try again
+     * is worse than false — each failed cycle leaves another copy, so a user
+     * following that advice grows their deck one slide at a time. The removal
+     * path learned this the same way.
+     */
+    const stranded = stampOutcome("Confidential", 1, 3, true);
+    expect(stranded.ok).toBe(false);
+    expect(stranded.byHand).toBe(true);
+    expect(stranded.detail).toContain("a slide too many");
+    expect(stranded.detail, "it still claimed the rest were untouched").not.toContain("as they were");
+    // No slide number: the positions this code holds are the ones the failed
+    // cycle just moved.
+    expect(stranded.detail).not.toMatch(/slide \d/);
   });
 
   it("says nothing changed when there was nothing left to remove", () => {

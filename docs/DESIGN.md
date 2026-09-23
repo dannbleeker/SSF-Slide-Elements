@@ -498,7 +498,42 @@ exception for width.
   title.
 - A part ignores the insert target: it always lands on the slide the user is
   on. A stamp or a label with several slides selected lands on every selected
-  slide in one insert.
+  slide.
+
+  **Built 2026-09-23, and NOT "in one insert", which is what this line said
+  from the day it was written and until the day it was built.** That cannot be
+  done: `insertSlidesFromBase64` puts every slide of its package CONTIGUOUSLY
+  after one `targetSlideId` — `CLAUDE.md` records a real run that put 37
+  generated slides ahead of a title slide — so rebuilt copies of slides 2, 5
+  and 9 would arrive as a block and the deck's own order would be gone. Keeping
+  the order means aiming each copy at its own slide, and that is one insert
+  each.
+
+  So it is `removeEverywhere`'s shape with a different payload: one deck read
+  for the whole run, one insert-then-positional-delete cycle per slide, each
+  confirmed by the DELTA before the next starts, the positional delete guarded
+  by reading the target id back, and the first step that cannot be confirmed
+  stops the run with the footer saying how far it got. The slides are worked
+  through in ascending order, which matters because each cycle is net zero on
+  the slide count — so a later slide is still at the index this code computed
+  only once the earlier ones have been put back.
+
+  **The pane's Undo is disarmed and the footer says so.** It is one insert deep
+  and positional, so it cannot take back several; a button silently gone is
+  worse than a sentence. PowerPoint's own Ctrl+Z reverts an insert (question 5,
+  measured on the web and on Windows), and the sentence names it. Unlike a
+  removal this is not asked first, because it adds rather than takes away.
+
+  One selected slide, or a host that will not say, runs the ordinary
+  single-slide insert with its ordinary Undo — `stampTargets` answers the empty
+  list under two slides, which is what hands that path back. A whole-slide
+  element is untouched by any of this: three selected slides would be three
+  copies of a slide the user asked for once.
+
+  **Not measured on a real host.** The cycle shape is the one the removal has
+  run on PowerPoint for the web (2026-09-13); this payload has not, and
+  `selectedSlides` — the read behind it — has never been asked of a real
+  PowerPoint for more than its first item.
 
 ## 6. Inserting
 

@@ -277,6 +277,60 @@ export async function currentSlide(within: number = BUDGET.read): Promise<Curren
 }
 
 /**
+ * EVERY selected slide, as positions counting from zero.
+ *
+ * `currentSlide` above keeps only `selected.items[0]`, which is the whole of
+ * what the insert needs for one slide and is why `docs/DESIGN.md` section 5's
+ * "a stamp or a label with several slides selected lands on every selected
+ * slide" was never built. This is the same read with the same guards, asked for
+ * the whole list.
+ *
+ * Every rule `currentSlide` learned applies here and is not re-derived:
+ * `load("items/id")` by name, because `load("items")` loads no properties; the
+ * scalar count in the SAME batch, because a collection read over about fifty
+ * items answers short on the web; `sameSlideId` rather than `===`, because a
+ * selection id can lack the `#suffix` the deck's list carries
+ * (office-js#2474); and an id that matches TWICE is refused rather than guessed
+ * at. A selection entry this deck cannot place is dropped, so the caller gets
+ * the slides that were certainly named rather than a list with a hole in it —
+ * and if that drops it below two, `stampTargets` answers the empty list and the
+ * ordinary single-slide path runs, which is the conservative end.
+ *
+ * Answers undefined for a host below 1.5, for an empty selection, and for a
+ * short read, which is the same "do not guess" `currentSlide` makes. There is
+ * no `null` here because no caller keeps a line fresh from it: a stamp either
+ * knows every slide it is going onto or does not take this path at all.
+ */
+export async function selectedSlides(within: number = BUDGET.read): Promise<number[] | undefined> {
+  if (!hostSupports("1.5")) return undefined;
+  try {
+    return await withTimeout(
+      PowerPoint.run(async (context) => {
+        const selected = context.presentation.getSelectedSlides();
+        selected.load("items/id");
+        const all = context.presentation.slides;
+        all.load("items/id");
+        const count = all.getCount();
+        await context.sync();
+        if (!whole(all.items.length, count.value)) return undefined;
+        const at: number[] = [];
+        for (const one of selected.items) {
+          const index = all.items.findIndex((s) => sameSlideId(s.id, one.id));
+          if (index < 0) continue;
+          if (all.items.some((s, other) => other !== index && sameSlideId(s.id, one.id))) continue;
+          at.push(index);
+        }
+        return at.length > 0 ? at : undefined;
+      }),
+      within,
+      "asking which slides are selected",
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * The selected shape's rectangle, for an element that lands "at the cursor".
  *
  * An add-in cannot see the mouse on the canvas; `docs/DESIGN.md` section 5 says

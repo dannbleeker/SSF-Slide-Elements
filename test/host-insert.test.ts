@@ -5,6 +5,7 @@ import {
   landedOn,
   mayRemove,
   outcomeOf,
+  stampTargets,
   stillThere,
   type Attempt,
   undoPlan,
@@ -432,5 +433,42 @@ describe("outcomeOf, when the deck moved under the insert", () => {
     // every un-removed copy would lose it.
     const out = outcomeOf({ target: "onto", slide: 3, before: 8, inserted: 9 });
     expect(out.detail).toContain("delete slide 3 by hand");
+  });
+});
+
+describe("which slides a stamp lands on", () => {
+  /**
+   * `docs/DESIGN.md` section 5 has asserted "a stamp or a label with several
+   * slides selected lands on every selected slide" since the record was
+   * written, and nothing implemented it: `currentSlide` kept only
+   * `selected.items[0]`, so selecting slides 2, 5 and 9 and clicking the
+   * Confidential stamp put it on slide 2 and reported plain success over the
+   * two that were untouched.
+   */
+  it("takes over only when the host names more than one slide", () => {
+    // Under two, the ordinary single-slide path runs — answering a list of one
+    // would be a loop of one, with a different footer sentence and the pane's
+    // Undo disarmed for no reason.
+    expect(stampTargets(undefined), "no selection read").toEqual([]);
+    expect(stampTargets([]), "an empty selection").toEqual([]);
+    expect(stampTargets([4]), "one slide").toEqual([]);
+    expect(stampTargets([4, 7])).toEqual([4, 7]);
+  });
+
+  it("sorts what the host hands back, and drops a slide named twice", () => {
+    // SORTED, because each cycle is net zero on the slide count — the copy
+    // lands after the original and the original is taken away — which keeps
+    // later indices where this code computed them ONLY if they are worked
+    // through in order. Nothing in the record says the host's selection is
+    // sorted; the probe measured that its ORDER matches the file's, which is
+    // not the same promise.
+    expect(stampTargets([9, 1, 4])).toEqual([1, 4, 9]);
+    // A duplicate would stamp one slide twice and count it as two.
+    expect(stampTargets([3, 3, 1])).toEqual([1, 3]);
+    expect(stampTargets([3, 3]), "one slide named twice is still one slide").toEqual([3]);
+  });
+
+  it("keeps the zeroth slide, which is a position and not a missing value", () => {
+    expect(stampTargets([2, 0])).toEqual([0, 2]);
   });
 });

@@ -509,6 +509,54 @@ export function removeQuestion(element: Element, slides: number[]): string {
 }
 
 /**
+ * How far a several-slide stamp got, for the footer.
+ *
+ * `docs/DESIGN.md` section 5 asks for a stamp with several slides selected to
+ * land on every selected slide. It cannot be one `insertSlidesFromBase64`,
+ * whatever the record used to say: that call puts every slide of its package
+ * CONTIGUOUSLY after one `targetSlideId` — `CLAUDE.md` records a run that put
+ * 37 generated slides ahead of a title slide — so copies of slides 2, 5 and 9
+ * would arrive in a block and the deck's own order would be gone. Order is
+ * kept by aiming each rebuilt copy at its own slide, which is one cycle each,
+ * the shape `removeEverywhere` already uses and has run on a real host.
+ *
+ * So the sentence is the removal's, from the other end, and it carries the
+ * same third answer for a cycle that left its copy behind. The stamp is
+ * ADDITIVE, unlike a removal, which is why it is not asked first — but the
+ * pane's Undo is one insert deep and cannot take back several, so the
+ * successful sentence says so rather than leaving a user to find the Undo
+ * button gone with no explanation. PowerPoint's own Ctrl+Z reverts an insert
+ * (question 5, measured on the web and on Windows), which is the route that
+ * does exist.
+ */
+export function stampOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
+  const ok = done === wanted;
+  if (!ok && strandedCopy) {
+    // The insert landed and the delete did not: this slide's ORIGINAL is still
+    // there without the stamp, and a stamped copy sits beside it. No slide
+    // number, for the reason `outcomeOf`'s reorder branch gives — the positions
+    // this code holds are the ones the failed cycle just moved.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Stamped ${done} of ${wanted} slides, and the deck has a slide too many: ` +
+        `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
+  return {
+    ok,
+    byHand: !ok,
+    name: element,
+    detail: ok
+      ? `Stamped ${done === 1 ? "1 slide" : `${done} slides`}. The pane cannot undo this one; PowerPoint's own Undo can.`
+      : `Stamped ${done} of ${wanted} slides. The rest are as they were — try again, or stamp them one at a time.`,
+  };
+}
+
+/**
  * How far a removal got, for the footer.
  *
  * Three answers, not two. "All of them" and "some of them" are the obvious

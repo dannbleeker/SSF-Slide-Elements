@@ -10,14 +10,25 @@
  * produce one number that hides both.
  */
 import { occupiedBoxes } from "../core/catalogue/boxes.js";
-import type { Box } from "../core/catalogue/types.js";
+// `Element` is aliased because the DOM has one too, and this file is full of
+// both. `LibraryElement` is what the catalogue means by it.
+import type { Box, Element as LibraryElement, Markup } from "../core/catalogue/types.js";
 import { slideSize } from "../core/pptx/layout.js";
 import { Pkg } from "../core/pptx/pkg.js";
 import { usedInDeck } from "../core/pptx/tags.js";
 import { removeElement, slidesHolding } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
-import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, stillThere, undoPlan } from "../host/insert.js";
+import {
+  INSERTING,
+  announcement,
+  landedOn,
+  mayRemove,
+  outcomeOf,
+  stampTargets,
+  stillThere,
+  undoPlan,
+} from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
 import { GLOBAL_KEY, deckKey } from "../host/memory.js";
@@ -37,6 +48,7 @@ import {
   readDeck,
   removeSlideAt,
   selectedShape,
+  selectedSlides,
   countReaching,
   slideCount,
   slideIdAt,
@@ -59,6 +71,7 @@ import {
   removableFrom,
   removalOutcome,
   removeQuestion,
+  stampOutcome,
   stepFor,
   tileKey,
   toggle,
@@ -728,6 +741,16 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   try {
     const markup = await parts.markup(element);
     const deck = await readDeck();
+    // Section 5's several-slide stamp. Read only for a PART, because that is
+    // the only kind the record gives it to, and only after the two expensive
+    // fetches above so an ordinary one-slide insert pays nothing extra for a
+    // selection read it will not use. `stampTargets` answers the empty list for
+    // anything under two slides, which is what hands the ordinary path back.
+    const many = element.kind === "part" ? stampTargets(await selectedSlides()) : [];
+    if (many.length > 1) {
+      await stampEvery(element, { markup, deck: deck.base64, library, index, parts }, many);
+      return;
+    }
     const current = await currentSlide();
     const at = current?.index ?? 0;
     const before = await slideCount();
@@ -1215,6 +1238,123 @@ async function readUsed(): Promise<void> {
  * is the insert's, which has been measured on the web and on Windows, but a
  * sequence of them has not. `docs/DESIGN.md` section 15 says so.
  */
+/**
+ * A stamp onto every selected slide (`docs/DESIGN.md` section 5).
+ *
+ * ONE CYCLE PER SLIDE, not one insert. The record said "in one insert" until
+ * 2026-09-23 and that cannot be built: `insertSlidesFromBase64` puts every
+ * slide of its package CONTIGUOUSLY after one `targetSlideId` — `CLAUDE.md`
+ * records a real run that put 37 generated slides ahead of a title slide — so
+ * rebuilt copies of slides 2, 5 and 9 would arrive in a block and the deck's
+ * own order would be gone. Aiming each copy at its own slide keeps the order,
+ * and that is one insert each.
+ *
+ * Which makes this `removeEverywhere` with a different payload, and everything
+ * that path learned applies unchanged:
+ *
+ * - **One deck read for the whole run.** A cycle only rewrites the slide it
+ *   targets, so every package is built from the bytes read at the start. The
+ *   slides this run has already replaced are not among the ones still to come.
+ * - **Net zero per cycle**, so the indices of later slides do not move: the
+ *   copy lands after the original and the original is taken away. `many` is
+ *   sorted for that reason.
+ * - **The raise is not consulted; the DELTA is.** A call that raises can still
+ *   have done the work, and a call that raises nothing may not have.
+ * - **The positional delete is guarded by an id read back.** `at` was computed
+ *   before the host calls and the pane locks itself rather than PowerPoint, so
+ *   a user can drag a slide in the strip in that window. A mismatch leaves the
+ *   copy standing, which is the failure `CLAUDE.md` asks for: a duplicate the
+ *   user can delete rather than a slide they lost.
+ *
+ * **The pane's Undo is disarmed**, for the reason `removeEverywhere` gives:
+ * `undoable` holds the whole deck as it was before an EARLIER insert, one
+ * insert deep and positional, and it stops describing this deck at the first
+ * cycle that lands. The footer says so rather than leaving the button silently
+ * gone. PowerPoint's own Ctrl+Z does revert an insert — question 5, measured on
+ * the web and on Windows — which is the route that does exist.
+ */
+async function stampEvery(
+  element: LibraryElement,
+  from: { markup: Markup; deck: string; library: Library; index: Index; parts: Store },
+  many: number[],
+): Promise<void> {
+  set({ notice: `Stamping ${element.name} onto ${many.length} slides…` });
+  let done = 0;
+  /** Whether a cycle left its copy behind, which changes what may be said. */
+  let stranded = false;
+  try {
+    for (const at of many) {
+      const before = await slideCount();
+      const targetId = await slideIdAt(at);
+      if (targetId === undefined) break;
+      const report = await splice({
+        deck: from.deck,
+        slide: at,
+        element: {
+          id: element.id,
+          name: element.name,
+          kind: element.kind,
+          box: element.box,
+          landing: element.landing,
+          ...(wrapsSelection(element) ? { wraps: true } : {}),
+          markup: { xml: from.markup.xml, rels: from.markup.rels },
+        },
+        // A part ignores the insert target, and with several slides selected
+        // there is no "the slide you are on" to ignore it in favour of.
+        options: { ...state.settings, target: "onto" },
+        catalogue: {
+          version: from.library.version,
+          carried: carriedTypes(from.index, from.library.size),
+          theme: themeColours(from.index, from.library.size),
+          width: from.library.width,
+          height: from.library.height,
+        },
+        store: (path) => from.parts.part(path),
+      });
+      await insertPackage(report.base64, targetId);
+      if ((await countReaching(before + 1)) !== before + 1) break;
+      if (!stillThere(targetId, await slideIdAt(at))) {
+        // The copy landed and the slide it was aimed at has moved, so the
+        // positional delete below would take somebody else's slide. Leaving the
+        // copy is the whole point of insert-then-remove.
+        stranded = true;
+        break;
+      }
+      await removeSlideAt(at);
+      if ((await countReaching(before)) !== before) {
+        stranded = true;
+        break;
+      }
+      done += 1;
+    }
+  } catch {
+    // `done` is the number of cycles seen through to the end, and the outcome
+    // below reports it. Whatever raised, the counts above are the evidence.
+  }
+
+  const outcome = stampOutcome(element.name, done, many.length, stranded);
+  undoable = undefined;
+  state = {
+    ...state,
+    busy: false,
+    busyWith: undefined,
+    moveable: undefined,
+    recent: done > 0 ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
+    undo: 0,
+    outcome,
+    // The deck has changed under the pane on several slides at once, and both
+    // of these describe one slide. Dropped rather than guessed: the next "See
+    // what this deck already uses" is what puts them back.
+    used: undefined,
+    onSlide: undefined,
+  };
+  delete state.notice;
+  keep();
+  draw();
+  announce(outcome.detail);
+  followSelection();
+}
+
 async function removeEverywhere(id: string): Promise<void> {
   const plan = state.removing;
   const element = elementOf(state.library, id);

@@ -12,7 +12,21 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - **The tag line has its chevron.** It shows one row of tags and the chevron at
   its right opens the rest, which is what the pane was always meant to do.
 
+- **A stamp on several slides at once.** Select more than one slide in the
+  slide strip, then click a stamp or a marker: it lands on every slide you
+  selected, and the footer says how many it reached. If a step cannot be
+  confirmed the run stops there and says how far it got, so you always know
+  what the deck holds. The pane cannot undo this one — PowerPoint's own
+  `Ctrl+Z` can — and it says so when it finishes. Selecting one slide, or
+  clicking a whole-slide element, works exactly as before.
+
 ### Fixed
+
+- **The pane now names a PowerPoint you can move to when it cannot run.** On a
+  PowerPoint too old for the add-in, the one screen you get said what was
+  missing and what it cost you, and left you to work out what to do about it.
+  It now names the versions that have it: a current Microsoft 365, PowerPoint
+  2021, or PowerPoint on the web.
 
 - **A question about removing an element no longer survives the insert that
   takes its tile away.** With six elements in Recent, opening "Remove from N

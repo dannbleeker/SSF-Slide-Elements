@@ -32,6 +32,26 @@ describe("the floor", () => {
     expect(answer.detail).toContain("SSF Slide Elements");
   });
 
+  it("names the fix, because that screen is the whole pane on a host below the floor", () => {
+    /**
+     * `docs/DESIGN.md` section 10: "The floor message when the host is below
+     * PowerPointApi 1.2, **naming the fix**: a current Microsoft 365,
+     * PowerPoint 2021, or PowerPoint on the web", under an opening line that
+     * every message "says what happened and what to do".
+     *
+     * It said what happened and stopped there. `main.ts` renders this detail
+     * verbatim as the entire pane on such a host, so nothing downstream adds
+     * the remedy — the user was told the add-in is useless here and given no
+     * version to move to. Three documents held three different answers: the
+     * record named the versions, the manual said "a newer PowerPoint", and the
+     * pane named none.
+     */
+    const answer = checkFloor(upTo("1.1"));
+    for (const fix of ["Microsoft 365", "2021", "PowerPoint on the web"]) {
+      expect(answer.detail, `the floor message does not name ${fix}`).toContain(fix);
+    }
+  });
+
   it("passes every host above it", () => {
     for (const top of ["1.3", "1.5", "1.8", "1.10"]) expect(checkFloor(upTo(top)).ok, top).toBe(true);
   });
