@@ -12,6 +12,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - **The tag line has its chevron.** It shows one row of tags and the chevron at
   its right opens the rest, which is what the pane was always meant to do.
 
+- **The two libraries now file every element the same way.** The widescreen and
+  4:3 libraries disagreed: one carried an extra section, "White boxes with black
+  headings", and five elements sat under different headings depending on which
+  shape of deck you had open. Both now show the same ten sections with the same
+  elements in each, so what you see no longer depends on your slide size.
+
 - **A running job can be stopped.** Stamping or removing across several slides
   works through them one at a time and can take minutes on a big deck, with the
   pane locked while it goes. A **Stop** button now sits at the bottom while one
@@ -502,6 +508,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   been refused, so the sheet carried a firm instruction about how the engine
   must build its package — drawn from nothing. It now says which arm is
   unanswered and asks for it to be re-run.
+
+### Changed — the toolchain
+
+- The linter moved forward one minor version. Nothing a user installs changed:
+  it does not reach the add-in itself.
 
 ## [0.1.0] - 2026-09-16
 

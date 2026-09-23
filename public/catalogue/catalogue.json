@@ -1,5 +1,5 @@
 {
-  "version": "a4aa69a0bc86",
+  "version": "39773d587500",
   "sizes": {
     "16:9": {
       "size": "16:9",
@@ -9,10 +9,6 @@
         {
           "key": "Hvide kasser",
           "name": "White boxes"
-        },
-        {
-          "key": "Hvide kasser med sorte overskrifter",
-          "name": "White boxes with black headings"
         },
         {
           "key": "Kun streger",
@@ -973,10 +969,10 @@
           "key": "To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser",
           "name": "Two vertical boxes with black heading boxes and conclusion boxes",
           "category": {
-            "key": "Hvide kasser med sorte overskrifter",
-            "name": "White boxes with black headings"
+            "key": "Hvide kasser",
+            "name": "White boxes"
           },
-          "slide": 38,
+          "slide": 37,
           "kind": "slide",
           "box": {
             "x": 0.0579,
@@ -998,10 +994,10 @@
           "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med venstrevendt pil",
           "name": "Commentary on content: content left, comments right, arrow pointing left",
           "category": {
-            "key": "Hvide kasser med sorte overskrifter",
-            "name": "White boxes with black headings"
+            "key": "Hvide kasser",
+            "name": "White boxes"
           },
-          "slide": 39,
+          "slide": 38,
           "kind": "slide",
           "box": {
             "x": 0.0583,
@@ -1015,8 +1011,7 @@
             "boxes",
             "arrows",
             "commentary",
-            "white",
-            "black"
+            "white"
           ]
         },
         {
@@ -1024,10 +1019,10 @@
           "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre uden pil",
           "name": "Commentary on content: content left, comments right, no arrow",
           "category": {
-            "key": "Hvide kasser med sorte overskrifter",
-            "name": "White boxes with black headings"
+            "key": "Hvide kasser",
+            "name": "White boxes"
           },
-          "slide": 40,
+          "slide": 39,
           "kind": "slide",
           "box": {
             "x": 0.0585,
@@ -1041,8 +1036,7 @@
             "boxes",
             "arrows",
             "commentary",
-            "white",
-            "black"
+            "white"
           ]
         },
         {
@@ -1050,10 +1044,10 @@
           "key": "Kommentering af indholdselement: Indholdselement til venstre, kommentering til højre med højrevendt pil",
           "name": "Commentary on content: content left, comments right, arrow pointing right",
           "category": {
-            "key": "Hvide kasser med sorte overskrifter",
-            "name": "White boxes with black headings"
+            "key": "Hvide kasser",
+            "name": "White boxes"
           },
-          "slide": 41,
+          "slide": 40,
           "kind": "slide",
           "box": {
             "x": 0.0573,
@@ -1067,8 +1061,7 @@
             "boxes",
             "arrows",
             "commentary",
-            "white",
-            "black"
+            "white"
           ]
         },
         {
@@ -1079,7 +1072,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 43,
+          "slide": 42,
           "kind": "slide",
           "box": {
             "x": 0.0693,
@@ -1102,7 +1095,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 44,
+          "slide": 43,
           "kind": "slide",
           "box": {
             "x": 0.0652,
@@ -1131,7 +1124,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 45,
+          "slide": 44,
           "kind": "slide",
           "box": {
             "x": 0.0616,
@@ -1160,7 +1153,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 46,
+          "slide": 45,
           "kind": "slide",
           "box": {
             "x": 0.0654,
@@ -1190,7 +1183,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 47,
+          "slide": 46,
           "kind": "slide",
           "box": {
             "x": 0.0616,
@@ -1220,7 +1213,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 48,
+          "slide": 47,
           "kind": "slide",
           "box": {
             "x": 0.0712,
@@ -1242,7 +1235,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 49,
+          "slide": 48,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -1267,7 +1260,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 50,
+          "slide": 49,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -1297,7 +1290,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 51,
+          "slide": 50,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -1327,7 +1320,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 52,
+          "slide": 51,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -1357,7 +1350,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 53,
+          "slide": 52,
           "kind": "slide",
           "box": {
             "x": 0.0575,
@@ -1387,7 +1380,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 55,
+          "slide": 54,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1417,7 +1410,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 56,
+          "slide": 55,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1447,7 +1440,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 57,
+          "slide": 56,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1477,7 +1470,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 58,
+          "slide": 57,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1507,7 +1500,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 59,
+          "slide": 58,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1537,7 +1530,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 60,
+          "slide": 59,
           "kind": "slide",
           "box": {
             "x": 0.1633,
@@ -1567,7 +1560,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 61,
+          "slide": 60,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1596,7 +1589,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 62,
+          "slide": 61,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1625,7 +1618,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 63,
+          "slide": 62,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1654,7 +1647,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 64,
+          "slide": 63,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1683,7 +1676,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 65,
+          "slide": 64,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1712,7 +1705,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 66,
+          "slide": 65,
           "kind": "slide",
           "box": {
             "x": 0.1397,
@@ -1741,7 +1734,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 67,
+          "slide": 66,
           "kind": "slide",
           "box": {
             "x": 0.0342,
@@ -1770,7 +1763,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 68,
+          "slide": 67,
           "kind": "slide",
           "box": {
             "x": 0.0347,
@@ -1799,7 +1792,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 69,
+          "slide": 68,
           "kind": "slide",
           "box": {
             "x": 0.0342,
@@ -1828,7 +1821,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 70,
+          "slide": 69,
           "kind": "slide",
           "box": {
             "x": 0.0342,
@@ -1857,7 +1850,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 71,
+          "slide": 70,
           "kind": "slide",
           "box": {
             "x": 0.0342,
@@ -1886,7 +1879,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 72,
+          "slide": 71,
           "kind": "slide",
           "box": {
             "x": 0.0342,
@@ -1915,7 +1908,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 74,
+          "slide": 73,
           "kind": "slide",
           "box": {
             "x": 0.0574,
@@ -1938,7 +1931,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 75,
+          "slide": 74,
           "kind": "slide",
           "box": {
             "x": 0.0574,
@@ -1961,7 +1954,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 76,
+          "slide": 75,
           "kind": "slide",
           "box": {
             "x": 0.0574,
@@ -1985,7 +1978,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 77,
+          "slide": 76,
           "kind": "slide",
           "box": {
             "x": 0.0579,
@@ -2007,7 +2000,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 78,
+          "slide": 77,
           "kind": "slide",
           "box": {
             "x": 0.0584,
@@ -2029,7 +2022,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 79,
+          "slide": 78,
           "kind": "slide",
           "box": {
             "x": 0.0576,
@@ -2051,7 +2044,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 81,
+          "slide": 80,
           "kind": "slide",
           "box": {
             "x": 0.1716,
@@ -2073,7 +2066,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 82,
+          "slide": 81,
           "kind": "slide",
           "box": {
             "x": 0.3228,
@@ -2095,7 +2088,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 83,
+          "slide": 82,
           "kind": "slide",
           "box": {
             "x": 0.1811,
@@ -2117,7 +2110,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 84,
+          "slide": 83,
           "kind": "slide",
           "box": {
             "x": 0.1273,
@@ -2139,7 +2132,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 86,
+          "slide": 85,
           "kind": "slide",
           "box": {
             "x": 0.0708,
@@ -2161,7 +2154,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 87,
+          "slide": 86,
           "kind": "slide",
           "box": {
             "x": 0.0935,
@@ -2183,7 +2176,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 88,
+          "slide": 87,
           "kind": "slide",
           "box": {
             "x": 0.0581,
@@ -2205,7 +2198,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 89,
+          "slide": 88,
           "kind": "slide",
           "box": {
             "x": 0.1129,
@@ -2227,7 +2220,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 90,
+          "slide": 89,
           "kind": "slide",
           "box": {
             "x": 0.1129,
@@ -2249,7 +2242,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 91,
+          "slide": 90,
           "kind": "slide",
           "box": {
             "x": 0.0831,
@@ -2271,7 +2264,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 93,
+          "slide": 92,
           "kind": "slide",
           "box": {
             "x": 0.0594,
@@ -2294,7 +2287,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 94,
+          "slide": 93,
           "kind": "slide",
           "box": {
             "x": 0.0573,
@@ -2317,7 +2310,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 95,
+          "slide": 94,
           "kind": "slide",
           "box": {
             "x": 0.0594,
@@ -2340,7 +2333,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 96,
+          "slide": 95,
           "kind": "slide",
           "box": {
             "x": 0.0594,
@@ -2363,7 +2356,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 97,
+          "slide": 96,
           "kind": "slide",
           "box": {
             "x": 0.0557,
@@ -2387,7 +2380,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 98,
+          "slide": 97,
           "kind": "slide",
           "box": {
             "x": 0.0578,
@@ -2416,7 +2409,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 99,
+          "slide": 98,
           "kind": "slide",
           "box": {
             "x": 0.0578,
@@ -2445,7 +2438,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 100,
+          "slide": 99,
           "kind": "slide",
           "box": {
             "x": 0.0578,
@@ -2468,7 +2461,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 101,
+          "slide": 100,
           "kind": "slide",
           "box": {
             "x": 0.0463,
@@ -2492,7 +2485,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.1811,
@@ -2515,7 +2508,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.1811,
@@ -2538,7 +2531,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.3405,
@@ -2561,7 +2554,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.0016,
@@ -2585,7 +2578,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.187,
@@ -2617,7 +2610,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.3523,
@@ -2649,7 +2642,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.6179,
@@ -2672,7 +2665,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.6179,
@@ -2695,7 +2688,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.6174,
@@ -2719,7 +2712,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 104,
+          "slide": 103,
           "kind": "part",
           "box": {
             "x": 0.1929,
@@ -2742,7 +2735,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 106,
+          "slide": 105,
           "kind": "slide",
           "box": {
             "x": 0.0577,
@@ -2764,7 +2757,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 107,
+          "slide": 106,
           "kind": "slide",
           "box": {
             "x": 0.0592,
@@ -2786,7 +2779,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 108,
+          "slide": 107,
           "kind": "slide",
           "box": {
             "x": 0.058,
@@ -2809,7 +2802,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 109,
+          "slide": 108,
           "kind": "slide",
           "box": {
             "x": 0.0385,
@@ -3901,30 +3894,6 @@
           }
         },
         {
-          "id": "kpi-definition-skriv-navn-som-overskrift",
-          "key": "[ KPI definition – skriv navn som overskrift ]",
-          "name": "KPI definition",
-          "category": {
-            "key": "Hvide kasser",
-            "name": "White boxes"
-          },
-          "slide": 36,
-          "kind": "slide",
-          "box": {
-            "x": 0.0905,
-            "y": 0.2478,
-            "w": 0.7967,
-            "h": 0.5881
-          },
-          "landing": "layout",
-          "shapes": 1,
-          "tags": [
-            "boxes",
-            "figures",
-            "white"
-          ]
-        },
-        {
           "id": "to-vertikale-kasser-med-sorte-kasser-som-overskrifter-samt-konklusionskasser",
           "key": "To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser",
           "name": "Two vertical boxes with black heading boxes and conclusion boxes",
@@ -3932,7 +3901,7 @@
             "key": "Hvide kasser",
             "name": "White boxes"
           },
-          "slide": 37,
+          "slide": 36,
           "kind": "slide",
           "box": {
             "x": 0.0786,
@@ -3957,7 +3926,7 @@
             "key": "Hvide kasser",
             "name": "White boxes"
           },
-          "slide": 38,
+          "slide": 37,
           "kind": "slide",
           "box": {
             "x": 0.0826,
@@ -3982,7 +3951,7 @@
             "key": "Hvide kasser",
             "name": "White boxes"
           },
-          "slide": 39,
+          "slide": 38,
           "kind": "slide",
           "box": {
             "x": 0.0786,
@@ -4007,7 +3976,7 @@
             "key": "Hvide kasser",
             "name": "White boxes"
           },
-          "slide": 40,
+          "slide": 39,
           "kind": "slide",
           "box": {
             "x": 0.0786,
@@ -4032,7 +4001,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 42,
+          "slide": 41,
           "kind": "slide",
           "box": {
             "x": 0.0984,
@@ -4055,7 +4024,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 43,
+          "slide": 42,
           "kind": "slide",
           "box": {
             "x": 0.0903,
@@ -4084,7 +4053,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 44,
+          "slide": 43,
           "kind": "slide",
           "box": {
             "x": 0.0801,
@@ -4113,7 +4082,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 45,
+          "slide": 44,
           "kind": "slide",
           "box": {
             "x": 0.0903,
@@ -4143,7 +4112,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 46,
+          "slide": 45,
           "kind": "slide",
           "box": {
             "x": 0.0801,
@@ -4173,7 +4142,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 47,
+          "slide": 46,
           "kind": "slide",
           "box": {
             "x": 0.0712,
@@ -4195,7 +4164,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 48,
+          "slide": 47,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -4220,7 +4189,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 49,
+          "slide": 48,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -4250,7 +4219,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 50,
+          "slide": 49,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -4280,7 +4249,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 51,
+          "slide": 50,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -4310,7 +4279,7 @@
             "key": "Kun streger",
             "name": "Lines only"
           },
-          "slide": 52,
+          "slide": 51,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -4340,7 +4309,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 54,
+          "slide": 53,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4370,7 +4339,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 55,
+          "slide": 54,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4400,7 +4369,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 56,
+          "slide": 55,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4430,7 +4399,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 57,
+          "slide": 56,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4460,7 +4429,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 58,
+          "slide": 57,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4490,7 +4459,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 59,
+          "slide": 58,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4520,7 +4489,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 60,
+          "slide": 59,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4549,7 +4518,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 61,
+          "slide": 60,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4578,7 +4547,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 62,
+          "slide": 61,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4607,7 +4576,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 63,
+          "slide": 62,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4636,7 +4605,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 64,
+          "slide": 63,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4665,7 +4634,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 65,
+          "slide": 64,
           "kind": "slide",
           "box": {
             "x": 0.0196,
@@ -4694,7 +4663,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 66,
+          "slide": 65,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4723,7 +4692,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 67,
+          "slide": 66,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4752,7 +4721,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 68,
+          "slide": 67,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4781,7 +4750,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 69,
+          "slide": 68,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4810,7 +4779,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 70,
+          "slide": 69,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4839,7 +4808,7 @@
             "key": "Procesflow",
             "name": "Process flows"
           },
-          "slide": 71,
+          "slide": 70,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -4868,7 +4837,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 73,
+          "slide": 72,
           "kind": "slide",
           "box": {
             "x": 0.0848,
@@ -4891,7 +4860,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 74,
+          "slide": 73,
           "kind": "slide",
           "box": {
             "x": 0.0848,
@@ -4914,7 +4883,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 75,
+          "slide": 74,
           "kind": "slide",
           "box": {
             "x": 0.0848,
@@ -4938,7 +4907,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 76,
+          "slide": 75,
           "kind": "slide",
           "box": {
             "x": 0.0848,
@@ -4960,7 +4929,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 77,
+          "slide": 76,
           "kind": "slide",
           "box": {
             "x": 0.0855,
@@ -4982,7 +4951,7 @@
             "key": "Tabeller",
             "name": "Tables"
           },
-          "slide": 78,
+          "slide": 77,
           "kind": "slide",
           "box": {
             "x": 0.0788,
@@ -5004,7 +4973,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 80,
+          "slide": 79,
           "kind": "slide",
           "box": {
             "x": 0.0621,
@@ -5026,7 +4995,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 81,
+          "slide": 80,
           "kind": "slide",
           "box": {
             "x": 0.2638,
@@ -5048,7 +5017,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 82,
+          "slide": 81,
           "kind": "slide",
           "box": {
             "x": 0.0748,
@@ -5070,7 +5039,7 @@
             "key": "Trekanter",
             "name": "Triangles"
           },
-          "slide": 83,
+          "slide": 82,
           "kind": "slide",
           "box": {
             "x": 0.0031,
@@ -5092,7 +5061,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 85,
+          "slide": 84,
           "kind": "slide",
           "box": {
             "x": 0.0944,
@@ -5114,7 +5083,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 86,
+          "slide": 85,
           "kind": "slide",
           "box": {
             "x": 0.0935,
@@ -5136,7 +5105,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 87,
+          "slide": 86,
           "kind": "slide",
           "box": {
             "x": 0.0788,
@@ -5158,7 +5127,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 88,
+          "slide": 87,
           "kind": "slide",
           "box": {
             "x": 0.0905,
@@ -5180,7 +5149,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 89,
+          "slide": 88,
           "kind": "slide",
           "box": {
             "x": 0.1129,
@@ -5202,7 +5171,7 @@
             "key": "Dokumentstruktur",
             "name": "Document structure"
           },
-          "slide": 90,
+          "slide": 89,
           "kind": "slide",
           "box": {
             "x": 0.0831,
@@ -5224,7 +5193,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 92,
+          "slide": 91,
           "kind": "slide",
           "box": {
             "x": 0.0866,
@@ -5247,7 +5216,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 93,
+          "slide": 92,
           "kind": "slide",
           "box": {
             "x": 0.0866,
@@ -5270,7 +5239,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 94,
+          "slide": 93,
           "kind": "slide",
           "box": {
             "x": 0.0866,
@@ -5293,7 +5262,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 95,
+          "slide": 94,
           "kind": "slide",
           "box": {
             "x": 0.0866,
@@ -5316,7 +5285,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 96,
+          "slide": 95,
           "kind": "slide",
           "box": {
             "x": 0.0792,
@@ -5340,7 +5309,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 97,
+          "slide": 96,
           "kind": "slide",
           "box": {
             "x": 0.0511,
@@ -5369,7 +5338,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 98,
+          "slide": 97,
           "kind": "slide",
           "box": {
             "x": 0.0826,
@@ -5393,7 +5362,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 99,
+          "slide": 98,
           "kind": "slide",
           "box": {
             "x": 0.0748,
@@ -5422,7 +5391,7 @@
             "key": "Grå kasser",
             "name": "Grey boxes"
           },
-          "slide": 100,
+          "slide": 99,
           "kind": "slide",
           "box": {
             "x": 0.0748,
@@ -5445,7 +5414,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 102,
+          "slide": 101,
           "kind": "part",
           "box": {
             "x": 0.0748,
@@ -5468,7 +5437,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 102,
+          "slide": 101,
           "kind": "part",
           "box": {
             "x": 0.0748,
@@ -5491,7 +5460,7 @@
             "key": "Markeringer",
             "name": "Markers"
           },
-          "slide": 102,
+          "slide": 101,
           "kind": "part",
           "box": {
             "x": 0.2874,
@@ -5514,7 +5483,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.0826,
@@ -5546,7 +5515,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.3031,
@@ -5578,7 +5547,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.6572,
@@ -5601,7 +5570,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.6572,
@@ -5624,7 +5593,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.6565,
@@ -5648,7 +5617,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0.0905,
@@ -5671,7 +5640,7 @@
             "key": "Stempler og lignende",
             "name": "Stamps and labels"
           },
-          "slide": 103,
+          "slide": 102,
           "kind": "part",
           "box": {
             "x": 0,
@@ -5695,7 +5664,7 @@
             "key": "One-page templates",
             "name": "One-page templates"
           },
-          "slide": 105,
+          "slide": 104,
           "kind": "slide",
           "box": {
             "x": 0.0526,
@@ -5706,6 +5675,29 @@
           "landing": "layout",
           "shapes": 20,
           "tags": [
+            "one-pager"
+          ]
+        },
+        {
+          "id": "kpi-definition-skriv-navn-som-overskrift",
+          "key": "[ KPI definition – skriv navn som overskrift ]",
+          "name": "KPI definition",
+          "category": {
+            "key": "One-page templates",
+            "name": "One-page templates"
+          },
+          "slide": 105,
+          "kind": "slide",
+          "box": {
+            "x": 0.0905,
+            "y": 0.2478,
+            "w": 0.7967,
+            "h": 0.5881
+          },
+          "landing": "layout",
+          "shapes": 1,
+          "tags": [
+            "figures",
             "one-pager"
           ]
         },

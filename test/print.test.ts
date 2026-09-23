@@ -75,7 +75,11 @@ describe("the committed prints", () => {
 
   it("reads a page count two independent ways, or refuses to answer", () => {
     const { printBytes } = read("library-16x9");
-    expect(pdfPageCount(printBytes)).toBe(109);
+    // 108 since 2026-09-23, when the `Hvide kasser med sorte overskrifter`
+    // heading was deleted from this deck and its four elements fell into
+    // `Hvide kasser`, where 4:3 already had them. 109 is the count from before
+    // that, and only a re-print could move it.
+    expect(pdfPageCount(printBytes)).toBe(108);
     expect(pdfPageCount(read("library-4x3").printBytes)).toBe(107);
     // Something that is not a PDF has no page count, and does not get a guess.
     expect(pdfPageCount(Buffer.from("%PDF-1.7\nnot really\n"))).toBeNull();
