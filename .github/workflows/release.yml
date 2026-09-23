@@ -178,6 +178,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
+          # The dispatch box asks for no leading v, and the pre-flight ACCEPTS
+          # one anyway — "a leading v is what somebody types; it is the same
+          # version" (test/release.test.ts). This line is what makes that
+          # tolerance safe. The tag is built by adding our own v, so without it
+          # a dispatch of `v0.1.0` tagged and titled `vv0.1.0` — and the header
+          # of this file says the tag is created server-side by
+          # `gh release create`, which is undoable only by deleting a published
+          # release. The pre-flight would have passed it: it strips the v for
+          # its own checks and hands the raw string on.
+          VERSION="${VERSION#v}"
           gh release create "v${VERSION}" \
             --target "${GITHUB_SHA}" \
             --title "v${VERSION}" \

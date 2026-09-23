@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error — plain .mjs tools with no types. The rules live THERE so the
@@ -149,6 +150,47 @@ describe("the release workflow", () => {
   // sentence instead of the step — so the ORDER check compared the comment's
   // position with the check's and reported it backwards.
   const workflow = withoutHashComments(read(".github/workflows/release.yml")) as string;
+
+  it("tags v0.1.0 as v0.1.0, not vv0.1.0, when the box is given a leading v", () => {
+    /**
+     * Three places had an opinion about the leading `v` and two of them
+     * disagreed. The dispatch box says "Version to release, without a leading
+     * v". `versionProblems` ACCEPTS one anyway and the case above pins that —
+     * "a leading v is what somebody types; it is the same version". And this
+     * step built the tag by adding its own `v` to the RAW input, so a dispatch
+     * of `v0.1.0` passed the pre-flight and then tagged and titled `vv0.1.0`.
+     *
+     * The header of the workflow says the tag is created server-side by
+     * `gh release create`, and `versionProblems`' own docstring says the whole
+     * point is that a wrong version cannot be reconciled afterwards "except by
+     * deleting a published tag". So the tolerance and the consumer had to be
+     * made to agree, and the consumer is the one that was wrong.
+     *
+     * This RUNS the step's shell rather than matching its text, because a
+     * pattern match would pass on a strip that strips the wrong thing
+     * (`${VERSION#V}` is a different rule and looks the same at a glance).
+     * `gh` is a shell function here that prints the tag it was handed.
+     */
+    const yml = readFileSync(".github/workflows/release.yml", "utf8");
+    const step = yml.slice(yml.indexOf("- name: Create the release"));
+    const body = step.slice(step.indexOf("run: |") + "run: |".length);
+    // The run block is every following line indented past the `run:` key.
+    const lines: string[] = [];
+    for (const line of body.split("\n").slice(1)) {
+      if (line.trim() !== "" && !/^ {10}/.test(line)) break;
+      lines.push(line.replace(/^ {10}/, ""));
+    }
+    const shell = lines.join("\n");
+    expect(shell, "the step no longer calls gh release create").toContain("gh release create");
+
+    const tagFor = (input: string): string =>
+      execFileSync("sh", ["-c", `gh() { printf '%s' "$3"; }\nGITHUB_SHA=deadbeef\nVERSION='${input}'\n${shell}`], {
+        encoding: "utf8",
+      });
+
+    expect(tagFor("0.1.0"), "a plain version").toBe("v0.1.0");
+    expect(tagFor("v0.1.0"), "a leading v must not double").toBe("v0.1.0");
+  });
 
   it("is manual only — a release is a decision, not a consequence of merging", () => {
     expect(workflow).toContain("workflow_dispatch");

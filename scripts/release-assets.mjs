@@ -65,7 +65,11 @@ export function versionProblems(read, version) {
   if (!version) return out;
   const wanted = version.replace(/^v/, "");
   if (!/^\d+\.\d+\.\d+$/.test(wanted)) {
-    out.push(`"${version}" is not a version — three numbers separated by dots, with no leading v`);
+    // "with no leading v" until 2026-09-23, which was not what this does: the
+    // line above STRIPS one, deliberately, and a case pins that. A message
+    // naming a rule its own code does not enforce sends the next reader to
+    // change the wrong thing.
+    out.push(`"${version}" is not a version — three numbers separated by dots, with an optional leading v`);
     return out;
   }
   let pkg;
