@@ -45,72 +45,6 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### The two library decks: edited, waiting on a re-print
-
-**The edits are made and the disagreement is closed.** What is left is a
-PowerPoint job nobody in a container can do.
-
-Both decks now harvest to the same 10 categories in the same order, 106
-elements each, and **zero elements filed differently** — `npm run harvest` no
-longer prints its categorisation warning at all. The owner settled the two
-content questions on 2026-09-23: 16:9 over-divided, so its
-`Hvide kasser med sorte overskrifter` heading went and those four elements fell
-into `Hvide kasser`; and `[ KPI definition … ]` belongs under
-`One-page templates`, so the 4:3 deck's copy moved there.
-
-**Left, and only the owner can do it:** re-print both decks and re-stamp.
-
-1. Open each deck in PowerPoint and print it to PDF over
-   `template/library-16x9.pdf` and `template/library-4x3.pdf`, the way
-   `docs/DESIGN.md` section 3 records.
-2. `npm run print-stamp -- --powerpoint <version>`. The bare `--` is required:
-   without it npm keeps the flag for itself and the script sees no version.
-3. Commit the PDFs and the sidecars.
-
-Until then `test/print.test.ts` fails three cases and CI is red, which is the
-gate doing its job:
-
-```
-library-16x9: the deck has changed since the print was taken — re-print it
-library-16x9: sidecar says 109 slides, the deck has 108
-library-16x9: 109 pages for 108 slides — the cuts land on the wrong page
-library-4x3:  the deck has changed since the print was taken — re-print it
-```
-
-**The 4:3 line is why this cannot be waved through.** That deck still has 107
-slides and its print still has 107 pages, so only the SHA catches it — and
-`npm run previews` cuts every tile picture out of the PDF **by page**. Shipping
-the reorder without a re-print would put the wrong picture on every tile from
-the moved slide onwards, on the live site, silently.
-
-### The two library decks disagreed about their categories — settled, see above
-
-**The owner's decks, not the code**, and the only item here nobody but the
-owner can close. Found 2026-09-23 by a finder over `scripts/harvest.mjs`, whose
-cross-deck gate compares element KEYS only and so has never seen it.
-
-Measured on the committed catalogue the same day:
-
-- the 16:9 deck carries **11** categories and the 4:3 deck **10**;
-- `Hvide kasser med sorte overskrifter` exists only in the 16:9 deck;
-- **five elements** sit under a different heading in the two decks — the three
-  `Kommentering af indholdselement…` elements and
-  `To vertikale kasser med sorte kasser som overskrifter samt konklusionskasser`
-  move from that missing category into `Hvide kasser`, and
-  `[ KPI definition – skriv navn som overskrift ]` from `One-page templates`
-  into `Hvide kasser`.
-
-The pane's chips, the summary count and `public/catalogue.html` all come from
-`library.categories`, which is per size — so a user on a 4:3 deck sees a
-different library from a user on a 16:9 one, with the same elements filed
-somewhere else.
-
-`npm run harvest` now REPORTS every one of them and names them, loudly, and
-carries on. It does not refuse: only the owner can move a slide between
-collections in a deck, and failing the harvest would block every build until
-that happened. Fix the decks and the warning goes; there is nothing to change
-in the code.
-
 ### No test drives the removal past one cycle
 
 Found on 2026-09-23 while reading the several-slide stamp against the deck-wide
@@ -221,6 +155,44 @@ if it makes a file expensive. `--what <operator>` sweeps one operator alone,
 which is what makes adding one cost minutes rather than a whole sweep.
 
 ## Settled — do not re-open
+
+### The two library decks filed their elements differently — fixed and re-printed
+
+Found 2026-09-23 by a finder over `scripts/harvest.mjs`, whose cross-deck gate
+compares element KEYS only and so had never seen it: the 16:9 deck carried **11**
+categories to the 4:3 deck's **10**, and **five elements** sat under a different
+heading depending on which shape of deck was open. The pane's chips, the summary
+count and `public/catalogue.html` all come from `library.categories`, which is per
+size, so the library a user saw depended on their slide size.
+
+The owner settled both content questions the same day: 16:9 over-divided, so its
+`Hvide kasser med sorte overskrifter` heading went and those four elements fell into
+`Hvide kasser`; and `[ KPI definition … ]` belongs under `One-page templates`, so the
+4:3 deck's copy moved there. Both decks now harvest to the same 10 categories in the
+same order, 106 elements each, **zero filed differently**, and `npm run harvest` no
+longer prints its categorisation warning at all. Shipped in `5726c6a`.
+
+**One measurement worth keeping, so nobody chases it again.** A 16:9 print taken
+part-way through came back **1,365,499** bytes against a committed 2,186,758 — a 38%
+drop for one slide fewer out of 109 — while 4:3 moved only −0.4%. That mattered
+because `npm run previews` cuts every tile picture out of these PDFs by page, and the
+gate checks SHA, slides and pages, never resolution. Re-printing both decks together
+by one method does **not** reproduce it:
+
+```
+library-16x9.pdf   2,186,758 -> 2,185,156   (-0.07%, 109 -> 108 pages)
+library-4x3.pdf    2,274,248 -> 2,274,097   (-0.01%, 107 -> 107 pages)
+```
+
+Old against new, both decks: 11 embedded images either side, max image width 604 and
+600 unchanged, total image pixels identical to the pixel (1,673,959 and 1,004,954),
+same filter mix, same full dimension multiset. Nothing was downsampled.
+
+**What caused the 1.37 MB print is NOT established** — the files it came from could
+not be examined — only that a COM print of these decks does not do it. Do not re-open
+this to chase it; if it recurs, the thing to capture is the print itself, at the
+moment it is made.
+
 
 ### Mac and iPad will not be measured before release
 
