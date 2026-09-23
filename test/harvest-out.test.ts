@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -78,6 +78,76 @@ describe("where the harvest writes", () => {
     expect(JSON.parse(readFileSync(join(out, "catalogue.json"), "utf8")), "it published anyway").toEqual({
       committed: true,
     });
+  });
+
+  it("never deletes the committed catalogue before the replacement is in place", () => {
+    /**
+     * The first version of `publish` did `rmSync(out, {recursive: true})` and
+     * THEN renamed the staged tree in. That delete is a walk over 427 files,
+     * and a run interrupted inside it left the committed catalogue gone with no
+     * replacement — exactly the state this module exists to prevent, moved from
+     * an early exit to the publish itself.
+     *
+     * This drives the interruption: the old tree is parked under the aside
+     * directory and the process dies before the second rename. The tree is then
+     * missing its catalogue — and the NEXT `stage` puts it back, which is what
+     * makes the window survivable rather than merely small.
+     */
+    const root = temp();
+    const out = join(root, "catalogue");
+    const work = join(root, "staging");
+    const aside = join(root, "previous");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, "catalogue.json"), '{"committed":true}');
+
+    // The interruption: the first rename has happened, the second has not.
+    renameSync(out, aside);
+    expect(existsSync(out), "the tree is mid-swap, which is the dangerous moment").toBe(false);
+
+    // The next run repairs it before doing anything else.
+    stage(work, out, aside);
+
+    expect(existsSync(out), "a killed publish left the catalogue gone for good").toBe(true);
+    expect(JSON.parse(readFileSync(join(out, "catalogue.json"), "utf8"))).toEqual({ committed: true });
+    expect(existsSync(aside), "the aside copy was left lying around").toBe(false);
+  });
+
+  it("leaves nothing aside once a publish has finished", () => {
+    // The parked copy is a step in the swap, not a backup: left behind it would
+    // be a second stale catalogue on disk that nothing reads and `.gitignore`
+    // would have to know about.
+    const root = temp();
+    const out = join(root, "catalogue");
+    const work = join(root, "staging");
+    const aside = join(root, "previous");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, "catalogue.json"), '{"committed":true}');
+    stage(work, out, aside);
+    writeFileSync(join(work, "catalogue.json"), '{"fresh":true}');
+
+    publish(work, out, aside);
+
+    expect(existsSync(aside), "the parked copy outlived the swap").toBe(false);
+    expect(JSON.parse(readFileSync(join(out, "catalogue.json"), "utf8"))).toEqual({ fresh: true });
+  });
+
+  it("publishes over a stale aside directory an earlier run left behind", () => {
+    // Renaming onto an existing directory fails on some platforms, so the aside
+    // is cleared before it is used. A run that died after its swap — or a user
+    // who copied something there — must not wedge every harvest after it.
+    const root = temp();
+    const out = join(root, "catalogue");
+    const work = join(root, "staging");
+    const aside = join(root, "previous");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, "catalogue.json"), '{"committed":true}');
+    mkdirSync(aside, { recursive: true });
+    writeFileSync(join(aside, "junk.json"), "{}");
+    stage(work, out, aside);
+    writeFileSync(join(work, "catalogue.json"), '{"fresh":true}');
+
+    expect(() => (publish as (a: string, b: string, c: string) => string)(work, out, aside)).not.toThrow();
+    expect(JSON.parse(readFileSync(join(out, "catalogue.json"), "utf8"))).toEqual({ fresh: true });
   });
 
   it("replaces the committed catalogue once there is a whole one to replace it with", () => {

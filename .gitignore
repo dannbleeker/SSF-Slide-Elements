@@ -23,3 +23,8 @@ public/catalogue/previews-report.json
 # one. A run that exits early leaves it behind on purpose — the point is that it
 # leaves `public/catalogue/` alone — and the next run clears it.
 public/.catalogue-staging/
+
+# Where the committed catalogue is parked for the moment the swap takes. It
+# exists only between two renames; a run killed in that gap leaves it, and the
+# next `stage` puts it back where it came from.
+public/.catalogue-previous/

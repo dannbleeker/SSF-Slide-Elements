@@ -22,6 +22,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A harvest interrupted at the wrong moment no longer loses the catalogue.**
+  Regenerating the element library replaces the committed copy at the very end.
+  It used to delete the old copy first and move the new one in afterwards — a
+  delete over 427 files, and a run killed inside it (Ctrl-C, a crash, a full
+  disk) left nothing there. It now moves the old copy aside, moves the new one
+  in, and only then deletes; and if a run dies between those two steps, the
+  next one puts it back. This only ever affected maintainers regenerating the
+  library, never the add-in.
+
 - **Taking an element off several slides can no longer delete the wrong
   slide.** The pane removes it one slide at a time, and each step adds a
   corrected copy and then takes the original away — but it took the original
