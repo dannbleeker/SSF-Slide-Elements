@@ -1,11 +1,11 @@
 {
   "deck": "library-4x3.pptx",
-  "deckSha256": "01e39d1b34a3f9840d3fb2a90730ad713e50ba75dd5375d92650ef966625ffec",
+  "deckSha256": "6cd9ecafd9486d1ab08deb612895b1ffe4724ad817727d7ca009d65972262b36",
   "slides": 107,
   "print": "library-4x3.pdf",
-  "printSha256": "196c41c60c6b6031ab0ea3c7a65154d7bc5254bee195703abbe378bc3987e68e",
+  "printSha256": "24050babc8b98785eda4141fb656b66dffac00e1a4622c4539441fc74a244d21",
   "pages": 107,
-  "takenAt": "2026-09-16",
-  "powerPoint": "16.0.20326.20144",
+  "takenAt": "2026-09-23",
+  "powerPoint": "16.0.20326.20158",
   "how": "PowerPoint COM with no window: Presentations.Open(deck, ReadOnly, WithWindow false) then Presentation.SaveAs(pdf, 32 = ppSaveAsPDF). ExportAsFixedFormat, which would take the dialog's settings as arguments, cannot be bound on this build at any arity. Checked against the dialog print of the same deck page by page: same page count, same page size, the outer ring of every page inked exactly as before (so no frame was added), and every page that the deck edit did not touch rendering pixel-identical."
 }
