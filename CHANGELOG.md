@@ -14,6 +14,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Taking an element off every slide no longer claims nothing else changed
+  when it did.** The removal rebuilds each slide without the element and then
+  takes the original away. If the second half failed, the pane said "The rest
+  are as they were — try again" — but that slide now had both your original,
+  element and all, and a copy without it. Pressing "try again" added another
+  copy each time. It now says the deck has a slide too many, and tells you to
+  look before trying again.
+
 - **The pane no longer says it is inserting while it is undoing.** Pressing
   Undo, or taking an element off every slide it is on, showed "One insert at a
   time. This one is still going." directly above its own "Undoing…" — and put

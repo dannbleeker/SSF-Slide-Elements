@@ -2114,6 +2114,28 @@ describe("removing a part from every slide it is on", () => {
     expect(live, "the question was never announced").toContain("The pane cannot undo this");
   });
 
+  it("says the deck is a slide longer when a cycle stranded its copy", async () => {
+    /**
+     * The end-to-end half. Breaking the flag at the break site left every case
+     * here green, which means nothing reached the sentence — the pure function
+     * was held and the path to it was not, and an unheld flag is the same
+     * gate-that-cannot-fail this whole round is about.
+     *
+     * `missCountAt = 2` is the SECOND count read of the first cycle: the one
+     * confirming the positional delete. The insert has landed by then, so
+     * breaking there leaves the original with the element on it AND an
+     * element-free copy beside it — the deck is one slide longer, which is
+     * exactly what the old sentence denied.
+     */
+    host.missCountAt = 2;
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    const outcome = await ran(pane);
+    expect(outcome, "the deck grew and the footer did not say so").toContain("a slide too many");
+    expect(outcome, "claimed the untouched slides were untouched").not.toContain("The rest are as they were");
+    expect(outcome, "invited a press that would strand another copy").toContain("trying again would add another");
+  });
+
   /** Wait for a run to finish: the footer is what says it did. */
   async function ran(pane: HTMLElement): Promise<string> {
     await waitFor("the removal to report a footer", () => pane.querySelector(".outcome")?.textContent);

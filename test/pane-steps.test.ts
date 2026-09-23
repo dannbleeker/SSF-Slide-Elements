@@ -576,3 +576,48 @@ describe("a remembered choice the library no longer carries", () => {
     expect(blockedReason(real, "browse")).toBe("");
   });
 });
+
+describe("a removal cycle that left its copy behind", () => {
+  /**
+   * The removal runs an insert-then-positional-delete per slide. Two breaks can
+   * stop it and only one leaves the deck alone:
+   *
+   * - the INSERT did not land — nothing changed, and "The rest are as they
+   *   were" is true;
+   * - the insert landed and the DELETE did not — the deck now carries both the
+   *   original, still holding the element, and the element-free copy.
+   *
+   * The second reported the first's sentence. It is false of that slide, and
+   * its invitation to "try again" is worse than false: each failed cycle
+   * strands another copy, so a user following it grows their deck one slide at
+   * a time.
+   *
+   * `removeEverywhere`'s own comment names this exact wrong sentence and fixes
+   * only the other path that reaches it — breaking on the raise. The
+   * count-based break kept producing it.
+   */
+  it("says the deck is a slide longer, and does not invite another go", () => {
+    const out = removalOutcome("Confidential stamp", 0, 1, true);
+    expect(out.ok).toBe(false);
+    expect(out.byHand, "nothing told the user to look").toBe(true);
+    expect(out.detail).toContain("a slide too many");
+    expect(out.detail, "claimed the untouched slides were untouched").not.toContain("The rest are as they were");
+    expect(out.detail, "would grow the deck on every press").toContain("trying again would add another");
+  });
+
+  it("keeps the ordinary partial sentence when nothing was stranded", () => {
+    // The pair. A run that simply stopped — the insert never landed — leaves
+    // the deck as it was, and that sentence is right. A fix that answered
+    // "stranded" for every partial removal would lose it.
+    const out = removalOutcome("Confidential stamp", 1, 3, false);
+    expect(out.detail).toContain("The rest are as they were");
+    expect(out.detail).not.toContain("a slide too many");
+  });
+
+  it("still says nothing changed when the element was already gone", () => {
+    // The `wanted === 0` arm is answered before either, and a stranded flag
+    // cannot reach it: there were no cycles to strand anything.
+    expect(removalOutcome("x", 0, 0, true).ok).toBe(true);
+    expect(removalOutcome("x", 0, 0, true).detail).toContain("nothing changed");
+  });
+});

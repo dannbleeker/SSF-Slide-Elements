@@ -525,11 +525,34 @@ export function removeQuestion(element: Element, slides: number[]): string {
  * do and nothing went wrong — so it says so, and offers no by-hand advice for
  * work that is already done.
  */
-export function removalOutcome(element: string, done: number, wanted: number): Outcome {
+export function removalOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
   if (wanted === 0) {
     return { ok: true, byHand: false, name: element, detail: "It is not on any slide any more, so nothing changed." };
   }
   const ok = done === wanted;
+  if (!ok && strandedCopy) {
+    // The removal runs an insert-then-delete cycle per slide, and this is the
+    // half where the insert LANDED and the delete did not: the deck carries
+    // both the original, still holding the element, and the element-free copy.
+    //
+    // "The rest are as they were" is false of that slide, and the invitation to
+    // "try again" is worse than false — each failed cycle leaves another copy,
+    // so a user following it grows their deck one slide at a time. The comment
+    // above the break in `removeEverywhere` named this exact sentence and fixed
+    // only the OTHER path that reaches it.
+    //
+    // No slide number, for the reason `outcomeOf`'s reorder branch gives: the
+    // positions this code holds are the ones the failed cycle just moved.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Removed from ${done} of ${wanted} slides, and the deck has a slide too many: ` +
+        `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
   return {
     ok,
     byHand: !ok,

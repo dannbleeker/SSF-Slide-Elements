@@ -822,6 +822,17 @@ happened and what to do.
   because the positions this code holds are exactly the ones that just went
   stale, and naming one off a stale index is what sent a user to delete their
   own content before.
+- The deck-wide removal runs an insert-then-delete cycle per slide, and its two
+  stopping points do NOT share a sentence. When the insert never lands the deck
+  is untouched and "Removed from N of M slides. The rest are as they were — try
+  again, or take them off by hand." is true. When the insert lands and the
+  delete does not, it is false: that slide's original is still there with the
+  element on it and an element-free copy sits beside it. That case says
+  "Removed from N of M slides, and the deck has a slide too many: the copy was
+  made but the original could not be taken away. Check the deck before trying
+  again — trying again would add another." It names no slide number, for the
+  reason the reorder sentence above gives, and it withdraws the invitation to
+  retry because each failed cycle strands another copy.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 

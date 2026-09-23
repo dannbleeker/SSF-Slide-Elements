@@ -1163,6 +1163,8 @@ async function removeEverywhere(id: string): Promise<void> {
   deckEdits += 1;
 
   let done = 0;
+  /** Whether a cycle left its copy behind, which changes what may be said. */
+  let stranded = false;
   let wanted = plan.slides;
   try {
     const deck = await readDeck();
@@ -1190,7 +1192,14 @@ async function removeEverywhere(id: string): Promise<void> {
       await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
       await removeSlideAt(at);
-      if ((await countReaching(before)) !== before) break;
+      if ((await countReaching(before)) !== before) {
+        // The insert landed and the delete did not, so this slide's ORIGINAL is
+        // still there with the element on it and an element-free copy sits
+        // beside it. The other break above leaves the deck untouched; this one
+        // does not, and the two cannot share a sentence.
+        stranded = true;
+        break;
+      }
       done += 1;
     }
   } catch {
@@ -1198,7 +1207,7 @@ async function removeEverywhere(id: string): Promise<void> {
     // through to the end, and the outcome below reports it.
   }
 
-  const outcome = removalOutcome(element.name, done, wanted.length);
+  const outcome = removalOutcome(element.name, done, wanted.length, stranded);
   // The armed Undo goes with it, whether or not a single slide was changed.
   //
   // `undoable` holds `before`: the WHOLE deck as it was before an earlier
