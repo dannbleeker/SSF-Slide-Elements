@@ -8,6 +8,7 @@
  * CI rather than producing previews cut from the wrong file.
  *
  *   node scripts/stamp-print.mjs --powerpoint 16.0.20326.20132
+ *   npm run print-stamp -- --powerpoint 16.0.20326.20132   (the -- is not optional)
  *   node scripts/stamp-print.mjs --powerpoint 16.0.20326.20132 --deck library-4x3 --route com
  */
 
@@ -24,7 +25,11 @@ const arg = (flag) => {
 
 const powerPoint = arg("--powerpoint");
 if (!powerPoint) {
-  console.error("stamp-print: --powerpoint <version> is required; it is the build that took the print");
+  console.error(
+    "stamp-print: --powerpoint <version> is required; it is the build that took the print.\n" +
+      "Through npm the flags need a bare -- first, or npm keeps them:\n" +
+      "  npm run print-stamp -- --powerpoint 16.0.20326.20132",
+  );
   process.exit(2);
 }
 const takenAt = arg("--on") ?? new Date().toISOString().slice(0, 10);

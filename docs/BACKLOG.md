@@ -63,7 +63,8 @@ into `Hvide kasser`; and `[ KPI definition … ]` belongs under
 1. Open each deck in PowerPoint and print it to PDF over
    `template/library-16x9.pdf` and `template/library-4x3.pdf`, the way
    `docs/DESIGN.md` section 3 records.
-2. `npm run print-stamp --powerpoint <version>`.
+2. `npm run print-stamp -- --powerpoint <version>`. The bare `--` is required:
+   without it npm keeps the flag for itself and the script sees no version.
 3. Commit the PDFs and the sidecars.
 
 Until then `test/print.test.ts` fails three cases and CI is red, which is the
