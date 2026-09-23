@@ -1184,7 +1184,7 @@ describe("the figures the prose quotes about the committed library", () => {
    * list of places to restate. That is a floor, not a proof, and it is the same
    * bargain `paneControlProblems` makes.
    */
-  it("are the ones the decks actually produce", async () => {
+  it("are the ones the decks actually produce", () => {
     const index = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {
       sizes: Record<string, { elements: { id: string }[] }>;
     };
