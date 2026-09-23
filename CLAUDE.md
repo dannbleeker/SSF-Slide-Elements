@@ -30,13 +30,12 @@ could not reach. What is NOT built is in `docs/BACKLOG.md`, whose open section
 is in the order to pick it up: the release, which is down to the Partner Center
 submission — the owner's, and the only step that needs a Microsoft sign-in; a
 slide deleted mid-run, which no host round has yet caught and whose stop
-message can name the wrong cause; the removal loop, which no test drives past
-one cycle; the Undo, which still aims at a position the user may have moved
-since the insert — a judgement about what an undo may cost, and the owner's;
-and widening what the mutation sweep changes, whose eighth operator, `field`,
+message can name the wrong cause; the Undo, which still aims at a position the
+user may have moved since the insert — a judgement about what an undo may
+cost, and the owner's; and widening what the mutation sweep changes, the one
+open item this repo can finish on its own, whose eighth operator, `field`,
 landed on 2026-09-23 and left no survivor among its 323 mutants, and whose one
-candidate still listed is exchanging the grouping of `&&`/`||` chains. The
-removal test and the sweep are the open work this repo can finish on its own.
+candidate still listed is exchanging the grouping of `&&`/`||` chains.
 Everything that section used to list as pending and is now settled sits under
 its settled section with the measurement that closed it, so a round is not
 asked for twice.
