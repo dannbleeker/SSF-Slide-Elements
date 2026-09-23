@@ -82,10 +82,9 @@ section 15 reads them and is the one place to change when a sheet is filed.
 question 4 last, on the Windows pair of 2026-09-14 run against
 `template/probe-comments.pptx`: `exportAsBase64Presentation` gave back 43 parts
 where `getFileAsync` gave 48, dropping the comment part and `ppt/authors.xml`.
-Section 13 is borrowed from a sibling on neither platform this project has a
-sheet for; Mac and iPad, having none, are borrowed on everything. The splice ran against the web on 2026-09-10, and
-the whole product — pane, insert and Undo — against the web and then against
-Windows on 2026-09-11.
+Mac and iPad have no sheet, so every answer is borrowed there. The splice ran
+against the web on 2026-09-10, and the whole product — pane, insert and Undo —
+against the web and then against Windows on 2026-09-11.
 
 **v0.1.0 itself was run on Windows on 2026-09-16**, against the released
 `manifest-prod.xml` — the release asset, the copy in the shared-folder catalog
