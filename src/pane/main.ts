@@ -238,6 +238,31 @@ let restoringFocus = false;
  */
 let focusAfterDraw: string | undefined;
 
+/**
+ * A control the restore FOUND but could not focus yet, kept for the next draw.
+ *
+ * `render` disables every tile while `state.busy`, and `focus()` on a disabled
+ * button is a no-op — measured on jsdom 30 and true in every browser. `insert`
+ * sets `busy` synchronously, so the very first redraw of an insert rebuilt the
+ * tile the user had just pressed Enter on, disabled, and the restore quietly
+ * did nothing. The old node was already detached by `render`, so focus fell to
+ * `<body>` — and stayed there, because the NEXT draw found `activeElement` on
+ * body, outside `root()`, and so had no `held` to restore at all.
+ *
+ * The result was that `docs/DESIGN.md` section 9's "the arrow keys move between
+ * the tiles" stopped working after the first insert of a session: the next
+ * ArrowDown reached `arrowTo` with an index of -1, which clamps to 0, and the
+ * user was back at the top of the library. The `held` machinery exists to stop
+ * a redraw throwing focus on the floor, and it was failing for the one redraw a
+ * user causes most.
+ *
+ * So a target that exists but cannot take focus is REMEMBERED rather than
+ * dropped, and the next draw that can focus it does. Cleared the moment it is
+ * used or the control goes away, so it cannot pull the focus back to a tile the
+ * user has since left.
+ */
+let deferredFocus: string | undefined;
+
 function draw(): void {
   const active = document.activeElement;
   const wasSearch = active instanceof HTMLInputElement && active.dataset["action"] === "search";
@@ -287,7 +312,7 @@ function draw(): void {
     } finally {
       restoringFocus = false;
     }
-  } else if (held !== undefined) {
+  } else if (held !== undefined || deferredFocus !== undefined) {
     // Only when it is still there: a control the redraw legitimately removed —
     // the menu that just closed, a tile a search filtered away — is not
     // something to hunt for, and the browser's own fallback is right for it.
@@ -299,11 +324,20 @@ function draw(): void {
     // had a tile focused, so the pane kept redrawing itself long after
     // anything had happened — measured as an insert's whole result being
     // painted over by a later draw, outcome and Undo and all.
-    restoringFocus = true;
-    try {
-      focusedBy(held)?.focus();
-    } finally {
-      restoringFocus = false;
+    // `held` when the user was on something; otherwise the one the last draw
+    // could not focus. `deferredFocus` is only consulted when nothing held the
+    // focus, which is exactly the state the failed restore leaves behind.
+    const key = held ?? deferredFocus;
+    const target = key === undefined ? null : focusedBy(key);
+    const blocked = target instanceof HTMLButtonElement && target.disabled;
+    deferredFocus = blocked ? key : undefined;
+    if (target !== null && !blocked) {
+      restoringFocus = true;
+      try {
+        target.focus();
+      } finally {
+        restoringFocus = false;
+      }
     }
   }
   restoreScroll();

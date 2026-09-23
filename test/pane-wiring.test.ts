@@ -2261,6 +2261,56 @@ describe("removing a part from every slide it is on", () => {
   });
 });
 
+describe("the focus across an insert", () => {
+  /**
+   * `render` disables EVERY tile while `state.busy`, and `focus()` on a
+   * disabled button is a no-op — checked on this jsdom: focusing a disabled
+   * button leaves `activeElement` where it was. `insert` sets `busy`
+   * synchronously, so the first redraw of an insert rebuilt the tile the user
+   * had just pressed Enter on, disabled; the restore found it and could not
+   * focus it, and the old node had already been detached by `render`. Focus
+   * fell to `<body>` — and STAYED there, because the next draw saw
+   * `activeElement` outside `root()` and so had no `held` to restore at all.
+   *
+   * `docs/DESIGN.md` section 9 promises the arrow keys move between the tiles.
+   * After one insert they did not: the next ArrowDown reached `arrowTo` with an
+   * index of -1, which clamps to 0, putting the user back at the top of the
+   * library — and a screen-reader user lost their place entirely.
+   *
+   * Found by two independent lenses of the 2026-09-23 hunt, which is the
+   * strongest signal in that set.
+   */
+  it("comes back to the tile once the insert lets go of it", async () => {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+
+    const pick = (): HTMLButtonElement | null =>
+      pane.querySelector<HTMLButtonElement>('[data-action="tile"][data-id="one-box"]');
+    expect(pick(), "no tile to insert from").not.toBeNull();
+
+    // Focusing a tile arms its preview and redraws, so the node is replaced —
+    // the same trap that made an earlier case click a menu that no longer
+    // existed. Re-queried after every redraw, never held across one.
+    pick()?.focus();
+    await idle(pane);
+    expect(document.activeElement, "the tile did not take focus").toBe(pick());
+
+    pick()?.click();
+    await idle(pane);
+
+    // Once the tiles are enabled again the focus is back on the one the user
+    // pressed, rather than on <body>. This is the assertion the defect failed:
+    // it was on <body> from the first redraw of the insert onwards.
+    const back = pick();
+    expect(back, "the tile did not come back").not.toBeNull();
+    expect(back?.disabled, "still busy, so this case is not measuring what it says").toBe(false);
+    expect(document.activeElement, "focus was left on the document body").toBe(back);
+  });
+});
+
 describe("a removal asks the deck it is about to change", () => {
   /** A deck of three slides carrying the part on the ones named, 1-based. */
   async function deckTagging(slides: number[]): Promise<string> {
