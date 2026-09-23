@@ -1582,8 +1582,36 @@ reverts only the delete:
 | after two Ctrl+Z | 256, 257, 258 — as it started |
 
 A user who presses it once is left holding both their original slide and the
-rebuilt one. Measured ONCE, on one deck; `docs/MANUAL.md`'s sentence about
-Ctrl+Z is not being rewritten on a single reading.
+rebuilt one.
+
+**Measured again on 2026-09-23 against `faf101e`**, on a deck whose every slide
+carries its own label, which is what makes the second reading conclusive: after
+one press the deck held **two slides both labelled `SLIDE-05`** — the user's
+original (2 shapes) and the add-in's rebuilt copy (3 shapes) — and after the
+second it was back to one, byte-identical to before the insert. Two decks, two
+readings, so `docs/MANUAL.md` now says so.
+
+**A mid-run reorder: the guard fires, and nothing is lost.** Same round, 39
+slides selected for a stamp and one slide dragged from position 30 to position
+5 while the run was going. The run stopped and said *"Stamped 26 of 39 slides,
+and the deck has a slide too many: the copy was made but the original could not
+be taken away."* The deck bore that out exactly: **no label lost**, one label
+(`SLIDE-28`) present twice — the original beside its rebuilt copy — and the
+moved slide left unstamped. That is `stillThere` refusing the positional
+delete, which is what section 6 asks of it.
+
+**What is NOT covered, and it is a question of timing.** The guard compares the
+slide it aimed at with the slide now at that index, INSIDE one cycle. A reorder
+that lands BETWEEN cycles moves nothing during a cycle, so nothing is caught,
+and the run carries on against indices that have shifted under it: measured on
+2026-09-23 on a deck of identical slides, a run reported "Stamped 59 slides"
+where 58 slides gained one, and the slide that had moved was the one without
+it. Nothing was lost there either — the deck kept its length and its slides —
+but the count was one too high and one selected slide was silently skipped.
+Closing it means resolving the selection to slide IDs once and finding each id's
+current index per cycle, rather than walking indices captured before the run.
+That is a change to the loop that also performs the REMOVAL, so it is written
+down here rather than made in passing.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has

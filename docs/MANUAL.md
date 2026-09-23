@@ -234,10 +234,17 @@ onto a slide it puts the slide it replaced back, exactly as it was.
 It is one deep rather than ten, and the reason is worth knowing: putting a
 replaced slide back means handing PowerPoint a package containing it, and
 holding ten of those means holding ten copies of your presentation inside the
-task pane. PowerPoint's own **Ctrl+Z** reverts an insert — measured on
-PowerPoint for the web on 2026-09-10 and on PowerPoint on Windows on
-2026-09-11 — and that is the deeper history. Press it on the slide canvas
-rather than in the pane.
+task pane. PowerPoint's own **Ctrl+Z** reverts an insert, and that is the
+deeper history. Press it on the slide canvas rather than in the pane.
+
+**For an element that landed onto a slide, press it twice.** Putting an element
+onto the slide you are on is two steps for PowerPoint — the add-in hands it a
+rebuilt copy of your slide and then takes the original away — so PowerPoint's
+undo history holds two entries for it. One press brings your original slide
+back and leaves the rebuilt one beside it, so you see the slide twice; the
+second press takes the rebuilt one away and your deck is exactly as it was.
+Measured on PowerPoint on Windows on 2026-09-23, twice, on two different decks.
+The pane's own **Undo** does both halves in one press, which is what it is for.
 
 ### Moving what you just inserted onto a new slide
 
