@@ -302,6 +302,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed — the host probe
 
+- The answer to "which read of the deck, and what does each drop" no longer
+  names only the comments and the authors part. On the sheet of 2026-09-10
+  18:13 it read "the export DROPS ppt/authors.xml and 1 comment part(s)" over
+  twelve parts gone — the other ten being a whole slide master, its layout and
+  its theme, three task-pane registration parts, and two revision parts. The
+  full list was printed below it, but the verdict is the line that gets quoted.
+
+- And on a deck with no comments it no longer says "there was nothing for the
+  export to drop" while parts were dropped. It still cannot answer the
+  question, which is about comments; it just no longer claims more than that.
+
 - The answer sheet no longer writes "-1 slide(s) landed anyway" when an insert
   both raised and left the deck SHORTER. It now says the deck lost a slide,
   which is the opposite fact and the one worth reading.

@@ -296,3 +296,56 @@ describe("no file in this repo trips that limit", () => {
     expect(lost, "the stripper ate a declaration, so a guard is reading a file that is not there").toEqual([]);
   });
 });
+
+describe("no source file in this repo carries a control character", () => {
+  /**
+   * `test/security.test.ts` carried a literal NUL BYTE from #69 until
+   * 2026-09-23, inside `toContain(key ?? "…")` where the escape `"\0"` was
+   * meant. It broke nothing: every gate in this repo reads with
+   * `readFileSync(path, "utf8")`, which carries a NUL through happily, and the
+   * assertion it sat in is only reached after the line above it has already
+   * failed.
+   *
+   * What it broke was SEARCHING. grep and ripgrep sniff for control bytes and
+   * classify a file that has one as binary, so `grep -rn "…" test/` answered
+   * "binary file matches" and printed nothing — for the one file whose subject
+   * is the security claims on a public page. A maintainer grepping the suite
+   * would not have found it; neither did I, until the answer looked wrong
+   * enough to check with `-a`.
+   *
+   * So it is swept, because the byte is INVISIBLE: no editor shows it, Prettier
+   * accepts it, ESLint accepts it, and `tsc` accepts it. Nothing in the tree
+   * would have said a word.
+   *
+   * Tab, newline and carriage return are the three that belong in a text file.
+   * Everything below 0x20 that is not one of those, and 0x7F, is refused.
+   */
+  const ALLOWED = new Set([0x09, 0x0a, 0x0d]);
+  const TEXT = /\.(ts|mjs|js|json|md|html|css|yml|yaml|txt|xml)$/;
+  // Built output, dependencies and the committed catalogue's binary parts are
+  // not sources. `template/` holds decks and PDFs and is skipped whole.
+  const SKIP = new Set(["node_modules", "dist", "dist-lib", "coverage", ".git", "template", "public"]);
+
+  function textFiles(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      if (SKIP.has(e.name)) return [];
+      return e.isDirectory() ? textFiles(join(dir, e.name)) : TEXT.test(e.name) ? [join(dir, e.name)] : [];
+    });
+  }
+
+  it("so every one of them can be grepped", () => {
+    const offenders: string[] = [];
+    for (const file of textFiles(".")) {
+      const bytes = readFileSync(file);
+      for (let i = 0; i < bytes.length; i += 1) {
+        const b = bytes[i] as number;
+        if ((b < 0x20 && !ALLOWED.has(b)) || b === 0x7f) {
+          const line = bytes.subarray(0, i).toString("utf8").split("\n").length;
+          offenders.push(`${file}:${line} carries 0x${b.toString(16).padStart(2, "0")}`);
+          break; // one report per file is enough to send somebody to look
+        }
+      }
+    }
+    expect(offenders, "grep and ripgrep will treat these as binary and skip them").toEqual([]);
+  });
+});

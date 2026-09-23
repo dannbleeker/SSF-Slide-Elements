@@ -349,7 +349,14 @@ describe("the privacy page says what the pane actually stores", () => {
     // the page wrong. The key is what a user would look for in devtools.
     const key = /const GLOBAL_KEY = "([^"]+)"/.exec(memory)?.[1];
     expect(key, "the pane's storage key could not be read out of memory.ts").toBeTruthy();
-    expect(privacy, `the privacy page does not name the key "${key ?? ""}"`).toContain(key ?? " ");
+    // The fallback is a string no page can contain. NOT `""` — `toContain("")`
+    // passes on every input, so an unreadable key would report the privacy page
+    // as fine. It was a literal NUL BYTE until 2026-09-23, which made grep and
+    // ripgrep classify this whole file as binary and skip it by default: a
+    // security test nobody could search for, and the reason the sweep in
+    // `test/without-prose.test.ts` now refuses a control character anywhere.
+    const missing = "GLOBAL_KEY COULD NOT BE READ";
+    expect(privacy, `the privacy page does not name the key "${key ?? ""}"`).toContain(key ?? missing);
   });
 
   it("says there is a second key per presentation, and that it is not the address", () => {

@@ -574,10 +574,38 @@ export function exportPartsVerdict(o: ExportPartsObservation): Reading {
   if (!o.source || !o.exported) return { verdict: "unknown", detail: "NOT ASKED — this sheet carries no part lists." };
   const s = o.source;
   const e = o.exported;
+  // Hoisted above all three arms, for two reasons a hundred lines apart.
+  //
+  // It used to sit below them, so only the arm that found the comments KEPT
+  // could mention it — see the two sentences below for what the other two were
+  // saying without it.
+  //
+  // And it is one declaration rather than `?? []` written inline at each use,
+  // which is about the mutation sweep rather than style: inline, a second
+  // fallback sat inside a NESTED template literal, which `codeMask` blanks up
+  // to the nested backtick and no further, so the sweep could mutate a fallback
+  // that can never fire and reported it as a survivor it could not kill, twice.
+  // In plain code there is one fallback and deleting it takes the no-`missing`
+  // case red. Measured 2026-09-13: an equivalent mutant became a killed one.
+  const missing = o.missing ?? [];
+  // A few names rather than a bare count: the difference between "the export
+  // also dropped ten parts" and "…including a slide master and its theme" is
+  // the difference between a number and a reason. Capped, because the sheet is
+  // read by a person.
+  const some = (list: string[]): string =>
+    list.length === 0 ? "" : `, among them ${list.slice(0, 3).join(", ")}${list.length > 3 ? ", …" : ""}`;
   if (!s.authors && s.comments === 0) {
     return {
       verdict: "unknown",
-      detail: `NOT ASKED — this deck carries no comments and no authors part, so there was nothing for the export to drop. Re-run on a deck with comments. (${s.total} parts in, ${e.total} out.)`,
+      // "so there was nothing for the export to drop" until 2026-09-23, on a
+      // branch that can see `missing`. Measured on the two sheets of
+      // 2026-09-14 09:xx, which take it: the export had dropped 5 and 11 parts
+      // respectively while this sentence said nothing was there to drop. What
+      // it means is that nothing of the KIND this question is about was there.
+      detail:
+        `NOT ASKED — this deck carries no comments and no authors part, so the export had none to drop. ` +
+        `Re-run on a deck with comments. (${s.total} parts in, ${e.total} out` +
+        `${missing.length > 0 ? `, and it still did not carry over ${missing.length} part(s)${some(missing)}` : ""}.)`,
     };
   }
   const lostAuthors = s.authors && !e.authors;
@@ -589,20 +617,29 @@ export function exportPartsVerdict(o: ExportPartsObservation): Reading {
     ]
       .filter(Boolean)
       .join(" and ");
+    // What ELSE went. This arm named only the comments and the authors part and
+    // stopped, on the question whose title is "what does each drop" and which
+    // CHOSE this add-in's read route — while the arm below, on the same data,
+    // already reported `missing`. Measured on the committed sheets: 2026-09-10
+    // 18:13 reported "ppt/authors.xml and 1 comment part(s)" over TWELVE parts
+    // gone, the other ten being a whole slide master, its layout and its theme,
+    // three ppt/webextensions parts, changesInfo1.xml and revisionInfo.xml. A
+    // reader deciding between the two reads on that sentence would have priced
+    // the export at two parts instead of twelve.
+    //
+    // Subtracted rather than filtered by name, because the probe CAPS `missing`
+    // and a cap would make a name-filter silently wrong; clamped at zero for
+    // the same reason.
+    const named = (lostAuthors ? 1 : 0) + (lostComments ? s.comments - e.comments : 0);
+    const others = Math.max(0, missing.length - named);
     return {
       verdict: "yes",
-      detail: `the export DROPS ${lost} — office-js#6867 reaches the presentation-level call here too. A package rebuilt from the export loses them; getFileAsync keeps them. ${s.total} parts in, ${e.total} out.`,
+      detail:
+        `the export DROPS ${lost}${others > 0 ? `, and ${others} other part(s)${some(missing.filter((p) => p !== "ppt/authors.xml" && !p.startsWith("ppt/comments/")))}` : ""}` +
+        ` — office-js#6867 reaches the presentation-level call here too. A package rebuilt from the export loses them;` +
+        ` getFileAsync keeps them. ${s.total} parts in, ${e.total} out.`,
     };
   }
-  // Hoisted rather than written `?? []` twice inline, and the reason is about
-  // the mutation sweep rather than about style. Inline, the second fallback sat
-  // inside a NESTED template literal, which `codeMask` blanks up to the nested
-  // backtick and no further — so the sweep could mutate a fallback that can
-  // never fire, because the outer one has already proved the array non-empty.
-  // It reported that as a survivor it could not kill, twice. Hoisted, there is
-  // one fallback, it sits in plain code, and deleting it takes the no-`missing`
-  // case red. Measured 2026-09-13: an equivalent mutant became a killed one.
-  const missing = o.missing ?? [];
   return {
     verdict: "no",
     detail: `the export kept the comments and the authors part this deck carries (${s.total} parts in, ${e.total} out${missing.length > 0 ? `, ${missing.length} other part(s) not carried over` : ""}).`,
