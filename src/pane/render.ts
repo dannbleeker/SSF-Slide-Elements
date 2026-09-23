@@ -53,8 +53,25 @@ import { slideParts, usedHeading, usedRows } from "./used.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/** How many tags the line shows before the chevron is worth having. */
-const TAGS_SHOWN = 12;
+/**
+ * How many tags fit one row before the line certainly wraps, at the narrowest
+ * width the pane supports.
+ *
+ * A COUNT, used as a proxy for "there is a second line", which is what
+ * `docs/DESIGN.md` section 4 makes the chevron's condition. The pane cannot
+ * measure that: jsdom has no layout, and the real answer depends on the tag
+ * text and the pane's width. `npm run pane-shots` is the instrument that would
+ * check it at 320 and 512, and it needs a browser.
+ *
+ * Deliberately conservative. Both committed libraries carry 24 tags, and the
+ * shortest of them are five characters, so at 320 px a row holds far fewer than
+ * this — the chevron will be offered whenever it is needed, and at worst
+ * offered once when it was not. The previous constant of the same name was a
+ * hard CAP on how many tags were DRAWN, which is why twelve of the twenty-four
+ * never reached the DOM at all; the line now draws every tag and the CSS clips
+ * it.
+ */
+const TAGS_PER_ROW = 8;
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -511,15 +528,24 @@ function browse(main: HTMLElement, state: PaneState, library: Library): void {
 
   const tags = tagsOf(library);
   if (tags.length > 0) {
-    const line = el("div", state.gear === true ? "tags open" : "tags");
+    const open = state.tagsOpen === true;
+    const line = el("div", open ? "tags open" : "tags");
     // A picked tag moves to the front so it stays visible when the line is
     // closed (`docs/DESIGN.md` section 4).
-    const ordered = [...state.tags, ...tags.filter((t) => !state.tags.includes(t))].slice(0, TAGS_SHOWN);
+    const ordered = [...state.tags, ...tags.filter((t) => !state.tags.includes(t))];
     for (const tag of ordered) {
       const chip = button("tag", state.tags.includes(tag) ? "chip on" : "chip", tag);
       chip.dataset["value"] = tag;
       chip.setAttribute("aria-pressed", state.tags.includes(tag) ? "true" : "false");
       line.appendChild(chip);
+    }
+    // "The chevron only shows when there is a second line" — section 4. See
+    // `TAGS_PER_ROW` for why a count stands in for the layout question.
+    if (ordered.length > TAGS_PER_ROW) {
+      const more = button("tags-open", "chip chevron", open ? "⌃" : "⌄");
+      more.setAttribute("aria-label", open ? "Show fewer tags" : "Show all tags");
+      more.setAttribute("aria-expanded", open ? "true" : "false");
+      line.appendChild(more);
     }
     main.appendChild(line);
   }

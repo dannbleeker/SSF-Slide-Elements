@@ -71,7 +71,9 @@ fetched only when you insert it.
   searching, the sections that have hits appear as chips with counts: tap one to
   see only that section, tap it again to see them all;
 - a line of **tags**, most used first. Picking one narrows the list, and a
-  picked tag moves to the front so it stays visible;
+  picked tag moves to the front so it stays visible. The line shows one row;
+  the chevron at its right opens the rest and closes them again, and it only
+  appears when there is more than one row to show;
 - the **gear**, beside the search, holding three settings: whether an element
   lands **onto this slide** or **as a new slide** after it, whether its
   shapes arrive **as one group** or **loose**, and whether its colours follow

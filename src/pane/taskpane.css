@@ -546,6 +546,17 @@ input:focus-visible,
   max-height: none;
 }
 
+/*
+ * The chevron that opens the line (`docs/DESIGN.md` section 4). It sits at the
+ * right of the first row and must stay on it whatever the tags do, or the
+ * control that reveals the second row would itself be on the second row.
+ */
+.chip.chevron {
+  margin-left: auto;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .count {
   color: var(--muted);
   font-size: 12px;

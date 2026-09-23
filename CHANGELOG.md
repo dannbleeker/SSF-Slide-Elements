@@ -7,7 +7,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- **The tag line has its chevron.** It shows one row of tags and the chevron at
+  its right opens the rest, which is what the pane was always meant to do.
+
 ### Fixed
+
+- **Half the tags were unreachable.** The tag line drew only the first twelve
+  of the library's twenty-four, so the rest could not be picked as filters at
+  all — and the only thing that unfolded the line was opening the settings,
+  which has nothing to do with tags. Every tag is now there, and the chevron is
+  what opens them.
 
 - **"Remove from N slides" now puts the keyboard where the question is, and
   reads it out.** Asking the question hides the Remove button on every tile —

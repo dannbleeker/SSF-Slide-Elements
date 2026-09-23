@@ -275,6 +275,21 @@ PowerPoint would settle.
 - **Tags**, one line until opened with the chevron at its right; a picked tag
   moves to the front so it stays visible when the line is closed. The chevron
   only shows when there is a second line.
+
+  **Built 2026-09-23, having been described here since the record was written.**
+  Until then nothing drew a chevron: the line's one-row clip was lifted by
+  `state.gear` — the OPTIONS panel — so it unfolded as a side effect of an
+  unrelated control and could not be opened deliberately at all. Worse, a
+  constant capped the line at the first TWELVE tags, and both committed
+  libraries carry twenty-four, so half the vocabulary never reached the DOM and
+  could not be used as a filter. The line now draws every tag and the CSS clips
+  it to one row.
+
+  Whether there is a second line is answered by a COUNT (`TAGS_PER_ROW` in
+  `render.ts`), not by layout: the pane cannot measure whether the line wraps,
+  and `npm run pane-shots` — which needs a browser — is the instrument that
+  would check it at 320 and 512. The count is deliberately low, so the chevron
+  is offered whenever it is needed and at worst offered once when it was not.
 - **The gear**, beside the search: insert target, shapes as one group or loose,
   colours, "Report a problem", "Browse the catalogue on the site" (section 7).
 - **Used in this deck**: the library elements already in the deck, each with

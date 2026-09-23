@@ -889,3 +889,71 @@ describe("the search field's own shortcut", () => {
     expect(search?.getAttribute("aria-label")).toBe("Search the library");
   });
 });
+
+describe("the tag line's chevron", () => {
+  /**
+   * `docs/DESIGN.md` section 4 has always said "**Tags**, one line until opened
+   * with the chevron at its right … The chevron only shows when there is a
+   * second line." Nothing drew one until 2026-09-23.
+   *
+   * Two things followed. `TAGS_SHOWN = 12` was a hard cap on how many tags were
+   * DRAWN, so twelve of the committed libraries' twenty-four never reached the
+   * DOM and could not be used as filters at all. And the one-row clip was
+   * lifted by `.tags.open`, a class applied on `state.gear` — the Options
+   * panel — so the line unfolded as a side effect of an unrelated control and
+   * could not be opened on purpose.
+   */
+  const many = (n: number): Library => ({
+    ...LIBRARY,
+    elements: LIBRARY.elements.map((e, i) =>
+      i === 0 ? { ...e, tags: Array.from({ length: n }, (_, t) => `tag${t}`) } : { ...e, tags: [] },
+    ),
+  });
+
+  it("draws every tag, not the first twelve", () => {
+    const root = document.createElement("div");
+    render(root, { ...EMPTY, library: many(24) }, "browse");
+    const chips = [...root.querySelectorAll('[data-action="tag"]')];
+    expect(chips, "the line still caps what it draws").toHaveLength(24);
+  });
+
+  it("offers the chevron only when there is more than one row of them", () => {
+    const few = document.createElement("div");
+    render(few, { ...EMPTY, library: many(3) }, "browse");
+    expect(few.querySelector('[data-action="tags-open"]'), "a chevron over three tags").toBeNull();
+
+    const lots = document.createElement("div");
+    render(lots, { ...EMPTY, library: many(24) }, "browse");
+    expect(lots.querySelector('[data-action="tags-open"]'), "no chevron over twenty-four").not.toBeNull();
+  });
+
+  it("is what opens the line, and the gear is not", () => {
+    const shut = document.createElement("div");
+    render(shut, { ...EMPTY, library: many(24) }, "browse");
+    expect(shut.querySelector(".tags")?.className).toBe("tags");
+
+    const open = document.createElement("div");
+    render(open, { ...EMPTY, library: many(24), tagsOpen: true }, "browse");
+    expect(open.querySelector(".tags")?.className, "the chevron did not open the line").toBe("tags open");
+
+    // The coupling that stood in for it. Opening the OPTIONS panel must no
+    // longer unfold the tag line.
+    const geared = document.createElement("div");
+    render(geared, { ...EMPTY, library: many(24), gear: true }, "browse");
+    expect(geared.querySelector(".tags")?.className, "the gear still opens the tag line").toBe("tags");
+  });
+
+  it("says which way it will go", () => {
+    const shut = document.createElement("div");
+    render(shut, { ...EMPTY, library: many(24) }, "browse");
+    const chevron = shut.querySelector('[data-action="tags-open"]');
+    expect(chevron?.getAttribute("aria-expanded")).toBe("false");
+    expect(chevron?.getAttribute("aria-label")).toBe("Show all tags");
+
+    const open = document.createElement("div");
+    render(open, { ...EMPTY, library: many(24), tagsOpen: true }, "browse");
+    const back = open.querySelector('[data-action="tags-open"]');
+    expect(back?.getAttribute("aria-expanded")).toBe("true");
+    expect(back?.getAttribute("aria-label")).toBe("Show fewer tags");
+  });
+});

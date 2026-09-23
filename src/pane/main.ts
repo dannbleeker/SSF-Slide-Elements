@@ -1309,6 +1309,13 @@ function onClick(event: MouseEvent): void {
     case "gear":
       set({ gear: state.gear !== true });
       break;
+    // The chevron `docs/DESIGN.md` section 4 has always described. Until
+    // 2026-09-23 nothing drew it, and the tag line's one-row clip was lifted by
+    // `state.gear` instead — so the line unfolded when the user opened the
+    // OPTIONS panel and could not be opened on purpose at all.
+    case "tags-open":
+      set({ tagsOpen: state.tagsOpen !== true });
+      break;
     case "target":
       if (value === "onto" || value === "new") {
         set({ settings: { ...state.settings, target: value } });
