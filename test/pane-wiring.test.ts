@@ -2087,6 +2087,33 @@ describe("removing a part from every slide it is on", () => {
     return pane;
   }
 
+  it("puts the focus into the question and announces it", async () => {
+    /**
+     * The one action in the pane that takes content OUT of the user's deck, and
+     * that the question itself says cannot be undone — and it opened with focus
+     * on `<body>` and said nothing.
+     *
+     * Opening it sets `state.removing`, and `render` then suppresses the Remove
+     * button on EVERY tile while a question is open. So the control the user
+     * just pressed is gone by the time `draw` looks for it: `focusKey` names it,
+     * `focusedBy` finds no match, and the browser's fallback is `<body>`.
+     * Reaching "Remove" meant tabbing from the top of the document, past the
+     * search box, the gear, every chip, every jump button and every tile and
+     * star before it, for a confirmation opened one keystroke earlier. Nothing
+     * announced it either: `set({removing})` set no notice and the confirm is a
+     * `<div role="group">`, not a live region.
+     */
+    const pane = await askedToRemove();
+    const ask = pane.querySelector<HTMLElement>('[data-action="remove-ask"]');
+    expect(ask, "the question was not drawn").not.toBeNull();
+    expect(document.activeElement, "focus was left on the document body").toBe(ask);
+    // `#announcer` lives on `document.body`, not inside the pane — see
+    // `liveRegion()`. Queried from the pane it comes back null and this case
+    // would pass on an empty string, which is the vacuity this round is about.
+    const live = document.getElementById("announcer")?.textContent ?? "";
+    expect(live, "the question was never announced").toContain("The pane cannot undo this");
+  });
+
   /** Wait for a run to finish: the footer is what says it did. */
   async function ran(pane: HTMLElement): Promise<string> {
     await waitFor("the removal to report a footer", () => pane.querySelector(".outcome")?.textContent);

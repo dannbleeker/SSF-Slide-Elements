@@ -9,6 +9,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **"Remove from N slides" now puts the keyboard where the question is, and
+  reads it out.** Asking the question hides the Remove button on every tile —
+  including the one you just pressed — so the keyboard was left at the very top
+  of the pane, and reaching the answer meant tabbing past the search box, the
+  settings, every tag, and every element before it. Anyone using a screen
+  reader was told nothing at all. The question now takes the focus when it
+  opens and is announced, which matters most here because it is the one thing
+  the pane does that it cannot undo for you.
+
 - **Reordering slides while an insert is running no longer deletes the wrong
   one.** Inserting onto the slide you are on rebuilds it and then removes the
   original, and it found the original by its position — a position worked out

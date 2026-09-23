@@ -274,6 +274,17 @@ function tile(state: PaneState, library: Library, element: Element, where: strin
     const ask = el("div", "tile-menu");
     ask.setAttribute("role", "group");
     ask.setAttribute("aria-label", removeLabel(state.removing.slides));
+    // Focusable, and findable by `focusKey`'s own selector shape, so `main.ts`
+    // can put the focus INTO the question when it opens. Opening it removes the
+    // Remove button from every tile — the control the user just pressed — so
+    // the redraw's restore found nothing and focus fell to `<body>`, on the one
+    // action in the pane that takes content out of the deck and that the
+    // question itself says cannot be undone. -1 rather than 0: it is reached by
+    // being opened, not by tabbing past it.
+    ask.tabIndex = -1;
+    ask.dataset["action"] = "remove-ask";
+    ask.dataset["id"] = element.id;
+    ask.dataset["where"] = state.removing.where;
     ask.appendChild(el("p", "tile-ask", removeQuestion(element, state.removing.slides)));
     const go = button("remove-go", "tile-menu-item danger", "Remove");
     go.dataset["id"] = element.id;

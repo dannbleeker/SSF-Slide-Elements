@@ -48,16 +48,17 @@ import { render } from "./render.js";
 import { fractionOf, withLanded } from "./card.js";
 import { elementOf, openAtFirst } from "./search.js";
 import {
-  arrowTo,
   EMPTY,
+  RECENT_DEPTH,
+  arrowTo,
   escapeCloses,
   moveableAfter,
   offersOtherTarget,
   otherTarget,
-  RECENT_DEPTH,
   remember,
   removableFrom,
   removalOutcome,
+  removeQuestion,
   stepFor,
   tileKey,
   toggle,
@@ -209,7 +210,6 @@ function focusKey(el: Element): string | undefined {
   const all = [...root().querySelectorAll(selector)];
   const at = all.indexOf(el);
   return all.length > 1 && at >= 0 ? `${selector}\u0000${at}` : selector;
-  return parts.join("");
 }
 
 /**
@@ -227,6 +227,16 @@ function focusedBy(key: string): HTMLElement | null {
 
 /** Whether `draw` is putting the focus back, rather than the user moving it. */
 let restoringFocus = false;
+
+/**
+ * A control the NEXT redraw should focus, rather than restoring what was there.
+ *
+ * For the one case where the right answer is not "put it back": opening the
+ * removal question removes the button that opened it from every tile, so there
+ * is nothing to put it back on. Consumed by `draw` and cleared whether or not
+ * the control turns up.
+ */
+let focusAfterDraw: string | undefined;
 
 function draw(): void {
   const active = document.activeElement;
@@ -265,6 +275,17 @@ function draw(): void {
     if (search) {
       search.focus();
       if (caret !== null) search.setSelectionRange(caret, caret);
+    }
+  } else if (focusAfterDraw !== undefined) {
+    const key = focusAfterDraw;
+    focusAfterDraw = undefined;
+    // Flagged like the restore below: `focus()` raises `focusin`, and `onFocus`
+    // reads that as the user arriving at a tile.
+    restoringFocus = true;
+    try {
+      focusedBy(key)?.focus();
+    } finally {
+      restoringFocus = false;
     }
   } else if (held !== undefined) {
     // Only when it is still there: a control the redraw legitimately removed —
@@ -1344,7 +1365,22 @@ function onClick(event: MouseEvent): void {
         // in Favourites, in Recent and in its category, and a question keyed by
         // id alone appears on all three.
         const where = el.dataset["where"] ?? "";
-        if (slides.length > 0) set({ removing: { id, slides, done: 0, where }, menuFor: undefined });
+        if (slides.length > 0 && element) {
+          // Focus goes INTO the question, and the question is announced.
+          // Neither happened: the redraw took the Remove button off every tile,
+          // so the restore had nothing to find and focus fell to `<body>` —
+          // leaving a keyboard user to Tab from the top of the document to
+          // reach a confirmation they had opened one keystroke earlier, and a
+          // screen-reader user told nothing at all. The question is the notice
+          // rather than a summary of it, because it names the element and the
+          // slides and says the pane cannot undo it.
+          focusAfterDraw = `[data-action="remove-ask"][data-id="${CSS.escape(id)}"][data-where="${CSS.escape(where)}"]`;
+          set({
+            removing: { id, slides, done: 0, where },
+            menuFor: undefined,
+            notice: removeQuestion(element, slides),
+          });
+        }
       }
       break;
     case "remove-cancel":

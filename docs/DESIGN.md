@@ -714,6 +714,16 @@ top hit.
   interaction on a platform this repo cannot measure. The preview is still
   reachable on touch: it opens on focus, which a tap gives the tile. Revisit it
   in a round where a real touch host is to hand.
+- **The removal question takes the focus and is announced.** Opening it removes
+  the Remove button from every tile — the control that opened it — so there is
+  nothing for the redraw's focus restore to put the focus back on, and it fell
+  to `<body>`: a keyboard user had to Tab from the top of the document to reach
+  a confirmation they had opened one keystroke earlier, and a screen-reader user
+  was told nothing at all. It is the one action here that takes content out of
+  the deck, and the one the pane says it cannot undo, so it is also the one that
+  may not open silently. The question itself is the announcement, because it
+  names the element and the slides and says the pane cannot undo it. Found on
+  2026-09-23 by replaying `draw`'s own focus logic in jsdom.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
   tiles and the tick stay visible. **Measured from 2026-09-12**, when
   `pane-shots` gained a forced-colours pass over every state: until then this
