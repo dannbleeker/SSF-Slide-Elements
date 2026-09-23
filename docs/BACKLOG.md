@@ -128,8 +128,8 @@ is written down rather than guessed at.
 
 ### Widen what the mutation sweep changes
 
-The one open item **this repo can finish on its own**, and the only one that is
-code.
+One of the two open items **this repo can finish on its own** — the other is
+the multi-cycle removal test above.
 
 `scripts/mutants.mjs` now runs **eight** operators — boundary, operands,
 boolean, negation, fallback, guard, off-by-one, field — over `src/core`,
