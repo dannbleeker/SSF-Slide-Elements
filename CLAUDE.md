@@ -301,6 +301,27 @@ a refactor, and a check that guessed would be noise.
   when anything else is running, and check `git status` before a commit you did
   not build file by file.
 
+  **The whole gate is `.github/workflows/ci.yml`'s `test` job, in its order**,
+  and it is longer than the obvious four. Read it off the workflow rather than
+  from memory; it cannot be one npm script, because a script that nests
+  `npm run` is blocked by AppLocker on the owner's box:
+
+  ```
+  format:check · lint · typecheck · build:lib · harvest
+  git diff --exit-code -- public/catalogue/catalogue.json public/catalogue.html
+  probe · git diff --exit-code -- probe/probe-snippet.ts
+  build · coverage · test:count
+  git diff --exit-code -- test/fixtures/test-count.json
+  ```
+
+  `format:check` is the FIRST step, and it was missed on 2026-09-23: a branch
+  went red on Prettier with typecheck, lint, test, test:count, coverage and
+  dead-exports all green locally.
+
+- **Read a gate by its EXIT CODE, never by the tail of its output.** `npm run
+  lint | tail -1` prints a blank line on failure, which reads as success. That
+  shipped a lint error to CI on 2026-09-23.
+
 - **Flag manifest re-installs to the owner.** The add-in is hosted on Pages, so
   code, pane and catalogue changes ship through `main` with **no** re-install.
   A change to the manifest itself — ribbon buttons, `Permissions`, requirement
