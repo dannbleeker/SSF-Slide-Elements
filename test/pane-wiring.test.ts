@@ -102,6 +102,9 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   insertPackage: () => {
     host.cycles += 1;
+    // The notice AS IT STANDS at each cycle's insert, so a case can see whether
+    // a run of several says where it has got to or freezes on one sentence.
+    host.noticesSeen.push(document.querySelector(".notice")?.textContent ?? "");
     return Promise.resolve(undefined);
   },
   removeSlideAt: (at: number) => {
@@ -167,7 +170,7 @@ async function waitFor(what: string, done: () => unknown, ticks = WAIT_TICKS): P
   }
   throw new Error(`waited ${(ticks * 5) / 1000}s for ${what}, and it never happened`);
 }
-const spliced: { target: string; slide: number }[] = [];
+const spliced: { target: string; slide: number; notice: string }[] = [];
 /** Every store fetch, with the library size the store answering it was built for. */
 const storeFetches: { size: string; what: string }[] = [];
 vi.mock("../src/core/splice/splice.js", () => ({
@@ -176,7 +179,13 @@ vi.mock("../src/core/splice/splice.js", () => ({
     options: { target: string };
     store: (path: string) => Promise<unknown>;
   }) => {
-    spliced.push({ target: request.options.target, slide: request.slide });
+    // The notice AS IT STANDS when this cycle starts, so a case can see whether
+    // a run of several says where it has got to or freezes on one sentence.
+    spliced.push({
+      target: request.options.target,
+      slide: request.slide,
+      notice: document.querySelector(".notice")?.textContent ?? "",
+    });
     // The real splice fetches every carried part through this closure, from
     // inside `carry`, several awaits deep. The hold lets a case put that fetch
     // AFTER something else has happened — which is the whole race here.
@@ -261,6 +270,8 @@ const host = {
   slideIdCalls: 0,
   /** From which read on the answer is a DIFFERENT id — a slide dragged into the slot. */
   slideIdSwapFrom: 0,
+  /** The notice on screen at each cycle's insert, in order. */
+  noticesSeen: [] as string[],
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -583,6 +594,7 @@ afterEach(async () => {
   host.selectedSlides = undefined;
   host.slideIdCalls = 0;
   host.slideIdSwapFrom = 0;
+  host.noticesSeen.length = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -2421,6 +2433,47 @@ describe("removing a part from every slide it is on", () => {
     expect(outcome, "and did not say so").toMatch(/pane cannot undo/i);
   });
 
+  it("says where a several-slide run has got to, rather than freezing on one sentence", async () => {
+    /**
+     * `docs/DESIGN.md` section 10: "The pane never shows an empty or broken
+     * screen, and every message says what happened and what to do." A run over
+     * several slides set its notice ONCE, before the loop, and never touched it
+     * again — so the pane locked itself and sat on one frozen sentence for the
+     * whole thing.
+     *
+     * That is not a cosmetic point on this host. The pane locks itself, not
+     * PowerPoint, and each cycle is a splice, an insert, two count reads that
+     * BACK OFF — `CLAUDE.md` records the web's count sitting at its old value
+     * for 2.8 seconds — and a positional delete. Over a whole deck's worth of
+     * selected slides that is minutes, with nothing on screen distinguishing
+     * working from wedged.
+     *
+     * Nothing caps the run either: a stamp is bounded only by how many slides
+     * the user selected. That question is in `docs/BACKLOG.md`, because a cap
+     * needs a number and the number is the owner's.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [0, 2, 4];
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    const notices = spliced.map((one) => one.notice);
+    expect(notices.length, "three cycles were expected").toBe(3);
+    expect(new Set(notices).size, "every cycle showed the same frozen sentence").toBe(3);
+    // It names where it is and how far it goes, so the sentence is checkable
+    // against the slide strip rather than merely reassuring.
+    expect(notices[0]).toContain("1 of 3");
+    expect(notices[2]).toContain("3 of 3");
+  });
+
   it("leaves one selected slide to the ordinary insert, Undo and all", async () => {
     // `stampTargets` answers the empty list under two slides, which is what
     // hands the ordinary path back: a loop of one would report a different
@@ -2604,6 +2657,33 @@ describe("removing a part from every slide it is on", () => {
     expect(host.removed, "it deleted by position after the slot had changed hands").toEqual([]);
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome, "and said nothing about the copy it had already landed").toContain("a slide too many");
+  });
+
+  it("says which slide it is on, rather than one sentence for the whole run", async () => {
+    /**
+     * The same freeze the several-slide stamp had, on the path that takes
+     * content OUT of a deck. The notice was set once before the loop and never
+     * touched again, so the pane locked itself and sat on one sentence through
+     * a run of cycles that each cost a splice, an insert, two count reads that
+     * BACK OFF — the web's count sat at its old value for 2.8 seconds — and a
+     * positional delete.
+     *
+     * `docs/DESIGN.md` section 10 asks every message to say what happened. A
+     * sentence that stops being true the moment the first cycle finishes is not
+     * one.
+     */
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    await idle(pane);
+
+    // ONE cycle, and that is the fixture's limit rather than a choice: the
+    // stamped deck is built with the real splice, which PRUNES to one slide, so
+    // `deckWithStampOn` cannot put the element on two. `docs/BACKLOG.md`
+    // carries that gap. What this holds is that the sentence is computed per
+    // cycle rather than fixed — `runningOn`'s own case proves it changes, and
+    // the several-slide stamp drives it over three.
+    expect(host.noticesSeen.length, "one cycle was expected").toBe(1);
+    expect(host.noticesSeen[0], "the notice did not say which slide or how far").toContain("slide 1, 1 of 1");
   });
 
   it("drops the question when a search takes its tile off the screen", async () => {

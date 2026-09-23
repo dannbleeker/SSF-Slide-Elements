@@ -524,6 +524,18 @@ exception for width.
   measured on the web and on Windows), and the sentence names it. Unlike a
   removal this is not asked first, because it adds rather than takes away.
 
+  **A cursor-landing part loses its cursor here**, and that is the only sane
+  answer: "at the cursor" is the selected SHAPE's position, and with several
+  slides selected there is no one shape to take. It falls back to the middle of
+  the slide, which is what this section already specifies for nothing selected
+  — so two of the ten parts per library, the two markers, land centred on every
+  selected slide rather than around a shape.
+
+  **It says which slide it is on and how far through it is**, rather than one
+  sentence for the whole run: the pane locks itself, not PowerPoint, and a run
+  over many slides is minutes. Nothing caps it — `docs/BACKLOG.md` carries that
+  question, because a cap needs a number and the number is a judgement.
+
   One selected slide, or a host that will not say, runs the ordinary
   single-slide insert with its ordinary Undo — `stampTargets` answers the empty
   list under two slides, which is what hands that path back. A whole-slide

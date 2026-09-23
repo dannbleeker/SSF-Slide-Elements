@@ -71,6 +71,7 @@ import {
   removableFrom,
   removalOutcome,
   removeQuestion,
+  runningOn,
   stampOutcome,
   stepFor,
   tileKey,
@@ -1308,12 +1309,21 @@ async function stampEvery(
   from: { markup: Markup; deck: string; library: Library; index: Index; parts: Store },
   many: number[],
 ): Promise<void> {
-  set({ notice: `Stamping ${element.name} onto ${many.length} slides…` });
   let done = 0;
   /** Whether a cycle left its copy behind, which changes what may be said. */
   let stranded = false;
   try {
-    for (const at of many) {
+    for (const [cycle, at] of many.entries()) {
+      // WHERE IT HAS GOT TO, not one sentence for the whole run. `docs/DESIGN.md`
+      // section 10 asks every message to say what happened, and the pane locks
+      // ITSELF rather than PowerPoint: each cycle is a splice, an insert, two
+      // count reads that back off — the web's count sat at its old value for
+      // 2.8 seconds — and a positional delete. Over a deck's worth of selected
+      // slides that is minutes with nothing distinguishing working from wedged.
+      //
+      // Counted in slides the user can see, not in cycles: `at` is an index
+      // from zero and the slide strip counts from one.
+      set({ notice: runningOn("Stamping", element.name, at + 1, cycle + 1, many.length) });
       const before = await slideCount();
       const targetId = await slideIdAt(at);
       if (targetId === undefined) break;
@@ -1410,7 +1420,10 @@ async function removeEverywhere(id: string): Promise<void> {
     // read is already paid for here, and `slidesHolding` is the same sweep
     // "Used in this deck" uses.
     wanted = (await slidesHolding(await Pkg.open(deck.base64), id)).map((i) => i + 1);
-    for (const slide of wanted) {
+    for (const [cycle, slide] of wanted.entries()) {
+      // The same per-cycle sentence the stamp shows, for the same reason: this
+      // loop set one line before it started and never touched it again.
+      set({ notice: runningOn("Taking", `${element.name} off`, slide, cycle + 1, wanted.length) });
       // Counting from one in the state, from zero in the engine and the host.
       const at = slide - 1;
       const before = await slideCount();

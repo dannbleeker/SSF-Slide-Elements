@@ -73,6 +73,34 @@ collections in a deck, and failing the harvest would block every build until
 that happened. Fix the decks and the warning goes; there is nothing to change
 in the code.
 
+### Nothing caps a several-slide run, and no test drives the removal past one cycle
+
+Two gaps found on 2026-09-23 while reading the several-slide stamp against the
+deck-wide removal. Neither is a defect with an obvious fix; both are the
+owner's to size.
+
+**No cap.** A stamp is bounded only by how many slides the user selected — a
+whole deck, if they pressed Ctrl+A in the slide strip. Each cycle is a splice,
+an insert, two count reads that back off through the web's 2.8-second lag, and
+a positional delete, with the pane locked throughout. The run now says which
+slide it is on and how far through it is, which makes a long one legible, but
+nothing stops it and nothing cancels it. A cap needs a number, and the number
+is a judgement about what a user may ask for in one press. The removal has the
+same shape but is naturally bounded by how many slides carry the element.
+
+**No multi-cycle removal test.** Every removal case in the suite drives exactly
+ONE cycle, and not by choice: `deckWithStampOn` builds its deck with the real
+splice, which reduces the package to the single slide it spliced, so the
+fixture cannot put the element on two slides. So the loop's own behaviour —
+the break semantics, the stranded flag, the per-cycle id guard added the same
+day — is held only at one iteration. The several-slide stamp drives three
+cycles and covers the same shape, which is why this is a gap rather than a
+hole, but they are different functions.
+
+Closing it means a fixture that can assemble a multi-slide deck with the
+element on several slides, which the splice's own prune-to-one-slide contract
+does not offer. Worth doing before anything else changes that loop.
+
 ### The undo still aims at a position the user may have moved
 
 **Narrowed on 2026-09-23, not closed.** The undo puts the user's original slide
