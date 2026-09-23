@@ -116,9 +116,19 @@ the numbers.
 Question 5's "yes" is about a bare `insertSlidesFromBase64`, which is ONE
 operation; this add-in's insert is two, so one press reverts only the positional
 delete and leaves the user holding their original slide AND the rebuilt one
-(3 slides → 4 → back to 3). Measured once, on one deck, on 2026-09-23;
-`docs/MANUAL.md` still says "Ctrl+Z reverts an insert" and is not being
-rewritten on a single reading.
+(3 slides → 4 → back to 3). Measured twice, on two decks, on 2026-09-23 — the
+second time on a deck whose every slide carries its own label, where one press
+left **two slides both reading `SLIDE-05`** — so `docs/MANUAL.md` now says to
+press it twice for an "onto this slide" insert.
+
+**A third round on 2026-09-23, against `faf101e`**, verified the transition fix
+on the host (a new slide off a slide carrying a transition and an animation came
+back with neither, its source keeping both) and settled the mid-run reorder: the
+guard fires when the move lands INSIDE a cycle — the run stops, says the deck
+has a slide too many, and **no label is lost** — while a move that lands BETWEEN
+cycles is not caught and leaves the count one too high with one slide silently
+skipped. `docs/DESIGN.md` section 15 carries both readings and what closing the
+second would cost.
 
 **Mac and iPad have had no round, and none is planned
 before release** — the owner has neither device (2026-09-12), so the
