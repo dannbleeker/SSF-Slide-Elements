@@ -14,6 +14,14 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **An element inserted while the add-in was still measuring your deck no
+  longer takes its pictures from the wrong library.** The tiles go live before
+  the deck's shape has been read, and picking one straight away could give an
+  element from the widescreen library a picture, chart or workbook from the 4:3
+  one — silently, with the wrong thing on the slide — or stop with "the
+  catalogue has no part", naming a part it does have. An insert now keeps the
+  library it started in, whatever the deck turns out to be.
+
 - **Taking an element off every slide no longer claims nothing else changed
   when it did.** The removal rebuilds each slide without the element and then
   takes the original away. If the second half failed, the pane said "The rest

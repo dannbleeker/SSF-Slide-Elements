@@ -160,9 +160,20 @@ async function waitFor(what: string, done: () => unknown, ticks = WAIT_TICKS): P
   throw new Error(`waited ${(ticks * 5) / 1000}s for ${what}, and it never happened`);
 }
 const spliced: { target: string }[] = [];
+/** Every store fetch, with the library size the store answering it was built for. */
+const storeFetches: { size: string; what: string }[] = [];
 vi.mock("../src/core/splice/splice.js", () => ({
-  splice: (request: { options: { target: string } }) => {
+  splice: async (request: { options: { target: string }; store: (path: string) => Promise<unknown> }) => {
     spliced.push({ target: request.options.target });
+    // The real splice fetches every carried part through this closure, from
+    // inside `carry`, several awaits deep. The hold lets a case put that fetch
+    // AFTER something else has happened — which is the whole race here.
+    if (host.spliceHold) {
+      const hold = host.spliceHold;
+      host.spliceHold = undefined;
+      await hold;
+    }
+    await request.store("ppt/media/image10.emf");
     return Promise.resolve({
       base64: "",
       deckSlides: 3,
@@ -216,6 +227,8 @@ const host = {
   held: 0,
   /** Set to hold the next `readDeck` open, so something else can finish under it. */
   holdRead: undefined as Promise<void> | undefined,
+  /** Set to hold the splice open just before it fetches a carried part. */
+  spliceHold: undefined as Promise<void> | undefined,
   /** Every position the pane asked the host to delete, in order. */
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
@@ -239,11 +252,21 @@ vi.mock("../src/pane/catalogue.js", async () => {
     // The real store fetches an element's markup from the site, and there is no
     // site here. Everything it would have fetched is empty: what these cases
     // are about is which options the pane hands the splice, not what it splices.
+    // Records the SIZE it was built with and answers it, so a case can see
+    // which library's directory a fetch would have gone to. `load` replaces the
+    // module-level store when the deck turns out to be the other shape, and the
+    // question is whether an insert already in flight follows it.
     Store: class {
+      size: string;
+      constructor(size: string) {
+        this.size = size;
+      }
       markup(): Promise<{ xml: string; rels: []; parts: [] }> {
+        storeFetches.push({ size: this.size, what: "markup" });
         return Promise.resolve({ xml: "", rels: [], parts: [] });
       }
       part(): Promise<undefined> {
+        storeFetches.push({ size: this.size, what: "part" });
         return Promise.resolve(undefined);
       }
     },
@@ -537,11 +560,13 @@ afterEach(async () => {
   host.missCountAt = 0;
   host.url = undefined;
   host.holdRead = undefined;
+  host.spliceHold = undefined;
   host.followed = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
   spliced.length = 0;
+  storeFetches.length = 0;
   window.localStorage.clear();
 });
 
@@ -917,6 +942,76 @@ describe("when it does arrive", () => {
       (head) => head.getAttribute("aria-expanded") === "true",
     );
     expect(open.map((head) => head.dataset["key"])).toEqual(["stamps"]);
+  });
+
+  it("fetches an insert's parts from the library it read the markup from", async () => {
+    /**
+     * `store` is a module-level `let` and `load()` REASSIGNS it once
+     * `deckShape()` has answered, to the size the deck turned out to be. That
+     * await is exactly the window in which the tiles are on screen and
+     * clickable — deliberately, so the pane stays usable while the deck is
+     * measured — and it is a whole `getFileAsync`: `timeout.ts` records 874 ms
+     * on a healthy web session and 40 s on a degraded one.
+     *
+     * Both of `insert`'s uses read that module-level binding, and the second is
+     * the closure the splice calls from inside `carry`, several awaits deep. So
+     * an insert begun against the provisional 16:9 library could fetch its
+     * carried parts from `catalogue/4x3/parts/…` once the swap landed.
+     *
+     * Measured on the committed catalogue, 2026-09-23: 47 part paths exist
+     * under BOTH sizes and 44 of them hold DIFFERENT bytes — the other
+     * library's chart, workbook or picture, into the user's deck, with no error
+     * at all. The paths that exist under one size only answer 404, `part`
+     * returns undefined, and the splice raises "the catalogue has no part …",
+     * naming a part the catalogue has.
+     */
+    indexMode = "ok";
+    bothSizes = true;
+    host.current = { index: 0, id: "256" };
+    // A 4:3 deck, so the real library is NOT the provisional 16:9 one.
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }], {}, { cx: 9144000, cy: 6858000 })).then(
+      (p) => p.toBase64(),
+    );
+    // Hold the deck read `deckShape` starts with, so the pane is sitting on the
+    // provisional library with its tiles live — the state this is about.
+    let releaseDeck = (): void => undefined;
+    host.holdRead = new Promise<void>((r) => {
+      releaseDeck = r;
+    });
+    // And hold the splice just before it fetches its part, so that fetch lands
+    // AFTER the swap rather than before it.
+    let releaseSplice = (): void => undefined;
+    host.spliceHold = new Promise<void>((r) => {
+      releaseSplice = r;
+    });
+
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    pane.querySelector<HTMLElement>('[data-action="tile"][data-id="one-box"]')?.click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+
+    // The deck turns out to be 4:3, so `load` swaps the module-level store.
+    releaseDeck();
+    // The FIRST category, not merely the presence of one: both libraries in
+    // this index carry "stamps", so `.some(...)` is already true of the
+    // provisional 16:9 one and would not have waited for anything. The 4:3
+    // library is the one that leads with it.
+    await waitFor(
+      "the 4:3 library to replace the provisional one",
+      () => [...pane.querySelectorAll<HTMLElement>('[data-action="category"]')][0]?.dataset["key"] === "stamps",
+    );
+
+    // Only now does the in-flight insert fetch its carried part.
+    releaseSplice();
+    await idle(pane);
+
+    const sizes = [...new Set(storeFetches.map((f) => f.size))];
+    expect(
+      storeFetches.some((f) => f.what === "part"),
+      "the splice never fetched a part",
+    ).toBe(true);
+    expect(sizes, "the insert took its markup and its parts from different libraries").toEqual(["16:9"]);
   });
 
   it("follows the selection even when the deck could not be read at boot", async () => {

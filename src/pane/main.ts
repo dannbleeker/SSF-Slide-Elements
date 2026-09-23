@@ -643,6 +643,31 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   const library = state.library;
   const element = elementOf(library, id);
   if (!library || !element || !store || !index || state.busy === true) return;
+  /**
+   * The store this insert will use, bound HERE, beside the library the element
+   * was read from.
+   *
+   * `store` is a module-level `let` and `load()` REASSIGNS it, after
+   * `deckShape()` has answered, to the size the deck turned out to be. That
+   * await is the window in which the tiles are already on screen and clickable
+   * — deliberately, so the pane is usable while the deck is measured — and
+   * `deckShape` is a whole `getFileAsync`: `timeout.ts` records 874 ms on a
+   * healthy web session and 40 s on a degraded one.
+   *
+   * Both uses below read the module-level binding, and the second is several
+   * awaits deep inside the splice. So an insert begun against the provisional
+   * 16:9 library could fetch its carried parts from `catalogue/4x3/parts/…`
+   * once the swap landed. 47 part paths exist under BOTH sizes, and 44 of them
+   * hold DIFFERENT bytes — measured on the committed catalogue, 2026-09-23 —
+   * so the user's deck got the other library's chart, workbook or picture with
+   * no error at all; the paths that exist under one size only answered 404 and
+   * raised "the catalogue has no part …", naming a part the catalogue has.
+   *
+   * Bound once, the insert is CONSISTENT: markup and parts come from the same
+   * library. Whether the tiles should be clickable against the provisional
+   * library at all is a separate question and the owner's.
+   */
+  const parts = store;
   // A PART ignores the insert target, whether the target came from the gear or
   // from the right-click. `docs/DESIGN.md` section 5: "A part ignores the
   // insert target: it always lands on the slide the user is on"; section 7
@@ -661,7 +686,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   /** Whether `insertSlidesFromBase64` was reached. See the catch at the end. */
   let asked = false;
   try {
-    const markup = await store.markup(element);
+    const markup = await parts.markup(element);
     const deck = await readDeck();
     const current = await currentSlide();
     const at = current?.index ?? 0;
@@ -692,7 +717,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
         width: library.width,
         height: library.height,
       },
-      store: (path) => (store as Store).part(path),
+      store: (path) => parts.part(path),
       ...(selection ? { selection } : {}),
     });
 
