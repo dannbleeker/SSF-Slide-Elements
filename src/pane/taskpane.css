@@ -45,6 +45,10 @@
    */
   --link: var(--blue);
   --disabled: #a0aec0;
+  /* The ground of a search highlight (section 8). Its own token because the
+     light blue every other fill uses sits too close to a tile in dark to be
+     seen, measured by eye on the 2026-09-23 shots. */
+  --mark: #c6dcf3;
 }
 
 /*
@@ -71,6 +75,7 @@
     --lightblue: #122a40;
     --peach: #2e1f13;
     --disabled: #4a5a6b;
+    --mark: #24507c;
   }
 }
 :root[data-theme="dark"] {
@@ -86,6 +91,7 @@
   --lightblue: #122a40;
   --peach: #2e1f13;
   --disabled: #4a5a6b;
+  --mark: #24507c;
 }
 
 * {
@@ -921,6 +927,20 @@ input:focus-visible,
   overflow-wrap: anywhere;
 }
 
+/*
+ * The words a search matched, inside a tile's or the card's name
+ * (`docs/DESIGN.md` section 8). Light blue and weight, never orange: the tick is
+ * this view's one orange element, and a highlight on every tile would spend the
+ * budget many times over. The ground carries it; the weight is the second
+ * signal, and a weak one on a chosen tile, whose whole name is already 600.
+ */
+.hit {
+  background: var(--mark);
+  color: inherit;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
 .tile-busy {
   display: block;
   font-size: 11px;
@@ -1098,5 +1118,17 @@ input:focus-visible,
      first run of which rendered a pane with no tick in it. */
   .tick {
     background: CanvasText;
+  }
+
+  /* Measured 2026-09-23 in Chromium: a forced palette already paints a
+     `<mark>` in the system's own `Mark` and `MarkText`, where a `<span>` with
+     the same rule drops to Canvas. What it does NOT do is reach a mark inside
+     the chosen tile: `forced-color-adjust: none` is INHERITED from the tile
+     above, so the mark kept its light-blue ground under `HighlightText`. Naming
+     the pair here puts the chosen tile's marks back on the system's colours. */
+  .hit {
+    forced-color-adjust: none;
+    background: Mark;
+    color: MarkText;
   }
 }

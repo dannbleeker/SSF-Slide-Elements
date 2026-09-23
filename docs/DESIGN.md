@@ -803,13 +803,31 @@ and a sized tile greys out the counts that do not match. A query with no hits
 offers "Did you mean …" from the nearest names. Not doing: Enter inserting the
 top hit.
 
-**Highlighting the match inside the name is NOT built**, and this section
-claimed it was until 2026-09-23. Nothing anywhere draws one: every name reaches
-the DOM through `el()`, which sets `textContent`, and `matches()` answers a
-boolean rather than saying WHICH words hit — so there is no data a highlighter
-could use even if one were added. It is in `docs/BACKLOG.md` now, which is where
-a thing that is not done belongs. No user-facing document ever promised it, so
-nobody was told to expect it.
+**The words a search matched are marked inside the name**, on the tile and on
+the preview card, built 2026-09-23. `highlight()` in `src/pane/search.ts` cuts
+a name into matched and unmatched runs — every occurrence of every query word,
+part-words included, touching runs joined — and `render.ts` draws the matched
+ones as `<mark class="hit">` through `textContent`, so a name still cannot
+become markup and a screen reader still hears the tile's "Insert <name>".
+
+- It looks at the NAME alone. A word that matched only the Danish key, a tag or
+  the category marks nothing, because none of those is on screen; the tile
+  still shows.
+- A name whose lower case is a different length ("İ") is left unmarked rather
+  than marked in the wrong place.
+- Not on "Used in this deck", which the search does not filter — a mark there
+  would claim a filter that is not applied. Not on "Did you mean" either, where
+  it could never mark anything: those chips appear only when nothing matched.
+- Its own ground (`--mark`), bold, never orange: the tick is the view's one
+  orange. In forced colours it takes the system's `Mark`/`MarkText` — which
+  Chromium gives a `<mark>` by itself, measured the same day, EXCEPT inside the
+  chosen tile, whose `forced-color-adjust: none` is inherited and left the mark
+  white on light blue at 1.21:1 until the stylesheet named the pair.
+  `npm run pane-shots` now measures contrast in forced colours wherever the
+  page has taken its colours back, which is what caught it.
+
+Before that date this section said the highlight was built when nothing drew
+one; no user-facing document had promised it.
 
 ## 9. Accessibility and platforms
 
@@ -1730,3 +1748,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The Scales comes out of both library decks — a SHAPE deleted from the Stamps and labels collection slide, not a slide deleted, because seven other elements share it. Identified by the box the catalogue records rather than by an index or a shape name, and refused unless exactly one shape matched. It was the last of the _Icons_ pair after the waste bin left with Flowchart shapes, and the only part whose key was Danish — `Stempler og lignende 1`, the numbered fallback for a part with no text of its own. The libraries go to 106 elements | owner: remove the Scales, 2026-09-16 |
 | The Flowchart shapes category and its ten part elements come out of both library decks: one slide each (105 at 16:9, 104 at 4:3), carrying the category's own heading, so the category goes with it. The libraries drop from 117 elements to 107 and the 16:9 deck from twelve categories to eleven. A deck that already uses one keeps it — they are ordinary shapes once inserted — and "Used in this deck" still names it as an element from an older library rather than dropping the row | owner: delete Flowchart shapes, 2026-09-16 |
 | The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |
+| Search marks the words it matched inside the name on the tile and the preview card, and NOT on "Used in this deck" (which the search does not filter) or "Did you mean" (which can never hold a match) | owner: approved with the plan, 2026-09-23 |

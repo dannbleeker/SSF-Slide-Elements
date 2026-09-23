@@ -34,6 +34,55 @@ export function matches(element: Element, query: string): boolean {
   return q.split(/\s+/).every((word) => hay.includes(word));
 }
 
+/** One run of a name, and whether the search matched it. */
+export interface Piece {
+  text: string;
+  hit: boolean;
+}
+
+/**
+ * A name cut into the runs a search matched and the runs it did not, for the
+ * highlight `docs/DESIGN.md` section 8 draws on a tile and on the preview card.
+ *
+ * Its own function rather than a richer answer from `matches`, because
+ * `matches` is asked about the whole haystack — key, category and tags as well
+ * as the name — and `shown` and `stepMatches` only want the yes. This one looks
+ * at the NAME alone, since the name is the only one of the four a person sees:
+ * a word that matched only the Danish key or a tag marks nothing, and the tile
+ * still shows, unmarked.
+ *
+ * Every occurrence of every query word is marked, part-words included — "box"
+ * marks the start of "boxes", because that is what the search matched. Marks
+ * that overlap or touch become one run; the space between two matched words is
+ * not matched and stays a gap.
+ *
+ * Offsets are found in the lower-cased name and cut from the original, which is
+ * only sound while lower-casing keeps every character where it was. It does not
+ * always: "İ" lower-cases to two code units. A name that changes length gives
+ * back one unmarked piece rather than a mark in the wrong place.
+ */
+export function highlight(name: string, query: string): Piece[] {
+  const lower = name.toLowerCase();
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || lower.length !== name.length) return [{ text: name, hit: false }];
+
+  const marked = new Array<boolean>(name.length).fill(false);
+  for (const word of words) {
+    for (let at = lower.indexOf(word); at !== -1; at = lower.indexOf(word, at + 1)) {
+      marked.fill(true, at, at + word.length);
+    }
+  }
+
+  const out: Piece[] = [];
+  for (let i = 0; i < name.length; i++) {
+    const hit = marked[i] === true;
+    const last = out[out.length - 1];
+    if (last && last.hit === hit) last.text += name[i];
+    else out.push({ text: name[i] as string, hit });
+  }
+  return out;
+}
+
 /** Every tag in the library, most used first, for the tag line. */
 export function tagsOf(library: Library): string[] {
   const counts = new Map<string, number>();

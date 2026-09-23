@@ -7,6 +7,7 @@ import {
   didYouMean,
   elementOf,
   groups,
+  highlight,
   isOpen,
   matches,
   offersOpenAll,
@@ -53,6 +54,76 @@ describe("search", () => {
     const boxes = LIBRARY.elements[1] as Element;
     expect(matches(boxes, "")).toBe(true);
     expect(matches(boxes, "   ")).toBe(true);
+  });
+});
+
+describe("marking what a search matched inside a name", () => {
+  const marks = (name: string, query: string): string =>
+    highlight(name, query)
+      .map((p) => (p.hit ? `[${p.text}]` : p.text))
+      .join("");
+
+  it("marks each word of the query where it falls in the name", () => {
+    expect(marks("White boxes, 2x1 vertical", "white vertical")).toBe("[White] boxes, 2x1 [vertical]");
+  });
+
+  it("marks part of a word, because that is what the search matched", () => {
+    expect(marks("Two boxes", "box")).toBe("Two [box]es");
+  });
+
+  it("ignores case in the query and keeps the name's own case in the pieces", () => {
+    expect(marks("Approved stamp", "APPROVED")).toBe("[Approved] stamp");
+  });
+
+  it("marks every occurrence, not only the first", () => {
+    expect(marks("Box in a box", "box")).toBe("[Box] in a [box]");
+  });
+
+  it("joins marks that overlap or touch into one run", () => {
+    // Overlapping: "proc" and "cess" share the "c".
+    expect(highlight("Process flow", "proc cess")).toEqual([
+      { text: "Process", hit: true },
+      { text: " flow", hit: false },
+    ]);
+    // A space between two matched words is not matched, so it stays a gap.
+    expect(highlight("White box", "white box")).toEqual([
+      { text: "White", hit: true },
+      { text: " ", hit: false },
+      { text: "box", hit: true },
+    ]);
+    // Touching: "abc" ends exactly where "def" starts.
+    expect(highlight("abcdef", "abc def")).toEqual([{ text: "abcdef", hit: true }]);
+  });
+
+  it("marks nothing for a word that matched only the key, a tag or the category", () => {
+    // "godkendt" finds the stamp through its Danish key, which the pane never
+    // shows, so there is nothing on screen to mark.
+    const stamp = LIBRARY.elements[4] as Element;
+    expect(matches(stamp, "godkendt")).toBe(true);
+    expect(highlight(stamp.name, "godkendt")).toEqual([{ text: stamp.name, hit: false }]);
+  });
+
+  it("marks nothing for an empty query or one of only spaces", () => {
+    expect(highlight("Two boxes", "")).toEqual([{ text: "Two boxes", hit: false }]);
+    expect(highlight("Two boxes", "   ")).toEqual([{ text: "Two boxes", hit: false }]);
+  });
+
+  it("gives back the whole name, whatever it marks", () => {
+    for (const query of ["", "o", "two boxes", "xyz", "s b"]) {
+      expect(
+        highlight("Two boxes", query)
+          .map((p) => p.text)
+          .join(""),
+      ).toBe("Two boxes");
+    }
+  });
+
+  it("marks nothing in a name whose lower case is a different length, rather than marking the wrong letters", () => {
+    // "İ" lower-cases to "i̇", two code units, so every offset after it would
+    // land one character late.
+    const name = "İstanbul box";
+    expect(name.toLowerCase().length).not.toBe(name.length);
+    expect(highlight(name, "box")).toEqual([{ text: name, hit: false }]);
   });
 });
 
