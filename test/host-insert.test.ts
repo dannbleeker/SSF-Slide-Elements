@@ -6,6 +6,7 @@ import {
   mayRemove,
   outcomeOf,
   stampTargets,
+  indexOfSlide,
   stillThere,
   type Attempt,
   undoPlan,
@@ -412,6 +413,49 @@ describe("stillThere", () => {
     expect(stillThere(undefined, "256")).toBe(false);
     expect(stillThere("256", undefined)).toBe(false);
     expect(stillThere(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("indexOfSlide", () => {
+  /**
+   * `stillThere` answers whether a slide moved; this answers where it moved TO.
+   *
+   * A run of several cycles used to walk the INDEXES it was handed before it
+   * started. Measured on Windows on 2026-09-23: a drag that landed INSIDE a
+   * cycle was caught and stranded a copy honestly, and a drag that landed
+   * BETWEEN two cycles was not caught at all — nothing moves during a cycle, so
+   * `stillThere` has nothing to compare — and the run reported "Stamped 59
+   * slides" where 58 had gained one.
+   */
+  it("finds a slide that has moved", () => {
+    expect(indexOfSlide(["256", "257", "258"], "258")).toBe(2);
+    // The drag the rounds actually did: the last slide to the front.
+    expect(indexOfSlide(["258", "256", "257"], "258")).toBe(0);
+  });
+
+  it("answers undefined for a slide that has GONE, which is a skip and not a position", () => {
+    // The dangerous shape: returning 0 here would delete the first slide of the
+    // deck. `undefined` is the only safe answer, and the caller must count it.
+    expect(indexOfSlide(["256", "257"], "999")).toBeUndefined();
+    expect(indexOfSlide([], "256")).toBeUndefined();
+    expect(indexOfSlide(["256"], undefined)).toBeUndefined();
+  });
+
+  it("accepts the suffixed spelling, the same rule stillThere follows", () => {
+    expect(indexOfSlide(["256", "257#424202"], "257")).toBe(1);
+    expect(indexOfSlide(["256", "257"], "257#424202")).toBe(1);
+  });
+
+  it("steps over a slot the host could not name rather than matching it", () => {
+    // A collection load can answer short (`CLAUDE.md`), so a slot can be
+    // undefined. Matching `undefined` to `undefined` would hand back the index
+    // of a slide nobody identified.
+    expect(indexOfSlide([undefined, "257"], "257")).toBe(1);
+    expect(indexOfSlide([undefined, undefined], undefined)).toBeUndefined();
+  });
+
+  it("answers the FIRST match, so a duplicated id cannot widen what is deleted", () => {
+    expect(indexOfSlide(["256", "257", "257"], "257")).toBe(1);
   });
 });
 

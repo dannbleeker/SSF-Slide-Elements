@@ -40,6 +40,22 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Moving slides around while the add-in is working no longer costs a slide
+  its stamp.** Stamping or removing across several slides works through them
+  one at a time, and it can take minutes on a big deck — the add-in locks its
+  own pane, not PowerPoint, so you are free to reorganise the deck while it
+  goes. It used to follow the slide POSITIONS it had noted before it started,
+  so a slide dragged out of the way left everything after it one place along:
+  one of your selected slides would quietly miss out, and the count at the end
+  was one higher than the number of slides that had actually changed. It now
+  follows each slide itself, wherever it has got to.
+
+  Dragging a slide the add-in is working on **at that moment** used to stop the
+  run and leave you a duplicate to tidy up. That is gone too: the slide is
+  followed, and the run carries on. A slide you DELETE mid-run is still left
+  well alone — it is skipped, the count says so, and nothing is removed in its
+  place.
+
 - **A new slide really does drop the transition now, not just the animation.**
   The earlier fix took both off — but only where PowerPoint had written them
   the plain way. A transition picked from the Transitions tab is stored in a
