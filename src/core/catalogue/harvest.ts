@@ -61,7 +61,7 @@ export class HarvestError extends Error {
  *
  * Not content, and not the owner's either: think-cell parks an invisible OLE
  * frame at the slide origin on every slide it has touched, and the 4:3 library
- * deck has been through it. 41 of its 106 slides carry one — 50 shapes — and
+ * deck has been through it. 41 of its 107 slide parts carry one — 50 shapes — and
  * the 16:9 deck carries a single one.
  *
  * Harvested as content it did three things, all measured on the committed
@@ -357,8 +357,9 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
   // sentence "the catalogue has no part …, which this element needs" blaming
   // the catalogue for a part it was never told to publish.
   //
-  // Neither shipped deck does it — 0 of 370 internal targets, measured
-  // 2026-09-23 — because no SHAPE names a layout or a notes page. But the decks
+  // Neither shipped deck does it — 0 of 238 internal targets, re-measured
+  // 2026-09-23 after the hidden-frame fix, which is what took the total from
+  // 370 — because no SHAPE names a layout or a notes page. But the decks
   // are the owner's and are re-harvested whenever they change, and one "go to
   // slide" action button or one chart pasted with its own theme override is
   // enough. This turns that from a failure in somebody's PowerPoint into a

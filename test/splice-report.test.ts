@@ -19,7 +19,7 @@ import { makeDeck } from "./fixtures/deck.js";
  * rectangle the preview card draws. `placeholders` is how many of the user's
  * own boxes went.
  *
- * Nothing was checking any of them. `splice.test.ts` sweeps all 117 elements
+ * Nothing was checking any of them. `splice.test.ts` sweeps all 106 elements
  * through the package integrity checker, which asks whether PowerPoint can OPEN
  * the result — a real and expensive question, and a different one from whether
  * the report describes it. A report that is wrong does not produce a damaged

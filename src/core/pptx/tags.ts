@@ -92,7 +92,7 @@ export function tagPartXml(entries: [string, string][]): string {
  * would have it overwritten, and every shape pointing at it would silently lose
  * its tags. The number is taken from the package, never assumed — and the
  * library's own elements make that certain rather than theoretical: six of the
- * 117 harvested 16:9 elements arrive carrying tag relationships of their own,
+ * 106 harvested 16:9 elements arrive carrying tag relationships of their own,
  * 78 of them between the six, and one element carries 41.
  */
 export function nextTagNumber(pkg: Pkg): number {
@@ -183,7 +183,7 @@ function idOf(shape: Element): string | undefined {
  * `CT_CustomerDataList` allows at most one `<p:tags>` child, so a shape that
  * already has a tag part must have its entries appended rather than a second
  * part added. A shape harvested out of the library can: the owner's decks were
- * built in PowerPoint, and six of the 117 elements come with tags already on
+ * built in PowerPoint, and six of the 106 elements come with tags already on
  * them — a minority, but one of them carries 41 relationships, so the append
  * path is exercised rather than theoretical.
  *

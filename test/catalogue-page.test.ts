@@ -33,8 +33,8 @@ describe("the committed page", () => {
         expect(PAGE, `${size} ${element.id}`).toContain(`id="${dirOf(size) as string}-${element.id}"`);
       }
     }
-    // 117 per size today, and the assertion is against the index rather than
-    // against 234, so adding an element to the decks does not need this edited.
+    // 106 per size today, and the assertion is against the index rather than
+    // against 212, so adding an element to the decks does not need this edited.
     const total = Object.values(INDEX.sizes).reduce((n, c) => n + c.elements.length, 0);
     expect([...PAGE.matchAll(/<figure class="element"/g)]).toHaveLength(total);
   });
@@ -48,7 +48,7 @@ describe("the committed page", () => {
   });
 
   it("carries no script at all, which is what keeps it out of the security question", () => {
-    // A page of 234 pictures on a public site does not need JavaScript, and
+    // A page of 212 pictures on a public site does not need JavaScript, and
     // every line of it would be a line to audit against SECURITY.md's promise
     // that this project sends nothing anywhere.
     expect(PAGE).not.toMatch(/<script/i);

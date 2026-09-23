@@ -2087,6 +2087,33 @@ describe("removing a part from every slide it is on", () => {
     return pane;
   }
 
+  it("puts the focus into the question and announces it", async () => {
+    /**
+     * The one action in the pane that takes content OUT of the user's deck, and
+     * that the question itself says cannot be undone — and it opened with focus
+     * on `<body>` and said nothing.
+     *
+     * Opening it sets `state.removing`, and `render` then suppresses the Remove
+     * button on EVERY tile while a question is open. So the control the user
+     * just pressed is gone by the time `draw` looks for it: `focusKey` names it,
+     * `focusedBy` finds no match, and the browser's fallback is `<body>`.
+     * Reaching "Remove" meant tabbing from the top of the document, past the
+     * search box, the gear, every chip, every jump button and every tile and
+     * star before it, for a confirmation opened one keystroke earlier. Nothing
+     * announced it either: `set({removing})` set no notice and the confirm is a
+     * `<div role="group">`, not a live region.
+     */
+    const pane = await askedToRemove();
+    const ask = pane.querySelector<HTMLElement>('[data-action="remove-ask"]');
+    expect(ask, "the question was not drawn").not.toBeNull();
+    expect(document.activeElement, "focus was left on the document body").toBe(ask);
+    // `#announcer` lives on `document.body`, not inside the pane — see
+    // `liveRegion()`. Queried from the pane it comes back null and this case
+    // would pass on an empty string, which is the vacuity this round is about.
+    const live = document.getElementById("announcer")?.textContent ?? "";
+    expect(live, "the question was never announced").toContain("The pane cannot undo this");
+  });
+
   /** Wait for a run to finish: the footer is what says it did. */
   async function ran(pane: HTMLElement): Promise<string> {
     await waitFor("the removal to report a footer", () => pane.querySelector(".outcome")?.textContent);
@@ -2231,6 +2258,56 @@ describe("removing a part from every slide it is on", () => {
     // Back to "never asked": the deck has changed under the pane, and the list
     // it read is about the deck as it was.
     expect(pane.querySelector('[data-action="used"]')?.textContent).toBe("See what this deck already uses");
+  });
+});
+
+describe("the focus across an insert", () => {
+  /**
+   * `render` disables EVERY tile while `state.busy`, and `focus()` on a
+   * disabled button is a no-op — checked on this jsdom: focusing a disabled
+   * button leaves `activeElement` where it was. `insert` sets `busy`
+   * synchronously, so the first redraw of an insert rebuilt the tile the user
+   * had just pressed Enter on, disabled; the restore found it and could not
+   * focus it, and the old node had already been detached by `render`. Focus
+   * fell to `<body>` — and STAYED there, because the next draw saw
+   * `activeElement` outside `root()` and so had no `held` to restore at all.
+   *
+   * `docs/DESIGN.md` section 9 promises the arrow keys move between the tiles.
+   * After one insert they did not: the next ArrowDown reached `arrowTo` with an
+   * index of -1, which clamps to 0, putting the user back at the top of the
+   * library — and a screen-reader user lost their place entirely.
+   *
+   * Found by two independent lenses of the 2026-09-23 hunt, which is the
+   * strongest signal in that set.
+   */
+  it("comes back to the tile once the insert lets go of it", async () => {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+
+    const pick = (): HTMLButtonElement | null =>
+      pane.querySelector<HTMLButtonElement>('[data-action="tile"][data-id="one-box"]');
+    expect(pick(), "no tile to insert from").not.toBeNull();
+
+    // Focusing a tile arms its preview and redraws, so the node is replaced —
+    // the same trap that made an earlier case click a menu that no longer
+    // existed. Re-queried after every redraw, never held across one.
+    pick()?.focus();
+    await idle(pane);
+    expect(document.activeElement, "the tile did not take focus").toBe(pick());
+
+    pick()?.click();
+    await idle(pane);
+
+    // Once the tiles are enabled again the focus is back on the one the user
+    // pressed, rather than on <body>. This is the assertion the defect failed:
+    // it was on <body> from the first redraw of the insert onwards.
+    const back = pick();
+    expect(back, "the tile did not come back").not.toBeNull();
+    expect(back?.disabled, "still busy, so this case is not measuring what it says").toBe(false);
+    expect(document.activeElement, "focus was left on the document body").toBe(back);
   });
 });
 

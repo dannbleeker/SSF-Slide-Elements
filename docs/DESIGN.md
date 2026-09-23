@@ -275,6 +275,21 @@ PowerPoint would settle.
 - **Tags**, one line until opened with the chevron at its right; a picked tag
   moves to the front so it stays visible when the line is closed. The chevron
   only shows when there is a second line.
+
+  **Built 2026-09-23, having been described here since the record was written.**
+  Until then nothing drew a chevron: the line's one-row clip was lifted by
+  `state.gear` — the OPTIONS panel — so it unfolded as a side effect of an
+  unrelated control and could not be opened deliberately at all. Worse, a
+  constant capped the line at the first TWELVE tags, and both committed
+  libraries carry twenty-four, so half the vocabulary never reached the DOM and
+  could not be used as a filter. The line now draws every tag and the CSS clips
+  it to one row.
+
+  Whether there is a second line is answered by a COUNT (`TAGS_PER_ROW` in
+  `render.ts`), not by layout: the pane cannot measure whether the line wraps,
+  and `npm run pane-shots` — which needs a browser — is the instrument that
+  would check it at 320 and 512. The count is deliberately low, so the chevron
+  is offered whenever it is needed and at worst offered once when it was not.
 - **The gear**, beside the search: insert target, shapes as one group or loose,
   colours, "Report a problem", "Browse the catalogue on the site" (section 7).
 - **Used in this deck**: the library elements already in the deck, each with
@@ -714,6 +729,16 @@ top hit.
   interaction on a platform this repo cannot measure. The preview is still
   reachable on touch: it opens on focus, which a tap gives the tile. Revisit it
   in a round where a real touch host is to hand.
+- **The removal question takes the focus and is announced.** Opening it removes
+  the Remove button from every tile — the control that opened it — so there is
+  nothing for the redraw's focus restore to put the focus back on, and it fell
+  to `<body>`: a keyboard user had to Tab from the top of the document to reach
+  a confirmation they had opened one keystroke earlier, and a screen-reader user
+  was told nothing at all. It is the one action here that takes content out of
+  the deck, and the one the pane says it cannot undo, so it is also the one that
+  may not open silently. The question itself is the announcement, because it
+  names the element and the slides and says the pane cannot undo it. Found on
+  2026-09-23 by replaying `draw`'s own focus logic in jsdom.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
   tiles and the tick stay visible. **Measured from 2026-09-12**, when
   `pane-shots` gained a forced-colours pass over every state: until then this
@@ -780,6 +805,23 @@ happened and what to do.
   the web the insert and its confirming count take seconds, so a user deleting
   a slide in that window produces it. The pane cannot know whether the insert
   also landed, so the sentence stops at the two counts it took.
+
+  A deck REORDERED while the insert ran gets its own too, and it is the one
+  sentence here that deliberately names no slide number: "The insert landed, but
+  the deck was reordered while it ran, so the copy was left in place: N → M
+  slides. Both your slide and the copy are there; delete whichever you do not
+  want." The index the removal uses is read before the host calls and used after
+  them, up to `BUDGET.insert` later, and the pane locks itself rather than
+  PowerPoint — so a drag in the thumbnail strip moves the slides while changing
+  no count, which is the one thing `mayRemove` looks at. The insert survives it,
+  because it aims by `targetSlideId`; the removal does not, because it aims by
+  position. So the id at that index is read back and compared before anything is
+  deleted, and a mismatch — or a read that does not answer — leaves the copy
+  standing. That is the house rule made good: the failure mode is a duplicate
+  the user can delete rather than a slide they have lost. It names no number
+  because the positions this code holds are exactly the ones that just went
+  stale, and naming one off a stale index is what sent a user to delete their
+  own content before.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 

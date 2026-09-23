@@ -127,6 +127,17 @@ export interface PaneState {
   /** True when the gear is open. */
   gear?: boolean;
   /**
+   * True when the tag line is opened past its first row.
+   *
+   * `docs/DESIGN.md` section 4: "**Tags**, one line until opened with the
+   * chevron at its right". The chevron was never built, and until 2026-09-23
+   * the only thing that lifted the line's one-row clip was `state.gear` — the
+   * OPTIONS panel, an unrelated control the record never ties to the tag line.
+   * So the line unfolded as a side effect of opening the gear, and could not be
+   * opened deliberately at all.
+   */
+  tagsOpen?: boolean;
+  /**
    * The category chip the user has picked while searching, if any.
    *
    * Section 8's chips narrow a search to one category. Not remembered per
@@ -376,7 +387,7 @@ export function otherTargetLabel(settings: Settings): string {
  * owner renames keeps working.
  *
  * The tightening changes nothing on the library as it stands: measured over the
- * committed catalogue on 2026-09-12, the two rules agree on all 234 elements,
+ * committed catalogue on 2026-09-23, the two rules agree on all 212 elements,
  * of which 6 wrap. So this is a latent bug closed, not a behaviour changed.
  */
 export function wrapsSelection(element: Element): boolean {

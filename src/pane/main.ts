@@ -17,7 +17,7 @@ import { usedInDeck } from "../core/pptx/tags.js";
 import { removeElement, slidesHolding } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
-import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
+import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, stillThere, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
 import { GLOBAL_KEY, deckKey } from "../host/memory.js";
@@ -48,16 +48,17 @@ import { render } from "./render.js";
 import { fractionOf, withLanded } from "./card.js";
 import { elementOf, openAtFirst } from "./search.js";
 import {
-  arrowTo,
   EMPTY,
+  RECENT_DEPTH,
+  arrowTo,
   escapeCloses,
   moveableAfter,
   offersOtherTarget,
   otherTarget,
-  RECENT_DEPTH,
   remember,
   removableFrom,
   removalOutcome,
+  removeQuestion,
   stepFor,
   tileKey,
   toggle,
@@ -209,7 +210,6 @@ function focusKey(el: Element): string | undefined {
   const all = [...root().querySelectorAll(selector)];
   const at = all.indexOf(el);
   return all.length > 1 && at >= 0 ? `${selector}\u0000${at}` : selector;
-  return parts.join("");
 }
 
 /**
@@ -227,6 +227,41 @@ function focusedBy(key: string): HTMLElement | null {
 
 /** Whether `draw` is putting the focus back, rather than the user moving it. */
 let restoringFocus = false;
+
+/**
+ * A control the NEXT redraw should focus, rather than restoring what was there.
+ *
+ * For the one case where the right answer is not "put it back": opening the
+ * removal question removes the button that opened it from every tile, so there
+ * is nothing to put it back on. Consumed by `draw` and cleared whether or not
+ * the control turns up.
+ */
+let focusAfterDraw: string | undefined;
+
+/**
+ * A control the restore FOUND but could not focus yet, kept for the next draw.
+ *
+ * `render` disables every tile while `state.busy`, and `focus()` on a disabled
+ * button is a no-op — measured on jsdom 30 and true in every browser. `insert`
+ * sets `busy` synchronously, so the very first redraw of an insert rebuilt the
+ * tile the user had just pressed Enter on, disabled, and the restore quietly
+ * did nothing. The old node was already detached by `render`, so focus fell to
+ * `<body>` — and stayed there, because the NEXT draw found `activeElement` on
+ * body, outside `root()`, and so had no `held` to restore at all.
+ *
+ * The result was that `docs/DESIGN.md` section 9's "the arrow keys move between
+ * the tiles" stopped working after the first insert of a session: the next
+ * ArrowDown reached `arrowTo` with an index of -1, which clamps to 0, and the
+ * user was back at the top of the library. The `held` machinery exists to stop
+ * a redraw throwing focus on the floor, and it was failing for the one redraw a
+ * user causes most.
+ *
+ * So a target that exists but cannot take focus is REMEMBERED rather than
+ * dropped, and the next draw that can focus it does. Cleared the moment it is
+ * used or the control goes away, so it cannot pull the focus back to a tile the
+ * user has since left.
+ */
+let deferredFocus: string | undefined;
 
 function draw(): void {
   const active = document.activeElement;
@@ -266,7 +301,18 @@ function draw(): void {
       search.focus();
       if (caret !== null) search.setSelectionRange(caret, caret);
     }
-  } else if (held !== undefined) {
+  } else if (focusAfterDraw !== undefined) {
+    const key = focusAfterDraw;
+    focusAfterDraw = undefined;
+    // Flagged like the restore below: `focus()` raises `focusin`, and `onFocus`
+    // reads that as the user arriving at a tile.
+    restoringFocus = true;
+    try {
+      focusedBy(key)?.focus();
+    } finally {
+      restoringFocus = false;
+    }
+  } else if (held !== undefined || deferredFocus !== undefined) {
     // Only when it is still there: a control the redraw legitimately removed —
     // the menu that just closed, a tile a search filtered away — is not
     // something to hunt for, and the browser's own fallback is right for it.
@@ -278,11 +324,20 @@ function draw(): void {
     // had a tile focused, so the pane kept redrawing itself long after
     // anything had happened — measured as an insert's whole result being
     // painted over by a later draw, outcome and Undo and all.
-    restoringFocus = true;
-    try {
-      focusedBy(held)?.focus();
-    } finally {
-      restoringFocus = false;
+    // `held` when the user was on something; otherwise the one the last draw
+    // could not focus. `deferredFocus` is only consulted when nothing held the
+    // focus, which is exactly the state the failed restore leaves behind.
+    const key = held ?? deferredFocus;
+    const target = key === undefined ? null : focusedBy(key);
+    const blocked = target instanceof HTMLButtonElement && target.disabled;
+    deferredFocus = blocked ? key : undefined;
+    if (target !== null && !blocked) {
+      restoringFocus = true;
+      try {
+        target.focus();
+      } finally {
+        restoringFocus = false;
+      }
     }
   }
   restoreScroll();
@@ -667,7 +722,20 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     // `countReaching`. One read here would report a landed insert as a no-op.
     const inserted = await countReaching(before + 1);
     let removed: number | undefined;
+    let moved = false;
     if (target === "onto" && mayRemove({ before, inserted })) {
+      // `mayRemove` asks only about the count, and a count cannot see a
+      // REORDER. `at` was read before the host calls and the insert can take up
+      // to `BUDGET.insert`; the pane locks itself, not PowerPoint, so the user
+      // can drag a slide in the strip in that window and the count will not
+      // move. The insert aims by id and survives it; this delete aims by
+      // position and does not. So the id is read back and compared before
+      // anything is deleted, and a mismatch — or a read that does not answer —
+      // leaves the copy standing, which is the failure mode `CLAUDE.md` asks
+      // for: a duplicate the user can delete rather than a slide they lost.
+      moved = !stillThere(current?.id, await slideIdAt(at));
+    }
+    if (target === "onto" && !moved && mayRemove({ before, inserted })) {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
@@ -695,6 +763,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       before,
       inserted,
       ...(removed === undefined ? {} : { removed }),
+      ...(moved ? { moved } : {}),
       ...(error === undefined ? {} : { error }),
     });
     // Where the element ended up, counting from one. `landedOn` is `undoPlan`
@@ -1274,6 +1343,13 @@ function onClick(event: MouseEvent): void {
     case "gear":
       set({ gear: state.gear !== true });
       break;
+    // The chevron `docs/DESIGN.md` section 4 has always described. Until
+    // 2026-09-23 nothing drew it, and the tag line's one-row clip was lifted by
+    // `state.gear` instead — so the line unfolded when the user opened the
+    // OPTIONS panel and could not be opened on purpose at all.
+    case "tags-open":
+      set({ tagsOpen: state.tagsOpen !== true });
+      break;
     case "target":
       if (value === "onto" || value === "new") {
         set({ settings: { ...state.settings, target: value } });
@@ -1330,7 +1406,22 @@ function onClick(event: MouseEvent): void {
         // in Favourites, in Recent and in its category, and a question keyed by
         // id alone appears on all three.
         const where = el.dataset["where"] ?? "";
-        if (slides.length > 0) set({ removing: { id, slides, done: 0, where }, menuFor: undefined });
+        if (slides.length > 0 && element) {
+          // Focus goes INTO the question, and the question is announced.
+          // Neither happened: the redraw took the Remove button off every tile,
+          // so the restore had nothing to find and focus fell to `<body>` —
+          // leaving a keyboard user to Tab from the top of the document to
+          // reach a confirmation they had opened one keystroke earlier, and a
+          // screen-reader user told nothing at all. The question is the notice
+          // rather than a summary of it, because it names the element and the
+          // slides and says the pane cannot undo it.
+          focusAfterDraw = `[data-action="remove-ask"][data-id="${CSS.escape(id)}"][data-where="${CSS.escape(where)}"]`;
+          set({
+            removing: { id, slides, done: 0, where },
+            menuFor: undefined,
+            notice: removeQuestion(element, slides),
+          });
+        }
       }
       break;
     case "remove-cancel":

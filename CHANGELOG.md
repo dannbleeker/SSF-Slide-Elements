@@ -7,7 +7,59 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- **The tag line has its chevron.** It shows one row of tags and the chevron at
+  its right opens the rest, which is what the pane was always meant to do.
+
 ### Fixed
+
+- **The keyboard no longer loses its place every time you insert.** Inserting
+  greys out every tile while it runs, and the pane could not put the keyboard
+  back on a tile that was greyed out — so it fell to the top of the page and
+  stayed there, even after the insert had finished. The next arrow key took you
+  back to the very first element in the library instead of leaving you near the
+  one you had just used, and anyone using a screen reader lost their place in
+  the list entirely. The pane now waits until the tile can take the keyboard
+  again, and gives it back.
+
+- **Half the tags were unreachable.** The tag line drew only the first twelve
+  of the library's twenty-four, so the rest could not be picked as filters at
+  all — and the only thing that unfolded the line was opening the settings,
+  which has nothing to do with tags. Every tag is now there, and the chevron is
+  what opens them.
+
+- **"Remove from N slides" now puts the keyboard where the question is, and
+  reads it out.** Asking the question hides the Remove button on every tile —
+  including the one you just pressed — so the keyboard was left at the very top
+  of the pane, and reaching the answer meant tabbing past the search box, the
+  settings, every tag, and every element before it. Anyone using a screen
+  reader was told nothing at all. The question now takes the focus when it
+  opens and is announced, which matters most here because it is the one thing
+  the pane does that it cannot undo for you.
+
+- **Reordering slides while an insert is running no longer deletes the wrong
+  one.** Inserting onto the slide you are on rebuilds it and then removes the
+  original, and it found the original by its position — a position worked out
+  before the insert started. Dragging a slide in the thumbnail strip while the
+  insert was still going changed which slide sat at that position without
+  changing how many there were, so the check that guarded the removal passed and
+  your dragged slide was deleted instead. The pane reported success, because the
+  count was exactly what success looks like. It now checks that the slide it is
+  about to remove is still the one it meant, and if the deck has moved it leaves
+  both slides in place and says so.
+
+- **A new slide no longer arrives carrying the previous slide's animations, or
+  its transition.** "As a new slide" copies the slide you are on and empties
+  it, but a slide's animation timeline is stored beside its shapes rather than
+  among them, so it was left behind — pointing at shapes that had just been
+  removed. Because the numbering of the new slide's shapes started again from
+  the top, those pointers did not go nowhere: they landed on the element you
+  had just inserted. An entrance animation written for one of your old shapes
+  would then be applied to the new element, which in PowerPoint means it is
+  hidden until the animation runs — so you could ask for an element and get a
+  slide that looks empty. The slide you are on is untouched either way: an
+  insert onto your own slide keeps your animations, because they are yours.
 
 - **An element whose chart names its workbook with a space in it now inserts.**
   A file name is written one way inside a PowerPoint file and stored another,

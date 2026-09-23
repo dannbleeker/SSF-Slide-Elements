@@ -224,6 +224,38 @@ async function spTreeOf(pkg: Pkg, slidePath: string): Promise<Element> {
  * and wrong for a slide that is meant to be new.
  */
 async function blank(pkg: Pkg, slidePath: string): Promise<void> {
+  // The ANIMATIONS and the TRANSITION first, because they are not in the shape
+  // tree: `<p:timing>` and `<p:transition>` are siblings of `<p:cSld>` under
+  // `<p:sld>`, so the loop below never reached them and nothing in `src/` so
+  // much as named them.
+  //
+  // Leaving them was not a leftover, it was a re-binding. `highestShapeId` is
+  // read AFTER this function has deleted the shapes, so the maximum falls back
+  // to the kept placeholders and `renumber` re-issues exactly the ids just
+  // freed. A real slide's title is id 2 or 3 and its content is 4, 5, 6…, so a
+  // surviving `<p:spTgt spid="9"/>` did not dangle — it named whatever the
+  // splice inserted as id 9. An entrance animation authored for the user's
+  // deleted shape then targets the element, and an entrance in the mainSeq
+  // means the target is hidden until it runs: the user asks for an element on a
+  // new slide and gets a slide that looks empty.
+  //
+  // Only on the NEW-slide route, which is why this is here and not in
+  // `cloneSlide`. "Onto this slide" keeps the user's shapes, so no id is freed
+  // and nothing re-binds — and the animations are the user's own work, which an
+  // insert has no business deleting. A pair case in `test/splice.test.ts` holds
+  // that half.
+  const slide = await pkg.doc(slidePath);
+  const sld = slide.documentElement;
+  if (sld) {
+    for (const node of Array.from(sld.childNodes)) {
+      if (node.nodeType !== 1) continue;
+      const el = node as Element;
+      if (el.namespaceURI === P_NS && (el.localName === "timing" || el.localName === "transition")) {
+        sld.removeChild(el);
+      }
+    }
+  }
+
   const spTree = await spTreeOf(pkg, slidePath);
   for (const shape of slideShapes(spTree)) {
     // A placeholder is kept only when it is a `<p:sp>`. That is the spelling of
