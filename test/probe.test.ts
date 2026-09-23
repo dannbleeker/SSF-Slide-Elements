@@ -692,6 +692,72 @@ describe("exportPartsVerdict", () => {
     expect(v.detail).toContain("ppt/authors.xml and 4 comment part(s)");
   });
 
+  it("names what ELSE the export dropped, not only the comments and the authors part", () => {
+    /**
+     * This arm named the comments and `ppt/authors.xml` and stopped, on the
+     * question whose title is "what does each drop" and which CHOSE this
+     * add-in's read route — while the "kept" arm below, on the same field,
+     * already reported `missing`.
+     *
+     * Measured on the committed sheet 2026-09-10T18-13-10-866Z: the verdict
+     * read "the export DROPS ppt/authors.xml and 1 comment part(s)" over
+     * TWELVE parts gone, the other ten being a whole slide master, its layout
+     * and its theme, three ppt/webextensions parts, changesInfo1.xml and
+     * revisionInfo.xml. The full list was printed on a line below, so it was
+     * on the sheet — but the VERDICT is the line that gets quoted, and
+     * `CLAUDE.md` quotes it: "43 parts where getFileAsync gave 48, dropping
+     * the comment part and ppt/authors.xml", which is two of five.
+     *
+     * The count is `missing.length` minus what was already named, because the
+     * probe CAPS `missing` and a filter by name would be silently wrong under
+     * a cap.
+     */
+    const v = exportPartsVerdict({
+      supported: true,
+      source: parts(1, true),
+      exported: parts(0, false, 28),
+      missing: [
+        "ppt/authors.xml",
+        "ppt/comments/modernComment_1.xml",
+        "ppt/slideMasters/slideMaster2.xml",
+        "ppt/theme/theme2.xml",
+        "ppt/revisionInfo.xml",
+      ],
+    });
+    expect(v.verdict).toBe("yes");
+    expect(v.detail).toContain("ppt/authors.xml and 1 comment part(s)");
+    // Five missing, two of them already named, so three others.
+    expect(v.detail, "the other parts went unmentioned").toContain("3 other part(s)");
+    // And named, because "a slide master" is a reason where "3" is a number.
+    expect(v.detail).toContain("ppt/slideMasters/slideMaster2.xml");
+  });
+
+  it("does not say there was nothing to drop over a deck whose parts went missing", () => {
+    /**
+     * The third arm. On a deck with no comments and no authors part it said
+     * "so there was nothing for the export to drop" — and it can see
+     * `missing`. The two sheets of 2026-09-14 09:xx take this arm with 5 and
+     * 11 parts not carried over, so the sentence was false on both in the
+     * plainest way: parts were dropped, and it said none were there to be.
+     *
+     * It still answers `unknown`, because the QUESTION is about comments and
+     * this deck cannot answer it. What changed is that it no longer claims
+     * more than that.
+     */
+    const v = exportPartsVerdict({
+      supported: true,
+      source: parts(0, false),
+      exported: parts(0, false, 29),
+      missing: ["ppt/slideMasters/slideMaster2.xml", "ppt/theme/theme2.xml"],
+    });
+    expect(v.verdict).toBe("unknown");
+    expect(v.detail).toContain("Re-run on a deck with comments");
+    expect(v.detail, "claimed nothing was dropped over two parts that were").toContain("2 part(s)");
+    expect(v.detail).toContain("ppt/slideMasters/slideMaster2.xml");
+    // The old sentence, which was false on every sheet that took this arm.
+    expect(v.detail).not.toContain("there was nothing for the export to drop");
+  });
+
   it("says no when the comments came through", () => {
     expect(
       exportPartsVerdict({ supported: true, source: parts(4, true), exported: parts(4, true), missing: ["a"] }).detail,
