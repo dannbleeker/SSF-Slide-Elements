@@ -196,12 +196,18 @@ PowerPoint would settle.
   "the print has changed since it was stamped … re-stamp it", and a byte
   appended to the committed deck gives "the deck has changed since the print was
   taken … re-print it".
-  **Both prints are committed**, `template/library-16x9.pdf` (110 pages,
-  2,218,863 bytes) and `template/library-4x3.pdf` (108 pages, 2,307,900 bytes),
-  re-taken on 2026-09-11 after the placeholder text went English, from the decks
-  as they stand. Section 14's remaining deck edits have not happened, so both
-  need retaking again after that pass, and the cutting code does not exist yet
-  either — nothing downstream is holding a stale cut. `*.pdf` is
+  **Both prints are committed**, `template/library-16x9.pdf` (109 pages,
+  2,186,758 bytes) and `template/library-4x3.pdf` (107 pages, 2,274,248 bytes),
+  re-taken on **2026-09-16** through COM after the Icons slide left the library
+  (section 14, item 4) and stamped into `template/*.print.json`, which is what
+  `test/print.test.ts` holds them to. Those figures supersede the 2026-09-11
+  dialog print — 110 and 108 pages — which section 15 keeps as the record of
+  that round. Section 14's items 2 and 3 have not happened, so both prints need
+  retaking again after that pass, and the cut IS downstream of them now:
+  `src/core/catalogue/cut.ts` and `npm run previews` take every tile's picture
+  out of exactly these two files, so a deck edited without a re-print and a
+  re-stamp is caught by the gate rather than quietly cut from the wrong page.
+  `*.pdf` is
   declared `binary` in `.gitattributes` for the same reason `*.pptx` is — the
   repo's `* text=auto eol=lf` would otherwise leave a print to git's binary
   heuristic.
@@ -571,6 +577,14 @@ exception for width.
     edge as often as not; and the tile's name is at its bottom, so a menu there
     hides which element it belongs to. Nothing about where the pointer was
     reaches the pane's state, which is also what lets the shot audit draw it.
+  - **One thing open at a time, refused at the OPENING end.** A right-click
+    while a removal question is up leaves the browser's own menu alone. The
+    pane used to cancel the event and set the menu anyway, while the renderer
+    refused to draw one over a question — so the gesture did nothing at all,
+    and the menu it had set arrived later out of nowhere, on the redraw after
+    the Escape that answered the question. The two tiles can never be the same
+    tile, since a question is only ever on a part and a menu only ever on a
+    whole-slide element, so this is a rule about the pane, not about one tile.
 - **Deck-wide stamps.** A stamp already in the deck can be removed from every
   slide it is on with one click, found by the tag written at insert. The manual
   says that shape tags do not survive cut and paste on the web.
@@ -694,6 +708,25 @@ top hit.
   `/` focuses search, Esc closes a menu, the preview or the search in that
   order. Focus draws the same ring as hover. A live region announces every
   outcome.
+
+  **The arrows belong to the TILES, and to the search box on the way out of
+  it.** Pressed anywhere else they are left to the browser, which is what
+  scrolls the list. They used to be taken everywhere: the handler ran
+  `arrowTo(key, tiles.indexOf(activeElement), n)` whatever the focus was on,
+  `indexOf` answers -1 for anything that is not a tile, and `arrowTo` clamps
+  -1 to 0 — so an arrow pressed on the gear, a category heading, a tag chip,
+  the size stepper, the star or the primary button was cancelled and threw the
+  focus to the first tile at the top of the list. In a 320 px pane that also
+  took away the only key a mouse user has for scrolling it.
+
+  **Closing something puts the focus back on the control that opened it.** The
+  tile menu goes back to its tile, the removal question to that tile's Remove
+  button, the gear to whichever of its two controls was pressed. Without it
+  each of those landed on `<body>`, because the control the focus was on is
+  inside the surface being closed and the redraw removes it — the one case
+  `draw`'s restore deliberately hands to the browser's fallback. The fallback
+  is right for a tile a search filtered away, which has no owner to go back to;
+  a dismissed surface has exactly one, and it is still on screen.
 
   **None of it worked until 2026-09-22**, and the reason is a property of the
   pane worth stating rather than a slip: `render` empties `#pane` and builds
@@ -1327,7 +1360,11 @@ The rest of this section is about the DECKS and the print rather than Office.js.
   carry no comments, no ink and no hidden slides, so every non-default switch
   the print needs is a no-op — but it cannot show which options were used, only
   what came out.
-- **Both decks print correctly, and the prints are committed.** Taken through
+- **Both decks printed correctly on 2026-09-11, through the dialog.** This is
+  the record of that round, not of the committed prints: the pair described here
+  was superseded on 2026-09-16 by a COM re-print of both decks, after the Icons
+  slide left the library, and section 3 carries the committed figures (109 and
+  107 pages). Taken through
   **File → Export → Create PDF/XPS → Options** from the decks at their committed
   paths, with Range all, Publish what Slides, Frame slides off, Include hidden
   slides on, Include comments off, Include ink off, and Optimise for Standard —
@@ -1345,10 +1382,16 @@ The rest of this section is about the DECKS and the print rather than Office.js.
   match the deck the harvest checks it against would pass the slide-count check
   while being cut from the wrong file.
 
-Measured in the demo and the print: the 16:9 deck has 118 named elements, 21 of
-them parts of four collection slides, twelve runs of sizes, 42 whole-slide
-elements without a group; the stamps are rotated 29° and 35°; a table's frame is
-narrower than the table PowerPoint draws.
+Measured against the committed catalogue on 2026-09-23: the 16:9 library has
+106 named elements, 10 of them parts of two collection slides (103 and 104),
+twelve runs of sizes over 45 members, 62 whole-slide elements carrying no group;
+the stamps are rotated 29° and 35°; a table's frame is narrower than the table
+PowerPoint draws. The 4:3 library is the same 106, 10 and 12, over collection
+slides 102 and 103. The figures this line used to give — 118 elements, 21 parts,
+four collection slides, 42 without a group — were taken before the removals of
+\#105 and \#107 and were never restated; 118 was the count in
+`template/names.en.json`, not in the catalogue, and nothing here reproduces 42
+under any definition of "group" the record states.
 
 **Borrowed, dated, and read back rather than trusted:** `setSelectedSlides`,
 the one selection write this add-in makes (the jump in section 4). No sheet of

@@ -14,6 +14,26 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The arrow keys no longer jump to the top of the list from wherever you
+  are.** Pressing an arrow anywhere that was not a tile — the gear, a category
+  heading, a tag chip, the size numbers, the star, the Insert button — threw
+  the focus to the first tile and scrolled the list back to the top. It also
+  meant the arrow keys could not scroll the pane at all. They now belong to the
+  tiles, and to the search box on the way down into them; everywhere else they
+  scroll, as they do on any other page.
+
+- **Closing something puts you back where you were.** Escape out of a tile's
+  right-click menu, out of the question before a removal, or out of the gear
+  used to drop the focus onto nothing at all, so the next Tab started again at
+  the top of the pane. It now goes back to the tile, the Remove button or the
+  gear you opened it from. "Keep them" does the same.
+
+- **A right-click while a removal question is open no longer does nothing, and
+  then something.** The pane took the right-click, suppressed Windows' own menu
+  and showed nothing — and the menu then appeared by itself later, on a
+  different tile, when you pressed Escape to answer the question. The
+  right-click is now left to the browser while a question is up.
+
 - **An element inserted while the add-in was still measuring your deck no
   longer takes its pictures from the wrong library.** The tiles go live before
   the deck's shape has been read, and picking one straight away could give an

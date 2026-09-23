@@ -186,7 +186,8 @@ counter dated.
   2026-08-13 to 2026-09-04, none silent), never on desktop evidence — so the
   pane reads the selection back after every call and claims only what it saw.
   Probe question 7 measures the call, and it is answered on both platforms with
-  sheets: the web on 2026-09-14 (1,146 ms and 567 ms, twelve minutes apart) and
+  sheets: the web on 2026-09-14 (998 ms and 1,146 ms, twelve minutes apart, the next
+  read answering in 590 ms and 567 ms) and
   Windows the same day (7 ms, selection put back, the next read answering in 58
   ms). On Mac and iPad the jump is still borrowed, and must say so.
 - **Shape tags do not survive cut/paste on the web.** Say so in the docs; do

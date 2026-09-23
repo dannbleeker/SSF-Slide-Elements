@@ -351,11 +351,13 @@ describe("where a shape says it is", () => {
     /**
      * The graphic frame is the one that gets missed: its `<p:xfrm>` is in the
      * PresentationML namespace and sits directly on the shape, where the other
-     * two carry a DrawingML `<a:xfrm>` under their properties. 115 of the 212
-     * committed elements carry a graphic frame (measured 2026-09-23; 136 of 234
-     * until the library was re-cut), so a reader that knows only the first two
-     * spellings mislands more than half the library — which is still true at
-     * 115, and is the reason the figure is restated rather than dropped.
+     * two carry a DrawingML `<a:xfrm>` under their properties. 111 of the 212
+     * committed elements carry one at the TOP level — which is the level
+     * `rectOf` is ever handed — and 115 carry one somewhere (measured
+     * 2026-09-23; the line read 136 of 234 until the library was re-cut). So a
+     * reader that knows only the first two spellings mislands more than half
+     * the library, which is still true at 111, and is the reason the figure is
+     * restated rather than dropped.
      */
     const fragment = parseFragment(
       sp(1, [10, 20, 30, 40]) + grp(2, [50, 60, 70, 80], [0, 0, 1, 1]) + table(3, [90, 100, 110, 120], [110], [120]),
@@ -460,8 +462,8 @@ describe("moving the shapes to where they landed", () => {
      * which PowerPoint ignores when it draws the table". So a whole-slide
      * element scaled down to clear a taller title would MOVE its table and
      * leave it at its authored size, overlapping whatever it was scaled away
-     * from. 115 of the 212 committed elements carry a graphic frame, measured
-     * 2026-09-23.
+     * from. 111 of the 212 committed elements carry a top-level graphic frame,
+     * 115 one anywhere, measured 2026-09-23.
      */
     const fragment = parseFragment(table(1, [1000, 2000, 1000, 600], [400, 600], [300, 300]));
     applyMove(topLevel(fragment), FROM, { dx: 0, dy: 0, sx: 0.5, sy: 0.5 });

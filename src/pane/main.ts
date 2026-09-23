@@ -229,6 +229,28 @@ function focusedBy(key: string): HTMLElement | null {
 let restoringFocus = false;
 
 /**
+ * The control that OPENED the tile menu, and the one that opened the gear.
+ *
+ * A `focusKey`, taken at the moment the surface opens, so closing it can put
+ * the focus back where the user was rather than on `<body>`.
+ *
+ * `draw`'s restore cannot do this on its own: the control the focus was on is
+ * INSIDE the surface — a menu item, a gear choice — and the redraw that closes
+ * it legitimately removes that control, which is exactly the case `draw` hands
+ * to the browser's fallback. That fallback is right for a tile a search
+ * filtered away, which has no owner to go back to. It is wrong for a dismissed
+ * surface, which has exactly one and it is still on screen. Measured in jsdom:
+ * Shift+F10 on a tile, Tab into the menu, Escape — `document.activeElement`
+ * came back `<body>`, so the next Tab restarted at the top of the pane.
+ *
+ * The gear needs one of its own because it is drawn TWICE, as the ⚙ above the
+ * list and as the settings line in the footer, and both carry
+ * `data-action="gear"` and nothing else; `focusKey` is what tells them apart.
+ */
+let menuOwner: string | undefined;
+let gearOwner: string | undefined;
+
+/**
  * A control the NEXT redraw should focus, rather than restoring what was there.
  *
  * For the one case where the right answer is not "put it back": opening the
@@ -314,8 +336,12 @@ function draw(): void {
     }
   } else if (held !== undefined || deferredFocus !== undefined) {
     // Only when it is still there: a control the redraw legitimately removed —
-    // the menu that just closed, a tile a search filtered away — is not
-    // something to hunt for, and the browser's own fallback is right for it.
+    // a tile a search filtered away — is not something to hunt for, and the
+    // browser's own fallback is right for it. A DISMISSED SURFACE is not that
+    // case, which is what `menuOwner` and `gearOwner` above are for: a menu
+    // item or a gear choice is removed by the redraw too, but it has one owner
+    // and the owner is still on screen, so the close hands `focusAfterDraw`
+    // that owner rather than letting the fallback stand.
     //
     // Flagged, because `focus()` raises `focusin` and `onFocus` treats that as
     // the USER arriving at a tile: it marks the tile chosen and arms the
@@ -1278,12 +1304,29 @@ function onContextMenu(event: MouseEvent): void {
   const found = actionOf(event.target);
   const id = found?.el.dataset["id"];
   const element = elementOf(state.library, id);
-  if (!found || found.action !== "tile" || !element || !offersOtherTarget(element) || state.busy === true) {
+  if (
+    !found ||
+    found.action !== "tile" ||
+    !element ||
+    !offersOtherTarget(element) ||
+    state.busy === true ||
+    // While a removal question is open, `render` will not draw a tile menu
+    // (`state.removing === undefined` is one of its terms) — so opening one
+    // here set a menu nothing would draw. The gesture did nothing at all, and
+    // the menu arrived later out of nowhere: the Escape that answers the
+    // question redraws with `menuFor` still set, and the menu opens on a tile
+    // the user right-clicked long before. Refusing here is also the honest
+    // answer to `docs/DESIGN.md` section 6 — no `preventDefault`, so the
+    // browser's own menu stands rather than a gesture being swallowed by a
+    // menu of ours that never appears.
+    state.removing !== undefined
+  ) {
     // A part ignores the insert target, so there is nothing to offer on one.
     if (state.menuFor !== undefined) set({ menuFor: undefined });
     return;
   }
   event.preventDefault();
+  menuOwner = focusKey(found.el);
   set({ menuFor: tileKey(found.el.dataset["where"] ?? "", element.id) });
 }
 
@@ -1337,10 +1380,12 @@ function onPointerDown(event: PointerEvent): void {
   const element = elementOf(state.library, found?.el.dataset["id"]);
   if (!found || found.action !== "tile" || !element || !offersOtherTarget(element)) return;
   const key = tileKey(found.el.dataset["where"] ?? "", element.id);
+  const owner = focusKey(found.el);
   pressing = setTimeout(() => {
     pressing = undefined;
     if (state.busy !== true) {
       pressOpened = true;
+      menuOwner = owner;
       set({ menuFor: key });
     }
   }, LONG_PRESS);
@@ -1388,6 +1433,7 @@ function onClick(event: MouseEvent): void {
       }
       break;
     case "gear":
+      gearOwner = state.gear === true ? undefined : focusKey(el);
       set({ gear: state.gear !== true });
       break;
     // The chevron `docs/DESIGN.md` section 4 has always described. Until
@@ -1471,9 +1517,20 @@ function onClick(event: MouseEvent): void {
         }
       }
       break;
-    case "remove-cancel":
+    case "remove-cancel": {
+      // Same hand-off as the Escape rung. "Keep them" carries no `data-id` of
+      // its own, so its `focusKey` is the bare `[data-action="remove-cancel"]`
+      // — unfindable after the redraw that removes it, which put the focus on
+      // `<body>` for a user who had just declined a destructive action.
+      const asking = state.removing;
+      if (asking) {
+        focusAfterDraw =
+          `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` +
+          `[data-where="${CSS.escape(asking.where)}"]`;
+      }
       set({ removing: undefined });
       break;
+    }
     case "remove-go":
       if (id) void removeEverywhere(id);
       break;
@@ -1578,16 +1635,30 @@ function onKey(event: KeyboardEvent): void {
     // `preview` is not a `set` like the others — it cancels a pending timer as
     // well — which is why the rule answers a name rather than a state patch.
     switch (escapeCloses(state)) {
-      case "removing":
+      case "removing": {
+        // Back to the Remove button that asked. It is not on screen while the
+        // question is up — `render` suppresses it on every tile — so this is a
+        // hand-off to the redraw rather than something `draw` could restore.
+        const asking = state.removing;
+        if (asking) {
+          focusAfterDraw =
+            `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` +
+            `[data-where="${CSS.escape(asking.where)}"]`;
+        }
         set({ removing: undefined });
         break;
+      }
       case "menu":
+        focusAfterDraw = menuOwner;
+        menuOwner = undefined;
         set({ menuFor: undefined });
         break;
       case "preview":
         closePreview();
         break;
       case "gear":
+        focusAfterDraw = gearOwner;
+        gearOwner = undefined;
         set({ gear: false });
         break;
       case "search":
@@ -1620,7 +1691,21 @@ function onKey(event: KeyboardEvent): void {
   // in a one-line input that Home and End do not.
   if (inSearch && (event.key === "ArrowLeft" || event.key === "ArrowRight")) return;
   const tiles = [...root().querySelectorAll<HTMLElement>('[data-action="tile"]')];
-  const to = arrowTo(event.key, tiles.indexOf(document.activeElement as HTMLElement), tiles.length);
+  const at = tiles.indexOf(document.activeElement as HTMLElement);
+  // FROM A TILE, or out of the search box, and nowhere else. `arrowTo` clamps
+  // an `at` of -1 to 0, so every arrow pressed on any other control — the
+  // gear, a category heading, a tag chip, the size stepper, the star, a jump
+  // button, the primary button, the menu item — was `preventDefault`ed and
+  // threw the focus to the first tile at the top of the list. Two costs, and
+  // the second is the one a mouse user feels: the focus surprise, and the
+  // cancelled key, because in a 400 px pane ArrowDown is how you scroll and it
+  // did nothing but jump to tile 0. The stepper is the sharpest case — a row
+  // of numbers where left and right are the obvious gesture.
+  //
+  // The search box keeps its exception, which `arrowTo`'s own docstring
+  // justifies: Down and Up out of it are how the keyboard reaches the tiles.
+  if (at < 0 && !inSearch) return;
+  const to = arrowTo(event.key, at, tiles.length);
   const next = to === undefined ? undefined : tiles[to];
   if (next) {
     event.preventDefault();

@@ -181,9 +181,12 @@ Microsoft's `office.js` library — see
 ### The keyboard
 
 `/` focuses the search box. `Esc` shuts the preview card, then the gear, then clears the search and
-the tags. `Tab` reaches the tiles; the arrow keys move between them and `Enter`
-or `Space` inserts the one you are on. Every outcome is announced to a screen
-reader as well as shown.
+the tags, and puts the focus back on whatever you opened — the tile a menu
+belongs to, the button that asked a removal question, the gear you pressed.
+`Tab` reaches the tiles; the arrow keys move between them and `Enter`
+or `Space` inserts the one you are on. Anywhere other than the tiles and the
+search box the arrow keys are the browser's, so they still scroll the list.
+Every outcome is announced to a screen reader as well as shown.
 
 ### What the pane remembers
 

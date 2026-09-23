@@ -159,8 +159,13 @@ export function relIdsIn(fragment: Document): string[] {
  * group under `<p:grpSpPr>`, and a graphic frame — a table, a chart, SmartArt,
  * an embedded object — carries `<p:xfrm>` directly, in the PresentationML
  * namespace rather than DrawingML. The last one is the one that gets missed,
- * and 58 of the 106 elements in the 16:9 library are graphic frames
- * (measured 2026-09-23; the denominator read 117 until the library was re-cut).
+ * and 54 of the 106 elements in the 16:9 library carry one at the TOP level,
+ * which is the only level `frameOf` ever meets — its two callers, `unionOf` and
+ * `applyMove`, both walk `topLevel`. 57 at 4:3, 111 across both. Counting a
+ * `<p:graphicFrame>` ANYWHERE in the markup instead gives 58 at 16:9, which is
+ * the figure this line used to quote against a denominator of 117; both halves
+ * were wrong, and the one that mattered was the level. Measured on the
+ * committed catalogue, 2026-09-23.
  */
 function frameOf(shape: Element): Element | undefined {
   const direct = child(shape, P_NS, "xfrm");

@@ -1159,6 +1159,33 @@ describe("the other insert target, on right-click", () => {
     expect((pane.querySelector('[data-action="search"]') as HTMLInputElement).value).toBe("box");
   });
 
+  it("puts the focus back on the tile when Escape closes the menu", async () => {
+    /**
+     * `escapeCloses` answers "menu" and the handler clears `menuFor`. The menu
+     * item the focus was on is gone after the redraw, so `focusedBy` finds
+     * nothing and `draw`'s own comment calls the browser's fallback right for
+     * it — which puts the focus on `<body>`.
+     *
+     * It is not right for a DISMISSED surface. A tile a search filtered away
+     * has no owner to go back to; a menu has exactly one, the tile it was
+     * opened on, and that tile is still on screen. The keyboard path is the
+     * one this costs: Shift+F10 opens the menu, Tab moves into it, Escape
+     * closes it, and the next Tab restarts at the top of the pane instead of
+     * at the tile the user was on.
+     */
+    const pane = await openWithTiles();
+    rightClick(pane.querySelector('[data-action="tile"]') as HTMLElement);
+    const item = pane.querySelector<HTMLElement>('[data-action="other-target"]') as HTMLElement;
+    item.focus();
+    expect(document.activeElement, "the menu item did not take the focus").toBe(item);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    const active = document.activeElement as HTMLElement | null;
+    expect(active?.dataset["action"], "Escape out of the menu dropped the focus").toBe("tile");
+    expect(active?.dataset["id"]).toBe("one-box");
+  });
+
   it("closes when the next click lands anywhere else", async () => {
     const pane = await openWithTiles();
     rightClick(pane.querySelector('[data-action="tile"]') as HTMLElement);
@@ -1393,6 +1420,37 @@ describe("the keyboard reaching the tiles", () => {
       box.dispatchEvent(event);
       expect(event.defaultPrevented, `${key} was taken from the search box`).toBe(false);
       expect(document.activeElement, `${key} threw the focus out of the search box`).toBe(box);
+    }
+  });
+
+  it("leaves the arrow keys alone on a control that is not a tile", async () => {
+    /**
+     * `onKey` exempted only ArrowLeft and ArrowRight inside the search box.
+     * Everywhere else it ran `arrowTo(key, tiles.indexOf(activeElement), n)`,
+     * and `indexOf` is -1 for anything that is not a tile — which `arrowTo`
+     * clamps to 0. So an arrow pressed on the gear, a category heading, a tag
+     * chip, the size stepper or the primary button called `preventDefault` and
+     * threw the focus to the first tile at the top of the list.
+     *
+     * Two costs, and the second is the one a mouse user feels: the focus
+     * surprise, and the cancelled key — in a 400 px pane ArrowDown is how you
+     * scroll, and it did nothing but jump to tile 0.
+     *
+     * The search box keeps its documented exception: Down and Up out of it are
+     * how the keyboard reaches the tiles at all.
+     */
+    const pane = await browsing();
+    const gear = pane.querySelector<HTMLElement>('[data-action="gear"]') as HTMLElement;
+    gear.focus();
+    for (const key of ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]) {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      gear.dispatchEvent(event);
+      await settle();
+      expect(event.defaultPrevented, `${key} on the gear was taken from the page`).toBe(false);
+      expect(
+        (document.activeElement as HTMLElement | null)?.dataset["action"],
+        `${key} on the gear threw the focus onto a tile`,
+      ).toBe("gear");
     }
   });
 
@@ -2248,6 +2306,45 @@ describe("removing a part from every slide it is on", () => {
     (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
     expect(pane.querySelector(".tile-ask")).toBeNull();
     expect(host.cycles).toBe(0);
+  });
+
+  it("refuses a right-click while the question is open, rather than hiding a menu behind it", async () => {
+    /**
+     * `onContextMenu` did not look at `state.removing`. It called
+     * `preventDefault` — taking the browser's own menu away — and set
+     * `menuFor`, while `render` refuses to draw a tile menu while any question
+     * is open. So the gesture did nothing at all, and the menu it had set
+     * arrived later out of nowhere: `escapeCloses` puts "removing" above
+     * "menu", so the first Escape answered the question "no" and the redraw
+     * after it found `menuFor` still set and opened the menu on a tile the
+     * user had right-clicked half a minute earlier.
+     *
+     * The two tiles are always different elements — `removableFrom` answers
+     * slides only for a `part` and `offersOtherTarget` only for a `slide` — so
+     * `render`'s `state.removing === undefined` term is a one-thing-open-at-a-
+     * time rule enforced at the drawing end while the opening end did not know
+     * about it.
+     */
+    const pane = await askedToRemove();
+    showEveryCategory(pane);
+    expect(pane.querySelector(".tile-ask"), "the question is up to begin with").not.toBeNull();
+    const tile = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "one-box",
+    ) as HTMLElement;
+
+    const cancelled = !tile.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await settle();
+    expect(cancelled, "it took the browser's menu for one of its own that it then refused to draw").toBe(false);
+    expect(pane.querySelector('[data-action="other-target"]'), "a menu appeared over the question").toBeNull();
+
+    // The Escape that answers the question must not hand back a menu with it.
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    expect(pane.querySelector(".tile-ask"), "Escape did not close the question").toBeNull();
+    expect(
+      pane.querySelector('[data-action="other-target"]'),
+      "the menu from the dead right-click opened on the way out of the question",
+    ).toBeNull();
   });
 
   it("drops the question when a search takes its tile off the screen", async () => {
