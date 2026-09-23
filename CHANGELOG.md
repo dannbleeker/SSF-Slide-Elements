@@ -22,6 +22,22 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Taking an element off several slides can no longer delete the wrong
+  slide.** The pane removes it one slide at a time, and each step adds a
+  corrected copy and then takes the original away — but it took the original
+  away *by position*, using a position worked out before the run started. The
+  add-in locks its own pane, not PowerPoint, so if you dragged a slide around
+  in the slide strip while it was working, it could delete whatever had moved
+  into that spot: your own slide, with the add-in reporting success, because
+  the deck ends up the same length either way. It now checks the slide is still
+  the one it aimed at, and stops and tells you if it is not.
+
+- **Undo no longer deletes the wrong slide if the deck moves while it runs.**
+  Undoing puts your original slide back and then removes the copy the add-in
+  made. It removed that copy by position, and did not check the position still
+  held what it aimed at, so a slide that moved in between could be deleted
+  instead. It now checks, and stops rather than guessing.
+
 - **The pane now names a PowerPoint you can move to when it cannot run.** On a
   PowerPoint too old for the add-in, the one screen you get said what was
   missing and what it cost you, and left you to work out what to do about it.

@@ -88,7 +88,14 @@ vi.mock("../src/office/powerpoint.js", () => ({
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   selectedSlides: () => Promise.resolve(host.selectedSlides),
-  slideIdAt: () => Promise.resolve(host.namesSlides ? "256" : undefined),
+  slideIdAt: () => {
+    host.slideIdCalls += 1;
+    if (!host.namesSlides) return Promise.resolve(undefined);
+    // A case can script one read to answer a DIFFERENT id, which is a slide
+    // dragged into that slot while the run was in flight.
+    const swapped = host.slideIdSwapFrom > 0 && host.slideIdCalls >= host.slideIdSwapFrom;
+    return Promise.resolve(swapped ? "999" : "256");
+  },
   onSlideChange: () => {
     host.followed += 1;
     return Promise.resolve(false);
@@ -250,6 +257,10 @@ const host = {
   followed: 0,
   /** What `selectedSlides` answers: every selected slide, counting from zero. */
   selectedSlides: undefined as number[] | undefined,
+  /** How many times `slideIdAt` has been asked this case. */
+  slideIdCalls: 0,
+  /** From which read on the answer is a DIFFERENT id — a slide dragged into the slot. */
+  slideIdSwapFrom: 0,
 };
 
 vi.mock("../src/pane/catalogue.js", async () => {
@@ -570,6 +581,8 @@ afterEach(async () => {
   host.spliceHold = undefined;
   host.followed = 0;
   host.selectedSlides = undefined;
+  host.slideIdCalls = 0;
+  host.slideIdSwapFrom = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
   Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
@@ -698,6 +711,46 @@ describe("what this deck already uses", () => {
 
     expect(pane.querySelector(".used-list"), "the row went with the undo").not.toBeNull();
     expect(pane.querySelector(".used-where")?.textContent, "and it still names the slide").toBe("slide 1");
+  });
+
+  it("does not delete by position when the slot moved during the undo itself", async () => {
+    /**
+     * The undo puts the user's original slide back and then takes the rebuilt
+     * one away. The first half aims BY ID — `slideIdAt(plan.after)`, then
+     * `insertPackage(original, targetId)` — and the second half is positional,
+     * `removeSlideAt(plan.remove)`.
+     *
+     * For an "onto this slide" insert `plan.after` and `plan.remove` are the
+     * SAME index, so the id read for the insert names the very slide the delete
+     * then takes. Nothing compared the two, and a slide dragged into that slot
+     * between them meant the original was restored after a stranger's slide and
+     * the stranger's slide deleted — with the count agreeing, because the undo
+     * adds one and removes one either way.
+     *
+     * This closes the window INSIDE the undo, which is the one it can close.
+     * The window from the insert to the button being pressed is not closed by
+     * this and cannot be by an id: the slide the undo deletes is one the add-in
+     * created, and `CLAUDE.md` records that a slide the run just added does not
+     * resolve by id on the web, so the pane never held one for it.
+     */
+    deckBase64 = await deckWithOneBox();
+    host.current = { index: 0, id: "256" };
+    const pane = await openAndAsk();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await idle(pane);
+    expect(pane.querySelector('[data-action="undo"]'), "the insert armed an undo").not.toBeNull();
+
+    const before = host.removed.length;
+    // The undo's own reads start here: the first is the insert half's target,
+    // the second is the read-back this is about. Before the fix there is no
+    // second call, so this changes nothing and the delete goes ahead.
+    host.slideIdSwapFrom = host.slideIdCalls + 2;
+
+    (pane.querySelector('[data-action="undo"]') as HTMLElement).click();
+    await idle(pane);
+
+    expect(host.removed.length, "the undo deleted by position after the slot had changed hands").toBe(before);
   });
 
   it("says the deck holds nothing rather than showing an empty space", async () => {
@@ -2513,6 +2566,44 @@ describe("removing a part from every slide it is on", () => {
       pane.querySelector('[data-action="other-target"]'),
       "the menu from the dead right-click opened on the way out of the question",
     ).toBeNull();
+  });
+
+  it("does not delete by position once the slide it aimed at has moved", async () => {
+    /**
+     * The removal runs an insert-then-positional-delete cycle per slide. The
+     * INSERT aims by id — `insertPackage(report.base64, targetId)` — and so
+     * survives a reorder. The DELETE aims by POSITION, `at`, computed from a
+     * deck read taken before the run started, and nothing re-read the id in
+     * between.
+     *
+     * The pane locks ITSELF, not PowerPoint, so a user can drag a slide in the
+     * strip while the run is in flight — and `removeSlideAt` is
+     * `slides.getItemAt(index).delete()`, which takes whatever is at that
+     * position now. That is somebody's own content, deleted, and the pane
+     * reporting success.
+     *
+     * The count check cannot catch it: the cycle adds one slide and removes
+     * one, so `countReaching(before)` agrees whichever slide went. Measured in
+     * this harness before the fix — one `slideIdAt` call for a one-slide run,
+     * and `removed` was `[0]` however the deck had been reordered.
+     *
+     * `insert` grew exactly this guard in #127 and `stampEvery` was built with
+     * it; this path, the only one that takes content OUT of a deck, was
+     * missed by both.
+     */
+    const pane = await askedToRemove();
+    // The read-back is the second `slideIdAt` of the run: the first is the
+    // cycle's own target read. Before the fix there IS no second call, so this
+    // changes nothing and the delete goes ahead positionally — which is the
+    // point.
+    host.slideIdSwapFrom = 2;
+
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    await idle(pane);
+
+    expect(host.removed, "it deleted by position after the slot had changed hands").toEqual([]);
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "and said nothing about the copy it had already landed").toContain("a slide too many");
   });
 
   it("drops the question when a search takes its tile off the screen", async () => {

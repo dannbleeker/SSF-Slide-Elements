@@ -960,9 +960,13 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
 /**
  * Put the deck back the way it was.
  *
- * Count-checked at every step, and positional throughout. Nothing here reads an
- * id: `CLAUDE.md` records that a slide the run just added does not resolve by
- * one on the web, and undo is working right next to one.
+ * Count-checked at every step, and positional where it has to be. It DOES read
+ * an id — `slideIdAt(plan.after)`, to aim the restored original — and that one
+ * is checked again before the delete, because for an "onto this slide" undo it
+ * names the slide the delete takes. What stays positional is the delete's
+ * TARGET: `CLAUDE.md` records that a slide the run just added does not resolve
+ * by id on the web, and the slide being removed here is one this add-in
+ * created, so no id for it was ever obtainable.
  */
 async function undo(): Promise<boolean> {
   const entry = undoable;
@@ -979,6 +983,13 @@ async function undo(): Promise<boolean> {
    * holding both.
    */
   let asked = false;
+  /**
+   * The id the insert half aimed at, kept for the delete half to check.
+   *
+   * For an "onto this slide" undo `plan.after` and `plan.remove` are the SAME
+   * index, so this names the very slide the delete then takes.
+   */
+  let aimedAt: string | undefined;
   try {
     const before = await slideCount();
 
@@ -986,6 +997,7 @@ async function undo(): Promise<boolean> {
       // Put the user's own slide back first, aimed at the rebuilt one so it
       // lands immediately after it whatever the selection is now.
       const targetId = await slideIdAt(plan.after);
+      aimedAt = targetId;
       if (targetId === undefined) {
         throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
       }
@@ -1000,6 +1012,24 @@ async function undo(): Promise<boolean> {
           refused ?? `the deck went ${before} → ${grown}, which is not what putting one slide back looks like`,
         );
       }
+    }
+
+    // The slot the delete is about to take, checked against the one the insert
+    // half aimed at — the window INSIDE this undo, which is the one an id can
+    // close. Only for "onto this slide": there `plan.after === plan.remove`, so
+    // `aimedAt` names the slide being removed. "As a new slide" reads no id at
+    // all and there is nothing to compare.
+    //
+    // NOT closed by this, and not closable by an id: the window from the insert
+    // to the button being pressed. The slide this deletes is one the ADD-IN
+    // created, and `CLAUDE.md` records that a slide the run just added does not
+    // resolve by id on the web — so the pane never held one for it. A user who
+    // reorders and then presses Undo is still aiming at a position. See
+    // `docs/BACKLOG.md`.
+    if (plan.after === plan.remove && aimedAt !== undefined && !stillThere(aimedAt, await slideIdAt(plan.remove))) {
+      throw new Error(
+        `slide ${plan.remove + 1} is not the one the undo put the original back beside, so nothing was deleted`,
+      );
     }
 
     asked = true;
@@ -1396,6 +1426,28 @@ async function removeEverywhere(id: string): Promise<void> {
       // nothing still stops the run, because the count then does not move.
       await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
+      if (!stillThere(targetId, await slideIdAt(at))) {
+        // The rebuilt slide landed and the slide it was aimed at has MOVED, so
+        // the positional delete below would take somebody else's.
+        //
+        // The insert aims by id and survives a reorder; this delete aims by
+        // position, and `at` came from a deck read taken before the run began.
+        // The pane locks itself rather than PowerPoint, so a user can drag a
+        // slide in the strip across the whole run — and `removeSlideAt` is
+        // `slides.getItemAt(index).delete()`, which takes whatever is there
+        // now. The count cannot catch it either: the cycle adds one and removes
+        // one, so `countReaching(before)` agrees whichever slide went.
+        //
+        // `insert` grew this guard in #127 and `stampEvery` was built with it.
+        // This path — the only one that takes content OUT of a deck, and the
+        // one that runs N of these over the longest window — had neither.
+        //
+        // Counted as STRANDED, not as an untouched deck: the copy is already
+        // in there. Leaving it is `CLAUDE.md`'s own failure mode — a duplicate
+        // the user can delete rather than a slide they have lost.
+        stranded = true;
+        break;
+      }
       await removeSlideAt(at);
       if ((await countReaching(before)) !== before) {
         // The insert landed and the delete did not, so this slide's ORIGINAL is
