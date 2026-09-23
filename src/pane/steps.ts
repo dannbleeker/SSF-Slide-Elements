@@ -509,6 +509,33 @@ export function removeQuestion(element: Element, slides: number[]): string {
 }
 
 /**
+ * What the pane says WHILE a run of several cycles is going.
+ *
+ * Both the several-slide stamp and the deck-wide removal set one sentence
+ * before their loop and never touched it again, so the pane locked itself and
+ * sat on a frozen line for the whole run. `docs/DESIGN.md` section 10 asks
+ * every message to say what happened, and a sentence that stops being true
+ * after the first cycle is not one.
+ *
+ * It is not cosmetic on this host. The pane locks ITSELF, not PowerPoint, and
+ * each cycle is a splice, an insert, two count reads that BACK OFF — the web's
+ * count sat at its old value for 2.8 seconds — and a positional delete. Over a
+ * deck's worth of slides that is minutes with nothing on screen distinguishing
+ * working from wedged.
+ *
+ * Shared by both callers so the two cannot drift, and pure so it can be held to
+ * an answer: the removal cannot be driven past one cycle from a test, because
+ * the fixture's deck is built with the real splice and that PRUNES to one
+ * slide. `docs/BACKLOG.md` carries that gap.
+ *
+ * `slide` counts from ONE, like the slide strip; `done` and `total` count
+ * cycles, so a user can check the sentence against what they selected.
+ */
+export function runningOn(verb: string, name: string, slide: number, done: number, total: number): string {
+  return `${verb} ${name} — slide ${slide}, ${done} of ${total}…`;
+}
+
+/**
  * How far a several-slide stamp got, for the footer.
  *
  * `docs/DESIGN.md` section 5 asks for a stamp with several slides selected to

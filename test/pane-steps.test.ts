@@ -19,6 +19,7 @@ import {
   remember,
   removableFrom,
   removalOutcome,
+  runningOn,
   stampOutcome,
   removeLabel,
   removeQuestion,
@@ -399,6 +400,24 @@ describe("taking a part off the slides it is on", () => {
     expect(short.byHand).toBe(true);
     expect(short.detail).toContain("Removed from 2 of 3 slides");
     expect(short.detail).toContain("as they were");
+  });
+
+  it("says which slide a running job is on, and how far through it is", () => {
+    /**
+     * Both multi-cycle runs set one sentence before their loop and never
+     * touched it again — the pane locking itself and sitting on a frozen line
+     * through a run that costs a splice, an insert, two backing-off count reads
+     * and a delete PER SLIDE.
+     *
+     * Shared by both callers so they cannot drift, and pure because the removal
+     * cannot be driven past one cycle from a test: its fixture deck is built
+     * with the real splice, which prunes to one slide.
+     */
+    expect(runningOn("Stamping", "Confidential", 5, 2, 9)).toBe("Stamping Confidential — slide 5, 2 of 9…");
+    expect(runningOn("Taking", "Confidential off", 1, 1, 1)).toBe("Taking Confidential off — slide 1, 1 of 1…");
+    // It CHANGES per cycle, which is the whole point.
+    const run = [1, 2, 3].map((n) => runningOn("Stamping", "Draft", n * 2, n, 3));
+    expect(new Set(run).size, "the sentence is the same whatever cycle it is on").toBe(3);
   });
 
   it("says how many slides a stamp reached, and that the pane cannot take it back", () => {

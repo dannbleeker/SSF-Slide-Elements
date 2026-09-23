@@ -22,6 +22,31 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A harvest interrupted at the wrong moment no longer loses the catalogue.**
+  Regenerating the element library replaces the committed copy at the very end.
+  It used to delete the old copy first and move the new one in afterwards — a
+  delete over 427 files, and a run killed inside it (Ctrl-C, a crash, a full
+  disk) left nothing there. It now moves the old copy aside, moves the new one
+  in, and only then deletes; and if a run dies between those two steps, the
+  next one puts it back. This only ever affected maintainers regenerating the
+  library, never the add-in.
+
+- **Taking an element off several slides can no longer delete the wrong
+  slide.** The pane removes it one slide at a time, and each step adds a
+  corrected copy and then takes the original away — but it took the original
+  away *by position*, using a position worked out before the run started. The
+  add-in locks its own pane, not PowerPoint, so if you dragged a slide around
+  in the slide strip while it was working, it could delete whatever had moved
+  into that spot: your own slide, with the add-in reporting success, because
+  the deck ends up the same length either way. It now checks the slide is still
+  the one it aimed at, and stops and tells you if it is not.
+
+- **Undo no longer deletes the wrong slide if the deck moves while it runs.**
+  Undoing puts your original slide back and then removes the copy the add-in
+  made. It removed that copy by position, and did not check the position still
+  held what it aimed at, so a slide that moved in between could be deleted
+  instead. It now checks, and stops rather than guessing.
+
 - **The pane now names a PowerPoint you can move to when it cannot run.** On a
   PowerPoint too old for the add-in, the one screen you get said what was
   missing and what it cost you, and left you to work out what to do about it.

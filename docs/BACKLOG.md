@@ -73,6 +73,67 @@ collections in a deck, and failing the harvest would block every build until
 that happened. Fix the decks and the warning goes; there is nothing to change
 in the code.
 
+### Nothing caps a several-slide run, and no test drives the removal past one cycle
+
+Two gaps found on 2026-09-23 while reading the several-slide stamp against the
+deck-wide removal. Neither is a defect with an obvious fix; both are the
+owner's to size.
+
+**No cap.** A stamp is bounded only by how many slides the user selected — a
+whole deck, if they pressed Ctrl+A in the slide strip. Each cycle is a splice,
+an insert, two count reads that back off through the web's 2.8-second lag, and
+a positional delete, with the pane locked throughout. The run now says which
+slide it is on and how far through it is, which makes a long one legible, but
+nothing stops it and nothing cancels it. A cap needs a number, and the number
+is a judgement about what a user may ask for in one press. The removal has the
+same shape but is naturally bounded by how many slides carry the element.
+
+**No multi-cycle removal test.** Every removal case in the suite drives exactly
+ONE cycle, and not by choice: `deckWithStampOn` builds its deck with the real
+splice, which reduces the package to the single slide it spliced, so the
+fixture cannot put the element on two slides. So the loop's own behaviour —
+the break semantics, the stranded flag, the per-cycle id guard added the same
+day — is held only at one iteration. The several-slide stamp drives three
+cycles and covers the same shape, which is why this is a gap rather than a
+hole, but they are different functions.
+
+Closing it means a fixture that can assemble a multi-slide deck with the
+element on several slides, which the splice's own prune-to-one-slide contract
+does not offer. Worth doing before anything else changes that loop.
+
+### The undo still aims at a position the user may have moved
+
+**Narrowed on 2026-09-23, not closed.** The undo puts the user's original slide
+back and then takes the rebuilt one away positionally. The window INSIDE the
+undo is now guarded — for an "onto this slide" undo the insert half reads the
+id at that index, and the delete half checks it is still there — but the window
+from the INSERT to the Undo button being pressed is not, and cannot be closed
+the same way.
+
+Why not: the slide the undo deletes is one this add-in created, and `CLAUDE.md`
+records that a slide the run just added does not resolve by id on the web. The
+pane never held an id for it, so there is nothing to compare. A user who
+inserts, drags slides around in the strip, and then presses Undo is aiming at a
+position that has moved — and the count check cannot see it, because the undo
+adds one slide and removes one whichever slide goes.
+
+What would close it, and what it costs:
+
+1. **Read the deck and check the slide at that index carries the add-in's
+   tag.** Every inserted shape gets an `SSF_SLIDE_ELEMENT` tag written into the
+   package before the insert, so the rebuilt slide is identifiable. This is
+   certain, and it costs a whole `getFileAsync` on every undo —
+   `src/host/timeout.ts` records 874 ms on a healthy web session and 40 s on a
+   degraded one, on the one control a user presses when they want something
+   taken back NOW.
+2. **Disarm the undo when the selection moves.** Cheap, and wrong often: a user
+   clicking about the deck loses an undo that was perfectly good.
+3. **Leave it.** The failure needs a reorder between an insert and its undo,
+   the undo is one deep, and the pane already says it cannot undo more.
+
+This is a judgement about how much an undo may cost, which is the owner's. It
+is written down rather than guessed at.
+
 ### Highlight the matched words inside a name
 
 Section 8 of the design record asserted this as built until 2026-09-23. It is

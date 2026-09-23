@@ -524,6 +524,18 @@ exception for width.
   measured on the web and on Windows), and the sentence names it. Unlike a
   removal this is not asked first, because it adds rather than takes away.
 
+  **A cursor-landing part loses its cursor here**, and that is the only sane
+  answer: "at the cursor" is the selected SHAPE's position, and with several
+  slides selected there is no one shape to take. It falls back to the middle of
+  the slide, which is what this section already specifies for nothing selected
+  — so two of the ten parts per library, the two markers, land centred on every
+  selected slide rather than around a shape.
+
+  **It says which slide it is on and how far through it is**, rather than one
+  sentence for the whole run: the pane locks itself, not PowerPoint, and a run
+  over many slides is minutes. Nothing caps it — `docs/BACKLOG.md` carries that
+  question, because a cap needs a number and the number is a judgement.
+
   One selected slide, or a host that will not say, runs the ordinary
   single-slide insert with its ordinary Undo — `stampTargets` answers the empty
   list under two slides, which is what hands that path back. A whole-slide
@@ -544,7 +556,15 @@ exception for width.
   after the slide and remove the original. Two inserts 0.4 s apart killed a
   sibling's tab; the lock is that rule made visible. The delta is the evidence,
   never the absence of an error.
-- **Undo** goes **one deep**, positional and count-checked, never by id.
+- **Undo** goes **one deep**, positional and count-checked, never by id — with
+  one id read that IS checked: for an "onto this slide" undo the restored
+  original is aimed by the id at that index, and the same index is read back
+  before the rebuilt slide is deleted, because the two are the same slide. That
+  closes the window inside the undo. The window from the insert to the button
+  being pressed stays open and cannot be closed by an id: the slide the undo
+  deletes is one this add-in created, and a slide the run just added does not
+  resolve by id on the web, so no id for it was ever obtainable.
+  `docs/BACKLOG.md` carries what would close it and what that costs.
 
   There was an **Again** beside it, repeating the last insert. It went on
   2026-09-16: the element it repeats is the first tile in **Recent**, drawn a
@@ -654,6 +674,21 @@ exception for width.
     were."
   - **One deck read for the whole run.** A cycle only rewrites the slide it
     targets, so every package is built from the bytes read at the start.
+  - **The positional delete is guarded by reading the target's id back.** The
+    insert aims by id and survives a reorder; the delete aims by POSITION, and
+    that position came from the read at the start of the run. The pane locks
+    itself rather than PowerPoint, so a user can drag a slide in the strip
+    across the whole of it — and `removeSlideAt` is
+    `slides.getItemAt(index).delete()`, which takes whatever is at that
+    position now. The count cannot catch it: a cycle adds one slide and removes
+    one, so the check agrees whichever slide went. So the id at that position
+    is read back after the insert and compared with `sameSlideId`; a mismatch
+    leaves the copy standing and stops the run, which is the failure
+    `CLAUDE.md` asks for — a duplicate the user can delete rather than a slide
+    they have lost. Added 2026-09-23. `insert` grew this guard in #127 and the
+    several-slide stamp was built with it; this path, the only one that takes
+    content OUT of a deck and the one that runs the most of these, had
+    neither.
   - **What it can reach is what this add-in tagged.** The shapes are found
     through `readShapeTags`, which keys on the tag NAME — a user's own shape
     carries no tag of ours, and another add-in's tags in the same folder are not

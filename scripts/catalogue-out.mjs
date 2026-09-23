@@ -29,6 +29,8 @@ import { join } from "node:path";
 /** The committed catalogue, and the directory a run builds its replacement in. */
 export const OUT = "public/catalogue";
 export const STAGE = "public/.catalogue-staging";
+/** Where the committed catalogue is parked for the moment the swap takes. */
+export const ASIDE = "public/.catalogue-previous";
 
 /**
  * An empty staging directory, whatever a previous run left behind.
@@ -38,7 +40,13 @@ export const STAGE = "public/.catalogue-staging";
  * would not name it — which is exactly the shape of the bug the staging
  * directory exists to prevent, moved one step along.
  */
-export function stage(root = STAGE) {
+export function stage(root = STAGE, out = OUT, aside = ASIDE) {
+  // RECOVER FIRST. `publish` moves the committed catalogue aside and then moves
+  // the staged one into place; a run killed between those two renames leaves
+  // `out` missing and everything it held under `aside`. Putting it back is the
+  // whole of the repair, and doing it here means the next harvest does it
+  // without anybody knowing the aside directory exists.
+  if (!existsSync(out) && existsSync(aside)) renameSync(aside, out);
   rmSync(root, { recursive: true, force: true });
   mkdirSync(root, { recursive: true });
   return root;
@@ -53,11 +61,26 @@ export function stage(root = STAGE) {
  * returning a flag: there is nothing sensible for a caller to do with the
  * answer except stop.
  */
-export function publish(root = STAGE, out = OUT) {
+export function publish(root = STAGE, out = OUT, aside = ASIDE) {
   if (!existsSync(join(root, "catalogue.json"))) {
     throw new Error(`refusing to publish ${root} over ${out}: it has no catalogue.json`);
   }
-  rmSync(out, { recursive: true, force: true });
+  // TWO RENAMES, then the delete — not a delete and then a rename.
+  //
+  // The first version of this did `rmSync(out, {recursive: true})` and then
+  // renamed the staged tree in. That is a walk over 427 files, and a run
+  // interrupted inside it — Ctrl-C, a crash, a full disk — left the committed
+  // catalogue deleted with no replacement: exactly the state this module exists
+  // to prevent, moved from an early exit to the publish itself.
+  //
+  // A rename is one metadata operation. Parking the old tree under `aside`
+  // first and moving the staged one in second narrows the window where nothing
+  // is at `out` to the gap between two of them, and `stage` puts `aside` back
+  // if a run ever dies in it. The slow delete happens last, when it can cost
+  // nothing but disk.
+  rmSync(aside, { recursive: true, force: true });
+  if (existsSync(out)) renameSync(out, aside);
   renameSync(root, out);
+  rmSync(aside, { recursive: true, force: true });
   return out;
 }
