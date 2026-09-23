@@ -431,6 +431,44 @@ export async function slideIdAt(index: number): Promise<string | undefined> {
 }
 
 /**
+ * Every slide's id, in the deck's own order.
+ *
+ * `slideIdAt` answers "what is at this POSITION", which is the right question
+ * for one insert and the wrong one for a run of cycles: a run handed a list of
+ * positions before it started is holding a map of a deck the user can redraw
+ * at any moment, because the pane locks itself and not PowerPoint. Handed the
+ * ids instead, `indexOfSlide` can find each slide wherever it has got to, and
+ * a slide that has GONE answers nothing rather than a position.
+ *
+ * Measured on Windows on 2026-09-23: a drag between two cycles moved every
+ * later position under a run that never noticed, and it reported one more
+ * slide stamped than the deck had gained.
+ *
+ * The same `whole` guard as above, for the same reason — `CLAUDE.md` records
+ * that a collection load over ~50 items can answer short, and a short answer
+ * here would read as slides having been deleted. Undefined then, never a
+ * truncated list.
+ */
+export async function slideIds(): Promise<string[] | undefined> {
+  try {
+    return await withTimeout(
+      PowerPoint.run(async (context) => {
+        const slides = context.presentation.slides;
+        slides.load("items/id");
+        const count = slides.getCount();
+        await context.sync();
+        if (!whole(slides.items.length, count.value)) return undefined;
+        return slides.items.map((slide) => slide.id);
+      }),
+      BUDGET.read,
+      "reading the deck's slide ids",
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Hand the package to PowerPoint, after the slide the user is on.
  *
  * Returns the reason it raised, if it did, rather than throwing: a raise is not

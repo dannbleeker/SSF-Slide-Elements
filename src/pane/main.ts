@@ -26,6 +26,7 @@ import {
   mayRemove,
   outcomeOf,
   stampTargets,
+  indexOfSlide,
   stillThere,
   undoPlan,
 } from "../host/insert.js";
@@ -52,6 +53,7 @@ import {
   countReaching,
   slideCount,
   slideIdAt,
+  slideIds,
   themeBackground,
 } from "../office/powerpoint.js";
 import { Store, carriedTypes, libraryFor, loadIndex, themeColours, type Index } from "./catalogue.js";
@@ -1329,8 +1331,27 @@ async function stampEvery(
   let stranded = false;
   /** Whether the user pressed Stop, which is not a failure and must not read as one. */
   let stopped = false;
+  /**
+   * The selected slides as IDS, resolved once, paired with the position each
+   * holds in the deck snapshot this run splices from.
+   *
+   * Both halves are needed and they are not the same number. `from.deck` is the
+   * bytes read before the run, so the splice must be told the position the
+   * slide had THERE — that never moves. Everything the run does to the live
+   * deck is aimed by id instead, because the live deck moves whenever the user
+   * drags a thumbnail, and the pane locks itself rather than PowerPoint.
+   *
+   * A slide whose id the host would not name is dropped here rather than
+   * walked past later: it cannot be aimed at, and a position is not a
+   * substitute for one.
+   */
+  const ids = await slideIds();
+  const targets = many
+    .map((at) => ({ at, id: ids?.[at] }))
+    .filter((t): t is { at: number; id: string } => t.id !== undefined);
   try {
-    for (const [cycle, at] of many.entries()) {
+    for (const [cycle, target] of targets.entries()) {
+      const at = target.at;
       // BETWEEN cycles. Stopping inside one would leave the deck holding the
       // rebuilt copy AND the original, which is the stranded state everything
       // here exists to avoid.
@@ -1347,13 +1368,31 @@ async function stampEvery(
       //
       // Counted in slides the user can see, not in cycles: `at` is an index
       // from zero and the slide strip counts from one.
+      // WHERE THE SLIDE IS NOW, not where it was when the run was planned.
+      //
+      // A drag that lands between two cycles moves nothing DURING a cycle, so
+      // the guard below has nothing to compare and every later position names a
+      // different slide. Measured 2026-09-23: a run reported "Stamped 59
+      // slides" where 58 had gained one. Asked by id, the slide is followed.
+      const live = indexOfSlide((await slideIds()) ?? [], target.id);
+      if (live === undefined) {
+        // GONE from the deck since the run was planned — deleted, or on a deck
+        // the user swapped underneath. Not stamped, not counted, and above all
+        // not a position to delete: `done` stays where it is and the outcome
+        // says "N of M", which is the honest sentence.
+        continue;
+      }
       set({
-        notice: runningOn("Stamping", element.name, at + 1, cycle + 1, many.length),
+        // `many.length` and not `targets.length`, in both: the user selected
+        // that many slides, and that is the number the footer, the Stop label
+        // and the outcome all have to agree on. A slide the host could not name
+        // is a slide that will not be stamped, and "N of what I selected" is
+        // the honest denominator for it.
+        notice: runningOn("Stamping", element.name, live + 1, cycle + 1, many.length),
         running: { done, total: many.length },
       });
       const before = await slideCount();
-      const targetId = await slideIdAt(at);
-      if (targetId === undefined) break;
+      const targetId = target.id;
       const report = await splice({
         deck: from.deck,
         slide: at,
@@ -1380,14 +1419,24 @@ async function stampEvery(
       });
       await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
-      if (!stillThere(targetId, await slideIdAt(at))) {
-        // The copy landed and the slide it was aimed at has moved, so the
-        // positional delete below would take somebody else's slide. Leaving the
-        // copy is the whole point of insert-then-remove.
+      // WHERE THE ORIGINAL IS NOW, asked again after the insert.
+      //
+      // This used to be `stillThere(targetId, slideIdAt(at))` — a check that
+      // the slide had not moved, and a refusal when it had. Asking by id
+      // instead FOLLOWS it, so a drag inside the cycle costs the user nothing
+      // rather than stranding a copy they then have to find and delete. The
+      // safety property is unchanged and is the one that matters: the delete is
+      // aimed at the slide this cycle replaced, by its own id, or it does not
+      // happen at all.
+      const removeAt = indexOfSlide((await slideIds()) ?? [], targetId);
+      if (removeAt === undefined) {
+        // The original cannot be found, so there is nothing safe to delete and
+        // the copy is already in the deck. `CLAUDE.md`'s failure mode: a
+        // duplicate the user can delete, never a slide they have lost.
         stranded = true;
         break;
       }
-      await removeSlideAt(at);
+      await removeSlideAt(removeAt);
       if ((await countReaching(before)) !== before) {
         stranded = true;
         break;
@@ -1451,6 +1500,13 @@ async function removeEverywhere(id: string): Promise<void> {
     // read is already paid for here, and `slidesHolding` is the same sweep
     // "Used in this deck" uses.
     wanted = (await slidesHolding(await Pkg.open(deck.base64), id)).map((i) => i + 1);
+    // The same id-first shape the stamp uses, and this is the half where it
+    // matters most: these cycles take content OUT of a deck. The positions come
+    // from the bytes this run reads, the ids from the live deck at the same
+    // moment, and everything aimed at the live deck from here on is aimed by
+    // id. A slide the host will not name is dropped rather than walked past.
+    const liveIds = await slideIds();
+    const plannedIds = wanted.map((slide) => liveIds?.[slide - 1]);
     for (const [cycle, slide] of wanted.entries()) {
       // BETWEEN cycles, as the stamp does: stopping inside one leaves the deck
       // holding both the original and the element-free copy.
@@ -1460,15 +1516,23 @@ async function removeEverywhere(id: string): Promise<void> {
       }
       // The same per-cycle sentence the stamp shows, for the same reason: this
       // loop set one line before it started and never touched it again.
+      // Counting from one in the state, from zero in the engine and the host.
+      // `at` is the position in THIS RUN'S BYTES, which never moves, and is
+      // what the engine is told; the live deck is reached by id only.
+      const at = slide - 1;
+      const targetId = plannedIds[cycle];
+      const live = indexOfSlide((await slideIds()) ?? [], targetId);
+      if (targetId === undefined) break;
+      if (live === undefined) {
+        // The slide carrying the element has gone since the run was planned.
+        // Nothing to take it off, and no position here is safe to delete.
+        continue;
+      }
       set({
-        notice: runningOn("Taking", `${element.name} off`, slide, cycle + 1, wanted.length),
+        notice: runningOn("Taking", `${element.name} off`, live + 1, cycle + 1, wanted.length),
         running: { done, total: wanted.length },
       });
-      // Counting from one in the state, from zero in the engine and the host.
-      const at = slide - 1;
       const before = await slideCount();
-      const targetId = await slideIdAt(at);
-      if (targetId === undefined) break;
       const report = await removeElement({ deck: deck.base64, slide: at, element: id });
       // The raise is not consulted in either half of the cycle: the count on
       // the line after each call already is, and it is the evidence. Breaking
@@ -1479,21 +1543,21 @@ async function removeEverywhere(id: string): Promise<void> {
       // nothing still stops the run, because the count then does not move.
       await insertPackage(report.base64, targetId);
       if ((await countReaching(before + 1)) !== before + 1) break;
-      if (!stillThere(targetId, await slideIdAt(at))) {
-        // The rebuilt slide landed and the slide it was aimed at has MOVED, so
-        // the positional delete below would take somebody else's.
+      const removeAt = indexOfSlide((await slideIds()) ?? [], targetId);
+      if (removeAt === undefined) {
+        // The rebuilt slide landed and the ORIGINAL can no longer be found, so
+        // there is no position here that is safe to delete.
         //
-        // The insert aims by id and survives a reorder; this delete aims by
-        // position, and `at` came from a deck read taken before the run began.
-        // The pane locks itself rather than PowerPoint, so a user can drag a
-        // slide in the strip across the whole run — and `removeSlideAt` is
-        // `slides.getItemAt(index).delete()`, which takes whatever is there
-        // now. The count cannot catch it either: the cycle adds one and removes
-        // one, so `countReaching(before)` agrees whichever slide went.
+        // This is the last line of the same defence the id-lookup above is.
+        // `removeSlideAt` is `slides.getItemAt(index).delete()` and takes
+        // whatever is at that index NOW; the pane locks itself rather than
+        // PowerPoint, so a user can drag a slide in the strip across the whole
+        // run. The count cannot catch it either — the cycle adds one and
+        // removes one, so `countReaching(before)` agrees whichever slide went.
         //
-        // `insert` grew this guard in #127 and `stampEvery` was built with it.
-        // This path — the only one that takes content OUT of a deck, and the
-        // one that runs N of these over the longest window — had neither.
+        // Asking by id rather than checking a position FOLLOWS a slide that
+        // merely moved, so the ordinary drag costs the user nothing. Only a
+        // slide that has genuinely gone reaches here.
         //
         // Counted as STRANDED, not as an untouched deck: the copy is already
         // in there. Leaving it is `CLAUDE.md`'s own failure mode — a duplicate
@@ -1501,7 +1565,7 @@ async function removeEverywhere(id: string): Promise<void> {
         stranded = true;
         break;
       }
-      await removeSlideAt(at);
+      await removeSlideAt(removeAt);
       if ((await countReaching(before)) !== before) {
         // The insert landed and the delete did not, so this slide's ORIGINAL is
         // still there with the element on it and an element-free copy sits

@@ -1600,18 +1600,36 @@ be taken away."* The deck bore that out exactly: **no label lost**, one label
 moved slide left unstamped. That is `stillThere` refusing the positional
 delete, which is what section 6 asks of it.
 
-**What is NOT covered, and it is a question of timing.** The guard compares the
-slide it aimed at with the slide now at that index, INSIDE one cycle. A reorder
-that lands BETWEEN cycles moves nothing during a cycle, so nothing is caught,
-and the run carries on against indices that have shifted under it: measured on
-2026-09-23 on a deck of identical slides, a run reported "Stamped 59 slides"
-where 58 slides gained one, and the slide that had moved was the one without
-it. Nothing was lost there either — the deck kept its length and its slides —
-but the count was one too high and one selected slide was silently skipped.
-Closing it means resolving the selection to slide IDs once and finding each id's
-current index per cycle, rather than walking indices captured before the run.
-That is a change to the loop that also performs the REMOVAL, so it is written
-down here rather than made in passing.
+**That was the guard's limit, and it has since been closed.** The guard compared
+the slide it aimed at with the slide now at that index, INSIDE one cycle. A
+reorder that landed BETWEEN cycles moved nothing during a cycle, so nothing was
+caught and the run carried on against indices that had shifted under it:
+measured on 2026-09-23 on a deck of identical slides, a run reported "Stamped 59
+slides" where 58 slides gained one, and the slide that had moved was the one
+without it. Nothing was lost — the deck kept its length and its slides — but the
+count was one too high and one selected slide was silently skipped.
+
+**Both runs now carry slide IDS.** `slideIds` reads the deck's ids in order,
+`indexOfSlide` answers where one of them currently sits, and every cycle asks it
+twice: once to find the slide it is about to rebuild, and once after the insert
+to find the original it is about to remove. The positions handed to the ENGINE
+are unchanged and must be — they index this run's own byte snapshot, which does
+not move — but nothing touches the live deck by a position it was given in
+advance any more.
+
+Three behaviours fall out of it, and the third is why this was worth doing to a
+destructive loop:
+
+- a slide that **moved** is followed, so an ordinary drag costs the user
+  nothing where it used to strand a copy they had to find and delete;
+- a slide that has **gone** answers nothing, so the cycle is skipped, `done`
+  does not count it, and no position is deleted in its place;
+- the count at the end is the number of slides that actually changed.
+
+`test/pane-wiring.test.ts` drives a reorder from inside a cycle and between two
+cycles, over a fake deck that has a real order to be reordered; both cases were
+run red against the positional code first, on the assertion about which index
+was deleted.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has

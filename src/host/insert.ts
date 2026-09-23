@@ -227,6 +227,41 @@ export function stillThere(expected: string | undefined, atIndex: string | undef
 }
 
 /**
+ * Where a slide IS now, given the deck's ids in order.
+ *
+ * `stillThere` above answers whether a slide has moved. This answers where it
+ * moved TO, and the difference is the whole of what a run of several cycles
+ * needs: a run that walks the INDEXES it was handed before it started is
+ * walking a map of a deck that no longer exists the moment the user drags
+ * anything.
+ *
+ * Measured on Windows on 2026-09-23, on a deck whose every slide was labelled.
+ * A stamp over 39 selected slides with one slide dragged from position 30 to
+ * position 5 mid-run: the guard caught the move that landed INSIDE a cycle and
+ * stranded a copy honestly. An earlier run the same day, where the drag landed
+ * BETWEEN two cycles, was not caught at all — nothing moves during a cycle, so
+ * there is nothing for `stillThere` to compare — and the run reported "Stamped
+ * 59 slides" where 58 slides had gained one. Nothing was lost, and one selected
+ * slide was silently skipped.
+ *
+ * So the runs now carry slide IDS and ask this where each one currently sits,
+ * every cycle. A slide that moved is followed; a slide that has GONE answers
+ * `undefined`, which is a skip the caller must count rather than a position it
+ * may delete.
+ *
+ * `sameSlideId` rather than `===`, for the reason `stillThere` gives: an id
+ * from a selection read can lack the `#suffix` the deck's own list carries.
+ */
+export function indexOfSlide(ids: readonly (string | undefined)[], slide: string | undefined): number | undefined {
+  if (slide === undefined) return undefined;
+  for (let at = 0; at < ids.length; at += 1) {
+    const here = ids[at];
+    if (here !== undefined && sameSlideId(slide, here)) return at;
+  }
+  return undefined;
+}
+
+/**
  * Which slides a PART lands on, given what the host says is selected.
  *
  * `docs/DESIGN.md` section 5: "A part ignores the insert target: it always

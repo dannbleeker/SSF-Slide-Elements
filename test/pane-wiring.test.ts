@@ -88,20 +88,37 @@ vi.mock("../src/office/powerpoint.js", () => ({
   currentSlide: () => Promise.resolve(host.current),
   selectedShape: () => Promise.resolve(undefined),
   selectedSlides: () => Promise.resolve(host.selectedSlides),
-  slideIdAt: () => {
+  slideIdAt: (index: number) => {
     host.slideIdCalls += 1;
     if (!host.namesSlides) return Promise.resolve(undefined);
     // A case can script one read to answer a DIFFERENT id, which is a slide
     // dragged into that slot while the run was in flight.
     const swapped = host.slideIdSwapFrom > 0 && host.slideIdCalls >= host.slideIdSwapFrom;
-    return Promise.resolve(swapped ? "999" : "256");
+    if (swapped) return Promise.resolve("999");
+    return Promise.resolve(deckIds()[index]);
   },
+  /**
+   * The deck's ids IN ORDER, which is what a run of cycles now aims with.
+   *
+   * This harness used to answer "256" to every `slideIdAt` whatever the index,
+   * which was enough while the runs walked positions and only ever compared one
+   * id with itself. It is not enough to model a REORDER: following a slide
+   * needs the deck to have an order to follow it through.
+   *
+   * So the fake deck is a list, `host.ids`, and a case can drag a slide with
+   * `moveSlide` or take one out with `dropSlide` — including from inside a
+   * cycle, which is the window the whole guard exists for.
+   */
+  slideIds: () => Promise.resolve(host.namesSlides ? [...deckIds()] : undefined),
   onSlideChange: () => {
     host.followed += 1;
     return Promise.resolve(false);
   },
   insertPackage: () => {
     host.cycles += 1;
+    // INSIDE the cycle, between the insert and the delete — the window the
+    // whole guard exists for, and the only place a case can reach it.
+    host.duringInsert?.();
     // The notice AS IT STANDS at each cycle's insert, so a case can see whether
     // a run of several says where it has got to or freezes on one sentence.
     host.noticesSeen.push(document.querySelector(".notice")?.textContent ?? "");
@@ -225,6 +242,56 @@ let deckBase64: string | undefined;
  * will NOT agree, which is the failure the run has to stop on rather than press
  * through. Zero refuses nothing.
  */
+/**
+ * The fake deck's ids, in order.
+ *
+ * Derived from the slide COUNT unless a case has set them, so every existing
+ * case gets a sensible deck (`s0`, `s1`, …) without saying so, and a case about
+ * reordering can take control. `256` stays the id of the first slide because a
+ * dozen cases quote it.
+ */
+function deckIds(): string[] {
+  if (host.ids) return host.ids;
+  // At least as long as the selection reaches. Several cases select slide 8 of
+  // a deck whose `slides` count they never set, which was invisible while
+  // `slideIdAt` answered the same id whatever the index — and becomes "that
+  // slide does not exist" the moment the run aims by id.
+  const furthest = (host.selectedSlides ?? []).reduce((a, b) => Math.max(a, b), -1);
+  const current = host.current?.index ?? -1;
+  const length = Math.max(host.slides, furthest + 1, current + 1, 0);
+  const ids = Array.from({ length }, (_, i) => `s${i}`);
+  // The slide the case says the user is ON keeps the id the case gave it. Half
+  // a dozen cases set `current` to `{ index: 1, id: "256" }`, and a deck that
+  // put "256" at index 0 would tell the insert its slide had been dragged away
+  // — a harness disagreeing with itself, reported as the product refusing.
+  //
+  // And ONLY there: "256" at index 0 as well would make the id ambiguous, and
+  // `indexOfSlide` answers the first match, so every removal aimed at index 0.
+  // A fake deck with two slides claiming one id is not a deck.
+  if (host.current && host.current.index >= 0 && host.current.index < ids.length) {
+    ids[host.current.index] = host.current.id;
+  } else if (ids.length > 0) {
+    // The id a dozen cases quote for the first slide, when nothing else claims it.
+    ids[0] = "256";
+  }
+  return ids;
+}
+
+/** Drag a slide in the strip, the way a user can while a run is in flight. */
+function moveSlide(from: number, to: number): void {
+  const ids = [...deckIds()];
+  const [moved] = ids.splice(from, 1);
+  if (moved !== undefined) ids.splice(to, 0, moved);
+  host.ids = ids;
+}
+
+/** Take a slide out of the deck entirely, which is the case a run must NOT delete into. */
+function dropSlide(at: number): void {
+  const ids = [...deckIds()];
+  ids.splice(at, 1);
+  host.ids = ids;
+}
+
 const host = {
   slides: 3,
   cycles: 0,
@@ -270,6 +337,13 @@ const host = {
   slideIdCalls: 0,
   /** From which read on the answer is a DIFFERENT id — a slide dragged into the slot. */
   slideIdSwapFrom: 0,
+  /**
+   * The fake deck's slide ids, in order. Undefined means "derive from `slides`",
+   * which is what almost every case wants; a case that reorders sets it.
+   */
+  ids: undefined as string[] | undefined,
+  /** Run inside a cycle, between the insert and the delete: a user dragging a thumbnail. */
+  duringInsert: undefined as (() => void) | undefined,
   /** The notice on screen at each cycle's insert, in order. */
   noticesSeen: [] as string[],
 };
@@ -594,6 +668,10 @@ afterEach(async () => {
   host.selectedSlides = undefined;
   host.slideIdCalls = 0;
   host.slideIdSwapFrom = 0;
+  // Back to a deck derived from the slide count, so a case that reordered one
+  // cannot leave the next case driving somebody else's deck.
+  host.ids = undefined;
+  host.duringInsert = undefined;
   host.noticesSeen.length = 0;
   // The scroll cases fake this, and a value left behind is the next case's
   // pane booting onto somebody else's scroll position.
@@ -2465,6 +2543,62 @@ describe("removing a part from every slide it is on", () => {
 
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome).toContain("Stamped 3 slides");
+  });
+
+  it("stamps the slides it was given even when the deck is reordered BETWEEN cycles", async () => {
+    /**
+     * The defect a real PowerPoint found on 2026-09-23, and the reason a run
+     * carries slide ids now.
+     *
+     * The guard the runs already had compares the slide it aimed at with the
+     * slide now at that index, INSIDE one cycle. A drag that lands between two
+     * cycles moves nothing during a cycle, so there is nothing to compare —
+     * and every position the run has still to visit now names a different
+     * slide. Measured on a 59-slide run: the pane reported "Stamped 59 slides"
+     * and 58 slides had gained one, with the slide that moved the one without
+     * it. Nothing was lost; the count was wrong and a selected slide was
+     * silently skipped.
+     *
+     * Here the deck is reordered after the FIRST cycle, by moving a slide the
+     * run has not reached yet from the back to the front — which shifts every
+     * later slide by one. Aiming by id, the run still lands on the three
+     * slides it was given.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [1, 4, 8];
+    host.current = { index: 1, id: "256" };
+    // Twelve slides, so there is a slide 9 to drag. The deck the fake derives
+    // is only as long as the selection reaches, and dragging an index that does
+    // not exist moves nothing — which reads as the reorder having no effect.
+    host.slides = 12;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+
+    // A slide the run has NOT reached is dragged from the back to the front,
+    // which pushes every slide the run still has to visit along by one.
+    host.duringInsert = () => {
+      if (host.cycles === 1) moveSlide(9, 0);
+    };
+
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    // Every selected slide, still. The SPLICE positions are the run's own
+    // snapshot and do not move; the DELETES follow the live deck, where slide 9
+    // has been dragged to the front and pushed the other two along by one.
+    expect(
+      spliced.map((one) => one.slide),
+      "a reorder between cycles cost a selected slide its stamp",
+    ).toEqual([1, 4, 8]);
+    expect(host.removed, "the deletes did not follow the slides through the reorder").toEqual([2, 5, 9]);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "it counted a slide it had not stamped").toContain("Stamped 3 slides");
     // The pane's Undo is one insert deep and positional, so it cannot take back
     // three — and a button silently gone is worse than a sentence.
     expect(pane.querySelector('[data-action="undo"]'), "it offered an Undo it cannot honour").toBeNull();
@@ -2770,11 +2904,10 @@ describe("removing a part from every slide it is on", () => {
      * missed by both.
      */
     const pane = await askedToRemove();
-    // The read-back is the second `slideIdAt` of the run: the first is the
-    // cycle's own target read. Before the fix there IS no second call, so this
-    // changes nothing and the delete goes ahead positionally — which is the
-    // point.
-    host.slideIdSwapFrom = 2;
+    // The slide is DRAGGED AWAY ENTIRELY inside the cycle — deleted from the
+    // deck while the run held it. There is then no position that is safe to
+    // delete, and the copy this cycle landed is already in there.
+    host.duringInsert = () => dropSlide(0);
 
     (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
     await idle(pane);
@@ -2782,6 +2915,37 @@ describe("removing a part from every slide it is on", () => {
     expect(host.removed, "it deleted by position after the slot had changed hands").toEqual([]);
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome, "and said nothing about the copy it had already landed").toContain("a slide too many");
+  });
+
+  it("FOLLOWS a slide that merely moved, instead of stranding a copy for it", async () => {
+    /**
+     * The other half of the same window, and the reason the runs now carry
+     * slide IDS rather than the positions they were handed.
+     *
+     * A drag is the ordinary thing a user does while a run of cycles holds the
+     * pane for minutes. Refusing it — which is what a position CHECK can do,
+     * because a check can only say yes or no — costs the user a stranded
+     * duplicate they then have to find and delete by hand. Asking WHERE the
+     * slide is instead costs nothing: the delete is still aimed at the slide
+     * this cycle replaced, by its own id, and it is simply somewhere else.
+     *
+     * Measured on Windows on 2026-09-23: a drag landing inside a cycle
+     * stranded a copy and said so, and a drag landing BETWEEN two cycles was
+     * not seen at all, because nothing moves during a cycle for a check to
+     * notice. The run then reported one more slide stamped than the deck had
+     * gained. Following by id answers both.
+     */
+    const pane = await askedToRemove();
+    // The slide the cycle is working on is dragged from the front to the back
+    // of the deck, mid-cycle. Its id does not change; only where it sits does.
+    host.duringInsert = () => moveSlide(0, 2);
+
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    await idle(pane);
+
+    expect(host.removed, "it did not follow the slide to where it had been dragged").toEqual([2]);
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "an ordinary drag was reported as a stranded copy").not.toContain("a slide too many");
   });
 
   it("says which slide it is on, rather than one sentence for the whole run", async () => {

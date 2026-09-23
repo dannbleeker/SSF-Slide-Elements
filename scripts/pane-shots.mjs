@@ -346,6 +346,48 @@ const STATES = [
     shows: ["undo", "move"],
   },
   {
+    /**
+     * A run of several cycles, mid-flight, with Stop up.
+     *
+     * The audit had 37 states and none of them set `running`, so the one
+     * control the pane keeps ENABLED while it is busy had never been measured
+     * for contrast, hit area or forced colours — the half `CLAUDE.md` says
+     * jsdom cannot judge. `pane-render.test.ts` and `pane-wiring.test.ts` cover
+     * what it DOES; this covers what it looks like.
+     *
+     * It is the interesting case for the disabled-control exemption too: every
+     * other `[data-action]` here is greyed out and exempt from the contrast
+     * rule, and this one is not — so a Stop drawn in the disabled palette while
+     * remaining clickable would show up here and nowhere else.
+     */
+    name: "browse-running",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      busy: true,
+      running: { done: 2, total: 5 },
+      notice: "Stamping Confidential stamp — slide 4, 3 of 5…",
+    },
+    shows: ["stop"],
+    // No Undo and no Move while a run is going: the pane offers one way out of
+    // a run, and a second control in that row would be a second answer.
+    hides: ["undo", "move"],
+  },
+  {
+    // The first cycle, where the count reads "0 of 5" — a label that has to
+    // survive being drawn before anything has happened, and the width case for
+    // the longest of these sentences.
+    name: "browse-running-first",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      busy: true,
+      running: { done: 0, total: 12 },
+      notice: "Taking Confidential stamp off — slide 1, 1 of 12…",
+    },
+    shows: ["stop"],
+  },
+  {
     name: "browse-by-hand",
     step: "browse",
     state: {
