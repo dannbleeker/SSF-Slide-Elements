@@ -496,6 +496,99 @@ describe("as a new slide", () => {
     expect(slide).toContain("<p:transition");
   });
 
+  /**
+   * The shape PowerPoint ACTUALLY writes, which the pair above does not have.
+   *
+   * The fixture above puts a bare `<p:transition>` straight under `<p:sld>`.
+   * Real PowerPoint wraps a modern transition in `<mc:AlternateContent>` —
+   * a `<mc:Choice Requires="p14">` carrying the p14 spelling and an
+   * `<mc:Fallback>` carrying the plain one — so the direct child of `<p:sld>`
+   * is `mc:AlternateContent` and a loop over direct children steps straight
+   * over it.
+   *
+   * Measured on PowerPoint 16.0.20326.20158 on 2026-09-23: a slide inserted
+   * "as a new slide" from a slide with a transition came back carrying
+   * `<p:transition spd="slow" p14:dur="2000"><p:random/></p:transition>`
+   * inside exactly that wrapper, while its `<p:timing>` — a plain direct
+   * child — had been removed correctly. So half of what the changelog
+   * promises was true and the gate could not see it, because the fixture
+   * could not fail the way the real thing fails.
+   *
+   * The `<p:timing>` case is wrapped here TOO. That half is defensive rather
+   * than measured: no capture of a wrapped timing has been taken, but the same
+   * loop would miss it, and a surviving timeline re-binds to the inserted
+   * element and hides it — which is the expensive failure, not the cosmetic
+   * one.
+   */
+  const animatedModern = async (): Promise<Uint8Array> => {
+    const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]] }]);
+    const pkg = await Pkg.open(deck);
+    const path = "ppt/slides/slide2.xml";
+    const xml = await pkg.text(path);
+    const shape =
+      `<p:sp><p:nvSpPr><p:cNvPr id="9" name="Box"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="100" y="100"/><a:ext cx="100" cy="100"/></a:xfrm></p:spPr></p:sp>`;
+    const timing =
+      `<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">` +
+      `<p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"/>` +
+      `<p:prevCondLst/><p:nextCondLst/></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst>` +
+      `<p:bldLst><p:bldP spid="9" grpId="0"/></p:bldLst></p:timing>`;
+    const target = `<p:tgtEl><p:spTgt spid="9"/></p:tgtEl>`;
+    const mc = ` xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"`;
+    const p14 = ` xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"`;
+    const wrappedTransition =
+      `<mc:AlternateContent${mc}><mc:Choice${p14} Requires="p14">` +
+      `<p:transition spd="slow" p14:dur="2000"><p:random/></p:transition></mc:Choice>` +
+      `<mc:Fallback><p:transition spd="slow"><p:random/></p:transition></mc:Fallback></mc:AlternateContent>`;
+    const wrappedTiming =
+      `<mc:AlternateContent${mc}><mc:Choice${p14} Requires="p14">` +
+      `${timing.replace("<p:bldLst>", `${target}<p:bldLst>`)}</mc:Choice>` +
+      `<mc:Fallback>${timing}</mc:Fallback></mc:AlternateContent>`;
+    pkg.setText(
+      path,
+      xml
+        .replace("</p:spTree>", `${shape}</p:spTree>`)
+        .replace("</p:sld>", `${wrappedTransition}${wrappedTiming}</p:sld>`),
+    );
+    return pkg.toBytes();
+  };
+
+  it("drops an animation and a transition PowerPoint wrapped in mc:AlternateContent", async () => {
+    const report = await splice({
+      deck: await animatedModern(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const out = await Pkg.open(report.base64);
+    const slide = await out.text(report.slidePath);
+    expect(slide, "a wrapped transition survived the blanking").not.toContain("<p:transition");
+    expect(slide, "a wrapped timeline survived the blanking").not.toContain("<p:timing>");
+    // The wrapper itself goes with them when nothing else is inside it, rather
+    // than being left as an empty `<mc:AlternateContent/>` on every new slide.
+    expect(slide, "an empty compatibility wrapper was left behind").not.toContain("AlternateContent");
+    // The sharp end, same as the unwrapped case: no surviving spid can name a
+    // shape the splice inserted.
+    expect(slide).not.toContain('spid="9"');
+  });
+
+  it("KEEPS a wrapped animation and transition on the slide the user is on", async () => {
+    const report = await splice({
+      deck: await animatedModern(),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "onto", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const slide = await (await Pkg.open(report.base64)).text(report.slidePath);
+    expect(slide, "the user's own wrapped animation was deleted by an insert").toContain("<p:timing>");
+    expect(slide).toContain("<p:transition");
+    expect(slide).toContain('spid="9"');
+  });
+
   it("does not carry the previous slide's speaker notes", async () => {
     const deck = await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]], notes: "private note" }]);
     const report = await splice({

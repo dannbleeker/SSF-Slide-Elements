@@ -40,6 +40,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A new slide really does drop the transition now, not just the animation.**
+  The earlier fix took both off — but only where PowerPoint had written them
+  the plain way. A transition picked from the Transitions tab is stored in a
+  compatibility wrapper instead, and that spelling was stepped over, so a slide
+  inserted "as a new slide" still arrived with the previous slide's transition
+  playing. Found by running it against a real PowerPoint rather than by reading
+  the code: the animation had gone and the transition had not. Inserting onto
+  your own slide still keeps both, because they are yours.
+
 - **A harvest interrupted at the wrong moment no longer loses the catalogue.**
   Regenerating the element library replaces the committed copy at the very end.
   It used to delete the old copy first and move the new one in afterwards — a
