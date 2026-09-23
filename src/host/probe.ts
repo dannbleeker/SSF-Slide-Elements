@@ -78,7 +78,17 @@ export function insertVerdict(o: InsertObservation): InsertVerdict {
     return {
       verdict: "threw",
       landed,
-      detail: `the call threw: ${o.error}${landed === 0 ? "" : `, and ${landed} slide(s) landed anyway`}`,
+      // A NEGATIVE delta is not "slides landed anyway" — the deck lost one, and
+      // a sheet reading "-1 slide(s) landed anyway" tells its reader the
+      // opposite of what happened. The same two-event coincidence the pane's
+      // own `outcomeOf` guards, on a probe run rather than a user's.
+      detail: `the call threw: ${o.error}${
+        landed === 0
+          ? ""
+          : landed < 0
+            ? `, and the deck LOST ${-landed} slide(s)`
+            : `, and ${landed} slide(s) landed anyway`
+      }`,
     };
   }
   if (landed === o.expected) return { verdict: "yes", landed, detail: `all ${o.expected} slide(s) landed` };
@@ -159,6 +169,26 @@ export function insertionBlame(ours: Verdict, self: Verdict): string {
 export function pruningReading(listed: InsertVerdict, pruned: InsertVerdict, unlisted: InsertVerdict): string {
   if (listed.verdict !== "yes") {
     return "NOT ANSWERED: the fully listed package did not land, so nothing about pruning can be read from the pruned arms. Read the errors and the control arm first.";
+  }
+  // An arm that did not RUN is not an arm that failed, and neither is one whose
+  // deck grew by more than the package listed or shrank — `insertVerdict`
+  // answers "unknown" for all three, and `notAsked` for the first. Only the
+  // control arm was guarded, so everything else read `verdict === "yes"` as the
+  // whole question and graded an unknown arm as "does not land": a sheet
+  // missing its unlisted arm came out as "The engine must drop the
+  // relationship as well as the id", and a sheet missing BOTH as "the host
+  // wants a package whose parts match its slide list, so the engine must remove
+  // every other slide properly". Both are instructions to build something, from
+  // nothing, on the question this whole file exists to settle.
+  const unread = [["the pruned arm", pruned] as const, ["the unlisted arm", unlisted] as const].filter(
+    ([, arm]) => arm.verdict === "unknown",
+  );
+  if (unread.length > 0) {
+    return `NOT ANSWERED: ${unread
+      .map(([what, arm]) => `${what} reads neither landed nor refused (${arm.detail})`)
+      .join(
+        "; and ",
+      )}. Nothing about pruning can be read from an arm that did not answer — re-run it before drawing a conclusion.`;
   }
   const cheap = pruned.verdict === "yes";
   const cheaper = unlisted.verdict === "yes";
@@ -378,9 +408,19 @@ export function selectionVerdict(o: SelectionObservation): Reading {
   const idx = o.selectedIndexes ?? [];
   const lost = idx.filter((i) => i < 0).length;
   if (lost > 0) {
+    // The probe reads a CAPPED number of positions, so a selected slide past
+    // that cap is at no position it looked at — which says nothing about the
+    // host. Reported as "no" it put a hard refusal on question 3's answer sheet
+    // for a deck bigger than the cap, which is the fact the question exists to
+    // establish. `docs/PROBE.md` asks the runner to select slide 2, which is
+    // why no filed sheet shows it; nothing stops a bigger deck being used.
+    const read = o.positionalRead ?? 0;
+    const capped = (o.deckSize ?? 0) > read;
     return {
-      verdict: "no",
-      detail: `${ids.length} slide(s) selected and ${lost} of them are at no position among the ${o.positionalRead ?? 0} read by getItemAt, so a selected id cannot be turned into a slide number here.`,
+      verdict: capped ? "unknown" : "no",
+      detail: capped
+        ? `${ids.length} slide(s) selected and ${lost} of them are past the ${read} positions this probe read, of ${o.deckSize ?? "?"} in the deck. That is the PROBE's cap, not the host refusing — re-run with a slide inside the first ${read} selected.`
+        : `${ids.length} slide(s) selected and ${lost} of them are at no position among the ${read} read by getItemAt, so a selected id cannot be turned into a slide number here.`,
     };
   }
   const positions = idx.map((i) => i + 1).join(", ");

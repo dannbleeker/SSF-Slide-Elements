@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Element } from "../src/core/catalogue/types.js";
 import { LIBRARY, browsing, element } from "./fixtures/pane.js";
@@ -386,5 +387,60 @@ describe("the first screen of a deck nobody has opened before", () => {
 
   it("opens nothing rather than throwing when the library has no categories", () => {
     expect(openAtFirst({ ...LIBRARY, categories: [] }, { favourites: [], recent: [] })).toEqual([]);
+  });
+});
+
+describe("the tile count this file's docstring quotes", () => {
+  /**
+   * `groups`'s docstring states five counts — the runs, the elements in them,
+   * the library's size, the tiles that leaves, and the arithmetic between them
+   * — and it stated the wrong ones for as long as it took anybody to re-read
+   * it: 117 elements as 84 tiles, over a library of 106 showing 73. Nothing
+   * was broken by it; a reader who trusted the sentence was, which is the same
+   * failure as a stale measurement anywhere else in this tree.
+   *
+   * So the sentence is read back out of the source and every number in it
+   * recomputed from the committed catalogue. It goes red on a deck re-cut that
+   * changes any of the five and on a hand edit that mistypes one, which is what
+   * "a gate that cannot fail is not a gate" asks of it. What it does NOT hold
+   * is the prose around the numbers.
+   */
+  const SENTENCE =
+    /(\d+) such runs over (\d+) elements, so (\d+) elements show as (\d+) tiles:\s*\n?\s*\*?\s*(\d+) − (\d+) \+ (\d+)\./;
+
+  it("is the count the committed catalogue actually produces", () => {
+    const quoted = SENTENCE.exec(readFileSync("src/pane/search.ts", "utf8"));
+    expect(quoted, "the docstring no longer states its counts in the shape this reads").not.toBeNull();
+    const captured = (quoted as RegExpExecArray).slice(1).map(Number);
+    expect(captured, "seven numbers, or the sentence is not the one this reads").toHaveLength(7);
+    // Defaulted to NaN rather than asserted non-null: a group that did not
+    // capture then fails every comparison below instead of passing as
+    // undefined, which is the failure this whole block is here to prevent.
+    const [runs = NaN, inRuns = NaN, size = NaN, tiles = NaN, sizeAgain = NaN, inRunsAgain = NaN, runsAgain = NaN] =
+      captured;
+
+    const index = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {
+      sizes: Record<string, { elements: { run?: { key: string } }[] }>;
+    };
+    // "Each deck", so both are held to the one sentence. They have been equal
+    // since the library was cut in two sizes; if they ever part, this says so
+    // rather than the sentence quietly describing one of them.
+    for (const [name, library] of Object.entries(index.sizes)) {
+      const counted = new Map<string, number>();
+      for (const el of library.elements) if (el.run) counted.set(el.run.key, (counted.get(el.run.key) ?? 0) + 1);
+      const members = [...counted.values()].reduce((a, b) => a + b, 0);
+      expect({ deck: name, runs: counted.size, inRuns: members, size: library.elements.length }).toEqual({
+        deck: name,
+        runs,
+        inRuns,
+        size,
+      });
+      expect(library.elements.length - members + counted.size, `tiles in the ${name} deck`).toBe(tiles);
+    }
+
+    // The arithmetic is spelled out beside the answer, so it is checked too: a
+    // sentence whose sum does not add up is wrong however right its totals are.
+    expect([sizeAgain, inRunsAgain, runsAgain]).toEqual([size, inRuns, runs]);
+    expect(size - inRuns + runs).toBe(tiles);
   });
 });

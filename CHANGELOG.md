@@ -9,6 +9,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **An element whose chart names its workbook with a space in it now inserts.**
+  A file name is written one way inside a PowerPoint file and stored another,
+  and the add-in read the two spellings differently — so an element carrying a
+  file with a space, a comma or a hash in its name was reported as missing from
+  the library and refused. Nothing in today's library is named that way; this is
+  about the libraries to come.
+
 - **"Browse the catalogue on the site" no longer claims it failed.** On every
   PowerPoint that opens the page through a plain browser window, the add-in
   reported "PowerPoint would not open a window" over a tab it had just
@@ -292,6 +299,24 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
   left. It now asks again.
+
+### Fixed — the host probe
+
+- The answer sheet no longer writes "-1 slide(s) landed anyway" when an insert
+  both raised and left the deck SHORTER. It now says the deck lost a slide,
+  which is the opposite fact and the one worth reading.
+
+- Question 3 no longer reports a hard refusal when the selected slide simply
+  sits past the 120 positions the probe reads. That is the probe's own cap, not
+  the host declining to answer, and putting it on the sheet as "no" would have
+  settled the question the wrong way. The sheet now says "unknown" and asks for
+  a re-run with a slide inside the range.
+
+- Question 1's reading no longer answers from an arm that did not run. A sheet
+  missing one of its two pruned inserts was graded as though that insert had
+  been refused, so the sheet carried a firm instruction about how the engine
+  must build its package — drawn from nothing. It now says which arm is
+  unanswered and asks for it to be re-run.
 
 ## [0.1.0] - 2026-09-16
 

@@ -578,6 +578,73 @@ describe("the parts a carried part reaches through its own relationships", () =>
     expect(await pkg.text("ppt/charts/chart1.xml")).not.toContain("SSF-CARRIED-CHART");
   });
 
+  it("finds a nested part whose Target is percent-encoded", async () => {
+    /**
+     * A Target is a URI reference and a part name is not, so a part called
+     * `my book.xlsx` is written `my%20book.xlsx`. `Pkg.resolved` — which is
+     * what keyed the catalogue's store when the harvest collected it — decodes
+     * that; `resolveFrom` here did not. So the store was asked for the encoded
+     * spelling, answered undefined for a part it holds under the decoded one,
+     * and `copyPart` raised "the catalogue has no part …" over a part the
+     * catalogue has.
+     *
+     * Nothing in the shipped library needs an escape, which is why nothing
+     * committed could see it. The repo's own position, in `clone.ts`, is that
+     * the resolvers must be the same one.
+     */
+    const pkg = await crowded();
+    const chart = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="urn:x"/>`;
+    const carried = await carry({
+      pkg,
+      owner: SLIDE,
+      rels: [rel("rId7", REL_TYPE.chart, "ppt/charts/chart1.xml")],
+      types: {
+        "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+        "ppt/embeddings/my book.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+      store: storeOf({
+        "ppt/charts/chart1.xml": chart,
+        "ppt/charts/_rels/chart1.xml.rels": relsXml([
+          { id: "rId1", type: REL_TYPE.package, target: "../embeddings/my%20book.xlsx" },
+        ]),
+        // Held under the DECODED name, the way the harvest keys it.
+        "ppt/embeddings/my book.xlsx": PNG,
+      }),
+    });
+    expect(carried.parts.get("ppt/embeddings/my book.xlsx"), "the encoded spelling was asked for").toBeDefined();
+  });
+
+  it("falls back to the target as written when the store holds THAT name", async () => {
+    /**
+     * The other arm, and the reason both spellings are answered rather than one
+     * chosen. `Pkg.resolved` keeps the ENCODED spelling when the package holds
+     * a part under that literal name — a file really called `my%20book.xlsx` —
+     * so the harvest keys the store that way and decoding would miss it. A
+     * store cannot be asked which names it has, so the caller tries the decoded
+     * one, gets undefined, and uses the other.
+     */
+    const pkg = await crowded();
+    const chart = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><c:chartSpace xmlns:c="urn:x"/>`;
+    const carried = await carry({
+      pkg,
+      owner: SLIDE,
+      rels: [rel("rId7", REL_TYPE.chart, "ppt/charts/chart1.xml")],
+      types: {
+        "ppt/charts/chart1.xml": "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+        "ppt/embeddings/my%20book.xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+      store: storeOf({
+        "ppt/charts/chart1.xml": chart,
+        "ppt/charts/_rels/chart1.xml.rels": relsXml([
+          { id: "rId1", type: REL_TYPE.package, target: "../embeddings/my%20book.xlsx" },
+        ]),
+        // Held under the name as WRITTEN, percent sign and all.
+        "ppt/embeddings/my%20book.xlsx": PNG,
+      }),
+    });
+    expect(carried.parts.get("ppt/embeddings/my%20book.xlsx"), "the decoded spelling was asked for").toBeDefined();
+  });
+
   it("resolves a nested target against the part that owns it, however it is spelled", async () => {
     /**
      * Four spellings, resolved against `ppt/charts/chart1.xml`. The first two

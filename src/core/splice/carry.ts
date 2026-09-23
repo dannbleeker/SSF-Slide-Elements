@@ -250,7 +250,11 @@ async function copyPart(request: CarryRequest, carried: Carried, part: string): 
     if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
     const target = rel.getAttribute("Target");
     if (!target) continue;
-    const reached = resolveFrom(part, target);
+    // Both spellings, in turn: see `spellingsFrom`. The decoded one is what
+    // `Pkg.resolved` keyed the store with, and the as-written one is what it
+    // keeps when the package holds that very name.
+    const [decoded, asWritten] = spellingsFrom(part, target);
+    const reached = decoded !== asWritten && (await request.store(decoded)) === undefined ? asWritten : decoded;
     const copiedTo = await copyPart(request, carried, reached);
     rel.setAttribute("Target", targetFrom(name, copiedTo));
   }
@@ -259,23 +263,54 @@ async function copyPart(request: CarryRequest, carried: Carried, part: string): 
 }
 
 /**
- * A relationship target resolved against the part that owns it.
+ * Both spellings of a relationship target resolved against the part that owns
+ * it: percent-DECODED first, then as written.
  *
  * The engine's own resolver lives on `Pkg` and answers what THIS package holds;
  * this one is asked about the LIBRARY's package, which is not open here — only
  * its parts are, one fetch at a time. So it is the plain arithmetic, with no
  * package to ask, and it handles the two spellings a rels part actually uses: a
  * relative target with `..` segments, and an absolute one with a leading slash.
+ *
+ * A Target is a URI reference and a part name is not, so a part called
+ * `my book.xlsx` is written `my%20book.xlsx` — and `Pkg.resolved`, which is
+ * what keyed the catalogue's store when the harvest collected the part, decodes
+ * it. This resolved without decoding, so the two disagreed exactly when an
+ * escape was needed: the store was asked for `ppt/embeddings/my%20book.xlsx`,
+ * answered undefined for a part it holds under `ppt/embeddings/my book.xlsx`,
+ * and `copyPart` raised "the catalogue has no part …" over a part the catalogue
+ * has.
+ *
+ * Both are answered rather than one chosen, because neither is always right:
+ * `Pkg.resolved` keeps the encoded spelling when the PACKAGE holds that name,
+ * and a store cannot be asked which names it has. The caller tries them in
+ * turn.
+ *
+ * Nothing in the shipped library needs one — every Target in every carried
+ * part's relationships, in both sizes, is plain ASCII — so this is a divergence
+ * between two resolvers rather than a demonstrated failure, and the repo's own
+ * position, in `clone.ts`, is that the resolvers must be the same one.
  */
-function resolveFrom(owner: string, target: string): string {
-  if (target.startsWith("/")) return target.slice(1);
-  const segments = directoryOf(owner);
-  for (const step of target.split("/")) {
-    if (step === "." || step === "") continue;
-    if (step === "..") segments.pop();
-    else segments.push(step);
+function spellingsFrom(owner: string, target: string): [string, string] {
+  const walk = (raw: string): string => {
+    if (raw.startsWith("/")) return raw.slice(1);
+    const segments = directoryOf(owner);
+    for (const step of raw.split("/")) {
+      if (step === "." || step === "") continue;
+      if (step === "..") segments.pop();
+      else segments.push(step);
+    }
+    return segments.join("/");
+  };
+  const asWritten = walk(target);
+  let decoded = asWritten;
+  try {
+    decoded = walk(decodeURIComponent(target));
+  } catch {
+    // A Target that is not valid percent-encoding is taken as written, which is
+    // what it is.
   }
-  return segments.join("/");
+  return [decoded, asWritten];
 }
 
 /**
