@@ -243,6 +243,63 @@ describe("browsing", () => {
     expect(root.querySelectorAll('[data-action="tile"]').length).toBe(0);
   });
 
+  it("offers Stop only while a run of several cycles is going, and leaves it enabled", () => {
+    /**
+     * Everything else in the pane is disabled while `busy` — one thing at a
+     * time. This is the exception, because what it interrupts is the one
+     * operation that can hold the pane for minutes: a stamp is bounded only by
+     * how many slides the user selected. Without it the only way out is closing
+     * the task pane in the middle of an edit.
+     *
+     * Not for a one-cycle insert: a Stop that appears and vanishes inside a
+     * second is noise.
+     */
+    render(root, { ...browsing, busy: true, busyWith: "insert" }, "browse");
+    expect(root.querySelector('[data-action="stop"]'), "an ordinary insert offered a Stop").toBeNull();
+
+    render(root, { ...browsing, busy: true, busyWith: "insert", running: { done: 2, total: 9 } }, "browse");
+    const stop = root.querySelector<HTMLButtonElement>('[data-action="stop"]');
+    expect(stop, "a several-slide run offered no way out").not.toBeNull();
+    expect(stop?.disabled, "the one control that must work while busy was disabled with the rest").toBe(false);
+    // It says how far it has got, so pressing it is a decision and not a guess.
+    expect(stop?.textContent).toContain("2 of 9");
+  });
+
+  it("narrows Favourites and Recent with the search, like every other tile", () => {
+    /**
+     * They were drawn from the stored ids and nothing else, so a search
+     * narrowed the categories below and left these two showing everything the
+     * user had ever starred or inserted. The count line above them counts only
+     * the matches, so the pane said "1 of 2" over a screen holding three tiles.
+     *
+     * The same predicate the main list uses — query, tags and the category chip
+     * — because "Favourites" is a place a tile is drawn, not an exemption from
+     * what the user asked to see.
+     */
+    const starred: PaneState = { ...browsing, favourites: ["one-box"], recent: ["one-box"] };
+    render(root, starred, "browse");
+    expect(root.textContent, "the sections are there to begin with").toContain("Favourites");
+
+    // A query the favourite does NOT match, and one of the other elements does.
+    render(root, { ...starred, query: "process" }, "browse");
+    expect(root.textContent, "Favourites ignored the search").not.toContain("Favourites");
+    expect(root.textContent, "and Recent did too").not.toContain("Recent");
+    // The search still found something, so this is not the empty case.
+    expect(root.querySelectorAll('[data-action="tile"]').length).toBeGreaterThan(0);
+
+    // A query it DOES match: the section comes back.
+    render(root, { ...starred, query: "one box" }, "browse");
+    expect(root.textContent, "a matching favourite was filtered away too").toContain("Favourites");
+  });
+
+  it("narrows them with a tag and a category chip as well", () => {
+    // The same predicate, so the same three filters. A user who has narrowed to
+    // one tag is asking to see that tag, not that tag plus their stars.
+    const starred: PaneState = { ...browsing, favourites: ["one-box"], recent: ["one-box"] };
+    render(root, { ...starred, tags: ["flow"] }, "browse");
+    expect(root.textContent, "a tag filter left Favourites alone").not.toContain("Favourites");
+  });
+
   it("counts tiles against tiles, and drops the fraction when nothing is filtered", () => {
     /**
      * The line was `${tileCount(found)} of ${library.elements.length}`: a

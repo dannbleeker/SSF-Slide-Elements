@@ -143,6 +143,18 @@ export interface PaneState {
   favourites: string[];
   /** Element ids inserted recently, most recent first. */
   recent: string[];
+  /**
+   * A run of several cycles that is going, and can be stopped.
+   *
+   * Set by the several-slide stamp and by the deck-wide removal, per cycle.
+   * The pane locks itself for the whole of one of these, and a run over a
+   * deck's worth of slides is minutes — so there has to be a way out that is
+   * not closing the task pane.
+   *
+   * Absent for a one-cycle operation: an ordinary insert is one splice and one
+   * delete, and a Stop that appears and vanishes inside a second is noise.
+   */
+  running?: { done: number; total: number };
   /** True when the gear is open. */
   gear?: boolean;
   /**
@@ -556,8 +568,25 @@ export function runningOn(verb: string, name: string, slide: number, done: numbe
  * (question 5, measured on the web and on Windows), which is the route that
  * does exist.
  */
-export function stampOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
+export function stampOutcome(
+  element: string,
+  done: number,
+  wanted: number,
+  strandedCopy = false,
+  stopped = false,
+): Outcome {
   const ok = done === wanted;
+  if (!ok && stopped && !strandedCopy) {
+    // STOPPED, not failed, and the difference matters: nothing went wrong and
+    // there is nothing to check. A run is only ever stopped BETWEEN cycles, so
+    // the slides it reached are whole and the rest were never touched.
+    return {
+      ok: false,
+      byHand: false,
+      name: element,
+      detail: `Stopped after ${done} of ${wanted} slides. The rest are as they were.`,
+    };
+  }
   if (!ok && strandedCopy) {
     // The insert landed and the delete did not: this slide's ORIGINAL is still
     // there without the stamp, and a stamped copy sits beside it. No slide
@@ -600,11 +629,27 @@ export function stampOutcome(element: string, done: number, wanted: number, stra
  * do and nothing went wrong — so it says so, and offers no by-hand advice for
  * work that is already done.
  */
-export function removalOutcome(element: string, done: number, wanted: number, strandedCopy = false): Outcome {
-  if (wanted === 0) {
+export function removalOutcome(
+  element: string,
+  done: number,
+  wanted: number,
+  strandedCopy = false,
+  stopped = false,
+): Outcome {
+  if (!stopped && wanted === 0) {
     return { ok: true, byHand: false, name: element, detail: "It is not on any slide any more, so nothing changed." };
   }
   const ok = done === wanted;
+  if (!ok && stopped && !strandedCopy) {
+    // Stopped between cycles, so the slides it reached are whole and the rest
+    // were never touched. Nothing went wrong and nothing needs checking.
+    return {
+      ok: false,
+      byHand: false,
+      name: element,
+      detail: `Stopped after ${done} of ${wanted} slides. The rest are as they were.`,
+    };
+  }
   if (!ok && strandedCopy) {
     // The removal runs an insert-then-delete cycle per slide, and this is the
     // half where the insert LANDED and the delete did not: the deck carries

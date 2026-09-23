@@ -239,6 +239,21 @@ function focusedBy(key: string): HTMLElement | null {
   return (at === undefined ? all[0] : all[Number(at)]) ?? null;
 }
 
+/**
+ * Set by the Stop button, read between the cycles of a run of several.
+ *
+ * BETWEEN cycles and never inside one. A cycle is an insert of a rebuilt slide
+ * followed by a positional delete of the original, and stopping between those
+ * two is precisely the stranded state the whole path is built to avoid — the
+ * deck one slide longer, carrying both. So a press stops the run after the
+ * cycle in flight finishes, which is why the outcome can say "the rest are as
+ * they were" and mean it.
+ *
+ * Cleared where the run ends rather than where it starts, so a press that
+ * arrives as the last cycle completes cannot leak into the next run.
+ */
+let stopRequested = false;
+
 /** Whether `draw` is putting the focus back, rather than the user moving it. */
 let restoringFocus = false;
 
@@ -1312,8 +1327,17 @@ async function stampEvery(
   let done = 0;
   /** Whether a cycle left its copy behind, which changes what may be said. */
   let stranded = false;
+  /** Whether the user pressed Stop, which is not a failure and must not read as one. */
+  let stopped = false;
   try {
     for (const [cycle, at] of many.entries()) {
+      // BETWEEN cycles. Stopping inside one would leave the deck holding the
+      // rebuilt copy AND the original, which is the stranded state everything
+      // here exists to avoid.
+      if (stopRequested) {
+        stopped = true;
+        break;
+      }
       // WHERE IT HAS GOT TO, not one sentence for the whole run. `docs/DESIGN.md`
       // section 10 asks every message to say what happened, and the pane locks
       // ITSELF rather than PowerPoint: each cycle is a splice, an insert, two
@@ -1323,7 +1347,10 @@ async function stampEvery(
       //
       // Counted in slides the user can see, not in cycles: `at` is an index
       // from zero and the slide strip counts from one.
-      set({ notice: runningOn("Stamping", element.name, at + 1, cycle + 1, many.length) });
+      set({
+        notice: runningOn("Stamping", element.name, at + 1, cycle + 1, many.length),
+        running: { done, total: many.length },
+      });
       const before = await slideCount();
       const targetId = await slideIdAt(at);
       if (targetId === undefined) break;
@@ -1372,12 +1399,14 @@ async function stampEvery(
     // below reports it. Whatever raised, the counts above are the evidence.
   }
 
-  const outcome = stampOutcome(element.name, done, many.length, stranded);
+  const outcome = stampOutcome(element.name, done, many.length, stranded, stopped);
+  stopRequested = false;
   undoable = undefined;
   state = {
     ...state,
     busy: false,
     busyWith: undefined,
+    running: undefined,
     moveable: undefined,
     recent: done > 0 ? remember(state.recent, element.id, RECENT_DEPTH) : state.recent,
     undo: 0,
@@ -1410,6 +1439,8 @@ async function removeEverywhere(id: string): Promise<void> {
   let done = 0;
   /** Whether a cycle left its copy behind, which changes what may be said. */
   let stranded = false;
+  /** Whether the user pressed Stop, which is not a failure and must not read as one. */
+  let stopped = false;
   let wanted = plan.slides;
   try {
     const deck = await readDeck();
@@ -1421,9 +1452,18 @@ async function removeEverywhere(id: string): Promise<void> {
     // "Used in this deck" uses.
     wanted = (await slidesHolding(await Pkg.open(deck.base64), id)).map((i) => i + 1);
     for (const [cycle, slide] of wanted.entries()) {
+      // BETWEEN cycles, as the stamp does: stopping inside one leaves the deck
+      // holding both the original and the element-free copy.
+      if (stopRequested) {
+        stopped = true;
+        break;
+      }
       // The same per-cycle sentence the stamp shows, for the same reason: this
       // loop set one line before it started and never touched it again.
-      set({ notice: runningOn("Taking", `${element.name} off`, slide, cycle + 1, wanted.length) });
+      set({
+        notice: runningOn("Taking", `${element.name} off`, slide, cycle + 1, wanted.length),
+        running: { done, total: wanted.length },
+      });
       // Counting from one in the state, from zero in the engine and the host.
       const at = slide - 1;
       const before = await slideCount();
@@ -1477,7 +1517,8 @@ async function removeEverywhere(id: string): Promise<void> {
     // through to the end, and the outcome below reports it.
   }
 
-  const outcome = removalOutcome(element.name, done, wanted.length, stranded);
+  const outcome = removalOutcome(element.name, done, wanted.length, stranded, stopped);
+  stopRequested = false;
   // The armed Undo goes with it, whether or not a single slide was changed.
   //
   // `undoable` holds `before`: the WHOLE deck as it was before an earlier
@@ -1496,6 +1537,7 @@ async function removeEverywhere(id: string): Promise<void> {
     ...state,
     busy: false,
     busyWith: undefined,
+    running: undefined,
     removing: undefined,
     outcome,
     undo: 0,
@@ -1751,6 +1793,12 @@ function onClick(event: MouseEvent): void {
     }
     case "remove-go":
       if (id) void removeEverywhere(id);
+      break;
+    // Section 6: a run of several cycles can be stopped. The flag is all this
+    // does — the loop reads it between cycles and ends itself, so the deck is
+    // never left mid-cycle.
+    case "stop":
+      stopRequested = true;
       break;
     // Section 6: the other insert target, for this one insert, without touching
     // the setting.

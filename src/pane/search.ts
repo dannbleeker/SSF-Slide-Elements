@@ -64,13 +64,30 @@ export interface Group {
  * these five numbers back out of this comment and recomputes every one of them
  * from `public/catalogue/catalogue.json`.
  */
-export function groups(library: Library, state: PaneState): Group[] {
-  const wanted = library.elements.filter(
-    (el) =>
-      matches(el, state.query) &&
-      state.tags.every((tag) => el.tags.includes(tag)) &&
-      (state.category === undefined || el.category.key === state.category),
+/**
+ * Whether an element is one the user has asked to see, right now.
+ *
+ * The three filters the pane offers — the search box, the tag chips and the
+ * category chip — as one predicate, because they were applied in `groups` and
+ * NOWHERE else. Favourites and Recent are drawn from their stored ids straight
+ * past `groups`, so a search narrowed the categories below them and left those
+ * two showing everything the user had ever starred or inserted; the count line,
+ * which counts only matches, then read "1 of 2" over a screen holding three
+ * tiles.
+ *
+ * "Favourites" is a PLACE a tile is drawn, not an exemption from what the user
+ * asked to see.
+ */
+export function shown(element: Element, state: PaneState): boolean {
+  return (
+    matches(element, state.query) &&
+    state.tags.every((tag) => element.tags.includes(tag)) &&
+    (state.category === undefined || element.category.key === state.category)
   );
+}
+
+export function groups(library: Library, state: PaneState): Group[] {
+  const wanted = library.elements.filter((el) => shown(el, state));
   const seen = new Set<string>();
   const tiles = wanted.filter((el) => {
     if (!el.run) return true;

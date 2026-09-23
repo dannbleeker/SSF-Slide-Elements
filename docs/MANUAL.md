@@ -103,11 +103,18 @@ fetched only when you insert it.
   the slide you are on whatever the setting says;
 - **stamping several slides at once.** Select more than one slide in the slide
   strip, then click a stamp or a marker: it lands on every slide you selected,
-  one at a time, and the footer says how many it reached. If a step cannot be
-  confirmed the run stops there and the footer says how far it got, so you
-  always know what the deck holds. The pane cannot undo this one — PowerPoint's
-  own `Ctrl+Z` can — and it says so when it finishes. Selecting one slide, or
-  clicking a whole-slide element, works exactly as it always has;
+  one at a time, and the footer says which slide it is on and how far through it
+  is. If a step cannot be confirmed the run stops there and the footer says how
+  far it got, so you always know what the deck holds. The pane cannot undo this
+  one — PowerPoint's own `Ctrl+Z` can — and it says so when it finishes.
+  Selecting one slide, or clicking a whole-slide element, works exactly as it
+  always has;
+- **Stop**, at the bottom while a run over several slides is going, saying how
+  far it has got. It is the one button that stays live while the pane is busy.
+  Pressing it finishes the slide it is already on and leaves the rest exactly as
+  they were, so stopping is safe: the message afterwards says how many slides it
+  reached rather than reporting a failure. The same button appears while a
+  **Remove from N slides** run is going;
 - **Remove from N slides**, on a stamp or a marker the deck already holds. It
   appears under the tile once you have asked what the deck uses, and clicking it
   asks first — naming the slides, and saying that the pane cannot undo it.
