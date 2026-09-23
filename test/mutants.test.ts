@@ -198,6 +198,90 @@ describe("a comparison read backwards", () => {
   });
 });
 
+describe("a field of a returned object, emptied", () => {
+  /**
+   * The operator that asks whether anything READS a field, where the others ask
+   * whether it is computed right. It empties one top-level property of a
+   * returned literal to `undefined` and leaves the `tsc` step to type-kill the
+   * required ones, so a survivor is an optional field no test pins.
+   */
+  const emptied = (source: string) =>
+    mutationsOf(source)
+      .filter((m) => m.what === "field")
+      .map((m) => `${m.was} -> ${m.now}`);
+
+  it("empties each field of a literal returned on one line", () => {
+    expect(emptied('if (a) return { verdict: "yes", landed, detail: `all ${n}` };\n')).toEqual([
+      '"yes" -> undefined',
+      "landed -> landed: undefined",
+      "`all ${n}` -> undefined",
+    ]);
+  });
+
+  it("empties each field of a literal spread over lines, past a comment above one of them", () => {
+    const source = [
+      "  return {\n",
+      "    ok: false,\n",
+      "    // why this is not ok\n",
+      "    byHand: state.outcome?.byHand ?? false,\n",
+      "    detail:\n",
+      '      ok ? "fine" : "not fine",\n',
+      "  };\n",
+    ].join("");
+    expect(emptied(source)).toEqual([
+      "false -> undefined",
+      "state.outcome?.byHand ?? false -> undefined",
+      'ok ? "fine" : "not fine" -> undefined',
+    ]);
+  });
+
+  it("finds a literal an arrow returns in brackets", () => {
+    expect(emptied("const f = (g) => ({ key: g.key, count: g.n });\n")).toEqual([
+      "g.key -> undefined",
+      "g.n -> undefined",
+    ]);
+  });
+
+  it("leaves a nested literal's fields alone and empties the parent field instead", () => {
+    expect(emptied("return { at: { x: 1, y: 2 }, n: f(a, b) };\n")).toEqual([
+      "{ x: 1, y: 2 } -> undefined",
+      "f(a, b) -> undefined",
+    ]);
+  });
+
+  it("leaves a spread, a method, a computed key and a quoted key alone rather than rewriting them wrongly", () => {
+    expect(emptied('return { ...base, size() { return 1; }, [k]: v, "q": 2 };\n')).toEqual([]);
+  });
+
+  it("does not read a type annotation or an interface as a returned literal", () => {
+    const source = [
+      "function f(a: string, b: { x: number }): { y: number } {\n",
+      "  const t: { z: string } = g();\n",
+      "}\n",
+      "interface I { a: string; b?: number }\n",
+    ].join("");
+    expect(emptied(source)).toEqual([]);
+  });
+
+  it("says nothing about a field that is already undefined, which would mutate to itself", () => {
+    expect(emptied("return { a: undefined, b };\n")).toEqual(["b -> b: undefined"]);
+  });
+
+  it("ignores the same characters in prose, as every operator here must", () => {
+    expect(emptied('// return { a: 1 }\nconst s = "return { b: 2 }";\n')).toEqual([]);
+  });
+
+  it("produces source that still parses, including a shorthand field it had to spell out", () => {
+    const source = "return { landed, detail: `x` };\n";
+    const all = mutationsOf(source).filter((m) => m.what === "field");
+    const apply = (m: (typeof all)[number]) => source.slice(0, m.at) + m.now + source.slice(m.at + m.was.length);
+    expect(all.map(apply)).toEqual([
+      "return { landed: undefined, detail: `x` };\n",
+      "return { landed, detail: undefined };\n",
+    ]);
+  });
+});
+
 describe("the record of mutations that cannot be killed", () => {
   it("labels a survivor it has a reason for", () => {
     const judged = judgeSurvivor('src/host/jump.ts:49  boundary  "<" -> "<="');
