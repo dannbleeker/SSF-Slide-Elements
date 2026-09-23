@@ -31,7 +31,7 @@ import { isIdentity } from "./landing.js";
  * every prefix each shape uses is declared inside that shape. That is a
  * property of the harvest rather than a hope — it serialises each top-level
  * shape standalone, so the serialiser emits every declaration the fragment
- * needs, and `test/splice-shapes.test.ts` checks it holds for all 234 elements
+ * needs, and `test/splice-shapes.test.ts` checks it holds for all 212 elements
  * in the committed library rather than for the one this comment was written
  * against.
  */
@@ -159,7 +159,8 @@ export function relIdsIn(fragment: Document): string[] {
  * group under `<p:grpSpPr>`, and a graphic frame — a table, a chart, SmartArt,
  * an embedded object — carries `<p:xfrm>` directly, in the PresentationML
  * namespace rather than DrawingML. The last one is the one that gets missed,
- * and 58 of the 117 elements in the 16:9 library are graphic frames.
+ * and 58 of the 106 elements in the 16:9 library are graphic frames
+ * (measured 2026-09-23; the denominator read 117 until the library was re-cut).
  */
 function frameOf(shape: Element): Element | undefined {
   const direct = child(shape, P_NS, "xfrm");

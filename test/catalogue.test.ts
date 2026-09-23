@@ -201,7 +201,8 @@ describe("headings and elements", () => {
      * So an element whose shape reached outside the allowlist harvested clean
      * and then failed on EVERY insert, under a sentence blaming the catalogue
      * for a part it was never told to publish. Neither shipped deck does it —
-     * 0 of 370 internal targets — but the decks are the owner's and one action
+     * 0 of 238 internal targets, re-measured 2026-09-23 — but the decks are the
+     * owner's and one action
      * button or one chart pasted with its own theme override is enough. The
      * harvest is where that can still be fixed.
      */
@@ -1159,6 +1160,62 @@ describe("what a destination slide already holds", () => {
 
     it("does not count a shape parked off the slide", () => {
       expect(contentCount(slide(rect(W + 100000, 0, 500000, 500000)), W, H)).toBe(0);
+    });
+  });
+});
+
+describe("the figures the prose quotes about the committed library", () => {
+  /**
+   * Every one of these appears in a comment somewhere, as the justification for
+   * a rule. They are not read by any code, which is exactly why they rot: on
+   * 2026-09-23 a sweep found eleven sites quoting `234` elements, `117` per
+   * size, `136` graphic frames, `46` AlternateContents, `370` internal targets
+   * and `64` absent-from-parts targets — none of them true since the harvest
+   * stopped taking think-cell's hidden OLE frames for content, in this repo's
+   * own commit 837a07e, which restated five neighbouring counts and missed
+   * these.
+   *
+   * `CLAUDE.md`: "A number copied from a live counter carries the date it was
+   * taken. Otherwise it is a claim that rots."
+   *
+   * So the counters are pinned here. This does not stop a comment being wrong —
+   * nothing reads the prose — but it makes the DRIFT loud: a deck re-cut that
+   * moves any of these turns this red, and whoever fixes it is looking at the
+   * list of places to restate. That is a floor, not a proof, and it is the same
+   * bargain `paneControlProblems` makes.
+   */
+  it("are the ones the decks actually produce", async () => {
+    const index = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {
+      sizes: Record<string, { elements: { id: string }[] }>;
+    };
+    const counted: Record<string, Record<string, number>> = {};
+    for (const [size, dir] of [
+      ["16:9", "16x9"],
+      ["4:3", "4x3"],
+    ] as const) {
+      const ids = index.sizes[size]?.elements.map((e) => e.id) ?? [];
+      let frames = 0;
+      let alternates = 0;
+      for (const id of ids) {
+        const body = readFileSync(`public/catalogue/${dir}/elements/${id}.json`, "utf8");
+        if (body.includes("graphicFrame")) frames += 1;
+        if (body.includes("mc:AlternateContent")) alternates += 1;
+      }
+      counted[size] = { elements: ids.length, frames, alternates };
+    }
+    // Quoted in: src/core/splice/shapes.ts (58 of 106, all 212),
+    // src/core/pptx/tags.ts (106), src/pane/steps.ts and search.ts (212, 106),
+    // test/splice-shapes.test.ts (9 of 212, 115 of 212), test/listing.test.ts,
+    // test/catalogue-page.test.ts, test/package-valid.test.ts.
+    expect(counted).toEqual({
+      "16:9": { elements: 106, frames: 58, alternates: 5 },
+      "4:3": { elements: 106, frames: 57, alternates: 4 },
+    });
+    const total = (key: string): number => (counted["16:9"]?.[key] ?? 0) + (counted["4:3"]?.[key] ?? 0);
+    expect({ elements: total("elements"), frames: total("frames"), alternates: total("alternates") }).toEqual({
+      elements: 212,
+      frames: 115,
+      alternates: 9,
     });
   });
 });

@@ -29,7 +29,7 @@ import {
  * it must not do to a group — because every one of those is markup PowerPoint
  * either opens or calls damaged, and a screenshot cannot tell the difference.
  * The sweep at the end holds the one claim `shapes.ts` makes about the LIBRARY
- * rather than about a rule: that all 234 elements in the two committed decks
+ * rather than about a rule: that all 212 elements in the two committed decks
  * parse standalone, which the module's own comment says this file checks.
  *
  * Every builder here declares its prefixes on the shape element itself, exactly
@@ -125,8 +125,10 @@ function cxn(id: number, box: Box, attachedTo: number): string {
  * A modern chart as PowerPoint writes one: the frame in `<mc:Choice>` and a
  * PICTURE of it in `<mc:Fallback>`, each carrying a `<p:cNvPr id>` of its own.
  *
- * 46 of the 234 committed elements are shaped like this, so the id inside the
- * fallback is not an exotic case: it is a collision waiting on a slide the user
+ * 9 of the 212 committed elements are shaped like this, 16 fallbacks in all
+ * (measured 2026-09-23; it read 46 of 234 until the harvest stopped taking
+ * think-cell's hidden OLE frames for content, each of which carried one), so
+ * the id inside the fallback is not an exotic case: it is a collision waiting on a slide the user
  * already had a picture on.
  */
 function alternate(choiceId: number, fallbackId: number, rId = "rId9"): string {
@@ -198,7 +200,7 @@ describe("an element's shapes, parsed", () => {
     /**
      * The wrapper declares nothing on purpose, so an element that leant on a
      * declaration from the library slide's root cannot be parsed at all. If
-     * this ever stopped throwing, the sweep over all 234 elements would pass
+     * this ever stopped throwing, the sweep over all 212 elements would pass
      * for every element in every state, including the broken ones.
      */
     expect(() => parseFragment('<p:sp><p:nvSpPr><p:cNvPr id="1" name="x"/></p:nvSpPr></p:sp>')).toThrow(
@@ -349,9 +351,11 @@ describe("where a shape says it is", () => {
     /**
      * The graphic frame is the one that gets missed: its `<p:xfrm>` is in the
      * PresentationML namespace and sits directly on the shape, where the other
-     * two carry a DrawingML `<a:xfrm>` under their properties. 136 of the 234
-     * committed elements carry a graphic frame, so a reader that knows only the
-     * first two spellings mislands more than half the library.
+     * two carry a DrawingML `<a:xfrm>` under their properties. 115 of the 212
+     * committed elements carry a graphic frame (measured 2026-09-23; 136 of 234
+     * until the library was re-cut), so a reader that knows only the first two
+     * spellings mislands more than half the library — which is still true at
+     * 115, and is the reason the figure is restated rather than dropped.
      */
     const fragment = parseFragment(
       sp(1, [10, 20, 30, 40]) + grp(2, [50, 60, 70, 80], [0, 0, 1, 1]) + table(3, [90, 100, 110, 120], [110], [120]),
@@ -456,7 +460,8 @@ describe("moving the shapes to where they landed", () => {
      * which PowerPoint ignores when it draws the table". So a whole-slide
      * element scaled down to clear a taller title would MOVE its table and
      * leave it at its authored size, overlapping whatever it was scaled away
-     * from. 136 of the 234 committed elements carry a graphic frame.
+     * from. 115 of the 212 committed elements carry a graphic frame, measured
+     * 2026-09-23.
      */
     const fragment = parseFragment(table(1, [1000, 2000, 1000, 600], [400, 600], [300, 300]));
     applyMove(topLevel(fragment), FROM, { dx: 0, dy: 0, sx: 0.5, sy: 0.5 });
@@ -802,7 +807,7 @@ describe("the destination slide's own shapes", () => {
  *
  * `FRAGMENT_ROOT`'s comment says the wrapper "declares nothing, and it does not
  * have to: every prefix each shape uses is declared inside that shape", and that
- * `test/splice-shapes.test.ts` checks it holds for all 234 elements in the
+ * `test/splice-shapes.test.ts` checks it holds for all 212 elements in the
  * committed library rather than for the one the comment was written against.
  * This is that check. It is worth the two harvests: the property belongs to the
  * SERIALISER, so a change to how the harvest writes a shape out — or one
@@ -830,7 +835,7 @@ function committed(): { size: SlideSize; el: CatalogueElement }[] {
 }
 
 describe("the committed library", () => {
-  it("parses every one of its 234 elements standalone, because each declares the prefixes it uses", () => {
+  it("parses every one of its 212 elements standalone, because each declares the prefixes it uses", () => {
     const problems: string[] = [];
     for (const { size, el } of committed()) {
       try {
@@ -910,7 +915,7 @@ describe("the committed library", () => {
   it("names exactly the relationships the harvest resolved for each element", () => {
     /**
      * Two readers of the same markup, written independently — the harvest's own
-     * relationship scan and `relIdsIn` here — held against each other over 234
+     * relationship scan and `relIdsIn` here — held against each other over 212
      * elements. They are the pair the splice depends on agreeing: the harvest
      * decides which parts to carry, `relIdsIn` and `repoint` decide which
      * references get rewritten, and an id one sees and the other does not is

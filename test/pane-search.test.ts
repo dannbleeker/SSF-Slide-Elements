@@ -57,7 +57,7 @@ describe("search", () => {
 });
 
 describe("what the list shows", () => {
-  it("collapses a sized run to one tile, so 117 elements show as fewer", () => {
+  it("collapses a sized run to one tile, so 106 elements show as fewer", () => {
     const found = groups(LIBRARY, browsing);
     const names = found.flatMap((g) => g.elements.map((e) => e.id));
     expect(names).toContain("flow-1");

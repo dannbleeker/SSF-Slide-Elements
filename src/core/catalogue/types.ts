@@ -61,8 +61,10 @@ export interface Markup {
    * the element's own closure — and the difference bites. Parts are collected
    * once per deck, so an element that shares a picture with an earlier one
    * lists nothing for it while still naming it in `rels`: measured on the
-   * committed library, 14 of the 16:9 elements' relationship targets and 50 of
-   * the 4:3 elements' are absent from their own `parts`.
+   * committed library on 2026-09-23, 17 of the 16:9 elements' relationship
+   * targets and 11 of the 4:3 elements' are absent from their own `parts`. It
+   * read 14 and 50 until that date, which also named the wrong deck as the
+   * worse of the two: 16:9 is.
    *
    * **So the splice resolves what to copy from `rels`, and walks each part's
    * own relationships from there.** This list is what the harvest writes to

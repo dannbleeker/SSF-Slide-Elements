@@ -213,7 +213,7 @@ export function elementOf(library: Library | undefined, id: string | undefined):
 /**
  * How far apart two strings are, counting single-character edits.
  *
- * The ordinary Levenshtein distance, one row at a time so a 117-element library
+ * The ordinary Levenshtein distance, one row at a time so a 106-element library
  * costs a few thousand numbers rather than a matrix per name.
  *
  * No shortcuts at all, and all three went for the same reason. Two on

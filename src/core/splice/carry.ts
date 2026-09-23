@@ -15,8 +15,10 @@
  * - **What to copy comes from the element's relationships, never from its parts
  *   list.** The harvest collects each part once per deck, so the second element
  *   to use a picture lists nothing for it while still naming it: measured on
- *   the committed library, 64 relationship targets across the two sizes are
- *   absent from their own element's `parts`. `types.ts` says the same thing
+ *   the committed library on 2026-09-23, 28 relationship targets across the
+ *   two sizes are absent from their own element's `parts` — 17 at 16:9 and 11
+ *   at 4:3. It read 64 until the harvest stopped taking think-cell's hidden
+ *   frames for content. `types.ts` says the same thing
  *   from the other end.
  * - **A copied part's own relationships are copied too, and rewritten.** The
  *   library's one chart points at `../embeddings/Microsoft_Excel_Worksheet.xlsx`

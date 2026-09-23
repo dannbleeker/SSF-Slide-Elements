@@ -141,7 +141,7 @@ describe("the listing says what the manifests say", () => {
 
 describe("the listing says what the library holds", () => {
   it("quotes the element count the committed catalogue actually has", () => {
-    // "117 elements in each of the two slide sizes" is a number a reader takes
+    // "106 elements in each of the two slide sizes" is a number a reader takes
     // as a promise, and the library is the owner's to add to. A count copied
     // once and never checked is the classic figure that rots.
     const index = JSON.parse(readFileSync("public/catalogue/catalogue.json", "utf8")) as {

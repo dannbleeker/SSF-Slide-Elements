@@ -387,7 +387,7 @@ export function otherTargetLabel(settings: Settings): string {
  * owner renames keeps working.
  *
  * The tightening changes nothing on the library as it stands: measured over the
- * committed catalogue on 2026-09-12, the two rules agree on all 234 elements,
+ * committed catalogue on 2026-09-23, the two rules agree on all 212 elements,
  * of which 6 wrap. So this is a latent bug closed, not a behaviour changed.
  */
 export function wrapsSelection(element: Element): boolean {
