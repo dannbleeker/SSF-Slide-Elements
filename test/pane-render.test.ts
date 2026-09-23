@@ -1080,3 +1080,44 @@ describe("the tag line's chevron", () => {
     expect(back?.getAttribute("aria-label")).toBe("Show fewer tags");
   });
 });
+
+describe("the words a search matched, marked in the name", () => {
+  const marked = (node: ParentNode | null | undefined): string[] =>
+    [...(node?.querySelectorAll("mark.hit") ?? [])].map((m) => m.textContent ?? "");
+
+  it("marks them on the tile, and the tile's name still reads as the whole name", () => {
+    render(root, { ...browsing, query: "flow box" }, "browse");
+    const tile = root.querySelector('[data-action="tile"][data-id="flow-1"]');
+    const name = tile?.querySelector(".tile-name");
+    expect(marked(name)).toEqual(["flow", "box"]);
+    expect(name?.textContent).toBe("Process flow, 1 box");
+    // A reader hears the button's label, which the marks do not touch.
+    expect(tile?.getAttribute("aria-label")).toBe("Insert Process flow, 1 box");
+  });
+
+  it("marks them on the preview card", () => {
+    render(root, { ...browsing, query: "one", previewing: "one-box" }, "browse");
+    const name = root.querySelector(".card .card-name");
+    expect(marked(name)).toEqual(["One"]);
+    expect(name?.textContent).toBe("One box");
+  });
+
+  it("marks nothing when there is no search", () => {
+    render(root, { ...browsing, previewing: "one-box" }, "browse");
+    expect(root.querySelectorAll("mark").length).toBe(0);
+  });
+
+  // No case for "Did you mean": it can never go red. Its chips are drawn only
+  // when nothing matched, and every name they offer passes the same filters —
+  // so a name holding every query word would have matched, and there would be
+  // no chips. Marking them is unreachable, not merely avoided.
+
+  it("marks nothing in Used in this deck, which the search does not filter", () => {
+    render(root, { ...browsing, query: "box", used: [{ element: "one-box", slides: [2] }] }, "browse");
+    expect(root.querySelector(".used-name")?.textContent).toBe("One box");
+    expect(root.querySelectorAll(".used mark").length).toBe(0);
+    // The tile for the same element IS marked, so the section above is not
+    // passing merely because nothing anywhere was.
+    expect(marked(root.querySelector('[data-id="one-box"] .tile-name'))).toEqual(["box"]);
+  });
+});

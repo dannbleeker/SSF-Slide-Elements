@@ -298,6 +298,22 @@ const STATES = [
     state: { ...BROWSING, query: "flow" },
     shows: ["search", "tile"],
   },
+  // Two words and a tile chosen: the highlight on an ordinary tile and on the
+  // chosen one, whose whole name is already bold and whose ground is Highlight
+  // in forced colours. The card is a state of its own below, because it is
+  // drawn OVER the tiles and would hide the chosen one.
+  {
+    name: "browse-searched-chosen",
+    step: "browse",
+    state: { ...BROWSING, query: "flow box", chosen: "flow-1" },
+    shows: ["search", "tile", "insert"],
+  },
+  {
+    name: "browse-searched-previewing",
+    step: "browse",
+    state: { ...BROWSING, query: "flow box", previewing: "flow-1" },
+    shows: ["search", "tile"],
+  },
   {
     name: "browse-nothing-found",
     step: "browse",
@@ -495,6 +511,9 @@ function audit(forced) {
         // as unavailable, and holding it to 4.5:1 would remove the signal.
         if (el.disabled === true || el.closest("[disabled]")) continue;
         const style = getComputedStyle(el);
+        // In forced colours only text whose colours the PAGE chose is asked —
+        // see the comment where this walk is called.
+        if (forced === true && style.forcedColorAdjust !== "none") continue;
         const ratio =
           (Math.max(luminance(numbers(style.color)), luminance(groundOf(el))) + 0.05) /
           (Math.min(luminance(numbers(style.color)), luminance(groundOf(el))) + 0.05);
@@ -509,12 +528,17 @@ function audit(forced) {
       } else if (node.nodeType === 1) walk(node);
     }
   };
-  // Skipped in forced colours: the palette is the user's, guaranteed by the
-  // system colour pairs, so a ratio measured here would be a fact about the
-  // operating system. Every other rule in this function still holds there —
-  // more so the focus ring, which is the first thing custom CSS loses when
-  // colours are forced.
-  if (forced !== true) walk(document.body);
+  // Narrowed in forced colours, not skipped. Where the palette is the user's,
+  // the system colour pairs guarantee it, and a ratio measured there would be a
+  // fact about the operating system. But `forced-color-adjust: none` hands the
+  // colours BACK to the page, and it is inherited: on 2026-09-23 a search
+  // highlight inside the chosen tile, which sets it, kept its light-blue
+  // ground under the tile's `HighlightText` — white on light blue, unreadable,
+  // and invisible to this walk while it skipped the whole pass. So in forced
+  // colours the walk asks exactly the text the page painted itself. Every
+  // other rule in this function holds there in full — more so the focus ring,
+  // which is the first thing custom CSS loses when colours are forced.
+  walk(document.body);
 
   // A DECORATION THAT HAS BECOME INVISIBLE, which only forced colours can
   // produce: an element whose entire visual is its background, painted the
@@ -550,6 +574,31 @@ function audit(forced) {
             `${Math.round(box.width)}x${Math.round(box.height)} with nothing but a background, and it is the ground's own colour`,
         );
       }
+    }
+  }
+
+  // A SEARCH HIGHLIGHT THAT HAS BECOME PLAIN TEXT. The rule above cannot see
+  // it: a `<mark>` holds its words, so it has children and is skipped. What
+  // makes a mark a mark is that it differs from the text around it — in ground,
+  // decoration or weight. Asked in every pass, because a theme can flatten it
+  // as well as a forced palette can, and by class rather than by tag: Chromium
+  // keeps a `<mark>`'s ground in forced colours by itself (measured
+  // 2026-09-23) and does NOT keep a `<span>`'s, so a change of tag would lose
+  // the ground silently.
+  for (const mark of document.querySelectorAll("#pane .hit")) {
+    const own = getComputedStyle(mark);
+    const around = getComputedStyle(mark.parentElement ?? mark);
+    const ground = numbers(own.backgroundColor);
+    const behind = groundOf(mark.parentElement ?? mark);
+    const grounded =
+      !(ground.length >= 4 && ground[3] === 0) && ground.slice(0, 3).join() !== behind.slice(0, 3).join();
+    const decorated = own.textDecorationLine !== "none" && own.textDecorationLine !== around.textDecorationLine;
+    const heavier = Number.parseInt(own.fontWeight, 10) > Number.parseInt(around.fontWeight, 10);
+    if (!grounded && !decorated && !heavier) {
+      findings.push(
+        `highlight indistinguishable${forced === true ? " in forced colours" : ""}: mark.hit "${(mark.textContent ?? "").trim().slice(0, 40)}" ` +
+          `has the ground, decoration and weight of the text around it`,
+      );
     }
   }
 

@@ -23,6 +23,7 @@ import {
   didYouMean,
   elementOf,
   groups,
+  highlight,
   isOpen,
   offersOpenAll,
   runOf,
@@ -82,6 +83,33 @@ function el<K extends keyof HTMLElementTagNameMap>(
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+/**
+ * An element's name with the words the search matched marked, for the two
+ * places a search's results are drawn: the tile and the preview card.
+ *
+ * Built from text nodes and `<mark>` elements whose text is set through
+ * `textContent`, like every other string here, so the name still cannot become
+ * markup. The node's own `textContent` is the whole name either way, and a
+ * reader hears the button's `aria-label` rather than these runs.
+ *
+ * NOT used for "Used in this deck", which the search does not filter — a mark
+ * there would claim a filter that is not applied. Nor for "Did you mean",
+ * where it could never mark anything: those chips appear only when nothing
+ * matched, and a name that held every query word would have.
+ */
+function nameOf<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  name: string,
+  query: string,
+): HTMLElementTagNameMap[K] {
+  const node = el(tag, className);
+  for (const piece of highlight(name, query)) {
+    node.appendChild(piece.hit ? el("mark", "hit", piece.text) : document.createTextNode(piece.text));
+  }
   return node;
 }
 
@@ -216,7 +244,7 @@ function card(element: Element, library: Library, state: PaneState): HTMLElement
   // what the borrowed line under the header already says out loud.
   const aspect = state.deck && state.deck.height > 0 ? state.deck.width / state.deck.height : undefined;
   box.appendChild(picture(element, library, occupiedFor(state), aspect));
-  box.appendChild(el("strong", "card-name", element.name));
+  box.appendChild(nameOf("strong", "card-name", element.name, state.query));
   box.appendChild(el("p", "card-landing", landingLine(element, state.settings)));
   return box;
 }
@@ -235,7 +263,7 @@ function tile(state: PaneState, library: Library, element: Element, where: strin
   if (state.chosen === element.id) pick.setAttribute("aria-current", "true");
   if (state.busy === true) pick.disabled = true;
   pick.appendChild(picture(element, library));
-  pick.appendChild(el("span", "tile-name", element.name));
+  pick.appendChild(nameOf("span", "tile-name", element.name, state.query));
   // `busyWith`, not `busy`: the Undo and the deck-wide removal set `busy` too,
   // and this painted "Inserting…" on the tile while the add-in was taking a
   // slide back OUT of the deck.

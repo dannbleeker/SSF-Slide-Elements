@@ -9,6 +9,11 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- **Search shows what it matched.** The words you typed are now picked out in
+  each element's name, on the tile and on the preview, so you can see at a
+  glance why a result is there. A result found through its Danish name or a tag
+  shows no highlight, since that word is not in the name you see.
+
 - **The tag line has its chevron.** It shows one row of tags and the chevron at
   its right opens the rest, which is what the pane was always meant to do.
 

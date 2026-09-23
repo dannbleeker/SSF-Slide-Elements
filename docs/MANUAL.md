@@ -65,7 +65,8 @@ fetched only when you insert it.
   16:9 nor 4:3 — which library was borrowed for it and what it was scaled to;
 - **Search**, which matches an element's English name, its Danish name in the
   owner's deck, its category and its tags. Every word has to match, so
-  "white box" finds "White boxes, 2x1 vertical". Press `/` to jump to the box
+  "white box" finds "White boxes, 2x1 vertical", and the words it matched are
+  picked out in each name on the tiles and the preview. Press `/` to jump to the box
   and `Esc` to clear it — the box says so itself, showing `/` beside the word
   Search. If a search finds nothing, the pane offers what you
   might have meant — tap one and it searches for that instead. While you are
