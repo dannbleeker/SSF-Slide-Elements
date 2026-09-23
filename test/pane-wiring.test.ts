@@ -2363,11 +2363,22 @@ describe("moving the last insert to a new slide", () => {
 
 describe("removing a part from every slide it is on", () => {
   /**
-   * A deck with the library's one stamp on two slides, read by the pane.
+   * A deck with the library's one stamp on the given slides, read by the pane.
    *
    * Built by INSERTING, through the real splice — this describe unmocks it,
    * because what is under test is a sequence of real removals and a stubbed
    * splice would leave nothing to remove.
+   *
+   * The splice hands back the deck with ONE slide listed — the rebuilt one —
+   * and every other slide still in the package but unlisted, which is what
+   * `insertSlidesFromBase64` is given. So a second splice of its output had no
+   * second slide to aim at, and until 2026-09-23 this fixture could only put
+   * the element on one slide: every removal case in the file drove exactly one
+   * cycle, and the loop's break, stranded flag and per-cycle id guard were
+   * held at a single iteration. `relisted` does to the bytes what the host's
+   * insert-then-remove does to the deck — the original list back, with the
+   * rebuilt slide standing where the slide it replaced stood — so the next
+   * splice sees the whole deck again.
    */
   async function deckWithStampOn(slides: number[]): Promise<string> {
     const { splice: realSplice } =
@@ -2408,14 +2419,40 @@ describe("removing a part from every slide it is on", () => {
         },
         store: (path: string) => Promise.resolve(lib.parts.get(path)),
       });
-      deck = report.base64;
+      deck = await relisted(deck, report.base64, slide);
     }
     return deck as string;
   }
 
-  async function askedToRemove(): Promise<HTMLElement> {
+  /**
+   * The spliced package with the deck's own slide list back, the rebuilt slide
+   * in place of slide `at`.
+   *
+   * The splice unlists slides rather than removing them (`keepOnly` in
+   * `src/core/splice/listing.ts`), so every original `<p:sldId>` still has its
+   * relationship and only needs its entry back.
+   */
+  async function relisted(before: string | Uint8Array, after: string, at: number): Promise<string> {
+    const { Pkg: RealPkg } = await vi.importActual<typeof import("../src/core/index.js")>("../src/core/index.js");
+    const entries = (xml: string): string[] => xml.match(/<p:sldId\b[^>]*\/>/g) ?? [];
+    const was = entries(await (await RealPkg.open(before)).text("ppt/presentation.xml"));
+    const pkg = await RealPkg.open(after);
+    const pres = await pkg.text("ppt/presentation.xml");
+    const [rebuilt, ...extra] = entries(pres);
+    if (rebuilt === undefined || extra.length > 0 || was[at] === undefined) {
+      throw new Error(`the splice did not list exactly one slide, or the deck has no slide ${at}`);
+    }
+    const list = was.map((entry, i) => (i === at ? rebuilt : entry)).join("");
+    pkg.setText(
+      "ppt/presentation.xml",
+      pres.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, `<p:sldIdLst>${list}</p:sldIdLst>`),
+    );
+    return pkg.toBase64();
+  }
+
+  async function askedToRemove(on: number[] = [0]): Promise<HTMLElement> {
     indexMode = "ok";
-    deckBase64 = await deckWithStampOn([0]);
+    deckBase64 = await deckWithStampOn(on);
     const pane = await openPane();
     await settle();
     (pane.querySelector('[data-action="used"]') as HTMLElement).click();
@@ -2965,14 +3002,106 @@ describe("removing a part from every slide it is on", () => {
     (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
     await idle(pane);
 
-    // ONE cycle, and that is the fixture's limit rather than a choice: the
-    // stamped deck is built with the real splice, which PRUNES to one slide, so
-    // `deckWithStampOn` cannot put the element on two. `docs/BACKLOG.md`
-    // carries that gap. What this holds is that the sentence is computed per
-    // cycle rather than fixed — `runningOn`'s own case proves it changes, and
-    // the several-slide stamp drives it over three.
+    // One cycle here; the run over two below holds the sentence changing
+    // between cycles.
     expect(host.noticesSeen.length, "one cycle was expected").toBe(1);
     expect(host.noticesSeen[0], "the notice did not say which slide or how far").toContain("slide 1, 1 of 1");
+  });
+
+  /**
+   * The loop itself, past its first iteration.
+   *
+   * Every case above drives ONE cycle, because until 2026-09-23 the fixture
+   * could not put the element on two slides. So the break, the stranded flag
+   * and the per-cycle id guard were each held only where the loop has nothing
+   * after them — a `break` that should have been a `continue`, or a guard read
+   * once before the loop instead of inside it, passed every case in the file.
+   * The stamp here sits on slides 1 and 3 of three, so there is a slide
+   * BETWEEN the two the run must leave alone.
+   */
+  describe("over more than one slide", () => {
+    it("takes it off every slide it is on, in order, and leaves the slide between alone", async () => {
+      const pane = await askedToRemove([0, 2]);
+      expect(pane.querySelector(".tile-ask")?.textContent, "the fixture put it on both").toContain("slides 1 and 3");
+      (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+      const outcome = await ran(pane);
+
+      expect(host.cycles, "one insert-then-remove per slide").toBe(2);
+      expect(host.removed, "each cycle deleted its own original, and nothing else").toEqual([0, 2]);
+      expect(host.noticesSeen, "the notice said where the run had got to at each cycle").toEqual([
+        expect.stringContaining("slide 1, 1 of 2"),
+        expect.stringContaining("slide 3, 2 of 2"),
+      ]);
+      expect(outcome).toBe("Removed from 2 slides.");
+    });
+
+    it("stops at the first cycle that does not land, and does not start the next", async () => {
+      // `refuseAt` makes the FIRST cycle's insert count disagree: nothing
+      // landed, so the deck is untouched. The loop must break there — a
+      // `continue` in its place would press on to slide 3 and report two
+      // slides' worth of work over a run that failed on the first.
+      host.refuseAt = 1;
+      const pane = await askedToRemove([0, 2]);
+      (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+      const outcome = await ran(pane);
+
+      expect(host.cycles, "the second cycle ran after the first had failed").toBe(1);
+      expect(host.removed, "a position was deleted after an insert that did not land").toEqual([]);
+      expect(outcome).toContain("Removed from 0 of 2 slides");
+      expect(outcome).not.toContain("a slide too many");
+    });
+
+    it("counts the slide it finished and says the deck is a slide longer when the second strands", async () => {
+      // Count reads, counted from one: cycle 1's insert (1) and delete (2),
+      // cycle 2's insert (3) and delete (4). Missing the FOURTH strands the
+      // second slide after the first was seen all the way through, which is the
+      // case the flag and `done` have to agree about.
+      host.missCountAt = 4;
+      const pane = await askedToRemove([0, 2]);
+      (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+      const outcome = await ran(pane);
+
+      expect(host.cycles).toBe(2);
+      expect(outcome, "the finished slide was not counted").toContain("Removed from 1 of 2 slides");
+      expect(outcome, "the stranded copy on the second slide went unmentioned").toContain("a slide too many");
+    });
+
+    it("skips a slide deleted between cycles, and goes on to the one after it", async () => {
+      // The per-cycle id guard, at the iteration it exists for — and on THREE
+      // slides, because with two the gone slide is the last one and a `break`
+      // in place of the `continue` would pass. Slide 2 goes while cycle 1 is
+      // inside its insert. Cycle 2 then finds no slide with its id and must
+      // delete nothing; cycle 3 must still run, against slide 3 wherever it now
+      // sits.
+      host.duringInsert = () => {
+        if (host.cycles === 1) dropSlide(1);
+      };
+      const pane = await askedToRemove([0, 1, 2]);
+      (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+      const outcome = await ran(pane);
+
+      expect(host.cycles, "the gone slide got a cycle, or the one after it did not").toBe(2);
+      // Slide 3 has moved up to index 1 once slide 2 went, so its delete is
+      // aimed there — by id, which is the point.
+      expect(host.removed, "a position was deleted for the slide that had gone").toEqual([0, 1]);
+      expect(outcome).toContain("Removed from 2 of 3 slides");
+    });
+
+    it("stops between cycles when asked, and says the rest are as they were", async () => {
+      // Pressed from inside the first cycle, which is the only moment a Stop
+      // can arrive in this harness — and the flag is read at the TOP of the
+      // next iteration, so the first slide still finishes.
+      host.duringInsert = () => {
+        if (host.cycles === 1) document.querySelector<HTMLElement>('[data-action="stop"]')?.click();
+      };
+      const pane = await askedToRemove([0, 2]);
+      (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+      const outcome = await ran(pane);
+
+      expect(host.cycles, "the run went on past the Stop").toBe(1);
+      expect(host.removed, "the first slide did not finish").toEqual([0]);
+      expect(outcome).toBe("Stopped after 1 of 2 slides. The rest are as they were.");
+    });
   });
 
   it("drops the question when a search takes its tile off the screen", async () => {

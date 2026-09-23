@@ -69,30 +69,6 @@ deck changed underneath me", which the count alone cannot do; reading the ids
 either side of the delete would, at the price of another read on every cycle of
 every run. Worth doing only if it turns out to happen to anyone.
 
-### No test drives the removal past one cycle
-
-Found on 2026-09-23 while reading the several-slide stamp against the deck-wide
-removal.
-
-**The cap question is closed**, and not by a cap: the owner asked on the same
-day for a way to STOP a run, which is the answer that needs no number. A Stop
-control sits in the footer while a run of several cycles is going and takes
-effect between cycles, so the rest of the deck is genuinely untouched
-(`docs/DESIGN.md` section 5).
-
-**No multi-cycle removal test.** Every removal case in the suite drives exactly
-ONE cycle, and not by choice: `deckWithStampOn` builds its deck with the real
-splice, which reduces the package to the single slide it spliced, so the
-fixture cannot put the element on two slides. So the loop's own behaviour —
-the break semantics, the stranded flag, the per-cycle id guard added the same
-day — is held only at one iteration. The several-slide stamp drives three
-cycles and covers the same shape, which is why this is a gap rather than a
-hole, but they are different functions.
-
-Closing it means a fixture that can assemble a multi-slide deck with the
-element on several slides, which the splice's own prune-to-one-slide contract
-does not offer. Worth doing before anything else changes that loop.
-
 ### The undo still aims at a position the user may have moved
 
 **Narrowed on 2026-09-23, not closed.** The undo puts the user's original slide
@@ -128,8 +104,8 @@ is written down rather than guessed at.
 
 ### Widen what the mutation sweep changes
 
-One of the two open items **this repo can finish on its own** — the other is
-the multi-cycle removal test above.
+The one open item **this repo can finish on its own**, and the only one that is
+code.
 
 `scripts/mutants.mjs` now runs **eight** operators — boundary, operands,
 boolean, negation, fallback, guard, off-by-one, field — over `src/core`,
@@ -161,6 +137,31 @@ if it makes a file expensive. `--what <operator>` sweeps one operator alone,
 which is what makes adding one cost minutes rather than a whole sweep.
 
 ## Settled — do not re-open
+
+### The deck-wide removal is held over several cycles, and has no cap
+
+**No cap on how many slides a removal touches**, and not for want of a number:
+the owner asked on 2026-09-23 for a way to STOP a run instead, which is the
+answer that needs no number. A Stop control sits in the footer while a run of
+several cycles is going and takes effect between cycles, so the rest of the
+deck is genuinely untouched (`docs/DESIGN.md` section 5).
+
+**The loop is tested past its first cycle** since 2026-09-23. Until then every
+removal case drove ONE cycle, because `deckWithStampOn` built its deck with the
+real splice, which lists only the slide it rebuilt, so the fixture could not
+put the element on two. It now puts the deck's own slide list back after each
+splice — what the host's insert-then-remove does to the deck — and five cases
+in `test/pane-wiring.test.ts` drive the loop over two and three slides: every
+slide in order with the one between left alone, a first cycle that does not
+land stopping the run, a second cycle that strands its copy after the first
+finished, a slide deleted mid-run skipped while the one after it still runs,
+and Stop between cycles.
+
+Measured the same day: four breaks of `removeEverywhere` — the insert-count
+`break` turned into a `continue`, the per-cycle id lookup read once before the
+loop, the gone-slide `continue` turned into a `break`, and the Stop check
+removed — each passed every one of the file's 100 earlier cases, and each is
+caught by exactly one of the new five. The gap was real, not theoretical.
 
 ### The two library decks filed their elements differently — fixed and re-printed
 
