@@ -178,6 +178,28 @@ describe("masking a rotated part", () => {
     expect(cutFor(stamp, []).mask).toHaveLength(4);
   });
 
+  it("defaults its aspect to 1, in both entry points", () => {
+    /**
+     * The mutation sweep of 2026-09-23 reported `aspect = 1` as a survivor on
+     * BOTH `cutFor` (line 141) and `cutsFor` (line 168): changed to 2, nothing
+     * went red. The one shipped caller, `scripts/build-previews.mjs`, always
+     * passes `size.width / size.height`, and every test that omits the
+     * argument asserts something the aspect does not reach — so the default
+     * was exercised constantly and pinned nowhere.
+     *
+     * It reaches the MASK, which is the one thing the aspect scales, so a
+     * rotated element is what can see it. Asserted against the explicit `1`
+     * rather than against coordinates, so this says "the default is 1" and
+     * does not also freeze the geometry that the cases above own.
+     */
+    const stamp = el({
+      kind: "part",
+      rotation: { deg: -29.056, frame: { x: 0.1923, y: 0.3017, w: 0.1655, h: 0.1155 } },
+    });
+    expect(cutFor(stamp, [])).toEqual(cutFor(stamp, [], AIR, 1));
+    expect(cutsFor([stamp])).toEqual(cutsFor([stamp], AIR, 1));
+  });
+
   it("leaves the element the same air the crop does, so a thick outline is not shaved", () => {
     // Masking to the BARE frame cut the ends off both stamps' ellipses in the
     // first prints taken with this: an outline is drawn centred on its path, so

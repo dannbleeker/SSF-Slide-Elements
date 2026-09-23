@@ -292,6 +292,78 @@ describe("headings and elements", () => {
     });
   });
 
+  it("does NOT fail when a carried part's own rels names an EXTERNAL target", async () => {
+    /**
+     * The pair case for the one above. The mutation sweep of 2026-09-23
+     * reported the `TargetMode="External"` guard on that loop as a SURVIVOR,
+     * and the first version of this test agreed with the sweep — it used
+     * `Target="https://example.invalid/x"` and passed with the guard DELETED.
+     *
+     * That is not because the guard does nothing. It is because a `https:` URL
+     * resolves to `ppt/media/https:/example.invalid/x`: `resolved` treats it as
+     * a relative reference and it lands UNDER the owning part's own directory,
+     * which is always a `CARRIED` directory, because this loop only walks parts
+     * the harvest collected. So the common spelling slips past by accident.
+     *
+     * Measured 2026-09-23, resolving each against `ppt/media/image9.png`:
+     *
+     *   https://example.invalid/x -> ppt/media/https:/example.invalid/x  CARRIED
+     *   mailto:a@b.c              -> ppt/media/mailto:a@b.c              CARRIED
+     *   file:///C:/x.pptx         -> ppt/media/file:/C:/x.pptx           CARRIED
+     *   //example.invalid/x       -> /example.invalid/x                  REFUSED
+     *   /x/y                      -> x/y                                 REFUSED
+     *   ../../Book1.xlsx          -> Book1.xlsx                          REFUSED
+     *
+     * The last is the one a real deck produces: a RELATIVE external target is
+     * how PowerPoint writes a LINKED — as opposed to embedded — workbook, and a
+     * link to a deck beside this one. A chart in the owner's library linked to
+     * a workbook rather than carrying it is one paste away, and without the
+     * guard `npm run harvest` would refuse the whole deck over a Relationship
+     * that names nothing in the package BY DESIGN.
+     *
+     * So this uses that spelling, and it is the reason the case exists at all:
+     * with the common URL it proved nothing.
+     */
+    const pkg = await Pkg.open(
+      await makeDeck([
+        heading("Kasser"),
+        {
+          paragraphs: [["a"]],
+          title: "Kasse, 2 vertikale",
+          noBody: true,
+          shapes: [
+            `<p:pic><p:nvPicPr><p:cNvPr id="50" name="Diagram"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+              `<p:blipFill><a:blip r:embed="rId80"/><a:stretch/></p:blipFill>` +
+              `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`,
+          ],
+        },
+      ]),
+    );
+    pkg.setBytes("ppt/media/image9.png", new Uint8Array([1, 2, 3]));
+    const slideRels = Pkg.relsPathFor("ppt/slides/slide2.xml");
+    pkg.setText(
+      slideRels,
+      (await pkg.text(slideRels)).replace(
+        "</Relationships>",
+        `<Relationship Id="rId80" Type="${REL_TYPE.image}" Target="../media/image9.png"/></Relationships>`,
+      ),
+    );
+    // A LINKED workbook: relative target, TargetMode External. Resolves to
+    // "Book1.xlsx", which is outside CARRIED — so only the guard saves it.
+    pkg.setText(
+      Pkg.relsPathFor("ppt/media/image9.png"),
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="${REL_TYPE.package}"` +
+        ` Target="../../Book1.xlsx" TargetMode="External"/></Relationships>`,
+    );
+
+    // The assertion is that it RESOLVES. Without the guard it rejects, naming
+    // "Book1.xlsx" as a part the catalogue does not publish.
+    const { catalogue } = await harvest(pkg, { size: "16:9", names: NAMES });
+    expect(catalogue.elements.map((e) => e.key)).toContain("Kasse, 2 vertikale");
+  });
+
   it("fails a slide with content but no title, and a deck without a slide size", async () => {
     await expect(harvested([heading("Kasser"), { paragraphs: [["orphan"]] }])).rejects.toMatchObject({
       problems: ["slide 2 has content but no title, so it has no key"],

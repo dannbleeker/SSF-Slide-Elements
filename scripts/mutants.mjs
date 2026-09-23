@@ -161,6 +161,18 @@ export const TARGETS = [
  */
 export const EQUIVALENT = [
   {
+    file: "src/pane/used.ts",
+    what: "guard",
+    was: "return used",
+    why: "`renumbered`'s `if (by === 0) return used`, deleted so the shift falls through to the `.map`. The map with `by === 0` answers `n >= from ? n + 0 : n`, which is `n` for every slide number, so it rebuilds an array EQUAL to the one it was given and differs only in identity. Nothing depends on that identity: both call sites (src/pane/main.ts:735 and :877) feed the answer straight into the next call or into the state, and every comparison against `state.used` anywhere in the pane is `=== undefined` (steps.ts:432, render.ts:390, used.ts:90) — grepped 2026-09-23. So the early return is an allocation saved, not a behaviour. It stays because the caller asks for a shift on every insert and most of them are `by === 0`. A test asserting referential identity would pin an implementation detail rather than a promise, which is why there is a row here instead.",
+  },
+  {
+    file: "src/core/catalogue/harvest.ts",
+    what: "guard",
+    was: "continue",
+    why: '`isHidden`\'s `if (node.nodeType !== 1) continue` (line 85), deleted so a text node between elements is passed to `child(node as Element, P_NS, "cNvPr")`. `child` walks `firstChild`/`nextSibling` and checks `nodeType === 1` ITSELF (src/core/pptx/xml.ts), and a text node has no children at all — measured 2026-09-23 on @xmldom/xmldom 0.9.12: a pretty-printed `<p:sp>` gives child node types 3,1,3 and each text node answers `childNodes.length === 0`. So `child` returns undefined and the loop moves on exactly as the guard would have made it. The line stays because it is what makes the `as Element` cast honest without a non-null assertion, the same reason the `boxes.ts` and `xml.ts` guard rows give. **CAUTION: this entry is keyed on file and operator, and harvest.ts has FOURTEEN `continue` statements.** The one at line 395 — the `TargetMode="External"` skip in the carried-parts loop — was a survivor on this same sweep and is NOT equivalent: without it a relative external target such as a linked workbook resolves to `Book1.xlsx`, fails `CARRIED`, and the harvest refuses the whole deck. It is killed as of 2026-09-23 by test/catalogue.test.ts "does NOT fail when a carried part\'s own rels names an EXTERNAL target". Read the line number before applying this row to a future `continue` survivor here.',
+  },
+  {
     file: "src/host/jump.ts",
     what: "boundary",
     was: "<",
