@@ -17,7 +17,7 @@ import { usedInDeck } from "../core/pptx/tags.js";
 import { removeElement, slidesHolding } from "../core/splice/remove.js";
 import { onlySlide, splice } from "../core/splice/splice.js";
 import { coalescing } from "../host/coalesce.js";
-import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, undoPlan } from "../host/insert.js";
+import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, stillThere, undoPlan } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
 import { GLOBAL_KEY, deckKey } from "../host/memory.js";
@@ -667,7 +667,20 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     // `countReaching`. One read here would report a landed insert as a no-op.
     const inserted = await countReaching(before + 1);
     let removed: number | undefined;
+    let moved = false;
     if (target === "onto" && mayRemove({ before, inserted })) {
+      // `mayRemove` asks only about the count, and a count cannot see a
+      // REORDER. `at` was read before the host calls and the insert can take up
+      // to `BUDGET.insert`; the pane locks itself, not PowerPoint, so the user
+      // can drag a slide in the strip in that window and the count will not
+      // move. The insert aims by id and survives it; this delete aims by
+      // position and does not. So the id is read back and compared before
+      // anything is deleted, and a mismatch — or a read that does not answer —
+      // leaves the copy standing, which is the failure mode `CLAUDE.md` asks
+      // for: a duplicate the user can delete rather than a slide they lost.
+      moved = !stillThere(current?.id, await slideIdAt(at));
+    }
+    if (target === "onto" && !moved && mayRemove({ before, inserted })) {
       // The rebuilt slide landed AFTER the original, so the original is still
       // at its own index. Positional, never by id: a slide next to one the run
       // has just added is exactly where an id read is not to be trusted.
@@ -695,6 +708,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       before,
       inserted,
       ...(removed === undefined ? {} : { removed }),
+      ...(moved ? { moved } : {}),
       ...(error === undefined ? {} : { error }),
     });
     // Where the element ended up, counting from one. `landedOn` is `undoPlan`

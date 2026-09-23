@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { INSERTING, announcement, landedOn, mayRemove, outcomeOf, undoPlan, type Attempt } from "../src/host/insert.js";
+import {
+  INSERTING,
+  announcement,
+  landedOn,
+  mayRemove,
+  outcomeOf,
+  stillThere,
+  type Attempt,
+  undoPlan,
+} from "../src/host/insert.js";
 import { BUDGET, withTimeout } from "../src/host/timeout.js";
 
 /**
@@ -367,5 +376,61 @@ describe("which slide the element landed on", () => {
     expect(landedOn({ target: "onto", index: at })).toBe(undoPlan({ target: "onto", index: at }).remove + 1);
     // And for a new slide, the one removal is the slide the element is on.
     expect(landedOn({ target: "new", index: at })).toBe(undoPlan({ target: "new", index: at }).remove + 1);
+  });
+});
+
+describe("stillThere", () => {
+  /**
+   * `mayRemove` asks only about the COUNT, and a count cannot see a reorder.
+   * The index is read before the host calls and used after them, with the whole
+   * splice and an insertSlidesFromBase64 between — up to BUDGET.insert, 180
+   * seconds. The pane locks itself, not PowerPoint, so a user can drag a slide
+   * in the thumbnail strip in that window, and dragging changes no count.
+   *
+   * The two halves of the cycle then disagree: the insert aims by
+   * `targetSlideId` and survives a reorder, the removal aims by position and
+   * does not. So the delete took whatever had been dragged into the slot, the
+   * delta was exactly what success looks like, and the pane said it worked.
+   */
+  it("is true only when the slide at the index is the one the insert was aimed at", () => {
+    expect(stillThere("256", "256")).toBe(true);
+    expect(stillThere("256", "257"), "a slide was dragged into the slot").toBe(false);
+  });
+
+  it("accepts the suffixed spelling, because a selection id may lack it", () => {
+    // `jump.ts` owns this rule — office-js#2474, a selection id without the
+    // `#suffix` the deck's own list carries. Compared with `===` this would
+    // refuse a slide that had not moved at all, and the pane would leave a
+    // duplicate on every insert.
+    expect(stillThere("256", "256#424201")).toBe(true);
+    expect(stillThere("256#424201", "256")).toBe(true);
+    expect(stillThere("256#424201", "257#424202")).toBe(false);
+  });
+
+  it("refuses when either id is missing, because a read that did not answer is not permission", () => {
+    expect(stillThere(undefined, "256")).toBe(false);
+    expect(stillThere("256", undefined)).toBe(false);
+    expect(stillThere(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("outcomeOf, when the deck moved under the insert", () => {
+  it("names no slide number, because the positions it was given are the stale ones", () => {
+    const out = outcomeOf({ target: "onto", slide: 3, before: 8, inserted: 9, moved: true });
+    expect(out.ok).toBe(false);
+    expect(out.byHand, "the user is not told to look").toBe(true);
+    expect(out.detail).toContain("reordered while it ran");
+    expect(out.detail).toContain("8 → 9 slides");
+    // The sentence this replaces named one, and that is what sent a user to
+    // delete their own content the last time this file guessed from a position.
+    expect(out.detail, "named a slide to delete off a stale index").not.toContain("delete slide 3");
+  });
+
+  it("still asks for the slide by number when the deck did NOT move", () => {
+    // The pair: a removal that simply failed is a different fact, and its
+    // sentence is still the right one. A fix that answered "reordered" for
+    // every un-removed copy would lose it.
+    const out = outcomeOf({ target: "onto", slide: 3, before: 8, inserted: 9 });
+    expect(out.detail).toContain("delete slide 3 by hand");
   });
 });

@@ -780,6 +780,23 @@ happened and what to do.
   the web the insert and its confirming count take seconds, so a user deleting
   a slide in that window produces it. The pane cannot know whether the insert
   also landed, so the sentence stops at the two counts it took.
+
+  A deck REORDERED while the insert ran gets its own too, and it is the one
+  sentence here that deliberately names no slide number: "The insert landed, but
+  the deck was reordered while it ran, so the copy was left in place: N → M
+  slides. Both your slide and the copy are there; delete whichever you do not
+  want." The index the removal uses is read before the host calls and used after
+  them, up to `BUDGET.insert` later, and the pane locks itself rather than
+  PowerPoint — so a drag in the thumbnail strip moves the slides while changing
+  no count, which is the one thing `mayRemove` looks at. The insert survives it,
+  because it aims by `targetSlideId`; the removal does not, because it aims by
+  position. So the id at that index is read back and compared before anything is
+  deleted, and a mismatch — or a read that does not answer — leaves the copy
+  standing. That is the house rule made good: the failure mode is a duplicate
+  the user can delete rather than a slide they have lost. It names no number
+  because the positions this code holds are exactly the ones that just went
+  stale, and naming one off a stale index is what sent a user to delete their
+  own content before.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 

@@ -9,6 +9,17 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Reordering slides while an insert is running no longer deletes the wrong
+  one.** Inserting onto the slide you are on rebuilds it and then removes the
+  original, and it found the original by its position — a position worked out
+  before the insert started. Dragging a slide in the thumbnail strip while the
+  insert was still going changed which slide sat at that position without
+  changing how many there were, so the check that guarded the removal passed and
+  your dragged slide was deleted instead. The pane reported success, because the
+  count was exactly what success looks like. It now checks that the slide it is
+  about to remove is still the one it meant, and if the deck has moved it leaves
+  both slides in place and says so.
+
 - **A new slide no longer arrives carrying the previous slide's animations, or
   its transition.** "As a new slide" copies the slide you are on and empties
   it, but a slide's animation timeline is stored beside its shapes rather than

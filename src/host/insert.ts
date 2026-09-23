@@ -15,6 +15,8 @@
  * implementation. A test holds them to the document.
  */
 
+import { sameSlideId } from "./jump.js";
+
 /** Which of the two things the user asked for. `docs/DESIGN.md` section 7. */
 export type Target = "onto" | "new";
 
@@ -43,6 +45,15 @@ export interface Attempt {
    * reader must not treat "absent" as "zero".
    */
   removed?: number;
+  /**
+   * True when the removal was NOT attempted because the deck moved under it —
+   * the slide at the computed index is no longer the one the insert was aimed
+   * at. `removed` is absent then, like every other case where nothing was
+   * removed, and this says WHY, because the two want different sentences: one
+   * asks the user to delete a slide, and this one must not name a number at
+   * all.
+   */
+  moved?: boolean;
   /** Whatever the host raised, already made readable and bounded by `errors.ts`. */
   error?: string;
 }
@@ -155,6 +166,21 @@ export function outcomeOf(attempt: Attempt): Outcome {
       byHand: true,
     };
   }
+  if (attempt.moved === true) {
+    // The deck was reordered while the insert ran, so the index this code
+    // computed no longer names the slide it computed it for and the removal was
+    // not attempted. It deliberately names NO slide number: the positions this
+    // function was given are the ones that just went stale, and the sentence
+    // below — which does name one — is what sent a user to delete their own
+    // content the last time this file guessed.
+    return {
+      ok: false,
+      detail:
+        `The insert landed, but the deck was reordered while it ran, so the copy was left in place: ` +
+        `${before} → ${inserted} slides. Both your slide and the copy are there; delete whichever you do not want.`,
+      byHand: true,
+    };
+  }
   if (removed === undefined || removed !== before) {
     return {
       ok: false,
@@ -167,6 +193,37 @@ export function outcomeOf(attempt: Attempt): Outcome {
     detail: `${before} → ${inserted} → ${removed} slides, slide ${slide} replaced.`,
     byHand: false,
   };
+}
+
+/**
+ * Whether the slide at the index the insert computed is still the slide it was
+ * computed FOR.
+ *
+ * `mayRemove` below asks only about the COUNT, and a count cannot see a
+ * reorder. The index is read before the host calls and used after them, with
+ * the whole splice and an `insertSlidesFromBase64` in between — up to
+ * `BUDGET.insert`, which is 180 seconds. The pane locks ITSELF, not PowerPoint,
+ * so the user can drag a slide in the thumbnail strip in that window, and
+ * dragging changes no count at all.
+ *
+ * The two halves of the cycle then disagree about which slide they mean:
+ * `insertPackage` aims by `targetSlideId`, which survives a reorder, and
+ * `removeSlideAt` aims by POSITION, which does not. So the delete took whatever
+ * had been dragged into that slot, the delta was exactly what success looks
+ * like, and the pane reported it.
+ *
+ * Compared with `sameSlideId` rather than `===`, because a selection id can
+ * lack the `#suffix` the deck's own list carries — `jump.ts` owns that rule and
+ * this is the same comparison.
+ *
+ * Answers false when either id is missing. A read that did not answer is not
+ * permission to delete: `CLAUDE.md`'s rule is that the failure mode should be a
+ * duplicate the user can delete rather than a slide they have lost, and that is
+ * the whole reason the removal comes after the insert.
+ */
+export function stillThere(expected: string | undefined, atIndex: string | undefined): boolean {
+  if (expected === undefined || atIndex === undefined) return false;
+  return sameSlideId(expected, atIndex);
 }
 
 /**
