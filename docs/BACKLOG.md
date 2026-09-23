@@ -45,6 +45,30 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
+### A slide deleted mid-run is unmeasured on a host, and the message can misname it
+
+Small, and open because two rounds on 2026-09-23 failed to settle it rather
+than because anything is known to be wrong.
+
+A run passes over a slide that has GONE — `indexOfSlide` answers nothing, the
+cycle is skipped, `done` does not count it, and no position is deleted in its
+place. `test/pane-wiring.test.ts` covers that. What no round has managed is to
+watch a HOST do it: the first attempt deleted a slide the run had already
+reached, and the second landed inside a cycle's count confirmation.
+
+That second attempt found the thing worth writing down. While a cycle is
+confirming its delete, the deck shrinking by one is indistinguishable to the
+pane from its own delete having failed, so it stopped with *"the deck has a
+slide too many: the copy was made but the original could not be taken away"*.
+The deck had no extra slide — the user's own deletion accounted for the
+difference — so the sentence named the wrong cause. It stops and tells the user
+to look, which is the right direction to be wrong in, and nothing was lost.
+
+Closing it means the cycle distinguishing "my delete did not land" from "the
+deck changed underneath me", which the count alone cannot do; reading the ids
+either side of the delete would, at the price of another read on every cycle of
+every run. Worth doing only if it turns out to happen to anyone.
+
 ### No test drives the removal past one cycle
 
 Found on 2026-09-23 while reading the several-slide stamp against the deck-wide
