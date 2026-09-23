@@ -1518,15 +1518,62 @@ back, and the next selection read answered in 567 ms. **On the web this is now
 measured here rather than borrowed.** Windows and Mac are still the sibling's
 and the tracker's.
 
+**A run of several cycles, and Stop, measured on Windows on 2026-09-23** against
+`090e97c` — the pane read its own `data-build` off the document before anything
+was run, so the build under test is not inferred from the deployment. Host
+16.0.20326.20158. Every figure below is a COM inventory of the deck, slide id by
+slide id, either side of the action; the pane's own sentence is quoted as a
+claim and the inventory is what settles it.
+
+- **A stamp across three selected slides landed on exactly those three.** Each
+  took a new `SlideID` (257 → 262, 261 → 263, 260 → 264), which is three
+  insert-then-remove cycles rather than three shapes added in place, and the
+  three unselected slides kept their ids and their shape counts. The footer
+  said "Stamped 3 slides" and three is what the deck gained. This is the
+  sequence the paragraph below used to list as assumed.
+- **Stop stops, and the rest really are as they were.** 59 slides selected,
+  Stop pressed at the fourth cycle: the pane said "Stopped after 5 of 59
+  slides. The rest are as they were", and the deck agreed exactly — five slides
+  changed, **55 untouched by id and by shape count**, the deck still 60 long.
+- **A cycle costs about 150 ms here.** From the pane's own progress labels,
+  cycles 1 to 5 of that run landed at 341, 557, 689, 820 and 943 ms; a
+  three-slide run is over in **392 ms** end to end. That prices the Stop
+  control honestly: on a small deck on Windows there is well under a second in
+  which to press it, and it earns its place on big decks and on the web, where
+  a cycle is seconds rather than milliseconds.
+- **The two libraries now agree, on a real host, on both slide sizes.** A 16:9
+  deck and a 4:3 deck opened against the same build offered the same ten
+  categories in the same order with the same counts, a bare `73` on the count
+  line, and `KPI definition` under One-page templates on both.
+
+**One `Ctrl+Z` does not take back an "onto this slide" insert; two do.**
+Measured the same day, and it does not contradict question 5 above — that
+answer is about a BARE `insertSlidesFromBase64`, which is one operation. This
+add-in's insert is two: the insert, then the positional delete of the slide it
+replaced. So PowerPoint's undo stack holds two entries for it, and one press
+reverts only the delete:
+
+| | deck |
+| --- | --- |
+| after the insert | 256, **259**, 258 — three slides |
+| after one Ctrl+Z | 256, **257**, **259**, 258 — **four slides** |
+| after two Ctrl+Z | 256, 257, 258 — as it started |
+
+A user who presses it once is left holding both their original slide and the
+rebuilt one. Measured ONCE, on one deck; `docs/MANUAL.md`'s sentence about
+Ctrl+Z is not being rewritten on a single reading.
+
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
 neither device, so the validators' report is the first measurement for both
-(section 9). Also assumed, and newly so: that a SEQUENCE of insert-then-remove cycles
-behaves the way one does. "Remove from N slides" (section 6) runs one per slide,
-and while the single cycle is measured on the web and on Windows, a run of them
-is not — it is the one built feature whose mechanism has never been exercised
-end to end against a host, and the next round on any platform should put a stamp
-on three slides and take it off again. Also assumed: the two-second budget in section 11, and the certification
+(section 9). A SEQUENCE of insert-then-remove cycles is **no longer assumed in the stamping
+direction**: the round of 2026-09-23 above put a stamp on three slides and then
+on fifty-nine, and the deck was read slide by slide either side of both. What
+is still assumed is the REMOVING direction — "Remove from N slides" (section 6)
+runs one cycle per slide, and no round has yet taken an element off several
+slides and read the deck back. That is the half to do next, and it is the half
+with the teeth: a removal that goes wrong takes a slide out rather than putting
+one in. Also assumed: the two-second budget in section 11, and the certification
 reading in section 12. Windows is no longer assumed — the section above is its
 round — but one Windows machine is one machine, and the "50 MB in about ten
 seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a

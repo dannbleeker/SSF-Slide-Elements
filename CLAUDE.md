@@ -98,6 +98,28 @@ edge, which is `topRight` doing what it promises, and left the box alone.
 "Used in this deck" listed both, which is `readShapeTags` answering on a real
 PowerPoint-saved deck after the `peek` change of the same day.
 
+**A second Windows round ran on 2026-09-23, against `090e97c`**, and it covered
+the thing the design record had listed as assumed: a RUN of insert-then-remove
+cycles. A stamp across three selected slides landed on exactly those three, each
+taking a new `SlideID` (so three cycles, not three shapes added in place), with
+the unselected slides untouched by id and shape count. Then 59 slides selected
+and **Stop pressed at the fourth cycle**: the pane said "Stopped after 5 of 59
+slides. The rest are as they were" and the deck agreed exactly — five changed,
+**55 untouched**, deck length unchanged. **A cycle costs about 150 ms here**, so
+a three-slide run is over in 392 ms; Stop is real but barely pressable on a
+small desktop deck, and earns its place on big decks and on the web. The two
+libraries were read on both slide sizes against the same build and offered the
+same ten categories, same order, same counts. `docs/DESIGN.md` section 15 has
+the numbers.
+
+**One `Ctrl+Z` does not take back an "onto this slide" insert — two do.**
+Question 5's "yes" is about a bare `insertSlidesFromBase64`, which is ONE
+operation; this add-in's insert is two, so one press reverts only the positional
+delete and leaves the user holding their original slide AND the rebuilt one
+(3 slides → 4 → back to 3). Measured once, on one deck, on 2026-09-23;
+`docs/MANUAL.md` still says "Ctrl+Z reverts an insert" and is not being
+rewritten on a single reading.
+
 **Mac and iPad have had no round, and none is planned
 before release** — the owner has neither device (2026-09-12), so the
 validators' report is the first measurement for both and a Mac round is not a
