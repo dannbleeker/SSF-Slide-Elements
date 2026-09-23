@@ -2350,7 +2350,10 @@ describe("removing a part from every slide it is on", () => {
     // SORTED, and one cycle each. Ascending matters: every cycle is net zero on
     // the slide count, so a later slide is still at the index this code
     // computed only if the earlier ones have already been put back.
-    expect(spliced.map((one) => one.slide), "it did not splice into every selected slide, in order").toEqual([1, 4, 8]);
+    expect(
+      spliced.map((one) => one.slide),
+      "it did not splice into every selected slide, in order",
+    ).toEqual([1, 4, 8]);
     expect(
       spliced.every((one) => one.target === "onto"),
       "a part went through the new-slide path",

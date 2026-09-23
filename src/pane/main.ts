@@ -1679,8 +1679,7 @@ function onClick(event: MouseEvent): void {
       const asking = state.removing;
       if (asking) {
         focusAfterDraw =
-          `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` +
-          `[data-where="${CSS.escape(asking.where)}"]`;
+          `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` + `[data-where="${CSS.escape(asking.where)}"]`;
       }
       set({ removing: undefined });
       break;
@@ -1796,8 +1795,7 @@ function onKey(event: KeyboardEvent): void {
         const asking = state.removing;
         if (asking) {
           focusAfterDraw =
-            `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` +
-            `[data-where="${CSS.escape(asking.where)}"]`;
+            `[data-action="remove"][data-id="${CSS.escape(asking.id)}"]` + `[data-where="${CSS.escape(asking.where)}"]`;
         }
         set({ removing: undefined });
         break;
