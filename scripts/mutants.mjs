@@ -37,9 +37,11 @@
  * the wrong half is the half that gets believed.
  *
  * The operators are the mistakes this repo has actually made, not a textbook's
- * list: a comparison boundary, a boolean operator, a dropped negation, a
- * deleted `??` fallback, a guard clause that stops guarding, and a number off
- * by one.
+ * list: a comparison boundary, a comparison read backwards, a boolean
+ * operator, a dropped negation, a deleted `??` fallback, a guard clause that
+ * stops guarding, a number off by one — and, since 2026-09-23, a returned
+ * object's field emptied to `undefined`, which asks whether anything READS a
+ * value rather than whether it is computed right.
  *
  * ## What it does NOT do
  *
@@ -83,7 +85,7 @@
  * re-run against the whole suite before it is reported — because a survivor of a
  * partial run is not a survivor, it is an untested guess.
  *
- * Usage: `node scripts/mutants.mjs [--only <substring>] [--list]`
+ * Usage: `node scripts/mutants.mjs [--only <substring>] [--what <operator>] [--list]`
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -1013,6 +1015,76 @@ export function mutationsOf(text) {
     add((m.index ?? 0) + m[0].indexOf(m[1] ?? ""), m[1] ?? "", "void 0", "guard");
   }
 
+  // A FIELD of a returned object, emptied. Every operator above changes how a
+  // value is COMPUTED; this one asks whether anything reads it at all — a
+  // decision function that answers `{ verdict, landed, detail }` can compute
+  // `landed` perfectly and still have no test that would notice it missing.
+  //
+  // The value becomes `undefined`, not a "zero value": a zero needs the field's
+  // type, and a text mutator has none. `undefined` is the type-free stand-in,
+  // and the `tsc` step every survivor already goes through sorts the result —
+  // a REQUIRED field refuses it and is type-killed, so what survives is an
+  // optional field (`exactOptionalPropertyTypes` is off in this repo) that no
+  // test pins, which is exactly the finding this operator exists for.
+  //
+  // Only a literal that is returned — after `return` or an arrow's `=> (` —
+  // because the same `name: value` shape is a type annotation in a parameter
+  // list or an interface, and telling those apart otherwise needs a parser.
+  // Only its TOP-LEVEL properties: a nested literal's fields are one mutation
+  // of their parent away, and depth is counted over all three bracket kinds on
+  // the mask, where strings and comments are already blank. Spreads, methods,
+  // computed and quoted keys are left alone rather than rewritten wrongly.
+  for (const m of mask.matchAll(/\breturn\s*\{|=>\s*\(\s*\{/g)) {
+    const open = (m.index ?? 0) + m[0].length - 1;
+    const fields = [];
+    let depth = 0;
+    let from = open + 1;
+    let at = open + 1;
+    for (; at < mask.length; at++) {
+      const ch = mask[at];
+      if (ch === "(" || ch === "[" || ch === "{") depth++;
+      else if (ch === ")" || ch === "]" || ch === "}") {
+        if (depth === 0) break;
+        depth--;
+      } else if (ch === "," && depth === 0) {
+        fields.push([from, at]);
+        from = at + 1;
+      }
+    }
+    fields.push([from, at]);
+    for (const [start, end] of fields) {
+      // The START is found in the mask, which skips a comment above the field
+      // as readily as whitespace. The END cannot be: the mask blanks a string
+      // literal, quotes and all, so `detail: "all landed"` trimmed in the mask
+      // is `detail:` and the field would be skipped as empty. So the end is the
+      // mask's last code character, then carried over any string literal that
+      // follows it in the source.
+      const piece = mask.slice(start, end);
+      const bodyAt = start + piece.length - piece.trimStart().length;
+      let stop = start + piece.trimEnd().length;
+      for (;;) {
+        let k = stop;
+        while (k < end && /\s/.test(text[k] ?? "")) k++;
+        const quote = text[k] ?? "";
+        if (k >= end || !/["'`]/.test(quote) || mask[k] !== " ") break;
+        let close = k + 1;
+        while (close < end && text[close] !== quote) close += text[close] === "\\" ? 2 : 1;
+        stop = Math.min(close + 1, end);
+      }
+      if (stop <= bodyAt) continue;
+      const body = text.slice(bodyAt, stop);
+      if (/^[A-Za-z_$][\w$]*$/.test(body)) {
+        add(bodyAt, mask.slice(bodyAt, stop), `${body}: undefined`, "field");
+        continue;
+      }
+      const keyed = /^([A-Za-z_$][\w$]*)(\s*:\s*)/.exec(body);
+      if (!keyed) continue;
+      const valueAt = bodyAt + keyed[0].length;
+      if (valueAt >= stop || text.slice(valueAt, stop) === "undefined") continue;
+      add(valueAt, mask.slice(valueAt, stop), "undefined", "field");
+    }
+  }
+
   // A number off by one. Not `0` on its own inside an index, which is every
   // other line — `0` is included anyway, because an off-by-one at zero is the
   // one this repo actually shipped.
@@ -1378,7 +1450,7 @@ function main() {
   const only = (onlyAt === -1 ? "" : (argv[onlyAt + 1] ?? "")).split(",").filter(Boolean);
   const listing = argv.includes("--list");
   // `--what boundary,operands` sweeps one operator. A new operator is added to
-  // a suite the existing six have already cleared, so the run that matters is
+  // a suite the existing operators have already cleared, so the run that matters is
   // the new operator's alone; without this it costs a whole sweep to see it.
   const whatAt = argv.indexOf("--what");
   const what = (whatAt === -1 ? "" : (argv[whatAt + 1] ?? "")).split(",").filter(Boolean);
