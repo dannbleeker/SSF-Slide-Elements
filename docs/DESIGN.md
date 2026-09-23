@@ -1088,11 +1088,13 @@ record saying "checked" would licence somebody to make.
 
 Each is written so a single round settles it. The probe that asks them is a
 Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
-is put, and the sheets are filed under `docs/host-answers/`. Questions 1 to 6
-were asked before the splice and the picker were built, and answered on the web
-and on Windows; question 7 arrived after them, with the jump, and was answered
-on the web on 2026-09-14 — two sheets under `docs/host-answers/`, read in
-section 15. Mac and iPad have had no round at all.
+is put, and the sheets are filed under `docs/host-answers/`. **All seven are
+answered on the web and on Windows**, and section 15 reads every sheet.
+Questions 1 to 6 were asked before the splice and the picker were built;
+question 4 was settled last, on the Windows pair of 2026-09-14 against
+`template/probe-comments.pptx`. Question 7 arrived after them, with the jump,
+and was answered on both platforms on 2026-09-14. Mac and iPad have had no
+round at all, so every answer below is borrowed there.
 
 1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
    other parts are still present but unlisted?
@@ -1108,9 +1110,9 @@ section 15. Mac and iPad have had no round at all.
    the whole deck for every insert, and is the floor met on iPad?
 7. Does `setSelectedSlides` move the view, and does the host still answer a
    selection read afterwards? Added 2026-09-12 with the jump in section 4: that
-   call is the one selection WRITE the pane makes, it is made on SSF-Charts'
-   web measurement rather than this repo's, and until a sheet answers this the
-   jump is borrowed on every platform.
+   call is the one selection WRITE the pane makes, and it was made on
+   SSF-Charts' web measurement until the sheets of 2026-09-14 answered it here,
+   on the web and on Windows. On Mac and iPad the jump is still borrowed.
 
 ## 14. Build order
 
@@ -1684,14 +1686,13 @@ the host's own word for it.
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
 neither device, so the validators' report is the first measurement for both
-(section 9). A SEQUENCE of insert-then-remove cycles is **no longer assumed in the stamping
-direction**: the round of 2026-09-23 above put a stamp on three slides and then
-on fifty-nine, and the deck was read slide by slide either side of both. What
-is still assumed is the REMOVING direction — "Remove from N slides" (section 6)
-runs one cycle per slide, and no round has yet taken an element off several
-slides and read the deck back. That is the half to do next, and it is the half
-with the teeth: a removal that goes wrong takes a slide out rather than putting
-one in. Also assumed: the two-second budget in section 11, and the certification
+(section 9). A SEQUENCE of insert-then-remove cycles is **no longer assumed in
+either direction**. Stamping: the round of 2026-09-23 above put a stamp on three
+slides and then on fifty-nine, and the deck was read slide by slide either side
+of both. Removing: the round against `bd91527` the same day took a stamp off 39
+slides with a slide dragged mid-run, and the deck came back forty slides with
+every stamp gone and no label lost. What is still unmeasured on a host is a
+slide DELETED mid-run, which the section above records. Also assumed: the two-second budget in section 11, and the certification
 reading in section 12. Windows is no longer assumed — the section above is its
 round — but one Windows machine is one machine, and the "50 MB in about ten
 seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a
