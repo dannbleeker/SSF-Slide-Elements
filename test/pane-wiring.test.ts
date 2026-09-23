@@ -1562,6 +1562,44 @@ describe("the keyboard reaching the tiles", () => {
     expect(document.activeElement, "the focus went to the gear at the top").toBe(after[after.length - 1]);
   });
 
+  it("puts the focus back on the gear control that opened the panel, when Escape shuts it", async () => {
+    /**
+     * The third of the three dismissed surfaces, and the one that shipped with
+     * no case at all: the menu's return was held and the removal question's
+     * was, and the gear's was not.
+     *
+     * It is the hardest of the three, because the gear is drawn TWICE — the ⚙
+     * above the list and the settings line in the footer — and both carry
+     * `data-action="gear"` and nothing else. Returning to "a gear" is not
+     * enough: a user who opened the panel from the footer and pressed Escape
+     * must land back in the footer, not at the top of the pane past the search
+     * box, the chips and the whole list. `focusKey`'s position suffix is what
+     * tells the two apart, and this is what holds that it is being used.
+     */
+    const pane = await browsing();
+    const gears = () => [...pane.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+    expect(gears().length, "only one gear on screen, so the case proves nothing").toBeGreaterThan(1);
+
+    // From the FOOTER line.
+    const footer = gears()[gears().length - 1] as HTMLElement;
+    footer.focus();
+    footer.click();
+    await settle();
+    expect(pane.querySelector(".gear-panel"), "the panel did not open").not.toBeNull();
+    // Into the panel, which is where a keyboard user goes next and which is
+    // what the redraw removes.
+    const choice = pane.querySelector<HTMLElement>(".gear-panel [data-action]") as HTMLElement;
+    choice.focus();
+    expect(document.activeElement, "the panel took no focus, so there is nothing to lose").toBe(choice);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await settle();
+    expect(pane.querySelector(".gear-panel"), "Escape did not shut the panel").toBeNull();
+    const back = document.activeElement as HTMLElement | null;
+    expect(back?.dataset["action"], "Escape out of the gear dropped the focus").toBe("gear");
+    expect(back, "it went back to the ⚙ at the top, not the line that opened it").toBe(gears()[gears().length - 1]);
+  });
+
   it("keeps the focus on a tile that has just taken it", async () => {
     const pane = await browsing();
     const first = pane.querySelector<HTMLElement>('[data-action="tile"]')!;
