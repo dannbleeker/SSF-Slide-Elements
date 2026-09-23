@@ -22,16 +22,22 @@
  * script only touches the file system. It needs `npm run build:lib` first.
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Pkg, harvest, HarvestError } from "../dist-lib/core/index.js";
 import { catalogueHtml } from "./catalogue-page.mjs";
+import { OUT, publish, stage } from "./catalogue-out.mjs";
 
 const DECKS = [
   ["16:9", "library-16x9.pptx", "16x9"],
   ["4:3", "library-4x3.pptx", "4x3"],
 ];
-const OUT = "public/catalogue";
+// Everything is written to a STAGING directory and the committed catalogue is
+// replaced only at the end, once both decks have harvested and agreed. See
+// `catalogue-out.mjs`: this script has two early exits, and opening with an
+// `rmSync` of `public/catalogue` left the committed `catalogue.json` deleted
+// with no replacement on either of them.
+const WORK = stage();
 
 const names = JSON.parse(readFileSync("template/names.en.json", "utf8"));
 const sizes = {};
@@ -39,7 +45,6 @@ const written = [];
 /** Every element's markup, rolled up for the version hash below. */
 const markupHash = createHash("sha256");
 
-rmSync(OUT, { recursive: true, force: true });
 for (const [size, file, dir] of DECKS) {
   let result;
   try {
@@ -58,13 +63,13 @@ for (const [size, file, dir] of DECKS) {
   for (const el of catalogue.elements) {
     const { markup, ...rest } = el;
     const body = JSON.stringify(markup, null, 2) + "\n";
-    write(join(OUT, dir, "elements", `${el.id}.json`), body);
+    write(join(WORK, dir, "elements", `${el.id}.json`), body);
     // The markup goes into the VERSION even though it is written to its own
     // file: see the hash below for what it is a cache key for.
     markupHash.update(`${dir}/${el.id}\u0000${body}`);
     sizes[size].elements.push(rest);
   }
-  for (const [path, content] of parts) write(join(OUT, dir, "parts", path), content);
+  for (const [path, content] of parts) write(join(WORK, dir, "parts", path), content);
   console.log(
     `harvest: ${size} deck: ${catalogue.elements.length} elements in ${catalogue.categories.length} categories, ` +
       `${catalogue.elements.filter((e) => e.kind === "part").length} of them parts, ${parts.size} carried parts`,
@@ -140,13 +145,17 @@ for (const [, file] of DECKS) {
 }
 const body = JSON.stringify(sizes) + "\u0000" + markupHash.digest("hex");
 const version = createHash("sha256").update(body).digest("hex").slice(0, 12);
-write(join(OUT, "catalogue.json"), JSON.stringify({ version, sizes }, null, 2) + "\n");
+write(join(WORK, "catalogue.json"), JSON.stringify({ version, sizes }, null, 2) + "\n");
 
 // The catalogue page on the site (`docs/DESIGN.md` section 3): every element
 // with its picture and its name, for browsing outside PowerPoint. Written from
 // the same catalogue the pane reads and diffed by CI, so it cannot fall behind
 // the decks.
 writeFileSync("public/catalogue.html", catalogueHtml(sizes, version));
+
+// The last thing, and the only destructive one: everything above has run, so
+// there is a whole catalogue to put in place of the committed one.
+publish(WORK, OUT);
 
 console.log(`harvest: catalogue ${version}, ${written.length} files under ${OUT}, and public/catalogue.html`);
 

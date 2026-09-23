@@ -18,3 +18,8 @@ public/catalogue/4x3/
 
 # Diagnostics from `npm run previews`, alongside the previews themselves.
 public/catalogue/previews-report.json
+
+# Where `npm run harvest` builds the catalogue before it replaces the committed
+# one. A run that exits early leaves it behind on purpose — the point is that it
+# leaves `public/catalogue/` alone — and the next run clears it.
+public/.catalogue-staging/

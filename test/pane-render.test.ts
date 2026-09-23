@@ -243,6 +243,53 @@ describe("browsing", () => {
     expect(root.querySelectorAll('[data-action="tile"]').length).toBe(0);
   });
 
+  it("counts tiles against tiles, and drops the fraction when nothing is filtered", () => {
+    /**
+     * The line was `${tileCount(found)} of ${library.elements.length}`: a
+     * numerator in TILES against a denominator in ELEMENTS. A sized run is one
+     * tile with a stepper, so the two are different units and the fraction
+     * could never reach its own denominator — the committed 16:9 library drew
+     * "73 of 106" with an empty search box, which reads as 33 elements being
+     * withheld when nothing at all is filtered.
+     *
+     * This fixture is the same shape in miniature: three elements, two of them
+     * one run, so two tiles.
+     */
+    render(root, browsing, "browse");
+    expect(root.querySelector(".count")?.textContent, "the unfiltered line still reads as a fraction").toBe("2");
+    // Filtered, the fraction comes back — and both halves are tiles.
+    render(root, { ...browsing, tags: ["flow"] }, "browse");
+    expect(root.querySelector(".count")?.textContent).toBe("1 of 2");
+  });
+
+  it("gives BOTH gear controls the panel's state, and says which panel", () => {
+    /**
+     * The gear is drawn twice: the ⚙ above the list and the settings line in
+     * the footer. Both run the same toggle, and only the first reported any
+     * state — so a screen-reader user pressing the footer line heard a plain
+     * button whose own name is computed from the settings and therefore does
+     * not change, with a panel opening at the top of the pane, outside their
+     * reading position, and nothing announced. Pressing it again collapsed the
+     * panel with the same silence: the control was indistinguishable from a
+     * status line that does nothing.
+     *
+     * `aria-controls` is the other half — neither gear pointed at the panel,
+     * and the panel had no id to point at.
+     */
+    for (const open of [false, true]) {
+      render(root, { ...browsing, gear: open }, "browse");
+      const gears = [...root.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+      expect(gears.length, "the gear is drawn twice, by the search and in the footer").toBe(2);
+      for (const gear of gears) {
+        expect(gear.getAttribute("aria-expanded"), `${gear.className} reported no state`).toBe(String(open));
+        expect(gear.getAttribute("aria-controls"), `${gear.className} pointed at no panel`).toBe("gear-panel");
+      }
+      const panel = root.querySelector(".gear-panel");
+      expect(panel === null, "the panel is drawn only while it is open").toBe(!open);
+      if (panel) expect(panel.id).toBe("gear-panel");
+    }
+  });
+
   it("opens the gear into a panel of pressable options", () => {
     render(root, browsing, "browse");
     expect(root.querySelector(".gear-panel")).toBeNull();

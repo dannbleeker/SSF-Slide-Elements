@@ -79,7 +79,7 @@ fetched only when you insert it.
   shapes arrive **as one group** or **loose**, and whether its colours follow
   **this deck's theme** or come out **as in the library**. The line at the
   bottom of the pane always says what those are set to, and opens the gear when
-  clicked;
+  clicked — clicking it again shuts it, like the ⚙ itself;
 - **two links out of the gear.** **Report a problem** opens the support page in
   your browser with the build code, the app and the platform already filled in,
   so a report says which version was running without you looking anything up.

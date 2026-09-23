@@ -14,6 +14,19 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The count above the list no longer reads as though something were
+  filtered.** With an empty search box it said "73 of 106" — a count of tiles
+  over a count of elements, two different things, since an element that comes in
+  several sizes is one tile with a stepper. The fraction could never reach its
+  own denominator. It now counts the same thing on both sides, and shows just
+  the number when nothing is filtered.
+
+- **The settings line at the bottom of the pane now announces itself as the
+  control it is.** It opens and shuts the same options panel the ⚙ does, but a
+  screen reader heard a plain button with no state and no link to the panel, so
+  there was no way to tell whether pressing it had opened or closed anything.
+  Both controls now say which panel they open and whether it is open.
+
 - **The arrow keys no longer jump to the top of the list from wherever you
   are.** Pressing an arrow anywhere that was not a tile — the gear, a category
   heading, a tag chip, the size numbers, the star, the Insert button — threw

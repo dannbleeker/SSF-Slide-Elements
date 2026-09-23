@@ -414,7 +414,13 @@ PowerPoint would settle.
 - **Footer**: the last outcome with the measured slide count, then the actions
   (**Move to a new slide** when a whole-slide element landed on a slide that
   already had content, **Undo (n)**), then a line with the current
-  settings that opens the gear. Built in that order, which is this list's:
+  settings that opens the gear — and shuts it again, since it is the same
+  disclosure control as the ⚙ above the list. Both carry `aria-expanded` and
+  point at the panel by id, which the footer's did not until 2026-09-23: a
+  screen-reader user pressing it heard a plain button whose own name comes from
+  the settings and so does not change, while a panel opened at the top of the
+  pane outside their reading position with nothing announced.
+  Built in that order, which is this list's:
   measured on 2026-09-12, the row wraps to two lines at 320 px with Undo alone
   on the second whichever way round the first two go, so the order is the
   record's and nothing more.
@@ -696,11 +702,19 @@ exception for width.
 ## 8. Search
 
 Matches the English name, the Danish key (and later every locale's name), the
-category and the tags. Matches are highlighted in the names. While searching,
+category and the tags. While searching,
 the categories that have hits appear as chips with counts to narrow the search,
 and a sized tile greys out the counts that do not match. A query with no hits
 offers "Did you mean …" from the nearest names. Not doing: Enter inserting the
 top hit.
+
+**Highlighting the match inside the name is NOT built**, and this section
+claimed it was until 2026-09-23. Nothing anywhere draws one: every name reaches
+the DOM through `el()`, which sets `textContent`, and `matches()` answers a
+boolean rather than saying WHICH words hit — so there is no data a highlighter
+could use even if one were added. It is in `docs/BACKLOG.md` now, which is where
+a thing that is not done belongs. No user-facing document ever promised it, so
+nobody was told to expect it.
 
 ## 9. Accessibility and platforms
 
