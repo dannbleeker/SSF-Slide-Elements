@@ -235,7 +235,10 @@ function tile(state: PaneState, library: Library, element: Element, where: strin
   if (state.busy === true) pick.disabled = true;
   pick.appendChild(picture(element, library));
   pick.appendChild(el("span", "tile-name", element.name));
-  if (state.busy === true && state.chosen === element.id) {
+  // `busyWith`, not `busy`: the Undo and the deck-wide removal set `busy` too,
+  // and this painted "Inserting…" on the tile while the add-in was taking a
+  // slide back OUT of the deck.
+  if (state.busy === true && state.busyWith === "insert" && state.chosen === element.id) {
     pick.appendChild(el("span", "tile-busy", "Inserting…"));
   }
   item.appendChild(pick);

@@ -14,6 +14,12 @@
  * broken screen, and every message says what happened and what to do.
  */
 import type { Box, Element, SlideSize } from "../core/catalogue/types.js";
+// A VALUE import from `search.ts`, which imports only TYPES back from here, so
+// there is no runtime cycle — the type import is erased. Taken rather than
+// re-implementing the lookup: `CLAUDE.md` records that a rule reimplemented
+// inline "looks tidier and rots quietly", and this is the rule for whether the
+// library still has an element.
+import { elementOf } from "./search.js";
 import { slideList, type DeckUsage } from "./used.js";
 
 export type StepId = "loading" | "browse" | "problem";
@@ -99,6 +105,19 @@ export interface PaneState {
   settings: Settings;
   /** True while an insert runs: the pane locks and the chosen tile says so. */
   busy?: boolean;
+  /**
+   * WHICH long operation `busy` is holding the pane for.
+   *
+   * `busy` alone said only "something is running", and three things set it:
+   * the insert, the Undo and the deck-wide removal. Everything that read it
+   * assumed the first. So pressing Undo drew "One insert at a time. This one is
+   * still going." directly above its own "Undoing…" notice, and painted
+   * "Inserting…" on the tile while the add-in was taking a slide back OUT of
+   * the deck. On the web these take seconds — `CLAUDE.md` records the count
+   * sitting at its old value for 2.8 s — so the two contradictory sentences are
+   * on screen long enough to read.
+   */
+  busyWith?: "insert" | "undo" | "remove";
   outcome?: Outcome;
   /** The slide the user is on, counting from one, when the host would say. */
   slide?: number;
@@ -262,15 +281,44 @@ export function blockedReason(state: PaneState, step: StepId): string {
       "The library did not load. That is usually the network rather than a fault in the add-in, so try again."
     );
   }
-  if (state.busy === true) return "One insert at a time. This one is still going.";
-  if (state.chosen === undefined) return "Choose an element to insert it, or use the arrow keys and press Enter.";
+  if (state.busy === true) {
+    if (state.busyWith === "undo") return "Taking the last insert back. One thing at a time.";
+    if (state.busyWith === "remove") return "Taking the element off the deck. One thing at a time.";
+    return "One insert at a time. This one is still going.";
+  }
+  // A remembered `chosen` the library no longer carries is not a choice. It is
+  // restored from the per-deck bucket at boot and nothing revalidated it, so
+  // after a harvest that drops an element — commit 80dd869 took a whole
+  // category out of both decks, e43f689 removed the Scales — the pane came back
+  // with the button ENABLED, no sentence beside it and no tile marked. Pressing
+  // it reached `insert`, whose `elementOf` answered undefined, and it returned:
+  // no notice, no outcome, nothing announced. `docs/DESIGN.md` section 10 says
+  // the pane never shows a broken screen and every message says what happened.
+  // The remembered LISTS were already guarded this way in `render.ts`; this one
+  // was not.
+  if (chosenElement(state) === undefined)
+    return "Choose an element to insert it, or use the arrow keys and press Enter.";
   return "";
 }
 
 /** The one primary control per screen: what it says, and whether it can be pressed. */
 export function primary(state: PaneState, step: StepId): { label: string; disabled: boolean } {
   if (step === "problem") return { label: "Try again", disabled: false };
-  return { label: "Insert an element", disabled: step !== "browse" || state.busy === true || !state.chosen };
+  return {
+    label: "Insert an element",
+    disabled: step !== "browse" || state.busy === true || chosenElement(state) === undefined,
+  };
+}
+
+/**
+ * The element `state.chosen` names, when the library actually has it.
+ *
+ * The one place the two questions "is something chosen" and "can it be
+ * inserted" are answered together, so `primary` and `blockedReason` cannot
+ * drift apart on it again.
+ */
+export function chosenElement(state: PaneState): Element | undefined {
+  return state.chosen === undefined ? undefined : elementOf(state.library, state.chosen);
 }
 
 /**

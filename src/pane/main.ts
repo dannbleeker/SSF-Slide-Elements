@@ -654,7 +654,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
   // the footer reported plain success over it.
   const target = element.kind === "part" ? "onto" : (once ?? state.settings.target);
 
-  set({ busy: true, chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
+  set({ busy: true, busyWith: "insert", chosen: id, notice: INSERTING, outcome: undefined, menuFor: undefined });
   // Before the first await: from here on, any deck read running underneath this
   // is reading a deck this pane is in the middle of changing.
   deckEdits += 1;
@@ -700,6 +700,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     if (targetId === undefined) {
       set({
         busy: false,
+        busyWith: undefined,
         notice: undefined,
         outcome: {
           ok: false,
@@ -784,6 +785,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     state = {
       ...state,
       busy: false,
+      busyWith: undefined,
       // Section 6's "Move to a new slide". `report.held` is what the slide the
       // user was on already carried, counted by the splice out of the bytes it
       // was already holding, so the offer costs no second read and no host call.
@@ -839,6 +841,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       state = {
         ...state,
         busy: false,
+        busyWith: undefined,
         undo: 0,
         moveable: undefined,
         outcome: {
@@ -852,6 +855,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
       state = {
         ...state,
         busy: false,
+        busyWith: undefined,
         outcome: { ok: false, byHand: false, name: element.name, detail: `The insert was refused: ${readable(e)}` },
       };
     }
@@ -875,7 +879,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
 async function undo(): Promise<boolean> {
   const entry = undoable;
   if (!entry || state.busy === true) return false;
-  set({ busy: true, notice: "Undoing…" });
+  set({ busy: true, busyWith: "undo", notice: "Undoing…" });
   deckEdits += 1;
   const plan = undoPlan(entry);
   /**
@@ -930,6 +934,7 @@ async function undo(): Promise<boolean> {
     state = {
       ...state,
       busy: false,
+      busyWith: undefined,
       // `moveable` is deliberately NOT cleared here. `footerOf` gates the offer
       // on `undo` as well, so zeroing this is what makes it go, and a second
       // line saying the same thing would be one nothing could catch — a line
@@ -973,6 +978,7 @@ async function undo(): Promise<boolean> {
       state = {
         ...state,
         busy: false,
+        busyWith: undefined,
         undo: 0,
         outcome: {
           ok: false,
@@ -985,6 +991,7 @@ async function undo(): Promise<boolean> {
       state = {
         ...state,
         busy: false,
+        busyWith: undefined,
         outcome: { ok: false, byHand: true, name: entry.name, detail: `Undo did not work: ${readable(e)}` },
       };
     }
@@ -1147,7 +1154,12 @@ async function removeEverywhere(id: string): Promise<void> {
   const plan = state.removing;
   const element = elementOf(state.library, id);
   if (!plan || !element || plan.id !== id || state.busy === true) return;
-  set({ busy: true, notice: `Taking ${element.name} off ${plan.slides.length} slide(s)…`, outcome: undefined });
+  set({
+    busy: true,
+    busyWith: "remove",
+    notice: `Taking ${element.name} off ${plan.slides.length} slide(s)…`,
+    outcome: undefined,
+  });
   deckEdits += 1;
 
   let done = 0;
@@ -1204,6 +1216,7 @@ async function removeEverywhere(id: string): Promise<void> {
   state = {
     ...state,
     busy: false,
+    busyWith: undefined,
     removing: undefined,
     outcome,
     undo: 0,

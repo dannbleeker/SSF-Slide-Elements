@@ -185,10 +185,29 @@ describe("browsing", () => {
   });
 
   it("says Inserting on the tile that is going, and disables the rest", () => {
-    render(root, { ...browsing, chosen: "one-box", busy: true }, "browse");
+    // `busyWith` as well as `busy`, because the pane always sets the two
+    // together and a state built by hand should be one the pane can produce.
+    render(root, { ...browsing, chosen: "one-box", busy: true, busyWith: "insert" }, "browse");
     expect(root.textContent).toContain("Inserting…");
     for (const tile of root.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')) {
       expect(tile.disabled).toBe(true);
+    }
+  });
+
+  it("does NOT say Inserting while it is undoing or removing", () => {
+    /**
+     * Three things set `busy` — the insert, the Undo and the deck-wide removal
+     * — and this badge read `busy` alone. So the tile said "Inserting…" while
+     * the add-in was taking a slide back OUT of the deck, beside a notice that
+     * said "Undoing…". The lock still holds for all three; only the sentence
+     * was wrong.
+     */
+    for (const what of ["undo", "remove"] as const) {
+      render(root, { ...browsing, chosen: "one-box", busy: true, busyWith: what }, "browse");
+      expect(root.textContent, what).not.toContain("Inserting…");
+      const tiles = [...root.querySelectorAll<HTMLButtonElement>('[data-action="tile"]')];
+      expect(tiles.length, "no tiles to check").toBeGreaterThan(0);
+      for (const tile of tiles) expect(tile.disabled, `${what} must still lock the pane`).toBe(true);
     }
   });
 

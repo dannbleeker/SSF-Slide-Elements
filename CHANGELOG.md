@@ -14,6 +14,20 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **The pane no longer says it is inserting while it is undoing.** Pressing
+  Undo, or taking an element off every slide it is on, showed "One insert at a
+  time. This one is still going." directly above its own "Undoing…" — and put
+  an "Inserting…" badge on the tile while the add-in was in fact taking a slide
+  back out of your deck. On the web these take seconds, so both sentences were
+  on screen long enough to read. It now names what it is actually doing.
+
+- **The Insert button is no longer live with nothing behind it.** The pane
+  remembers the last element you inserted into a deck. If a later version of
+  the library no longer had that element, the button came back enabled with
+  nothing selected and no explanation, and pressing it did nothing at all —
+  no message, no sign anything had happened. It now treats a remembered choice
+  the library has lost as no choice, and says so.
+
 - **The keyboard no longer loses its place every time you insert.** Inserting
   greys out every tile while it runs, and the pane could not put the keyboard
   back on a tile that was greyed out — so it fell to the top of the page and

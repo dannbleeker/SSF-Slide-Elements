@@ -506,3 +506,73 @@ describe("where an arrow key moves the focus", () => {
     expect(arrowTo("ArrowDown", -1, 1)).toBe(0);
   });
 });
+
+describe("what the pane says it is busy WITH", () => {
+  /**
+   * `busy` alone said only "something is running", and three things set it: the
+   * insert, the Undo and the deck-wide removal. Everything that read it assumed
+   * the first.
+   *
+   * So pressing Undo drew "One insert at a time. This one is still going."
+   * directly above its own "Undoing…" notice — `render` draws the blocked line
+   * and the notice one after the other — and painted "Inserting…" on the tile
+   * while the add-in was taking a slide back OUT of the deck. On the web these
+   * take seconds (`CLAUDE.md`: the count sat at its old value for 2.8 s), so
+   * both contradictory sentences are on screen long enough to read.
+   *
+   * The only busy case in this file was an insert, which is why nothing caught
+   * it.
+   */
+  it("names the operation rather than assuming an insert", () => {
+    const busy = { ...browsing, chosen: "one-box", busy: true } as PaneState;
+    expect(blockedReason({ ...busy, busyWith: "insert" }, "browse")).toBe(
+      "One insert at a time. This one is still going.",
+    );
+    expect(blockedReason({ ...busy, busyWith: "undo" }, "browse"), "said an insert was running").toContain(
+      "Taking the last insert back",
+    );
+    expect(blockedReason({ ...busy, busyWith: "remove" }, "browse"), "said an insert was running").toContain(
+      "Taking the element off the deck",
+    );
+  });
+
+  it("still blocks the button whichever it is", () => {
+    // The lock is the point and it is not weakened: one thing at a time,
+    // whatever the thing is. `CLAUDE.md` records two inserts 0.4 s apart
+    // killing a sibling's tab.
+    for (const what of ["insert", "undo", "remove"] as const) {
+      expect(primary({ ...browsing, chosen: "one-box", busy: true, busyWith: what }, "browse").disabled, what).toBe(
+        true,
+      );
+    }
+  });
+});
+
+describe("a remembered choice the library no longer carries", () => {
+  /**
+   * `chosen` is restored from the per-deck bucket at boot and nothing
+   * revalidated it against the library. The remembered LISTS were already
+   * guarded this way — `render.ts` maps `recent` and `favourites` through
+   * `elementOf` and drops the misses — but the one that decides whether the
+   * primary button works was not.
+   *
+   * The library really does lose elements between releases: 80dd869 took a
+   * whole category out of both decks and e43f689 removed the Scales. After such
+   * a harvest the pane came back with the button ENABLED, no sentence beside it
+   * and no tile marked; pressing it reached `insert`, whose `elementOf`
+   * answered undefined, and it returned — no notice, no outcome, nothing
+   * announced. `docs/DESIGN.md` section 10 forbids exactly that.
+   */
+  it("is not a choice: the button is blocked and says why", () => {
+    const gone = { ...browsing, chosen: "an-element-the-harvest-dropped" } as PaneState;
+    expect(primary(gone, "browse").disabled, "the button was live with nothing behind it").toBe(true);
+    expect(blockedReason(gone, "browse"), "and it said nothing about why").toContain("Choose an element");
+  });
+
+  it("and one the library DOES carry still works", () => {
+    // The pair: this must not block a real choice, which is the whole feature.
+    const real = { ...browsing, chosen: "one-box" } as PaneState;
+    expect(primary(real, "browse").disabled).toBe(false);
+    expect(blockedReason(real, "browse")).toBe("");
+  });
+});
