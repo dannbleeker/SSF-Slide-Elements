@@ -854,9 +854,20 @@ describe("the committed library", () => {
     /**
      * Measured against the committed decks. A library of plain rectangles would
      * parse under any wrapper at all; these numbers are the prefixes beyond
-     * `p` and `a` that the sweep above actually has to resolve — `r` on 370
-     * relationship references, `mc` on 57 alternate-content fallbacks, and the
+     * `p` and `a` that the sweep above actually has to resolve — `r` on the
+     * relationship references, `mc` on the alternate-content fallbacks, and the
      * `c`, `a14`, `a16` and `p14` a real drawing carries.
+     *
+     * `frames` fell from 163 to 122 and `fallbacks` from 57 to 16 on
+     * 2026-09-23, and that is the point rather than a drift: what both lost is
+     * think-cell's hidden OLE frame, one per touched slide of the 4:3 deck,
+     * each carrying its own `<mc:AlternateContent>` — 41 of each, which is why
+     * the two fell by the same number — and `references` with them, 370 to
+     * 238, those being the ids each frame named for its OLE object and its
+     * fallback picture. The harvest no longer takes a shape PowerPoint does not
+     * draw for content. The counts are re-measured rather
+     * than relaxed, because a number that may move is a number that stops
+     * saying anything.
      */
     let groups = 0;
     let frames = 0;
@@ -872,9 +883,9 @@ describe("the committed library", () => {
       references += relIdsIn(fragment).length;
     }
     expect(groups).toBe(193);
-    expect(frames).toBe(163);
-    expect(fallbacks).toBe(57);
-    expect(references).toBe(370);
+    expect(frames).toBe(122);
+    expect(fallbacks).toBe(16);
+    expect(references).toBe(238);
   }, 120_000);
 
   it("gives every shape of every element an id of its own when renumbered", () => {
@@ -904,7 +915,9 @@ describe("the committed library", () => {
      * decides which parts to carry, `relIdsIn` and `repoint` decide which
      * references get rewritten, and an id one sees and the other does not is
      * either a dangling reference in the destination or a part copied for
-     * nothing. 73 of the elements name at least one.
+     * nothing. 34 of the elements name at least one — 71 until 2026-09-23,
+     * when the harvest stopped taking think-cell's hidden OLE frame for
+     * content and 37 elements lost the reference that frame carried.
      */
     const problems: string[] = [];
     let naming = 0;
@@ -919,6 +932,6 @@ describe("the committed library", () => {
       }
     }
     expect(problems).toEqual([]);
-    expect(naming).toBe(71);
+    expect(naming).toBe(34);
   }, 120_000);
 });

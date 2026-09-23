@@ -214,7 +214,26 @@ export async function writeShapeTags(
     // whole insert while `readShapeTags` below guards with exactly this test
     // and returns nothing. A reader that degrades and a writer that throws on
     // the same markup is the pair worth never shipping.
-    if (target && pkg.has(target)) {
+    // And the part has to BE a tag part. `relTarget` answers what an id points
+    // at for a relationship of any type, and nothing above asked what type this
+    // one is — so a `<p:tags>` naming, say, the slide's layout relationship
+    // sent `mergeTagPart` at `ppt/slideLayouts/slideLayout1.xml`, which holds no
+    // `<p:tag>` elements to keep, and the write replaced the layout with a
+    // `<p:tagLst>`. Every slide on that layout loses its design, and the
+    // add-in did it. Measured by running exactly that on 2026-09-23.
+    //
+    // No caller supplies one today: the only product caller is the splice,
+    // whose shapes have been through `repoint`, and every `r:` id named in
+    // every committed element's markup is present in that element's `rels`.
+    // But `repoint`'s own comment says an unmapped id is "a defect in the
+    // harvest" and leaves it ALONE — and a library `rId3` means something else
+    // entirely in a user's slide. The blast radius is somebody's layout, so
+    // the check is here rather than in the note that the case cannot arise.
+    //
+    // A mismatch is treated exactly as a reference that leads nowhere: the
+    // dangling `<p:tags>` goes and a fresh part is written below.
+    const type = target && pkg.has(target) ? await pkg.contentTypeOf(target) : undefined;
+    if (target && type === TAGS_CONTENT_TYPE) {
       pkg.setText(target, mergeTagPart(await pkg.text(target), entries));
       return;
     }

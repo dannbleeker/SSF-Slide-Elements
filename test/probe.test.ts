@@ -378,6 +378,15 @@ describe("CI keeps the committed snippet equal to a fresh build", () => {
 // ---------------------------------------------------------------------------
 
 describe("insertVerdict", () => {
+  it("says the deck LOST slides rather than that a negative number landed", () => {
+    // `-1 slide(s) landed anyway` tells a sheet's reader the opposite of what
+    // happened. The `landed < 0` branch below is only reached when the call did
+    // NOT throw, so the raising path had no guard at all.
+    const out = insertVerdict({ before: 5, after: 4, expected: 1, error: "timeout" });
+    expect(out.detail).toBe("the call threw: timeout, and the deck LOST 1 slide(s)");
+    expect(out.detail, "a negative count reads as a positive claim").not.toContain("-1 slide(s) landed");
+  });
+
   it("grades by the delta, never by the absence of an error", () => {
     expect(insertVerdict({ before: 3, after: 5, expected: 2 })).toMatchObject({ verdict: "yes", landed: 2 });
     expect(insertVerdict({ before: 3, after: 3, expected: 2 })).toMatchObject({ verdict: "no", landed: 0 });
@@ -437,6 +446,37 @@ describe("pruningReading", () => {
     expect(pruningReading(arm("yes", 2), arm("yes", 1), arm("threw"))).toContain("drop the relationship");
     expect(pruningReading(arm("yes", 2), arm("threw"), arm("yes", 1))).toContain("Unexpected");
     expect(pruningReading(arm("yes", 2), arm("threw"), arm("no"))).toContain("Pkg.removeSlide");
+  });
+
+  /**
+   * An arm the sheet does not carry is `notAsked`, whose verdict is "unknown".
+   * Only the control arm was guarded, so an unknown arm fell through the
+   * `=== "yes"` tests as "does not land" and the function answered question 1
+   * — the one the whole probe exists for — off an arm that never ran.
+   *
+   * The two that mattered are asserted separately, because they are different
+   * wrong answers: one instruction to drop the relationship, one to rewrite the
+   * removal. Asserting only that "NOT ANSWERED" appears somewhere would pass on
+   * a guard that caught one of them.
+   */
+  it("reads nothing from an arm that did not run", () => {
+    const missingUnlisted = pruningReading(arm("yes", 2), arm("yes", 1), notAsked("unlisted arm"));
+    expect(missingUnlisted).toContain("NOT ANSWERED");
+    expect(missingUnlisted, "graded a missing arm as a refusal").not.toContain("drop the relationship");
+    expect(missingUnlisted).toContain("the unlisted arm");
+
+    const neither = pruningReading(arm("yes", 2), notAsked("pruned arm"), notAsked("unlisted arm"));
+    expect(neither).toContain("NOT ANSWERED");
+    expect(neither, "told the engine what to build from two non-measurements").not.toContain("Pkg.removeSlide");
+    expect(neither).toContain("the pruned arm");
+    expect(neither).toContain("the unlisted arm");
+  });
+
+  it("still reads an arm that ran and refused", () => {
+    // The guard is about "unknown", not about "not yes": an arm that threw or
+    // landed nothing DID answer, and folding it in with the missing ones would
+    // stop the probe settling the question on a sheet that carries the evidence.
+    expect(pruningReading(arm("yes", 2), arm("threw"), arm("no"))).not.toContain("NOT ANSWERED");
   });
 });
 
@@ -550,6 +590,39 @@ describe("targetAddedVerdict", () => {
 });
 
 describe("selectionVerdict", () => {
+  it("does not blame the host for a slide past the probe's own read cap", () => {
+    // The probe reads a capped number of positions. A selected slide beyond
+    // that cap is at no position it LOOKED at, which says nothing about the
+    // host — reported as "no" it put a hard refusal on question 3's sheet for
+    // any deck bigger than the cap, which is the very fact the question exists
+    // to establish. `docs/PROBE.md` asks the runner to select slide 2, so no
+    // filed sheet shows it; nothing stops a bigger deck being used.
+    const out = selectionVerdict({
+      supported: true,
+      selectedIds: ["400#77"],
+      selectedIndexes: [-1],
+      positionalRead: 120,
+      deckSize: 200,
+    });
+    expect(out.verdict, "a hard no about the host, from the probe's own limit").toBe("unknown");
+    expect(out.detail).toContain("PROBE's cap");
+  });
+
+  it("still says NO when the deck fits inside what it read", () => {
+    // The pair: inside the cap, a selected id at no position really is the host
+    // failing to turn a selection into a slide number, and that is question 3's
+    // answer.
+    const out = selectionVerdict({
+      supported: true,
+      selectedIds: ["400#77"],
+      selectedIndexes: [-1],
+      positionalRead: 120,
+      deckSize: 40,
+    });
+    expect(out.verdict).toBe("no");
+    expect(out.detail).toContain("cannot be turned into a slide number");
+  });
+
   it("cannot say on a host without the call, on a throw, or with nothing selected", () => {
     expect(selectionVerdict({ supported: false }).detail).toContain("1.5");
     expect(selectionVerdict({ supported: true, error: "x" })).toMatchObject({ verdict: "threw" });

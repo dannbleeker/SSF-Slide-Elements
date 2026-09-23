@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   HarvestError,
   Pkg,
+  REL_TYPE,
   boxOf,
   contentCount,
   countKeys,
@@ -188,6 +189,109 @@ describe("headings and elements", () => {
     ]);
   });
 
+  it("fails an element that names a part the catalogue will not publish", async () => {
+    /**
+     * Two rules disagreed about which parts an element owns, and only one of
+     * them was enforced. `CARRIED` filters what the harvest COLLECTS, so a part
+     * outside `ppt/(charts|diagrams|drawings|embeddings|media|tags)/` is never
+     * written under `<size>/parts/` — while `carry()` in the splice copies
+     * every non-external relationship the markup names, with no filter, and
+     * raises by name when the store cannot serve one.
+     *
+     * So an element whose shape reached outside the allowlist harvested clean
+     * and then failed on EVERY insert, under a sentence blaming the catalogue
+     * for a part it was never told to publish. Neither shipped deck does it —
+     * 0 of 370 internal targets — but the decks are the owner's and one action
+     * button or one chart pasted with its own theme override is enough. The
+     * harvest is where that can still be fixed.
+     */
+    const pkg = await Pkg.open(
+      await makeDeck([
+        heading("Kasser"),
+        {
+          paragraphs: [["a"]],
+          title: "Kasse, 2 vertikale",
+          shapes: [
+            `<p:pic><p:nvPicPr><p:cNvPr id="40" name="Knap"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+              `<p:blipFill><a:blip r:embed="rId99"/><a:stretch/></p:blipFill>` +
+              `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`,
+          ],
+        },
+      ]),
+    );
+    const relsPath = Pkg.relsPathFor("ppt/slides/slide2.xml");
+    const rels = await pkg.text(relsPath);
+    pkg.setText(
+      relsPath,
+      rels.replace(
+        "</Relationships>",
+        `<Relationship Id="rId99" Type="${REL_TYPE.image}" Target="../slides/slide1.xml"/></Relationships>`,
+      ),
+    );
+    await expect(harvest(pkg, { size: "16:9", names: NAMES })).rejects.toMatchObject({
+      problems: [
+        '"Kasse, 2 vertikale" (slide 2) names "ppt/slides/slide1.xml", which the catalogue does not publish — ' +
+          "every insert of it would fail",
+      ],
+    });
+  });
+
+  it("fails when a CARRIED part names a part the catalogue will not publish", async () => {
+    /**
+     * The same disagreement one level down, because `copyPart` recurses. A
+     * carried part's own `.rels` is stored verbatim while `reachableParts`
+     * follows only the targets inside `CARRIED` — so a chart pasted with its
+     * own colours, which PowerPoint stores with
+     * `Type=".../themeOverride" Target="../theme/themeOverride1.xml"`, is
+     * published without its override. The dangling Relationship reaches the
+     * pane inside the stored rels part, `copyPart` resolves it, the store
+     * answers undefined and the insert dies.
+     *
+     * `ppt/theme/` is in `OWNABLE_BY_GRAPHIC` in `parts.ts` — whose own comment
+     * names a theme override — and not in `CARRIED`, which is exactly where the
+     * two lists part company.
+     */
+    const pkg = await Pkg.open(
+      await makeDeck([
+        heading("Kasser"),
+        {
+          paragraphs: [["a"]],
+          title: "Kasse, 2 vertikale",
+          noBody: true,
+          shapes: [
+            `<p:pic><p:nvPicPr><p:cNvPr id="50" name="Diagram"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>` +
+              `<p:blipFill><a:blip r:embed="rId80"/><a:stretch/></p:blipFill>` +
+              `<p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="1000000" cy="1000000"/></a:xfrm></p:spPr></p:pic>`,
+          ],
+        },
+      ]),
+    );
+    // A carried picture, and a rels part of its own naming a theme override.
+    pkg.setBytes("ppt/media/image9.png", new Uint8Array([1, 2, 3]));
+    const slideRels = Pkg.relsPathFor("ppt/slides/slide2.xml");
+    pkg.setText(
+      slideRels,
+      (await pkg.text(slideRels)).replace(
+        "</Relationships>",
+        `<Relationship Id="rId80" Type="${REL_TYPE.image}" Target="../media/image9.png"/></Relationships>`,
+      ),
+    );
+    pkg.setText(
+      Pkg.relsPathFor("ppt/media/image9.png"),
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/themeOverride"` +
+        ` Target="../theme/themeOverride1.xml"/></Relationships>`,
+    );
+
+    await expect(harvest(pkg, { size: "16:9", names: NAMES })).rejects.toMatchObject({
+      problems: [
+        'the carried part "ppt/media/image9.png" names "ppt/theme/themeOverride1.xml", which the catalogue does ' +
+          "not publish — every insert that carries it would fail",
+      ],
+    });
+  });
+
   it("fails a slide with content but no title, and a deck without a slide size", async () => {
     await expect(harvested([heading("Kasser"), { paragraphs: [["orphan"]] }])).rejects.toMatchObject({
       problems: ["slide 2 has content but no title, so it has no key"],
@@ -197,6 +301,71 @@ describe("headings and elements", () => {
     const sz = element(pres, P_NS, "sldSz");
     sz?.parentNode?.removeChild(sz);
     await expect(harvest(pkg, { size: "16:9", names: NAMES })).rejects.toThrow(/no slide size/);
+  });
+});
+
+describe("a shape PowerPoint does not draw", () => {
+  /**
+   * `hidden="1"` in the Selection Pane. think-cell parks an invisible OLE frame
+   * at the slide origin on every slide it has touched, and the 4:3 library deck
+   * has been through it — 41 of its 106 slides carry one.
+   *
+   * Harvested as content it did three things, all measured on the committed
+   * catalogue on 2026-09-23. It joined the element's BOX, which is a union, so
+   * 42 elements came out anchored at x=0.0002 and about 93% of the slide wide
+   * against the same element in the 16:9 deck at x=0.0573 and 88% — and the
+   * box is what the landing places from, what the preview crops to, and the
+   * frame `authored` rebases from. It was serialised into the MARKUP, so 41 of
+   * the shipped 4:3 elements put think-cell's frame into the user's deck on
+   * every insert. And it dragged its payload: 49 OLE binaries published under
+   * `4x3/parts/ppt/embeddings/`, copied into the user's presentation with the
+   * element. After the fix: 1 element at the origin (a full-width breadcrumb
+   * bar and a full-width triangle, both authored that way), 0 markups carrying
+   * a hidden shape, 8 binaries — the owner's own charts.
+   */
+  it("leaves a hidden shape out of the box, the markup and the carried parts", async () => {
+    const visible = rect(2000000, 1000000, 3000000, 2000000, { id: 30, name: "Synlig kasse" });
+    const ghost =
+      `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="31" name="Objekt 41" hidden="1"/>` +
+      `<p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>` +
+      `<p:xfrm><a:off x="1000" y="1000"/><a:ext cx="100" cy="100"/></p:xfrm>` +
+      `<a:graphic><a:graphicData/></a:graphic></p:graphicFrame>`;
+    const { catalogue } = await harvested([
+      heading("Kasser"),
+      { paragraphs: [["a"]], title: "Kasse, 2 vertikale", noBody: true, shapes: [visible, ghost] },
+    ]);
+    const el = catalogue.elements[0];
+    expect(el?.shapes, "the hidden frame was counted as one of the element's shapes").toBe(1);
+    // The visible rectangle alone, rounded the way the catalogue stores it.
+    // Without the fix the hidden frame's `<a:off x="1000" y="1000"/>` drags x
+    // and y to 0.0001 and widens the box to reach it, which is exactly the
+    // shape of what the 4:3 library shipped.
+    expect(el?.box, "the box was stretched to the slide origin by a shape nobody can see").toEqual({
+      x: 0.164,
+      y: 0.1458,
+      w: 0.2461,
+      h: 0.2916,
+    });
+    expect(el?.markup.xml, "the hidden frame went into the user's deck with the element").not.toContain('hidden="1"');
+    expect(el?.markup.xml).toContain("Synlig kasse");
+  });
+
+  it("keeps a hidden shape INSIDE a group the owner drew", async () => {
+    // The pair. The rule is about what counts as one of the slide's own
+    // elements, not about editing the owner's artwork: a group with something
+    // hidden in it is carried exactly as authored.
+    const grouped =
+      `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="40" name="Ejerens gruppe"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>` +
+      `<p:grpSpPr><a:xfrm><a:off x="2000000" y="1000000"/><a:ext cx="3000000" cy="2000000"/>` +
+      `<a:chOff x="2000000" y="1000000"/><a:chExt cx="3000000" cy="2000000"/></a:xfrm></p:grpSpPr>` +
+      `<p:sp><p:nvSpPr><p:cNvPr id="41" name="Skjult indeni" hidden="1"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>` +
+      `<p:spPr><a:xfrm><a:off x="2000000" y="1000000"/><a:ext cx="100" cy="100"/></a:xfrm></p:spPr></p:sp>` +
+      `</p:grpSp>`;
+    const { catalogue } = await harvested([
+      heading("Kasser"),
+      { paragraphs: [["a"]], title: "Kasse, 2 vertikale", noBody: true, shapes: [grouped] },
+    ]);
+    expect(catalogue.elements[0]?.markup.xml, "the owner's own artwork was edited").toContain("Skjult indeni");
   });
 });
 

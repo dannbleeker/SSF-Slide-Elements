@@ -42,8 +42,17 @@ async function problemsIn(bytes: Uint8Array): Promise<string[]> {
   const problems: string[] = [];
 
   // A relationship pointing at nothing is how a deck opens as "repaired".
-  for (const name of names.filter((n) => n.includes("/_rels/") && n.endsWith(".rels"))) {
-    const owner = name.replace("/_rels/", "/").replace(/\.rels$/, "");
+  //
+  // The ROOT `_rels/.rels` is included, and was not: it holds no `/_rels/`, so
+  // the filter excluded it by construction and the rule could never fire for
+  // the one rels part every package has. A missing `docProps/core.xml` — the
+  // shape that makes PowerPoint offer Repair — came back clean, and the
+  // content-type rules stayed silent too, because a part that is not there has
+  // no Override to be wrong about. `scripts/package-integrity.mjs`, which is
+  // the sweep run over the real decks, gets it right; this oracle did not.
+  for (const name of names.filter((n) => n.endsWith(".rels") && (n.includes("/_rels/") || n === "_rels/.rels"))) {
+    // The root's owner is the PACKAGE, so its targets resolve from the top.
+    const owner = name === "_rels/.rels" ? "" : name.replace("/_rels/", "/").replace(/\.rels$/, "");
     const doc = await read(name);
     const rels = els(doc, PKG_REL, "Relationship");
     for (const rel of rels) {
@@ -158,6 +167,37 @@ describe("the package oracle", () => {
     untyped.file("[Content_Types].xml", types.replace(/<Override PartName="\/ppt\/slides\/slide1\.xml"[^>]*\/>/, ""));
     const second = await problemsIn(await untyped.generateAsync({ type: "uint8array" }));
     expect(second).toContain("ppt/slides/slide1.xml has no content-type override of its own");
+  });
+
+  it("sees a dangling relationship in the package's ROOT rels part", async () => {
+    /**
+     * The rule above selected rels parts with `n.includes("/_rels/")`, and the
+     * root is `_rels/.rels` — no leading segment, so no `/_rels/`. The one rels
+     * part every package has was excluded by construction, and the rule could
+     * never fire for it.
+     *
+     * The shape that matters: a relationship to `docProps/core.xml` with the
+     * part absent is what makes PowerPoint offer Repair. Nothing else here
+     * catches it either — a part that is not in the package has no Override to
+     * be wrong about, so the content-type rules stay silent too.
+     *
+     * `scripts/package-integrity.mjs`, which is the sweep actually run over the
+     * library decks and every spliced output, has always got this right; this
+     * oracle is the second reader and did not.
+     */
+    const zip = await JSZip.loadAsync(await makeDeck([{ paragraphs: [["a"]] }]));
+    const root = await zip.file("_rels/.rels")!.async("string");
+    expect(root, "the fixture has no root rels part, so this proves nothing").toContain("<Relationship");
+    zip.file(
+      "_rels/.rels",
+      root.replace(
+        "</Relationships>",
+        '<Relationship Id="rIdCore" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"' +
+          ' Target="docProps/core.xml"/></Relationships>',
+      ),
+    );
+    const found = await problemsIn(await zip.generateAsync({ type: "uint8array" }));
+    expect(found.join("\n"), "the root rels part is not read at all").toContain("docProps/core.xml");
   });
 
   it("accepts a percent-encoded part name, and still catches one that is missing", async () => {

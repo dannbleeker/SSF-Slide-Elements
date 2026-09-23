@@ -368,13 +368,29 @@ export function unplaceholder(shapes: Element[]): number {
   return stripped;
 }
 
-/** Direct children of a shape tree that are shapes rather than its properties. */
+/**
+ * Direct children of a shape tree that are shapes rather than its properties.
+ *
+ * `<p:extLst>` is the third of those properties and was missing. CT_GroupShape
+ * allows it as the last child, and PowerPoint writes one on a group it is
+ * co-authoring — so a group whose only remaining child was its own extension
+ * list answered "one shape" and counted as occupied. Two callers read it that
+ * way: `remove.ts` decides a user group is empty by asking for zero of these,
+ * and left an empty `<p:grpSp>` standing on the slide, which is the very thing
+ * its own comment says it refuses to produce; and `blank()` treats anything
+ * that is not a placeholder as content and removed a slide's extension list
+ * outright.
+ */
 export function slideShapes(spTree: Element): Element[] {
   const out: Element[] = [];
   for (const node of Array.from(spTree.childNodes)) {
     if (node.nodeType !== 1) continue;
     const el = node as Element;
-    if (el.namespaceURI === P_NS && (el.localName === "nvGrpSpPr" || el.localName === "grpSpPr")) continue;
+    if (
+      el.namespaceURI === P_NS &&
+      (el.localName === "nvGrpSpPr" || el.localName === "grpSpPr" || el.localName === "extLst")
+    )
+      continue;
     out.push(el);
   }
   return out;

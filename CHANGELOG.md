@@ -9,6 +9,114 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **An element whose chart names its workbook with a space in it now inserts.**
+  A file name is written one way inside a PowerPoint file and stored another,
+  and the add-in read the two spellings differently — so an element carrying a
+  file with a space, a comma or a hash in its name was reported as missing from
+  the library and refused. Nothing in today's library is named that way; this is
+  about the libraries to come.
+
+- **"Browse the catalogue on the site" no longer claims it failed.** On every
+  PowerPoint that opens the page through a plain browser window, the add-in
+  reported "PowerPoint would not open a window" over a tab it had just
+  opened.
+
+- **The line under the header keeps the slide number when PowerPoint answers a
+  read only partly.** It used to blank the number as though nothing were
+  selected, where the same failure arriving as a timeout correctly left the
+  last number standing.
+
+- **A failed insert that finds the deck shorter says so even when PowerPoint
+  also reported an error.** The error used to be the only thing mentioned, in
+  the pane's mildest wording, over a deck that had lost a slide.
+
+- **Preview pictures update when the library decks change.** The address a
+  preview is fetched from carries a version that only changed when an
+  element's name, size or position did — so a deck edit that changed how
+  something LOOKS, and nothing else, left you seeing the old picture.
+
+- **The pane says what went wrong out loud.** A failed insert and a failed
+  Undo were shown in the footer but never announced, so a screen reader user
+  was told nothing on the one failure where the deck may be holding an extra
+  slide.
+
+- **Keyboard focus stays where you put it.** Pressing the settings line at the
+  bottom of the pane moved the focus to the gear button at the top, past the
+  search box and the whole list.
+
+- **Un-starring an element no longer strands the pane** while its "Remove from
+  N slides" question is open on the Favourites tile.
+
+- **The arrow keys work in the search box again.** Pressing Left or Right to
+  fix a typo moved the focus onto the first tile instead of the caret — and
+  since a tile is a button, the next Enter inserted that element. Left and
+  Right now belong to the search box; Down still steps out of it onto the
+  tiles.
+
+- **A long press on a touch screen no longer inserts the thing behind the menu
+  it just opened.** Holding a tile opened the menu, and then the same gesture's
+  own click closed it again and inserted onto the slide you were on — the very
+  target the menu is there to change.
+
+- **Undo is no longer left armed after "Remove from N slides".** Pressing it
+  would have put the removed element back on one slide and reported "Undone."
+
+- **An insert that leaves the deck shorter than it started no longer tells you
+  to delete a slide.** The slide it named was the one your element had just
+  landed on.
+
+- **The add-in copes with a PowerPoint that names the selected slide
+  differently from the deck's own list.** Where that happens, the pane could
+  not tell which slide you were on and refused every insert for the rest of the
+  session.
+
+- **Elements from the 4:3 library land where they should, and no longer bring
+  an invisible object into your deck.** The 4:3 library deck had been through
+  think-cell, which leaves an invisible frame in the corner of every slide it
+  touches. The add-in was treating that frame as part of the element: it
+  stretched 42 elements' measurements to the corner of the slide — so they were
+  placed and cropped as if they were nearly slide-sized — and it copied
+  think-cell's invisible object, and the file behind it, into your presentation
+  on every insert. Nothing you could see, and 0.7 MB of it across the library. Shapes
+  PowerPoint does not draw are now left out of the library, and the 4:3
+  elements carry 122 files where they carried 215.
+
+- **A deck written by another tool is read the way the rest of the add-in
+  reads it.** Where a deck referred to one of its own files with a doubled or
+  trailing slash, the add-in worked out a name the file does not have and then
+  quietly treated that file as missing — which could mean a new slide sharing
+  the previous one's speaker notes, or an element placed against the wrong
+  layout. PowerPoint does not write those, but other tools do.
+
+- **An empty group is no longer left behind when you remove a part you had
+  grouped with something of your own.** If the group was one PowerPoint had
+  written its own bookkeeping onto — which it does to a group in a shared,
+  co-authored deck — taking the element out left the group standing with
+  nothing in it.
+
+- **"Used in this deck" no longer forgets an element that is still there.**
+  Inserting the same element twice onto one slide and then pressing Undo took
+  the slide off the list entirely, so the pane reported nothing from the
+  library in a deck holding it — and the "Remove from N slides" button went
+  with the row. The earlier copy is still on the slide, and the list now says
+  so.
+
+- **The add-in uses far less memory while reading a deck.** Reading what a deck
+  already uses kept part of every slide that carries a tag in memory for the
+  rest of the session, so the cost grew with the length of your presentation.
+  Measured on the library deck: 44 held down to 1, and now flat however long
+  the deck is.
+
+- **A failed insert that finds the deck SMALLER than it was now says so.** It
+  used to report the size the deck had before and add that nothing had
+  changed — neither of which was true of a deck that had lost a slide.
+
+- **A tag can no longer be written over the wrong part of your deck.** If a
+  shape's bookkeeping reference pointed at something that was not a tag file —
+  a slide layout, say — the add-in would have overwritten it, and every slide
+  on that layout would have lost its design. It now checks what the reference
+  leads to first.
+
 - **A new slide no longer arrives carrying your own table or picture.** "As a
   new slide" copies the slide you are on and empties it, so the new one keeps
   the same design. It emptied the text on it, but a table or a picture you had
@@ -191,6 +299,24 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   answer when the pane asked which slide you were on, and you clicked another
   slide while it was waiting, the pane could go on naming the slide you had
   left. It now asks again.
+
+### Fixed — the host probe
+
+- The answer sheet no longer writes "-1 slide(s) landed anyway" when an insert
+  both raised and left the deck SHORTER. It now says the deck lost a slide,
+  which is the opposite fact and the one worth reading.
+
+- Question 3 no longer reports a hard refusal when the selected slide simply
+  sits past the 120 positions the probe reads. That is the probe's own cap, not
+  the host declining to answer, and putting it on the sheet as "no" would have
+  settled the question the wrong way. The sheet now says "unknown" and asks for
+  a re-run with a slide inside the range.
+
+- Question 1's reading no longer answers from an arm that did not run. A sheet
+  missing one of its two pruned inserts was graded as though that insert had
+  been refused, so the sheet carried a firm instruction about how the engine
+  must build its package — drawn from nothing. It now says which arm is
+  unanswered and asks for it to be re-run.
 
 ## [0.1.0] - 2026-09-16
 

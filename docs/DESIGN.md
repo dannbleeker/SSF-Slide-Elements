@@ -92,6 +92,29 @@ PowerPoint would settle.
   placeholders when it takes the library slide's shapes
   (`src/core/splice/shapes.ts`), for a new slide as well as onto the current
   one — so a Danish title cannot reach a user's deck by either route.
+- **A shape PowerPoint does not draw is not part of an element.** A top-level
+  shape marked `hidden="1"` in the Selection Pane is skipped by the harvest,
+  the way layout chrome and an empty placeholder are. Not a tidiness rule:
+  think-cell parks an invisible OLE frame at the slide origin on every slide it
+  has touched, and the 4:3 library deck has been through it — 41 of its 106
+  slides carry one. Measured on the committed catalogue on 2026-09-23, before
+  the rule existed:
+  - it joined the element's BOX, which is a union, so **42 elements** came out
+    anchored at x=0.0002 and about 93% of the slide wide, against the same
+    element in the 16:9 deck at x=0.0573 and 88%. The box is what the landing
+    places from, what the preview crops to, and the frame `authored` rebases
+    from, so all three were computed for a rectangle nearly the size of the
+    slide;
+  - it was serialised into the MARKUP, so **41 of the shipped 4:3 elements**
+    put think-cell's frame into the user's deck on every insert;
+  - and it dragged its payload: **49 OLE binaries** published under
+    `4x3/parts/ppt/embeddings/` and copied into the user's presentation with
+    the element. After the rule: 8, which are the owner's own charts, and the
+    4:3 deck's carried parts fall from 215 to 122.
+
+  The check is on the TOP-LEVEL shape only, which is where the harvest decides
+  what content is. A hidden shape inside a group the owner drew is the owner's
+  artwork and is carried as authored.
 - **An element that comes in several sizes is one tile with a stepper.** A run
   of elements that differ only by one count (process flows with 1 to 6 boxes,
   hierarchies with 2 to 5 boxes, matrices with 2 to 5 rows, and so on) is
@@ -676,8 +699,21 @@ top hit.
   the restore is flagged and the focus handler returns under it. Anything that
   focuses on render has to account for this, or it arms timers and redraws in a
   loop.
-- **Touch**: the first tap on a tile shows the preview, the second inserts;
-  nothing depends on hover.
+- **Touch**: a tap on a tile INSERTS, and nothing depends on hover. A
+  long press opens the same menu the right button does, and the click the
+  lifting finger produces is swallowed — without that the menu was closed by
+  its own gesture and the element inserted onto the current slide, which is the
+  target the menu exists to override (found 2026-09-23, reproduced in jsdom).
+
+  This line read "the first tap on a tile shows the preview, the second
+  inserts" until 2026-09-23. **That was never built** — `onClick` inserts on
+  the click every tap produces, and nothing in that path consults
+  `state.previewing`. It is written down as what the pane does rather than
+  built, on the owner's decision of the same day, because neither iPad nor
+  Windows touch has an answer sheet and a two-tap rule is a change to the core
+  interaction on a platform this repo cannot measure. The preview is still
+  reachable on touch: it opens on focus, which a tap gives the tile. Revisit it
+  in a round where a real touch host is to hand.
 - **Windows high-contrast mode**: the pane follows forced colours; rings, chips,
   tiles and the tick stay visible. **Measured from 2026-09-12**, when
   `pane-shots` gained a forced-colours pass over every state: until then this
@@ -734,6 +770,16 @@ happened and what to do.
   slides, nothing was changed", and "The deck grew by one but the copy could
   not be removed: delete slide N by hand". A call can raise and still have done
   the work, so every one of these is written from the measured delta.
+
+  A deck that SHRANK gets its own: "The insert did not confirm: the deck has N
+  slides where it had M. Check the deck before inserting again." It used to
+  fall into the no-op sentence above, which names the count from BEFORE — so
+  over a deck of 11 it read "the deck still has 12 slides, nothing was
+  changed", a count the deck does not have and a claim the delta refutes. It
+  needs no misbehaving host: the pane locks itself and not PowerPoint, and on
+  the web the insert and its confirming count take seconds, so a user deleting
+  a slide in that window produces it. The pane cannot know whether the insert
+  also landed, so the sentence stops at the two counts it took.
 - A read-only or protected deck, and a deck the host will not hand over
   (`getFileAsync` on an unsaved deck on the web, to be measured).
 

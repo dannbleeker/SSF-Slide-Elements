@@ -82,14 +82,79 @@ describe("an insert that did not land", () => {
     expect(out.ok).toBe(false);
   });
 
-  it("treats a deck that SHRANK the same way, rather than reporting a negative", () => {
+  it("says what a deck that SHRANK actually holds, rather than the count it used to", () => {
+    // This case used to assert `toContain("nothing was changed")`, which is the
+    // sentence above — and that sentence names `before`. Over a deck of 11 it
+    // read "the deck still has 12 slides, nothing was changed": a count the
+    // deck does not have, and a claim the delta refutes, in the one function
+    // whose purpose is to say no more than the count supports.
+    //
+    // Reachable without any host misbehaving. The pane locks itself, not
+    // PowerPoint, and on the web the insert plus its confirming count takes
+    // seconds, so a user deleting a slide in that window produces it.
     const out = outcomeOf({ ...base, inserted: 11, removed: undefined });
     expect(out.ok).toBe(false);
-    expect(out.detail).toContain("nothing was changed");
+    expect(out.detail).toBe(
+      "The insert did not confirm: the deck has 11 slides where it had 12. Check the deck before inserting again.",
+    );
+    expect(out.detail, "the count the deck no longer has").not.toContain("12 slides,");
+    expect(out.byHand, "only the user can say what went").toBe(true);
+  });
+
+  it("says the deck shrank even when the host ALSO raised", () => {
+    // The raise was tested first, so an insert that both raised and left the
+    // deck smaller came out as "The insert was refused: …" with
+    // `byHand: false` — the mildest sentence the pane has, over a deck that had
+    // lost a slide, with nothing telling the user to look. The raise does not
+    // make the delta untrue, and the delta is the more serious of the two
+    // facts, so it is asked about first and the reason is carried along.
+    const out = outcomeOf({ ...base, inserted: 11, removed: undefined, error: "RichApi.Error: timeout" });
+    expect(out.detail).toBe(
+      "The insert was refused: RichApi.Error: timeout — and the deck has 11 slides where it had 12. " +
+        "Check the deck before inserting again.",
+    );
+    expect(out.byHand, "the pane said nothing was worth looking at").toBe(true);
+  });
+
+  it("keeps the plain refusal when the deck is exactly the size it was", () => {
+    // The pair: a raise with no delta behind it is still just a refusal, and
+    // that sentence is quoted word for word in `docs/DESIGN.md` section 10.
+    const out = outcomeOf({ ...base, inserted: 12, removed: undefined, error: "InvalidArgument" });
+    expect(out.detail).toBe("The insert was refused: InvalidArgument");
+    expect(out.byHand).toBe(false);
+  });
+
+  it("keeps the no-op sentence for a deck that is exactly the size it was", () => {
+    // The pair. `landed === 0` is the silent no-op and its sentence is quoted
+    // word for word in `docs/DESIGN.md` section 10; only the negative delta
+    // moved.
+    const out = outcomeOf({ ...base, inserted: 12, removed: undefined });
+    expect(out.detail).toBe("The insert did not confirm: the deck still has 12 slides, nothing was changed.");
+    expect(out.byHand).toBe(false);
   });
 });
 
 describe("an insert that landed and could not be tidied", () => {
+  it("does not name a slide to delete when the deck came back SHORTER", () => {
+    // The removal half's guard, the mirror of the insert half's. That branch
+    // is written for `removed === before + 1`, where the copy is still on the
+    // slide — and it fired for `removed < before` too, where the copy is gone
+    // and the deck has lost something else. `slide` is then the slide the
+    // element LANDED on, so the sentence told the user to delete their own
+    // content: `landedOn({target: "onto", index})` is the same number.
+    //
+    // Same route as the insert half, which `docs/DESIGN.md` section 10 already
+    // accepts: `countReaching` answers whatever it last saw after its pauses,
+    // and the pane locks itself and not PowerPoint.
+    const out = outcomeOf({ ...base, inserted: 13, removed: 11 });
+    expect(out.detail, "it named the slide the element is on").not.toContain("delete slide");
+    expect(out.detail).toBe(
+      "The insert landed, but the deck now has 11 slides where it had 12. Check the deck before inserting again.",
+    );
+    expect(out.byHand).toBe(true);
+    expect(out.ok).toBe(false);
+  });
+
   it("names the slide the user has to delete", () => {
     // `docs/DESIGN.md` section 10, word for word. The pane does not try again:
     // a second positional delete on a deck whose shape it has already misread

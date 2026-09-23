@@ -157,6 +157,64 @@ async function host(fake: Fake) {
   return await import("../src/office/powerpoint.js");
 }
 
+describe("opening one of the site's own pages", () => {
+  /**
+   * `openExternal` answers whether anything opened, so the pane can say so
+   * rather than leaving a click that silently did nothing. On the fallback path
+   * it could only ever answer NO.
+   *
+   * `window.open` with `noopener` returns null by SPECIFICATION whether or not
+   * the tab opened, so `window.open(...) !== null` is false every time — and
+   * `leave()` in `src/pane/main.ts` then set the notice "PowerPoint would not
+   * open a window" over a tab that had just opened. The fallback runs on every
+   * host without `OpenBrowserWindowApi`, which `docs/DESIGN.md` section 7 says
+   * outright is unmeasured on all of them.
+   *
+   * There is no test for this function at all today, which is how it survived:
+   * `src/office` is deliberately outside the coverage floor.
+   */
+  async function opener(opened: () => unknown, supported = false) {
+    vi.resetModules();
+    (globalThis as unknown as { Office: unknown }).Office = {
+      context: {
+        requirements: { isSetSupported: () => supported },
+        ui: { openBrowserWindow: () => undefined },
+      },
+    };
+    vi.stubGlobal("window", { open: opened });
+    return await import("../src/office/powerpoint.js");
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reports success when the fallback opened a tab, though it answers null", async () => {
+    const mod = await opener(() => null);
+    expect(mod.openExternal("https://example.com/support.html")).toBe(true);
+  });
+
+  it("reports failure when the fallback raises", async () => {
+    // The pair. Not throwing is the only signal this path has, so the one thing
+    // that must still answer NO is a `window.open` that threw — a host with no
+    // window at all.
+    const mod = await opener(() => {
+      throw new Error("no window here");
+    });
+    expect(mod.openExternal("https://example.com/support.html")).toBe(false);
+  });
+
+  it("uses the supported route when the host has it, without touching window", async () => {
+    let fellThrough = false;
+    const mod = await opener(() => {
+      fellThrough = true;
+      return null;
+    }, true);
+    expect(mod.openExternal("https://example.com/support.html")).toBe(true);
+    expect(fellThrough, "it fell through to window.open with the supported route available").toBe(false);
+  });
+});
+
 describe("asking the host to name the open deck", () => {
   /**
    * The other single-expression read over `Office.context`, and the same
@@ -214,11 +272,47 @@ describe("a deck read that came back short", () => {
     expect(await mod.currentSlide()).toEqual({ index: 1, id: "b" });
   });
 
+  it("matches a selection id that lacks the deck's #suffix, and answers the DECK's spelling", async () => {
+    /**
+     * office-js#2474: a selection id can come back without the `#suffix` the
+     * deck's own list carries. `src/host/jump.ts` owns that comparison as
+     * `sameSlideId` and `docs/SIBLING.md` triages the issue **Relevant** with
+     * the promise "whatever names the slide the user is on matches by prefix
+     * and refuses two matches rather than guessing".
+     *
+     * This compared the two spellings with `===`, so on such a host
+     * `findIndex` answered -1 and the pane refused every insert with
+     * "PowerPoint would not say which slide you are on" — for the whole
+     * session, since the next read has the same shape.
+     *
+     * The second assertion is the other half: `Current.id` is documented as
+     * the host's own `256#3561048925` spelling because it becomes
+     * `targetSlideId`, and handing back the SELECTION's `first` passed an
+     * unsuffixed id straight to `insertSlidesFromBase64`.
+     */
+    const mod = await host({ deck: ["256#3561048925", "257#1178432"], selected: ["257"] });
+    expect(await mod.currentSlide()).toEqual({ index: 1, id: "257#1178432" });
+  });
+
+  it("refuses two slides whose ids both match, rather than taking the first", async () => {
+    // The pair, and the rest of what the ledger promises. Two suffixed ids
+    // sharing a prefix are DIFFERENT to `sameSlideId`, so this needs the
+    // ambiguous shape: one suffixed, one bare, both "257".
+    const mod = await host({ deck: ["257", "257#1178432"], selected: ["257"] });
+    expect(await mod.currentSlide(), "it guessed between two slides").toBeUndefined();
+  });
+
   it("refuses to name an index when the list is shorter than the count", async () => {
     // The host dropped "c". Nothing about "b" is wrong here — the point is
     // that the next read might drop "a" instead, and then "b" is index 0.
+    //
+    // `null` rather than `undefined`, and the difference is this file's own:
+    // undefined is the host SAYING there is no selection, null is the host not
+    // answering. A short collection read is the second, and answering it as the
+    // first made `followSelection` wipe a good slide number off the line under
+    // the header while a slide was plainly selected.
     const mod = await host({ deck: ["a", "b", "c"], read: ["a", "b"], selected: ["b"] });
-    expect(await mod.currentSlide()).toBeUndefined();
+    expect(await mod.currentSlide()).toBeNull();
   });
 
   it("refuses even when the slide it wants is in the short list", async () => {
@@ -226,6 +320,14 @@ describe("a deck read that came back short", () => {
     // not. A read that dropped the FRONT makes every index after it wrong, and
     // the deck is what a removal is counted against.
     const mod = await host({ deck: ["a", "b", "c", "d"], read: ["b", "c"], selected: ["c"] });
+    expect(await mod.currentSlide()).toBeNull();
+  });
+
+  it("still says UNDEFINED when the host answers that nothing is selected", async () => {
+    // The pair the two above depend on: the value that means "the host spoke,
+    // and the answer is no selection" has to stay distinguishable from the one
+    // that means "the host did not answer".
+    const mod = await host({ deck: ["a", "b", "c"], selected: [] });
     expect(await mod.currentSlide()).toBeUndefined();
   });
 

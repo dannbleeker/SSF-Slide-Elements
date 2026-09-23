@@ -55,10 +55,13 @@ export interface Outcome {
   /**
    * Whether the deck is in a state only the user can put right.
    *
-   * One case reaches this: the insert landed and the removal did not, so there
-   * is a slide too many. The pane must say which one rather than trying again,
+   * Three cases reach it. The insert landed and the removal did not, so there
+   * is a slide too many — the pane must say which one rather than trying again,
    * because a second attempt at a positional delete on a deck whose shape it
-   * has already misread is how the wrong slide goes.
+   * has already misread is how the wrong slide goes. The deck grew by more than
+   * the one slide the package listed. And the deck SHRANK, which no step here
+   * can do and which the pane therefore cannot describe further than the two
+   * counts it took.
    */
   byHand: boolean;
 }
@@ -81,6 +84,37 @@ export function outcomeOf(attempt: Attempt): Outcome {
     // said anything, and BOTH are honest: a refusal names the reason, and a
     // silent no-op says plainly that the deck is untouched, because "it did
     // not work" without a count leaves the user wondering what to undo.
+    // The SHRINK is asked about first, because it is the more serious of the
+    // two facts and the raise does not make it untrue. This tested `error`
+    // first, so an insert that both raised and left the deck smaller came out
+    // as "The insert was refused: …" with `byHand: false` — the pane's mildest
+    // sentence over a deck that had lost a slide, with nothing telling the user
+    // to look. Both halves are reachable in one go: `insertPackage` answers a
+    // reason instead of throwing, and `countReaching` then answers whatever it
+    // last saw, so an insert that ran out of budget while the user deleted a
+    // slide in the same window supplies exactly this.
+    if (landed < 0) {
+      // A deck that SHRANK. This used to fall into the sentence below, which
+      // then stated a count the deck does not have — "the deck still has 12
+      // slides" over a deck holding 11 — and claimed nothing had changed from a
+      // delta that is itself the evidence something did. Both halves false, in
+      // the one function whose whole purpose is to never say more than the
+      // count supports, and a test pinned it that way.
+      //
+      // Reachable without any host misbehaving: the pane locks ITSELF, not
+      // PowerPoint, and on the web an insert plus its confirming count takes
+      // seconds (`CLAUDE.md`'s 2.8 second lag), so a user deleting a slide in
+      // that window produces exactly this. What the pane cannot know is whether
+      // the insert also landed, so it says what it measured and stops.
+      return {
+        ok: false,
+        detail:
+          attempt.error === undefined
+            ? `The insert did not confirm: the deck has ${inserted} slides where it had ${before}. Check the deck before inserting again.`
+            : `The insert was refused: ${attempt.error} — and the deck has ${inserted} slides where it had ${before}. Check the deck before inserting again.`,
+        byHand: true,
+      };
+    }
     if (attempt.error !== undefined) {
       return { ok: false, detail: `The insert was refused: ${attempt.error}`, byHand: false };
     }
@@ -108,6 +142,19 @@ export function outcomeOf(attempt: Attempt): Outcome {
   }
 
   const removed = attempt.removed;
+  if (removed !== undefined && removed < before) {
+    // The removal took the copy AND the deck lost something else. The sentence
+    // below is written for `removed === before + 1`, where the copy is still
+    // there — and it fired here too, where the copy is gone and slide `slide`
+    // is the one the element LANDED on (`landedOn` for "onto" is the same
+    // number). A user who followed it deleted their own content, which is the
+    // exact failure `src/pane/main.ts` says this file exists to prevent.
+    return {
+      ok: false,
+      detail: `The insert landed, but the deck now has ${removed} slides where it had ${before}. Check the deck before inserting again.`,
+      byHand: true,
+    };
+  }
   if (removed === undefined || removed !== before) {
     return {
       ok: false,

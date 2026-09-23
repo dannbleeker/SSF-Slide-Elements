@@ -65,7 +65,7 @@ import {
   type Library,
   type PaneState,
 } from "./steps.js";
-import { renumbered, withInsert, withoutInsert } from "./used.js";
+import { holds, renumbered, withInsert, withoutInsert } from "./used.js";
 
 let state: PaneState = { ...EMPTY };
 let index: Index | undefined;
@@ -93,6 +93,15 @@ interface Undoable {
   id: string;
   /** Which slide it landed on, counting from ONE, for the same reason. */
   landedOn: number;
+  /**
+   * Whether "Used in this deck" already had this element on that slide.
+   *
+   * Asked before the insert, because afterwards nothing can tell: the list
+   * keeps one number per slide, so a second copy leaves the row unchanged.
+   * Undo restores the slide as it was BEFORE this insert, which still holds
+   * the earlier copy — so the row has to stay.
+   */
+  alreadyThere: boolean;
   /** What the pane knew the destination slide held BEFORE the insert. */
   onSlide: PaneState["onSlide"];
 }
@@ -189,7 +198,31 @@ function focusKey(el: Element): string | undefined {
     const value = el.dataset[name];
     if (value !== undefined) parts.push(`[data-${name}="${CSS.escape(value)}"]`);
   }
+  // The three attributes do not always tell two controls apart. The gear is
+  // drawn TWICE — the ⚙ button at the top and the settings line in the footer —
+  // and both carry `data-action="gear"` and nothing else, so pressing the
+  // footer line put the focus on the button at the top of the pane, past the
+  // search box, the chips and the whole list. `:nth-of-type` cannot help,
+  // because the two are not siblings; the position among the matches is
+  // appended instead, and only when there is more than one to tell apart.
+  const selector = parts.join("");
+  const all = [...root().querySelectorAll(selector)];
+  const at = all.indexOf(el);
+  return all.length > 1 && at >= 0 ? `${selector}\u0000${at}` : selector;
   return parts.join("");
+}
+
+/**
+ * The control a `focusKey` names, if the redraw still has it.
+ *
+ * The position after the `\u0000` is only there when `focusKey` found more than
+ * one match, so an ordinary key is still a plain selector.
+ */
+function focusedBy(key: string): HTMLElement | null {
+  const [selector, at] = key.split("\u0000");
+  if (selector === undefined) return null;
+  const all = [...root().querySelectorAll<HTMLElement>(selector)];
+  return (at === undefined ? all[0] : all[Number(at)]) ?? null;
 }
 
 /** Whether `draw` is putting the focus back, rather than the user moving it. */
@@ -217,7 +250,15 @@ function draw(): void {
 
   render(root(), state, stepFor(state));
   liveRegion();
-  announce(state.notice ?? "");
+  // The notice when there IS one, and otherwise the region is left alone.
+  //
+  // This announced `state.notice ?? ""`, so every redraw with no notice — which
+  // is nearly all of them — wiped the region. An outcome announced just before
+  // one of those was gone before anything could read it, which is why section
+  // 9's "a live region announces every outcome" held only for an outcome that
+  // happened to be the last word the pane said. Blanking bought nothing
+  // either: a live region is read on CHANGE, so stale text sits there unread.
+  if (state.notice !== undefined) announce(state.notice);
 
   if (wasSearch) {
     const search = root().querySelector<HTMLInputElement>('[data-action="search"]');
@@ -239,7 +280,7 @@ function draw(): void {
     // painted over by a later draw, outcome and Undo and all.
     restoringFocus = true;
     try {
-      root().querySelector<HTMLElement>(held)?.focus();
+      focusedBy(held)?.focus();
     } finally {
       restoringFocus = false;
     }
@@ -667,6 +708,7 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
           name: element.name,
           id: element.id,
           landedOn: landed,
+          alreadyThere: target === "onto" && holds(state.used, element.id, landed),
           onSlide: state.onSlide,
         }
       : undefined;
@@ -746,6 +788,11 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
     }
     delete state.notice;
     draw();
+    // `docs/DESIGN.md` section 9: "A live region announces every outcome." The
+    // success path a few lines up does; neither failure path did — so the one
+    // case where the deck may be holding a slide too many was the one a screen
+    // reader was told nothing about.
+    announce(state.outcome?.detail ?? "");
   }
 }
 
@@ -828,7 +875,9 @@ async function undo(): Promise<boolean> {
       used:
         entry.target === "new"
           ? renumbered(withoutInsert(state.used, entry.id, entry.landedOn), entry.landedOn + 1, -1)
-          : withoutInsert(state.used, entry.id, entry.landedOn),
+          : entry.alreadyThere
+            ? state.used
+            : withoutInsert(state.used, entry.id, entry.landedOn),
       onSlide: entry.onSlide,
     };
     delete state.notice;
@@ -872,6 +921,8 @@ async function undo(): Promise<boolean> {
     }
     delete state.notice;
     draw();
+    // Announced, for the reason the insert's catch gives.
+    announce(state.outcome?.detail ?? "");
     return false;
   }
 }
@@ -1067,11 +1118,26 @@ async function removeEverywhere(id: string): Promise<void> {
   }
 
   const outcome = removalOutcome(element.name, done, wanted.length);
+  // The armed Undo goes with it, whether or not a single slide was changed.
+  //
+  // `undoable` holds `before`: the WHOLE deck as it was before an earlier
+  // insert. Undoing after a removal replays `undoPlan` against a deck that has
+  // moved on, putting back a slide from bytes that predate the removal — so
+  // the element the user just took off the deck comes back on one slide, and
+  // every count check agrees, because each removal cycle is insert-then-remove
+  // and is net zero on the slide count. The pane then printed "Undone."
+  //
+  // Disarmed on the way out rather than in the catch above: the entry stops
+  // describing the deck at the first cycle that lands, and `done` is not known
+  // until here. The same rule as the insert's `asked` flag — an undo entry that
+  // no longer describes the deck is not an undo.
+  undoable = undefined;
   state = {
     ...state,
     busy: false,
     removing: undefined,
     outcome,
+    undo: 0,
     // What the deck holds has changed under the pane, and the snapshot of the
     // current slide with it. Both are dropped rather than guessed: the next
     // "See what this deck already uses" is what puts them back.
@@ -1118,6 +1184,26 @@ function onContextMenu(event: MouseEvent): void {
 const LONG_PRESS = 500;
 let pressing: ReturnType<typeof setTimeout> | undefined;
 
+/**
+ * Set when a long press has OPENED the menu, and consumed by the click the same
+ * gesture then produces.
+ *
+ * A finger lifting raises `pointerup` and then a `click`, and nothing cancelled
+ * it: `onClick` closed the menu the press had just opened and fell straight
+ * into `case "tile": void insert(id)` — inserting onto the slide the user is
+ * on, which is the very target the menu exists to override. The menu flashed
+ * up at 500 ms and was gone on the lift with an element in the deck.
+ *
+ * The mouse path never had this, because `contextmenu` fires with no left-button
+ * click after it and `onContextMenu` calls `preventDefault`.
+ *
+ * A flag consumed once, the way `restoringFocus` gates `onFocus`, rather than
+ * `preventDefault` on the pointer event: cancelling `pointerup` does not
+ * reliably suppress the click on every engine, and this is about one click
+ * rather than about the gesture.
+ */
+let pressOpened = false;
+
 function cancelPress(): void {
   if (pressing !== undefined) clearTimeout(pressing);
   pressing = undefined;
@@ -1125,6 +1211,11 @@ function cancelPress(): void {
 
 function onPointerDown(event: PointerEvent): void {
   cancelPress();
+  // A fresh gesture, so nothing is owed to the previous one. Cleared HERE
+  // rather than on a timer: a long press whose click never arrives — which is
+  // what Windows touch does, raising `contextmenu` instead — must not leave the
+  // flag set to swallow the next tap.
+  pressOpened = false;
   if (event.pointerType === "mouse") return;
   const found = actionOf(event.target);
   const element = elementOf(state.library, found?.el.dataset["id"]);
@@ -1132,12 +1223,23 @@ function onPointerDown(event: PointerEvent): void {
   const key = tileKey(found.el.dataset["where"] ?? "", element.id);
   pressing = setTimeout(() => {
     pressing = undefined;
-    if (state.busy !== true) set({ menuFor: key });
+    if (state.busy !== true) {
+      pressOpened = true;
+      set({ menuFor: key });
+    }
   }, LONG_PRESS);
 }
 
 function onClick(event: MouseEvent): void {
   const found = actionOf(event.target);
+  // The click a long press produces when the finger lifts. It is the tail of
+  // the gesture that opened the menu, not a new one, so it is swallowed whole:
+  // without this it closed the menu and inserted with the default target.
+  if (pressOpened) {
+    pressOpened = false;
+    event.preventDefault();
+    return;
+  }
   // Any click that is not ON the menu closes it, which is what every other
   // menu on every other platform does.
   if (state.menuFor !== undefined && found?.action !== "other-target") set({ menuFor: undefined });
@@ -1161,7 +1263,11 @@ function onClick(event: MouseEvent): void {
       break;
     case "star":
       if (id) {
-        set({ favourites: toggle(state.favourites, id) });
+        // `noQuestion` for the same reason the search and the categories carry
+        // it: un-starring empties the Favourites section, and a question open
+        // on a tile THERE goes with it — leaving the Remove button suppressed
+        // on every other tile and nothing on screen saying why.
+        set({ favourites: toggle(state.favourites, id), ...noQuestion });
         keep();
       }
       break;
@@ -1362,6 +1468,19 @@ function onKey(event: KeyboardEvent): void {
     }
     return;
   }
+  // LEFT and RIGHT belong to the search box while the caret is in it. The
+  // branch below ran whatever the event target was, and `arrowTo` answers a
+  // tile for an `at` of -1 — which is what the focus is when it is in the
+  // input — so ArrowLeft was `preventDefault`ed and the focus thrown onto tile
+  // 0. A user correcting a typo could not move the caret at all, the pane
+  // redrew with a preview card open, and the next Enter activated the tile,
+  // which is a real button: it inserted.
+  //
+  // DOWN is left alone deliberately. `arrowTo`'s own docstring justifies it —
+  // "a user pressing Down from the search box" — and it is how the keyboard
+  // reaches the tiles at all. Up with it, for symmetry: neither does anything
+  // in a one-line input that Home and End do not.
+  if (inSearch && (event.key === "ArrowLeft" || event.key === "ArrowRight")) return;
   const tiles = [...root().querySelectorAll<HTMLElement>('[data-action="tile"]')];
   const to = arrowTo(event.key, tiles.indexOf(document.activeElement as HTMLElement), tiles.length);
   const next = to === undefined ? undefined : tiles[to];

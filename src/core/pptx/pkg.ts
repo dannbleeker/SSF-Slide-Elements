@@ -434,11 +434,26 @@ export class Pkg {
       max = 0;
       for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
         const n = Number(/^rId(\d+)$/.exec(rel.getAttribute("Id") ?? "")?.[1] ?? 0);
-        if (n > max) max = n;
+        // `countable`, for the reason it exists: above 2^53 `Number` cannot
+        // tell one id from the next, so an id that large is not a number this
+        // can count FROM. Skipping it leaves a small free id to hand out, which
+        // is a better answer than refusing; the guard below is what refuses
+        // when there genuinely is none.
+        if (countable(n) && n > max) max = n;
       }
     }
-    const id = `rId${max + 1}`;
-    this.relHighWater.set(path, max + 1);
+    const next = max + 1;
+    // The hole `nextFree` closes for part numbers, closed here too. Above 2^53
+    // `max + 1 === max`, so a part holding `rId9007199254740992` was handed
+    // that very id back: `Id` is an xsd:ID, so the part is schema-invalid, and
+    // `repoint` writes the id into the inserted shape where a reader taking the
+    // first match resolves it to whatever the deck already had there — an
+    // inserted marker drawing the user's own picture. `relHighWater` would then
+    // be pinned at that value and repeat it for every further call.
+    if (!Number.isSafeInteger(next))
+      throw new Error(`ssf-slide-elements: ${path} has relationship ids too large to extend`);
+    const id = `rId${next}`;
+    this.relHighWater.set(path, next);
     const rel = doc.createElementNS(PKG_REL_NS, "Relationship");
     rel.setAttribute("Id", id);
     rel.setAttribute("Type", type);
@@ -474,16 +489,18 @@ export class Pkg {
   async relatedParts(ownerPart: string): Promise<string[]> {
     const path = Pkg.relsPathFor(ownerPart);
     if (!this.has(path)) return [];
-    const doc = await this.doc(path);
-    const out: string[] = [];
-    for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
-      if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
-      const target = rel.getAttribute("Target");
-      if (!target) continue;
-      const resolved = this.resolved(ownerPart, target);
-      if (!out.includes(resolved)) out.push(resolved);
-    }
-    return out;
+    // `peek`, not `doc`: see `relTarget` below for what retaining these cost.
+    return this.peek(path, (doc) => {
+      const out: string[] = [];
+      for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
+        if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
+        const target = rel.getAttribute("Target");
+        if (!target) continue;
+        const resolved = this.resolved(ownerPart, target);
+        if (!out.includes(resolved)) out.push(resolved);
+      }
+      return out;
+    });
   }
 
   /**
@@ -507,23 +524,43 @@ export class Pkg {
     const out = new Map<string, string>();
     const path = Pkg.relsPathFor(ownerPart);
     if (!this.has(path)) return out;
-    const doc = await this.doc(path);
-    for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
-      const id = rel.getAttribute("Id");
-      const target = rel.getAttribute("Target");
-      if (!id || !target) continue;
-      out.set(id, this.resolved(ownerPart, target));
-    }
+    // `peek`, not `doc`: see `relTarget` below for what retaining these cost.
+    await this.peek(path, (doc) => {
+      for (const rel of elements(doc, PKG_REL_NS, "Relationship")) {
+        const id = rel.getAttribute("Id");
+        const target = rel.getAttribute("Target");
+        if (!id || !target) continue;
+        out.set(id, this.resolved(ownerPart, target));
+      }
+    });
     return out;
   }
 
-  /** Resolve one `r:id` in a part to the package path it points at. */
+  /**
+   * Resolve one `r:id` in a part to the package path it points at.
+   *
+   * Through `peek` rather than `doc`, because this only READS — and `doc`
+   * retains, which put the retention back that `readShapeTags` was changed to
+   * avoid. That reader takes the slide and the tag part through `peek` and then
+   * resolves the reference between them through here, so every slide carrying
+   * any `<p:tags r:id>` left its `.rels` parsed and alive for the rest of the
+   * run. Measured 2026-09-23 over `usedInDeck`: the 4:3 library deck went from
+   * 2 parts held to **44**, and the 16:9 deck to 9 — the count tracking how
+   * many slides carry a tag reference rather than staying flat. A deck
+   * think-cell has touched carries one on every slide it has seen, which is the
+   * deck `CLAUDE.md` records meeting in the wild.
+   *
+   * `peek` still uses a cached document when there is one, so a caller part-way
+   * through amending a `.rels` reads its own edit.
+   */
   async relTarget(ownerPart: string, rId: string): Promise<string | undefined> {
     const path = Pkg.relsPathFor(ownerPart);
     if (!this.has(path)) return undefined;
-    const doc = await this.doc(path);
-    const rel = elements(doc, PKG_REL_NS, "Relationship").find((r) => r.getAttribute("Id") === rId);
-    const target = rel?.getAttribute("Target");
+    const target = await this.peek(path, (doc) =>
+      elements(doc, PKG_REL_NS, "Relationship")
+        .find((r) => r.getAttribute("Id") === rId)
+        ?.getAttribute("Target"),
+    );
     if (!target) return undefined;
     return this.resolved(ownerPart, target);
   }
@@ -1027,7 +1064,16 @@ function resolvePath(ownerPart: string, target: string, decode: boolean): string
   const parts = base === "" ? [] : base.split("/");
   for (const seg of target.split("/")) {
     if (seg === "..") parts.pop();
-    else if (seg !== ".") parts.push(seg);
+    // An EMPTY segment is dropped, not pushed. A doubled or trailing slash in a
+    // Target produced a name with one in it — `..//media/image1.png` resolved to
+    // `ppt//media/image1.png` — which `has` then answers no for, and every
+    // reader in this layer is written to degrade silently on that: a notes page
+    // shared between two slides, a layout and theme chain that comes back
+    // empty. `resolvePart` in `scripts/package-integrity.mjs` and `resolveFrom`
+    // in `splice/carry.ts` both already drop it, so the package checker and the
+    // engine disagreed about whether such a deck was sound. `clone.ts` says it
+    // for all three: the resolvers must be the same one.
+    else if (seg !== "." && seg !== "") parts.push(seg);
   }
   return parts.map(segment).join("/");
 }

@@ -637,6 +637,36 @@ describe("what this deck already uses", () => {
     expect(where, "and the new one is named too").toContain("2");
   });
 
+  it("keeps the row when the undone insert was not what put the element there", async () => {
+    /**
+     * `withInsert` keeps ONE number per slide, so inserting an element onto a
+     * slide it is already on leaves the list identical — and the undo then
+     * struck that number, reporting an element the pane can still see in the
+     * deck as absent. "Nothing from the library is in this deck yet" over a
+     * slide holding it, and the "Remove from 1 slide" button gone with the row.
+     *
+     * Two clicks on one tile reach it: the stamp is on slide 1, the user is
+     * standing on slide 1, the gear is on "onto this slide".
+     */
+    deckBase64 = await deckWithOneBox();
+    host.current = { index: 0, id: "256" };
+    const pane = await openAndAsk();
+    expect(pane.querySelector(".used-where")?.textContent, "the stamp starts on slide 1").toBe("slide 1");
+
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+    expect(pane.querySelector(".used-where")?.textContent, "a second copy on a listed slide").toBe("slide 1");
+
+    (pane.querySelector('[data-action="undo"]') as HTMLElement).click();
+    await waitFor("the undo to reach a positional delete", () => host.removed.length > 0);
+    await idle(pane);
+
+    expect(pane.querySelector(".used-list"), "the row went with the undo").not.toBeNull();
+    expect(pane.querySelector(".used-where")?.textContent, "and it still names the slide").toBe("slide 1");
+  });
+
   it("says the deck holds nothing rather than showing an empty space", async () => {
     // "Asked and empty" and "not asked" are different facts, and the pane has
     // to be able to tell the user which one it is.
@@ -1040,6 +1070,72 @@ describe("the other insert target, on right-click", () => {
     (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
     expect(pane.querySelector('[data-action="other-target"]')).toBeNull();
   });
+
+  /**
+   * A finger: press, hold past the long-press delay, lift. The lift raises a
+   * click.
+   *
+   * The tile is RE-QUERIED after the hold, because opening the menu redraws the
+   * pane and every `set` rebuilds its children — a node held across that is
+   * detached, and events dispatched on it reach the document-level handlers not
+   * at all. A first version of this held the node and the case passed with the
+   * defect in place.
+   */
+  async function longPress(pane: HTMLElement): Promise<void> {
+    const tile = (): HTMLElement => pane.querySelector('[data-action="tile"]') as HTMLElement;
+    tile().dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const live = tile();
+    live.dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", bubbles: true }));
+    live.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  }
+
+  it("survives the click the lifting finger produces, and inserts nothing", async () => {
+    /**
+     * A long press opened the menu at 500 ms; the finger lifting then raised a
+     * `click`, which `onClick` used to answer by closing the menu and falling
+     * into `case "tile": void insert(id)` — inserting onto the slide the user
+     * is on, which is the very target the menu exists to override. The menu
+     * flashed up and was gone on the lift, with an element in the deck.
+     *
+     * The mouse path never had it: `contextmenu` fires with no left-button
+     * click after it.
+     */
+    const pane = await openWithTiles();
+    // A selection, or the insert refuses before it reaches the splice and the
+    // count below is 0 whatever the click did.
+    host.current = { index: 0, id: "256" };
+    await longPress(pane);
+    await settle();
+    await settle();
+    expect(pane.querySelector('[data-action="other-target"]'), "the menu went with the lift").not.toBeNull();
+    expect(spliced.length, "it inserted behind the menu it had just opened").toBe(0);
+  });
+
+  it("does not swallow the NEXT tap after a long press", async () => {
+    // The pair. The flag is consumed by one click, and a long press whose click
+    // never arrives — which is what Windows touch does, raising `contextmenu`
+    // instead — must not leave it set to eat an ordinary tap.
+    const pane = await openWithTiles();
+    const tile = (): HTMLElement => pane.querySelector('[data-action="tile"]') as HTMLElement;
+    tile().dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    // No click at all: the gesture ended as a contextmenu on this host.
+    tile().dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", bubbles: true }));
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    await settle();
+
+    tile().dispatchEvent(new PointerEvent("pointerdown", { pointerType: "touch", bubbles: true }));
+    tile().dispatchEvent(new PointerEvent("pointerup", { pointerType: "touch", bubbles: true }));
+    // The click itself is the evidence: the swallow is a `preventDefault` and a
+    // `return`, so a tap that still reaches the pane is one that was not eaten.
+    // Asserted here rather than through the splice, because this fixture's host
+    // names no selected slide and an insert refuses before it reaches one.
+    const tap = new MouseEvent("click", { bubbles: true, cancelable: true });
+    tile().dispatchEvent(tap);
+    await settle();
+    expect(tap.defaultPrevented, "an ordinary tap was swallowed").toBe(false);
+  });
 });
 
 describe("what the menu actually inserts", () => {
@@ -1186,6 +1282,60 @@ describe("the keyboard reaching the tiles", () => {
 
   const focused = (): string | undefined => (document.activeElement as HTMLElement | null)?.dataset["id"];
 
+  it("leaves ArrowLeft and ArrowRight to the search box, so the caret can move", async () => {
+    // `onKey` is bound on `document` and the arrow branch ran whatever the
+    // target was. `arrowTo` answers tile 0 for an `at` of -1 — which is what
+    // `tiles.indexOf(activeElement)` is when the focus is in the input — so
+    // ArrowLeft was cancelled and the focus thrown onto the first tile. A user
+    // correcting a typo could not move the caret; the pane redrew with a
+    // preview card open; and the next Enter activated the tile, which is a
+    // real button, and inserted.
+    const pane = await browsing();
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.focus();
+    for (const key of ["ArrowLeft", "ArrowRight"]) {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      box.dispatchEvent(event);
+      expect(event.defaultPrevented, `${key} was taken from the search box`).toBe(false);
+      expect(document.activeElement, `${key} threw the focus out of the search box`).toBe(box);
+    }
+  });
+
+  it("still lets Down out of the search box onto the tiles", async () => {
+    // The pair, and the reason the fix names two keys rather than "in the
+    // search box, do nothing": `arrowTo`'s docstring justifies exactly this,
+    // and it is how the keyboard reaches the tiles at all.
+    const pane = await browsing();
+    const box = pane.querySelector<HTMLInputElement>('[data-action="search"]') as HTMLInputElement;
+    box.focus();
+    box.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    await settle();
+    expect(document.activeElement, "Down no longer reaches the tiles").not.toBe(box);
+    expect((document.activeElement as HTMLElement | null)?.dataset["action"]).toBe("tile");
+  });
+
+  it("puts the focus back on the SETTINGS LINE, not the gear at the top of the pane", async () => {
+    /**
+     * The gear is drawn twice — the ⚙ button above the list and the settings
+     * line in the footer — and both carry `data-action="gear"` and nothing
+     * else. `focusKey` built its selector from the three data attributes
+     * alone, so the restore after the redraw took the FIRST match: a keyboard
+     * user pressing the footer line was thrown to the top of the pane, past
+     * the search box, the chips and the whole list, and the next Tab carried
+     * on from there.
+     */
+    const pane = await browsing();
+    const gears = [...pane.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+    expect(gears.length, "only one gear on screen, so the case proves nothing").toBeGreaterThan(1);
+    const footer = gears[gears.length - 1] as HTMLElement;
+    footer.focus();
+    footer.click();
+    await settle();
+
+    const after = [...pane.querySelectorAll<HTMLElement>('[data-action="gear"]')];
+    expect(document.activeElement, "the focus went to the gear at the top").toBe(after[after.length - 1]);
+  });
+
   it("keeps the focus on a tile that has just taken it", async () => {
     const pane = await browsing();
     const first = pane.querySelector<HTMLElement>('[data-action="tile"]')!;
@@ -1270,6 +1420,11 @@ describe("a host that raises after the work landed", () => {
     const outcome = pane.querySelector(".outcome")?.textContent ?? "";
     expect(outcome, "a call that may have landed was not refused").not.toContain("refused");
     expect(pane.querySelector('[data-action="undo"]'), "the stale undo is disarmed").toBeNull();
+    // `docs/DESIGN.md` section 9: "A live region announces every outcome." The
+    // success path announced and this one did not — so the one failure where
+    // the deck may be holding a slide too many was the one a screen reader was
+    // told nothing about.
+    expect(document.getElementById("announcer")?.textContent, "the failure was never announced").toBe(outcome);
   });
 
   it("still calls it refused when nothing was ever asked of the host", async () => {
@@ -1980,6 +2135,20 @@ describe("removing a part from every slide it is on", () => {
     expect(host.cycles, "and nothing was removed on the way").toBe(0);
   });
 
+  it("drops it when the star that drew the tile is pressed", async () => {
+    // The Favourites section is drawn from `state.favourites`, so un-starring
+    // empties it — and a question open on a tile THERE goes with it, leaving
+    // the Remove button suppressed on every other tile and nothing on screen
+    // saying why. The star sits on the same tile as the Remove button and
+    // stays enabled while the question is up.
+    const pane = await askedToRemove();
+    expect(pane.querySelector(".tile-ask")).not.toBeNull();
+    (pane.querySelector('[data-action="star"]') as HTMLElement).click();
+    await settle();
+    expect(pane.querySelector(".tile-ask"), "the question outlived the tile it was on").toBeNull();
+    expect(pane.querySelector('[data-action="remove"]'), "and it was still suppressing Remove").not.toBeNull();
+  });
+
   it("drops it when the category it is in is collapsed, which hides the tile too", async () => {
     // Collapsing hides the question either way, since the question is drawn on
     // the tile — so the evidence has to be what is left AFTER the category is
@@ -1996,6 +2165,43 @@ describe("removing a part from every slide it is on", () => {
     expect(pane.querySelector(".tile-ask"), "the question was waiting where it was left").toBeNull();
     expect(pane.querySelector('[data-action="remove"]'), "and it was still suppressing Remove").not.toBeNull();
     expect(host.cycles).toBe(0);
+  });
+
+  it("disarms the Undo, because the entry no longer describes the deck", async () => {
+    /**
+     * `undoable` holds the WHOLE deck as it was before an earlier insert.
+     * Undoing after a deck-wide removal replays the plan against a deck that
+     * has moved on: the slide goes back from bytes that predate the removal, so
+     * the element the user just took off comes back on it — and every count
+     * check agrees, because a removal cycle is insert-then-remove and is net
+     * zero on the slide count. The pane printed "Undone." over it.
+     *
+     * Both controls are on screen at once in the ordinary flow: the footer's
+     * Undo and the tile's "Remove from N slides".
+     */
+    const pane = await askedToRemove();
+
+    // ARM the Undo first, or this asserts nothing: `askedToRemove` inserts
+    // nothing, so without this the button is absent either way. Cancel the
+    // question, insert an element, check the Undo is really there, then ask
+    // again and remove.
+    (pane.querySelector('[data-action="remove-cancel"]') as HTMLElement).click();
+    await settle();
+    // `askedToRemove` leaves the host with no selection, and an insert refuses
+    // without one.
+    host.current = { index: 0, id: "256" };
+    (pane.querySelector('[data-action="tile"][data-id="markeringer-1"]') as HTMLElement).click();
+    await waitFor("the insert to arm an Undo", () => pane.querySelector('[data-action="undo"]'));
+    await idle(pane);
+    expect(pane.querySelector('[data-action="undo"]'), "nothing to disarm, so the case proves nothing").not.toBeNull();
+
+    (pane.querySelector('[data-action="remove"]') as HTMLElement).click();
+    await settle();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    await ran(pane);
+
+    expect(pane.querySelector('[data-action="undo"]'), "a stale Undo survived the removal").toBeNull();
+    expect(pane.querySelector('[data-action="move"]'), "and so did the offer that runs the same undo").toBeNull();
   });
 
   it("runs one insert-and-remove cycle per slide once it is answered yes", async () => {

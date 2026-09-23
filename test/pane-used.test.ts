@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { browsing, LIBRARY } from "./fixtures/pane.js";
 import {
+  holds,
   renumbered,
   slideList,
   slideParts,
@@ -8,6 +9,7 @@ import {
   usedRows,
   withInsert,
   withoutInsert,
+  type DeckUsage,
 } from "../src/pane/used.js";
 
 /**
@@ -135,5 +137,27 @@ describe("what this deck already uses", () => {
       { element: "two-boxes", slides: [3, 11] },
     ]);
     expect(withoutInsert(used, "one-box", 2)).toEqual([{ element: "two-boxes", slides: [3, 5, 11] }]);
+  });
+
+  it("cannot tell, on its own, an insert that PUT it there from one that did not", () => {
+    // The hole this pair exists to close, stated as an arithmetic rather than
+    // argued. `withInsert` keeps one number per slide, so inserting the same
+    // element onto a slide it is already on leaves the list identical — and
+    // `withoutInsert` then takes the number away, reporting an element that is
+    // still on the slide as absent. Undo restores the slide as it was BEFORE
+    // that insert, which still holds the earlier copy.
+    const once: DeckUsage[] = [{ element: "one-box", slides: [3] }];
+    const twice = withInsert(once, "one-box", 3);
+    expect(twice, "a second copy on a listed slide leaves the row alone").toEqual(once);
+    expect(withoutInsert(twice, "one-box", 3), "which is why the caller must ask first").toEqual([]);
+  });
+
+  it("answers whether the list already puts an element on a slide", () => {
+    expect(holds(used, "one-box", 2)).toBe(true);
+    expect(holds(used, "one-box", 3), "that is the OTHER element's slide").toBe(false);
+    expect(holds(used, "two-boxes", 11)).toBe(true);
+    expect(holds(used, "nothing-like-it", 2)).toBe(false);
+    expect(holds(undefined, "one-box", 2), "the deck has never been read").toBe(false);
+    expect(holds([], "one-box", 2)).toBe(false);
   });
 });

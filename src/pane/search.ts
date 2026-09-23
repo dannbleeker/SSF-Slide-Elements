@@ -53,10 +53,16 @@ export interface Group {
  *
  * A sized element is ONE tile with a stepper (`docs/DESIGN.md` section 2), so a
  * run of "process flow with 1 box" through "with 6 boxes" collapses to its
- * first surviving member and the rest are reachable through the stepper. The
- * 16:9 deck has twelve such runs over 45 elements, so 117 elements show as 84
- * tiles: 117 − 45 + 12. Counted by running this function over the committed
- * catalogue, and confirmed against the count the pane itself draws.
+ * first surviving member and the rest are reachable through the stepper. Each
+ * deck has 12 such runs over 45 elements, so 106 elements show as 73 tiles:
+ * 106 − 45 + 12. Measured on the committed catalogue, 2026-09-23.
+ *
+ * It said 117 and 84 until that date, and had done since the library was last
+ * re-cut — a sentence quoting four counts, none of them still true, in the
+ * docstring a reader goes to for exactly those counts. So it is no longer a
+ * sentence anybody has to remember to update: `test/pane-search.test.ts` reads
+ * these five numbers back out of this comment and recomputes every one of them
+ * from `public/catalogue/catalogue.json`.
  */
 export function groups(library: Library, state: PaneState): Group[] {
   const wanted = library.elements.filter(

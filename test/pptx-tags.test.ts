@@ -758,6 +758,44 @@ describe("reading a deck back", () => {
     await expect(writeShapeTags(pkg, SLIDE, shape, OURS)).resolves.toBeUndefined();
   });
 
+  /** The `Id` of the slide's layout relationship, which is a relationship of the WRONG type to tag through. */
+  function layoutIdOf(rels: string): string {
+    const found = rels.match(/<Relationship[^>]*Id="([^"]+)"[^>]*slideLayout[^>]*>/);
+    const id = found?.[1];
+    if (!id) throw new Error("the fixture slide declares no layout relationship");
+    return id;
+  }
+
+  it("refuses to write a tag list over a part that is not a tag part", async () => {
+    /**
+     * `relTarget` answers what an id points at for a relationship of ANY type,
+     * and the writer asked only whether the package HELD the part. So a
+     * `<p:tags>` naming the slide's LAYOUT relationship sent `mergeTagPart` at
+     * the layout: it finds no `<p:tag>` elements to keep, and the write
+     * replaces `<p:sldLayout>` with a `<p:tagLst>`. Every slide on that layout
+     * loses its design, and the add-in did it.
+     *
+     * No caller supplies one today — the splice's shapes have been through
+     * `repoint` — but `repoint` leaves an unmapped id ALONE by design, calling
+     * it a defect in the harvest, and a library `rId3` means something else
+     * entirely in a user's slide. The blast radius is what puts the check in
+     * the writer rather than in a note saying the case cannot arise.
+     */
+    const pkg = await deck([{ paragraphs: [["a"]], shapes: [REFERENCE_TO_NOTHING] }]);
+    const shape = await shapeNamed(pkg, "Uden relation");
+    const layout = await pkg.relTarget(SLIDE, layoutIdOf(await pkg.text(Pkg.relsPathFor(SLIDE))));
+    expect(layout, "the fixture slide has no layout relationship to aim at").toBeDefined();
+    const before = await pkg.text(layout as string);
+    expect(before, "the fixture's layout is not a layout").toContain("<p:sldLayout");
+
+    referenceOn(shape)?.setAttributeNS(R_NS, "r:id", layoutIdOf(await pkg.text(Pkg.relsPathFor(SLIDE))));
+    await writeShapeTags(pkg, SLIDE, shape, OURS);
+
+    expect(await pkg.text(layout as string), "the slide layout was overwritten with a tag list").toBe(before);
+    // And the shape still got its tag, through a part of its own.
+    expect(await readShapeTags(pkg, SLIDE)).toHaveLength(1);
+  });
+
   it("says nothing for a reference with no `r:id`, beside a relationship that states no `Id`", async () => {
     /**
      * `relTarget` finds a relationship by comparing its `Id` to the id it was
@@ -1066,7 +1104,16 @@ describe("what reading a deck costs to hold", () => {
    * reads "3 slides held 5 parts, 60 slides held 62".
    */
   it("holds no more parts for a long deck than for a short one", async () => {
-    const slide: SlideSpec = { paragraphs: [["A slide with a little text on it"]] };
+    // `shapeTags` is not decoration. Without it no slide carries a
+    // `<p:tags r:id>`, `valuesOf` returns at its own `if (!rId)` guard, and the
+    // reference is never RESOLVED — so the growing path is never entered and
+    // this case could not fail whatever the resolver did. It did not fail while
+    // `relTarget` went through `doc`, which retains: measured 2026-09-23, the
+    // same fixture with tags on held 5 parts over 3 slides and 62 over 60,
+    // which are the very numbers the paragraph above quotes as the PRE-fix
+    // reading. A deck think-cell has touched carries a tagged shape on every
+    // slide it has seen, which is the deck this is written for.
+    const slide: SlideSpec = { paragraphs: [["A slide with a little text on it"]], shapeTags: true };
 
     const short = await deck(Array.from({ length: 3 }, () => slide));
     expect(await usedInDeck(short)).toEqual([]);

@@ -19,7 +19,7 @@
 import { XMLSerializer } from "@xmldom/xmldom";
 import { Pkg } from "../pptx/pkg.js";
 import { coloursOf, themeChain } from "../pptx/theme.js";
-import { A_NS, P_NS, PKG_REL_NS, R_NS, elements, element } from "../pptx/xml.js";
+import { A_NS, P_NS, PKG_REL_NS, R_NS, child, elements, element, parseXml } from "../pptx/xml.js";
 import { boxOf, offSlide, rotationOf, rounded, topLevelShapes, union } from "./boxes.js";
 import { sizeRuns } from "./runs.js";
 import { tagsFor } from "./tags.js";
@@ -54,6 +54,39 @@ export class HarvestError extends Error {
     super(message);
     this.name = "HarvestError";
   }
+}
+
+/**
+ * A shape PowerPoint does not draw, marked `hidden="1"` in the Selection Pane.
+ *
+ * Not content, and not the owner's either: think-cell parks an invisible OLE
+ * frame at the slide origin on every slide it has touched, and the 4:3 library
+ * deck has been through it. 41 of its 106 slides carry one — 50 shapes — and
+ * the 16:9 deck carries a single one.
+ *
+ * Harvested as content it did three things, all measured on the committed
+ * catalogue on 2026-09-23. It joined the element's BOX, which is a union: 42
+ * elements came out anchored to x=0.0002, y=0.0002 and about 93% of the slide
+ * wide, against the same element in the 16:9 deck at x=0.0573 and 88% — so the
+ * landing, the preview crop and the frame `authored` rebases from were all
+ * computed for a rectangle nearly the size of the slide. It was SERIALISED into
+ * the element's markup, so 41 of the shipped 4:3 elements carry think-cell's
+ * frame and put it into the user's deck on every insert. And it dragged its
+ * payload along: 48 relationships to an embedded object, and 49 OLE binaries
+ * published under `4x3/parts/ppt/embeddings/`, copied into the user's
+ * presentation with the element.
+ *
+ * Checked on the top-level shape only, which is where `content` is decided. A
+ * hidden shape INSIDE a group the owner drew is the owner's business and is
+ * carried as authored.
+ */
+function isHidden(shape: Element): boolean {
+  for (const node of Array.from(shape.childNodes)) {
+    if (node.nodeType !== 1) continue;
+    const cNvPr = child(node as Element, P_NS, "cNvPr");
+    if (cNvPr) return cNvPr.getAttribute("hidden") === "1";
+  }
+  return false;
 }
 
 /** Layout chrome, or a placeholder with nothing in it: not content. A table or a picture in a content placeholder is content. */
@@ -150,8 +183,13 @@ async function markupFor(
     seen,
     collect,
   );
-  // A part reached from the slide's relationships but not by the CARRIED rule is the destination's business
-  // (a layout, a notes page); the splice never copies it, so it is not listed.
+  // A part reached from the slide's relationships but not by the CARRIED rule
+  // is the destination's business (a layout, a notes page), so it is not
+  // listed. This used to add "the splice never copies it", which is not true:
+  // `carry()` copies every non-external relationship the markup names. Nothing
+  // a SHAPE names reaches outside the rule today, and `harvest` now refuses an
+  // element that does rather than leaving the disagreement to be discovered by
+  // a user whose insert fails.
   return { xml, rels, parts };
 }
 
@@ -226,7 +264,7 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     const title = titleOf(doc);
     const content: { shape: Element; box: Box | undefined }[] = [];
     for (const shape of topLevelShapes(doc)) {
-      if (isChrome(shape)) continue;
+      if (isChrome(shape) || isHidden(shape)) continue;
       const box = boxOf(shape, width, height);
       if (box && offSlide(box)) continue;
       content.push({ shape, box });
@@ -305,6 +343,65 @@ export async function harvest(pkg: Pkg, options: HarvestOptions): Promise<Harves
     if (other !== undefined && other !== el.key)
       problems.push(`"${el.key}" and "${other}" both slug to the id "${el.id}"`);
     ids.set(el.id, el.key);
+  }
+
+  // An element may not NAME a part this harvest will not publish.
+  //
+  // Two rules disagreed about which parts an element owns, and only one of them
+  // was enforced. `CARRIED` above filters what `reachableParts` collects, so
+  // only matching parts are written under `<size>/parts/` and listed in the
+  // content-type map — while `carry()` in the splice copies EVERY non-external
+  // relationship the markup names, with no filter, and raises by name when the
+  // store cannot serve one. So an element whose shape reached outside the
+  // allowlist harvested clean and then failed on every insert, with the
+  // sentence "the catalogue has no part …, which this element needs" blaming
+  // the catalogue for a part it was never told to publish.
+  //
+  // Neither shipped deck does it — 0 of 370 internal targets, measured
+  // 2026-09-23 — because no SHAPE names a layout or a notes page. But the decks
+  // are the owner's and are re-harvested whenever they change, and one "go to
+  // slide" action button or one chart pasted with its own theme override is
+  // enough. This turns that from a failure in somebody's PowerPoint into a
+  // failure of `npm run harvest`, which is where it can still be fixed.
+  for (const el of elementsOut) {
+    for (const rel of el.markup.rels) {
+      if (rel.external || CARRIED.test(rel.target)) continue;
+      problems.push(
+        `"${el.key}" (slide ${el.slide}) names "${rel.target}", which the catalogue does not publish — ` +
+          `every insert of it would fail`,
+      );
+    }
+  }
+
+  // And the same one level down, because `copyPart` recurses.
+  //
+  // A carried part's own `.rels` is stored VERBATIM, while `reachableParts`
+  // above follows only the targets inside `CARRIED`. `copyPart` follows all of
+  // them: a chart pasted with its own colours is stored by PowerPoint with
+  // `ppt/charts/_rels/chart1.xml.rels` naming
+  // `Type=".../themeOverride" Target="../theme/themeOverride1.xml"`, and
+  // `ppt/theme/` is outside the rule — so the override is never published, the
+  // dangling Relationship reaches the pane inside the stored rels part, and the
+  // insert dies on it. `OWNABLE_BY_GRAPHIC` in `parts.ts` names `theme` for
+  // exactly this reason and `CARRIED` does not, which is where the two lists
+  // part company.
+  //
+  // Checked over the stored parts rather than per element, because that is the
+  // set `copyPart` walks, and one part reached by two elements is one problem.
+  for (const [path, body] of parts) {
+    if (!path.endsWith(".rels") || typeof body !== "string") continue;
+    const owner = path.replace("/_rels/", "/").replace(/\.rels$/, "");
+    for (const rel of elements(parseXml(body), PKG_REL_NS, "Relationship")) {
+      if ((rel.getAttribute("TargetMode") ?? "") === "External") continue;
+      const target = rel.getAttribute("Target");
+      if (!target) continue;
+      const resolved = pkg.resolved(owner, target);
+      if (CARRIED.test(resolved)) continue;
+      problems.push(
+        `the carried part "${owner}" names "${resolved}", which the catalogue does not publish — ` +
+          `every insert that carries it would fail`,
+      );
+    }
   }
   if (problems.length)
     throw new HarvestError(`the ${options.size} deck cannot be harvested: ${problems.length} problem(s)`, problems);
