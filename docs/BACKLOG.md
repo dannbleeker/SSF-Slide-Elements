@@ -45,6 +45,37 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
+### A run walks INDEXES, so a reorder between cycles goes unnoticed
+
+Measured on Windows on 2026-09-23, in two rounds that disagreed until the
+fixture was fixed (`docs/DESIGN.md` section 15 has both).
+
+`stampEvery` and the removal beside it take a list of slide INDEXES captured
+before the run and walk it. Each cycle re-reads the id at its index and
+`stillThere` refuses the positional delete if that id has changed — which is
+the guard of #131, and it works: a slide dragged mid-cycle stopped the run with
+"the deck has a slide too many", **no slide lost**, the original left beside its
+rebuilt copy exactly as the message said.
+
+What that guard cannot see is a reorder landing BETWEEN cycles. Nothing moves
+during a cycle, so nothing is caught, and every later index now names a
+different slide. Measured: a run reported **"Stamped 59 slides" where 58 gained
+one**, and the slide that had moved was the one without it. Nothing was lost —
+the deck kept its length and all of its slides — but the count was one too high
+and a selected slide was silently skipped.
+
+**The fix is to stop walking indexes.** Resolve the selection to slide IDs once,
+then find each id's current index per cycle; a slide that has moved is still
+found, and one that has gone is skipped honestly. `slideIdAt` already exists and
+the ids are the user's own pre-existing slides, so `CLAUDE.md`'s "a slide the
+run just added does not resolve by id" does not apply to them.
+
+**Why it is here rather than done.** The same loop performs the REMOVAL, and the
+item below records that no test drives a removal past one cycle. Changing how a
+destructive loop chooses its target, with single-cycle coverage only, is the
+shape of change this repository has been bitten by. Do the fixture below first,
+then this.
+
 ### No test drives the removal past one cycle
 
 Found on 2026-09-23 while reading the several-slide stamp against the deck-wide
