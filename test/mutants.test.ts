@@ -8,7 +8,11 @@ import * as tool from "../scripts/mutants.mjs";
 const codeMask = tool.codeMask as (text: string) => string;
 const mutationsOf = tool.mutationsOf as (text: string) => { at: number; was: string; now: string; what: string }[];
 const judgeSurvivor = tool.judgeSurvivor as (where: string) => { known: boolean; why: string };
-const staleEquivalents = tool.staleEquivalents as (survivors: string[], swept: string[]) => string[];
+const staleEquivalents = tool.staleEquivalents as (
+  survivors: string[],
+  swept: string[],
+  operators?: string[],
+) => string[];
 const EQUIVALENT = tool.EQUIVALENT as { file: string; what: string; was: string; why: string }[];
 const FAST = tool.FAST as Record<string, string[]>;
 const TARGETS = tool.TARGETS as string[];
@@ -282,6 +286,83 @@ describe("a field of a returned object, emptied", () => {
   });
 });
 
+describe("the grouping of a mixed && and || chain, exchanged", () => {
+  /**
+   * The operator that keeps every `&&` and `||` and moves the brackets. The
+   * boolean operator flips one operator; this is the other way a condition goes
+   * wrong, and prettier's habit of bracketing every mixed chain is why it needs
+   * three forms rather than one.
+   */
+  const regrouped = (source: string) =>
+    mutationsOf(source)
+      .filter((m) => m.what === "grouping")
+      .map((m) => `${m.was} -> ${m.now}`);
+
+  it("brackets the || runs of an unbracketed chain, making an OR of ANDs an AND of ORs", () => {
+    expect(regrouped("if (a && b || c) return;\n")).toEqual(["a && b || c -> a && (b || c)"]);
+    expect(regrouped("if (a || b && c) return;\n")).toEqual(["a || b && c -> (a || b) && c"]);
+    expect(regrouped("if (a && b || c && d) return;\n")).toEqual(["a && b || c && d -> a && (b || c) && d"]);
+  });
+
+  it("drops the brackets round an || chain that is an operand of &&", () => {
+    expect(regrouped('if (el.x === "a" && (el.y === "b" || el.y === "c")) return;\n')).toEqual([
+      '(el.y === "b" || el.y === "c") -> el.y === "b" || el.y === "c"',
+    ]);
+  });
+
+  it("gives a bracketed && chain's last conjunct the rest of the || chain, which dropping its brackets could not", () => {
+    expect(regrouped("if ((a && b) || c) return;\n")).toEqual(["(a && b) || c -> a && (b || c)"]);
+    expect(regrouped("if (p || (a && b && c) || d) return;\n")).toEqual(["(a && b && c) || d -> a && b && (c || d)"]);
+    // Last in its chain, it has nothing to take with it.
+    expect(regrouped("if (c || (a && b)) return;\n")).toEqual([]);
+  });
+
+  it("says nothing where moving the brackets would not change the meaning", () => {
+    // An && chain inside ||, dropped, is the same expression: && binds tighter.
+    expect(regrouped("const k = (a && b) || c;\n").some((m) => m.startsWith("(a && b) -> "))).toBe(false);
+    // One kind of operator only.
+    expect(regrouped("if (a && b && c) return;\n")).toEqual([]);
+    expect(regrouped("if ((a || b) || c) return;\n")).toEqual([]);
+    // Two bracket pairs are not one round the whole operand: stripping the
+    // "outer" pair here would write `a || b) === (c || d`.
+    expect(regrouped("if (x && (a || b) === (c || d)) return;\n")).toEqual([]);
+  });
+
+  it("reads a comparison's = and an optional chain's ?. as neither an assignment nor a ternary", () => {
+    // Both were refused once, which left one site in the whole engine.
+    expect(regrouped("if (x === 1 && (y !== 2 || z <= 3)) return;\n")).toEqual([
+      "(y !== 2 || z <= 3) -> y !== 2 || z <= 3",
+    ]);
+    expect(regrouped("if (a?.b && (c || d)) return;\n")).toEqual(["(c || d) -> c || d"]);
+  });
+
+  it("leaves a span alone when a ternary, a ?? , a comma, an assignment or an arrow sits at its top level", () => {
+    const source = [
+      "const y = a ? b && c || d : e;\n",
+      "f(a && b || c, d);\n",
+      "for (let i = 0; i < n && ok || done; i++) {}\n",
+      "const g = (x) => x && y || z;\n",
+      "if ((x ? a || b : c) && d) return;\n",
+    ].join("");
+    expect(regrouped(source)).toEqual([]);
+  });
+
+  it("ignores the same characters in prose, as every operator here must", () => {
+    expect(regrouped('const s = "a && b || c"; // a && b || c\n')).toEqual([]);
+  });
+
+  it("produces source that still parses, whichever form it wrote", () => {
+    const source = "if ((a && b) || c) return;\nif (d && (e || f)) return;\nif (g && h || i) return;\n";
+    const all = mutationsOf(source).filter((m) => m.what === "grouping");
+    const apply = (m: (typeof all)[number]) => source.slice(0, m.at) + m.now + source.slice(m.at + m.was.length);
+    expect(all.map(apply)).toEqual([
+      "if (a && (b || c)) return;\nif (d && (e || f)) return;\nif (g && h || i) return;\n",
+      "if ((a && b) || c) return;\nif (d && e || f) return;\nif (g && h || i) return;\n",
+      "if ((a && b) || c) return;\nif (d && (e || f)) return;\nif (g && (h || i)) return;\n",
+    ]);
+  });
+});
+
 describe("the record of mutations that cannot be killed", () => {
   it("labels a survivor it has a reason for", () => {
     const judged = judgeSurvivor('src/host/jump.ts:49  boundary  "<" -> "<="');
@@ -326,6 +407,18 @@ describe("the record of mutations that cannot be killed", () => {
       expect(one, "only a swept file may be judged").toContain("src/host/jump.ts");
     }
     expect(staleEquivalents([], []), "a run that swept nothing judges nothing").toEqual([]);
+  });
+
+  it("says nothing about an operator the run did not make", () => {
+    // The same wolf, one axis over. `--what grouping` on 2026-09-24 reported
+    // all fifty recorded equivalents as stale: boundaries, guards and
+    // fallbacks a grouping-only run never produced, so of course none matched.
+    const all = [...new Set(EQUIVALENT.map((one) => one.file))];
+    expect(staleEquivalents([], all, ["grouping"]), "no entry is a grouping, so none can be judged").toEqual([]);
+    const guards = EQUIVALENT.filter((one) => one.what === "guard").length;
+    expect(guards, "the ledger has guard entries to judge").toBeGreaterThan(0);
+    expect(staleEquivalents([], all, ["guard"])).toHaveLength(guards);
+    expect(staleEquivalents([], all, []), "no --what is every operator").toHaveLength(EQUIVALENT.length);
   });
 
   it("gives every entry a reason long enough to be one", () => {

@@ -102,41 +102,50 @@ What would close it, and what it costs:
 This is a judgement about how much an undo may cost, which is the owner's. It
 is written down rather than guessed at.
 
-### Widen what the mutation sweep changes
-
-The one open item **this repo can finish on its own**, and the only one that is
-code.
-
-`scripts/mutants.mjs` now runs **eight** operators — boundary, operands,
-boolean, negation, fallback, guard, off-by-one, field — over `src/core`,
-`src/host` and `src/pane`. Every survivor they can find is closed: 48 recorded
-equivalents, and the last sweep of each left nothing alive.
-
-**`field` was added on 2026-09-23 and left no survivor.** It empties each
-top-level field of a returned object literal to `undefined`, asking whether any
-test READS a value where the other seven ask whether it is computed right. 323
-sites over 20 of the 35 files; the `--what field` sweep took 1 h 57 m on
-2026-09-23 and answered **265 killed by a test, 58 type-killed, 0 surviving, 0
-hung**.
-
-The 58 are worth one sentence, because a type-kill is a mutant the TESTS did
-not notice. They are required fields — 42 of them `verdict` and `detail` in
-`src/host/probe.ts`, 11 in `src/pane/steps.ts`'s outcomes — whose presence the
-type checker guarantees and whose VALUE no test asserts at that return. By this
-script's own rule that is caught by `npm run typecheck` in CI and is not a hole;
-it is written down so that "the tests pin every probe sentence" is not what
-anybody concludes from the clean result.
-
-What is left is **exchanging `&&`/`||` chains' grouping**, the one candidate
-still asking a question none of the eight does. Worth doing when something else
-is not more valuable.
-
-Each operator needs the same treatment every one here has had — a gate in
-`test/mutants.test.ts` that is **proven to fail without it**, and a `FAST` row
-if it makes a file expensive. `--what <operator>` sweeps one operator alone,
-which is what makes adding one cost minutes rather than a whole sweep.
-
 ## Settled — do not re-open
+
+### The mutation sweep has run every operator it was meant to
+
+`scripts/mutants.mjs` runs **nine** operators — boundary, operands, boolean,
+negation, fallback, guard, off-by-one, field, grouping — over `src/core`,
+`src/host` and `src/pane`. Every survivor they found is closed, by a test or by
+one of the **50** entries in the `EQUIVALENT` ledger. The one candidate never
+built, dropping an argument at a call, is in the rejected list below with its
+reason. A new operator is still welcome if it asks something these nine do not;
+it needs a gate in `test/mutants.test.ts` proven to fail without it, and
+`--what <operator>` sweeps it alone.
+
+**`field`, 2026-09-23.** It empties each top-level field of a returned object
+literal to `undefined`, asking whether any test READS a value where the others
+ask whether it is computed right. 323 sites over 20 of the 35 files; the
+sweep took 1 h 57 m and answered **265 killed by a test, 58 type-killed, 0
+surviving, 0 hung**. The 58 are required fields — 42 of them `verdict` and
+`detail` in `src/host/probe.ts`, 11 in `src/pane/steps.ts`'s outcomes — whose
+presence the type checker guarantees and whose VALUE no test asserts at that
+return. By the script's own rule that is caught by `npm run typecheck` in CI
+and is not a hole; it is written down so that "the tests pin every probe
+sentence" is not what anybody concludes from the clean result.
+
+**`grouping`, 2026-09-24.** It keeps every `&&` and `||` and moves the
+brackets. Prettier brackets every mixed chain, so the form that matters here is
+the explicit one — an `||` chain in brackets as an operand of `&&` loses them,
+and a bracketed `&&` chain inside an `||` has its last conjunct take the rest of
+the chain. Only **6 sites** in the 35 files, which is what the backlog had
+predicted about its value; and **3 of the 6 survived**, which it had not:
+
+- `shown` in `src/pane/search.ts` showed every element of the picked category
+  whatever was typed, and no test combined a picked category with a search
+  that ruled out an element inside it.
+- `slideShapes` in `src/core/splice/shapes.ts` and the paragraph pass in
+  `src/core/splice/splice.ts` each lost their NAMESPACE test for all but one
+  local name, so a foreign `extLst` or `endParaRPr` was treated as
+  PresentationML's or DrawingML's own. Nothing held the namespace half of
+  either rule.
+
+Each now has a case proven to go red on that exact mutant; the other 3 are
+type-killed. The same run found the ledger's stale check crying wolf — it
+reported all fifty entries as stale on a grouping-only run, because it filtered
+by file and not by operator — and that is fixed and held by its own case.
 
 ### The deck-wide removal is held over several cycles, and has no cap
 
@@ -247,11 +256,13 @@ engine turns on the platform.
   slides.`, and the deck **read again** to check it rather than the footer
   believed. `docs/DESIGN.md` section 15 carries it. The same round settled the
   jump and "Move to a new slide".
-- **Probe question 7** is answered, on the web on 2026-09-14: `setSelectedSlides`
-  moves the view, puts the previous selection back, and leaves the host
-  answering afterwards — 1,146 ms and 567 ms, twelve minutes apart. The jump
-  stops being borrowed from SSF-Charts **on this platform**; Windows and Mac are
-  still the sibling's.
+- **Probe question 7** is answered on the web and on Windows, both on
+  2026-09-14: `setSelectedSlides` moves the view, puts the previous selection
+  back, and leaves the host answering afterwards. On the web the call took
+  998 ms and 1,146 ms on two sheets twelve minutes apart, the next selection
+  read 590 ms and 567 ms; on Windows the call took 7 ms and the next read
+  58 ms. The jump stops being borrowed from SSF-Charts on both platforms; on
+  Mac and iPad it is still the sibling's.
 
 ### Question 6 is answered and needs no action
 

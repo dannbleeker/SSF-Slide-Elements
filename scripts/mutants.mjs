@@ -42,7 +42,9 @@
  * operator, a dropped negation, a deleted `??` fallback, a guard clause that
  * stops guarding, a number off by one — and, since 2026-09-23, a returned
  * object's field emptied to `undefined`, which asks whether anything READS a
- * value rather than whether it is computed right.
+ * value rather than whether it is computed right, and since 2026-09-24 the
+ * brackets of a mixed `&&`/`||` chain moved, which asks whether anything
+ * distinguishes one grouping of a condition from the other.
  *
  * ## What it does NOT do
  *
@@ -512,13 +514,23 @@ export function judgeSurvivor(where) {
  * An entry for a file outside the run is not evidence either way, so it is
  * simply not judged.
  *
+ * The same holds for an OPERATOR outside the run, and it was missed the same
+ * way. `--what grouping` on 2026-09-24 swept six mutants and then reported all
+ * fifty recorded equivalents as stale — every one of them a boundary, guard or
+ * fallback the run never made. `operators` is the `--what` list; empty means
+ * every operator ran.
+ *
  * @param {string[]} survivors
  * @param {string[]} swept the source files this run mutated
+ * @param {string[]} [operators] the operators this run made, or empty for all
  * @returns {string[]}
  */
-export function staleEquivalents(survivors, swept) {
+export function staleEquivalents(survivors, swept, operators = []) {
   return EQUIVALENT.filter(
-    (one) => swept.includes(one.file) && !survivors.some((where) => matchesEntry(one, where)),
+    (one) =>
+      swept.includes(one.file) &&
+      (operators.length === 0 || operators.includes(one.what)) &&
+      !survivors.some((where) => matchesEntry(one, where)),
   ).map((one) => `${one.file}  ${one.what}  ${JSON.stringify(one.was)}`);
 }
 
@@ -1086,6 +1098,198 @@ export function mutationsOf(text) {
     }
   }
 
+  // The GROUPING of a mixed `&&`/`||` chain, exchanged. The boolean operator
+  // above flips one operator; this keeps every operator and moves the
+  // brackets, which is the other way a condition goes wrong: `&&` binds tighter
+  // than `||`, so `a && b || c` is `(a && b) || c`, and a reader who meant
+  // `a && (b || c)` writes the same characters.
+  //
+  // Two forms, one per direction:
+  //
+  // - IMPLICIT: a span with both operators at its top level has each run of
+  //   `||` operands wrapped in brackets, so the chain reads as an AND of ORs
+  //   instead of an OR of ANDs. `a && b || c` becomes `a && (b || c)`.
+  // - EXPLICIT: an operand of `&&` that is a bracketed `||` chain loses its
+  //   brackets. `(a || b) && c` becomes `a || b && c`, which is
+  //   `a || (b && c)`. Only that pairing: brackets round an `&&` chain inside
+  //   an `||`, or round anything inside its own kind, change nothing when they
+  //   go, and a mutant equal to its original is a survivor for ever.
+  //
+  // A span is the inside of any bracket pair, or the expression after `return`
+  // or after an assignment's `=`, up to the `;`. It is used only when nothing
+  // at its top level could make the rewrite mean something else — `?`, `:`,
+  // `??`, `,`, `;`, `=` or `=>` — and skipped, not guessed at, otherwise. Every
+  // character is judged on the mask, where strings, comments and patterns are
+  // already blank.
+  {
+    /** @type {[number, number][]} */
+    const spans = [];
+    /** @type {number[]} */
+    const opens = [];
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === "(") opens.push(i);
+      else if (mask[i] === ")") {
+        const from = opens.pop();
+        if (from !== undefined) spans.push([from + 1, i]);
+      }
+    }
+    for (const m of mask.matchAll(/\breturn\b|(?<![=!<>])=(?![=>])/g)) {
+      const from = (m.index ?? 0) + m[0].length;
+      let depth = 0;
+      let to = from;
+      for (; to < mask.length; to++) {
+        const ch = mask[to];
+        if (ch === "(" || ch === "[" || ch === "{") depth++;
+        else if (ch === ")" || ch === "]" || ch === "}") {
+          if (depth === 0) break;
+          depth--;
+        } else if (ch === ";" && depth === 0) break;
+      }
+      spans.push([from, to]);
+    }
+
+    // What at a span's top level makes a rewrite unsafe to reason about. A
+    // comparison's `=` is not an assignment and `?.` is not a ternary: reading
+    // them as either refused every condition written `a === b || …` and every
+    // optional chain, which on 2026-09-24 left one site in the whole engine.
+    const refuses = (/** @type {number} */ i) => {
+      const ch = mask[i] ?? "";
+      const next = mask[i + 1] ?? "";
+      const prev = mask[i - 1] ?? "";
+      if (ch === "?") return next !== "."; // `??` and a ternary; not `?.`
+      if (ch === "=") return next === ">" || (!/[=!<>]/.test(prev) && next !== "=");
+      return /[:,;]/.test(ch);
+    };
+
+    const seen = new Set();
+    for (const [from, to] of spans) {
+      // The span's top level: its operands and the operators between them.
+      /** @type {{ at: number, op: string }[]} */
+      const ops = [];
+      let depth = 0;
+      let refused = false;
+      for (let i = from; i < to; i++) {
+        const ch = mask[i];
+        const two = mask.slice(i, i + 2);
+        if (ch === "(" || ch === "[" || ch === "{") depth++;
+        else if (ch === ")" || ch === "]" || ch === "}") depth--;
+        else if (depth !== 0) continue;
+        else if (two === "&&" || two === "||") {
+          ops.push({ at: i, op: two });
+          i++;
+        } else if (refuses(i)) refused = true;
+      }
+      if (refused || ops.length === 0) continue;
+
+      // Operands, as offsets into the text, trimmed.
+      /** @type {[number, number][]} */
+      const operands = [];
+      let start = from;
+      for (const { at } of ops) {
+        operands.push([start, at]);
+        start = at + 2;
+      }
+      operands.push([start, to]);
+      const trimmed = operands.map(([a, b]) => {
+        const piece = mask.slice(a, b);
+        return /** @type {[number, number]} */ ([
+          a + piece.length - piece.trimStart().length,
+          a + piece.trimEnd().length,
+        ]);
+      });
+      if (trimmed.some(([a, b]) => b <= a)) continue;
+      const first = /** @type {[number, number]} */ (trimmed[0]);
+      const last = /** @type {[number, number]} */ (trimmed[trimmed.length - 1]);
+      const key = `${first[0]}:${last[1]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const kinds = new Set(ops.map((o) => o.op));
+      if (kinds.size === 2) {
+        // IMPLICIT: rebuild with each run of `||` operands bracketed.
+        let out = "";
+        let run = [0];
+        const flush = () => {
+          const [a] = /** @type {[number, number]} */ (trimmed[run[0] ?? 0]);
+          const [, b] = /** @type {[number, number]} */ (trimmed[run[run.length - 1] ?? 0]);
+          const body = text.slice(a, b);
+          out += run.length > 1 ? `(${body})` : body;
+        };
+        for (let k = 0; k < ops.length; k++) {
+          const op = /** @type {{ at: number, op: string }} */ (ops[k]).op;
+          if (op === "||") run.push(k + 1);
+          else {
+            flush();
+            out += " && ";
+            run = [k + 1];
+          }
+        }
+        flush();
+        add(first[0], mask.slice(first[0], last[1]), out, "grouping");
+      } else if (kinds.has("&&")) {
+        // EXPLICIT: an operand that is a bracketed `||` chain loses its brackets.
+        for (const [a, b] of trimmed) {
+          if (mask[a] !== "(" || mask[b - 1] !== ")") continue;
+          // The brackets must be ONE pair round the whole operand, not `(a) && (b)`.
+          let d = 0;
+          let whole = true;
+          for (let i = a; i < b; i++) {
+            if (mask[i] === "(") d++;
+            else if (mask[i] === ")") d--;
+            if (d === 0 && i < b - 1) whole = false;
+          }
+          if (!whole) continue;
+          let inner = 0;
+          let hasOr = false;
+          let hasAnd = false;
+          for (let i = a + 1; i < b - 1; i++) {
+            const ch = mask[i];
+            if (ch === "(" || ch === "[" || ch === "{") inner++;
+            else if (ch === ")" || ch === "]" || ch === "}") inner--;
+            else if (inner !== 0) continue;
+            else if (mask.slice(i, i + 2) === "||") hasOr = true;
+            else if (mask.slice(i, i + 2) === "&&") hasAnd = true;
+            else if (refuses(i)) hasAnd = true; // anything a span refuses, refused here too
+          }
+          if (!hasOr || hasAnd) continue;
+          add(a, mask.slice(a, b), text.slice(a + 1, b - 1).trim(), "grouping");
+        }
+      } else {
+        // The mirror: a bracketed `&&` chain that is an operand of `||`, with
+        // more of the chain after it, has its LAST conjunct take the rest of
+        // the chain with it. `(a && b) || c` becomes `a && (b || c)`. Dropping
+        // those brackets would change nothing — `&&` binds tighter anyway —
+        // and prettier writes every mixed chain with brackets, so without this
+        // half an `||` of `&&`s could never be regrouped at all.
+        for (let k = 0; k < trimmed.length - 1; k++) {
+          const [a, b] = /** @type {[number, number]} */ (trimmed[k]);
+          if (mask[a] !== "(" || mask[b - 1] !== ")") continue;
+          /** @type {number[]} */
+          const ands = [];
+          let d = 0;
+          let whole = true;
+          let clean = true;
+          for (let i = a; i < b; i++) {
+            const ch = mask[i];
+            if (ch === "(" || ch === "[" || ch === "{") d++;
+            else if (ch === ")" || ch === "]" || ch === "}") d--;
+            else if (d !== 1) continue;
+            else if (mask.slice(i, i + 2) === "&&") ands.push(i);
+            else if (mask.slice(i, i + 2) === "||" || refuses(i)) clean = false;
+            if (d === 0 && i < b - 1) whole = false;
+          }
+          if (!whole || !clean || ands.length === 0) continue;
+          const lastAnd = /** @type {number} */ (ands[ands.length - 1]);
+          const head = text.slice(a + 1, lastAnd).trim();
+          const tail = text.slice(lastAnd + 2, b - 1).trim();
+          const [restFrom] = /** @type {[number, number]} */ (trimmed[k + 1]);
+          const rest = text.slice(restFrom, last[1]);
+          add(a, mask.slice(a, last[1]), `${head} && (${tail} || ${rest})`, "grouping");
+        }
+      }
+    }
+  }
+
   // A number off by one. Not `0` on its own inside an index, which is every
   // other line — `0` is included anyway, because an off-by-one at zero is the
   // one this repo actually shipped.
@@ -1627,7 +1831,7 @@ function main() {
     console.log(`  ${one}${judged.known ? "   [known equivalent, see EQUIVALENT]" : ""}`);
     if (judged.known) console.log(`      ${judged.why}`);
   }
-  const stale = staleEquivalents(survivors, files);
+  const stale = staleEquivalents(survivors, files, what);
   if (stale.length) {
     console.log(`\nmutants: ${stale.length} recorded equivalent(s) matched nothing this run — re-verdict them:`);
     for (const one of stale) console.log(`  ${one}`);
