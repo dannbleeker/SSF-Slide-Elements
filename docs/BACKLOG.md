@@ -42,27 +42,40 @@ Left:
 
 ### A slide deleted mid-run is still unmeasured on a host
 
-What is left of a bigger item, and it is a flaky MEASUREMENT rather than
-anything known to be wrong.
+Still open, and the METHOD this item used to prescribe is wrong. Attempted on
+2026-09-24; what that attempt established is below, because the next one should
+not start where this one did.
 
 A run passes over a slide that has GONE — `indexOfSlide` answers nothing, the
 cycle is skipped, `done` does not count it, and no position is deleted in its
-place. `test/pane-wiring.test.ts` covers that. What no round has managed is to
-watch a HOST do it: on 2026-09-23 the first attempt deleted a slide the run had
-already reached, and the second landed inside a cycle's count confirmation.
+place. `test/pane-wiring.test.ts` covers that. No host round has watched it.
 
-A cycle costs about 110 ms here and its confirmation is a small part of that, so
-a deletion fired blind lands in the awkward window perhaps one time in six. The
-way to take it is a long run — 120 slides — with the deletion aimed well ahead
-of the cursor and repeated until it lands in the clear, asserting that the
-outcome reads one short of the total, that the deleted slide is absent, and that
-nothing else moved.
+**What the attempt disproved.** This item said a deletion fired blind lands in
+the awkward window "perhaps one time in six", and prescribed repeating a long
+run until it did. That cannot work: a cycle costs about **65 ms**, not the 110
+this assumed, so thirty cycles finish in under two seconds — and **a PowerShell
+process takes about 1.5 s to start**. A deletion launched when the run starts is
+not losing the race, it is never in it. The first attempt deleted a slide the
+run had already finished with, and the footer read "Stamped 30 slides".
 
-The half of this that WAS a defect is fixed: a count disagreeing because the
-USER had changed the deck used to be reported as "the deck has a slide too
-many", sending somebody to look for a duplicate that did not exist. The cycle
-now asks whether the slide it aimed at actually went, which the count cannot
-say, and two cases in `test/pane-wiring.test.ts` — one per loop — hold it.
+**What the next attempt should use.** A watcher that is ALREADY attached before
+the run begins, triggering off the deck rather than a clock:
+`scratchpad/round-kit/delete-midrun.ps1` holds the slide's SlideID, polls for
+the run to reach an early slide, and deletes a target far ahead of the cursor.
+Written and parsing; it has not yet caught a run, because the runs it was
+pointed at failed to start for the reason below.
+
+**The obstacle that actually cost the attempt.** The multi-slide selection is
+fragile: 60 selected through COM reads back as 60 through Office.js, but any
+intervening interaction with the pane collapses it, and the run silently becomes
+a single-slide insert. Arm the tile by FOCUS rather than a click (focus is what
+sets `chosen`, and a click on an already-chosen tile inserts), select
+immediately before pressing, and check the outcome names a run rather than a
+slide.
+
+**The half of this that IS now measured** is the run itself: a stamp across 60
+selected slides, every slide gaining exactly one shape and all 60 labels
+surviving (`docs/DESIGN.md` section 15). What is missing is only the deletion.
 
 ## Settled — do not re-open
 

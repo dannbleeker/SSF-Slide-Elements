@@ -2009,6 +2009,45 @@ top.
   product share a library, which is a real weakness of this round and is why it
   is written down instead of implied.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — a stamp across SIXTY selected
+slides.** Build `209079b`, on a deck built for it: 60 slides, each labelled
+`SLIDE-001`…`SLIDE-060` and carrying exactly one shape, so identity is evidence
+rather than inference — a count cannot tell "slide 14 was skipped" from "slide
+14 was replaced by a copy of 13" when every slide is a duplicate.
+
+Selected all 60 in the strip, clicked the Confidential stamp, and read the deck
+back:
+
+- the footer said **"Stamped 60 slides. The pane cannot undo this one;
+  PowerPoint's own Undo can."**
+- **every slide went from one shape to exactly two**, 60 of 60;
+- **all 60 labels survived**, so no slide was replaced by a copy of another;
+- the deck was still 60 slides.
+
+The footer's count equals the number of slides that actually changed, which is
+the thing this scenario exists to check, and it was read from the DECK rather
+than believed from the sentence.
+
+**This retires a claim the README carried**: that `selectedSlides` "has never
+been asked of one for more than its first item". It has now been asked for
+sixty and answered sixty.
+
+**A cycle costs about 65 ms here, not 110.** Thirty cycles finished in under two
+seconds. That matters for anything trying to act DURING a run: a PowerShell
+process takes about 1.5 s to start, so a deletion fired when the run begins
+cannot land inside it — it is not losing that race, it was never in it.
+
+**The multi-slide selection is fragile, and silently so.** Selected through COM
+it is 60, and Office.js answers 60 — but any intervening interaction with the
+task pane collapses it, and the run then becomes an ordinary single-slide
+insert reporting `60 → 61 → 60 slides, slide 1 replaced`. Nothing says the
+selection was lost; the sentence is simply about one slide. A round has to
+select IMMEDIATELY before pressing, and check the outcome names a run rather
+than a slide.
+
+**Still not measured: a slide deleted mid-run.** `docs/BACKLOG.md` carries it
+with the method corrected.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
