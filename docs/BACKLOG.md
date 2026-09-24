@@ -29,10 +29,14 @@ browser storage, and the validators' test deck (`template/validators.pptx`,
 authored by PowerPoint over COM rather than assembled here, held to its
 description by `test/validators-deck.test.ts`).
 
-The screenshot is no longer on this list. It shipped on 2026-09-15 as
-[`docs/listing-screenshot.png`](listing-screenshot.png) — `docs/LISTING.md` is
-the recipe, `scripts/listing-shot.ps1` retakes it, and `test/listing.test.ts`
-holds it to 1366×768.
+The pictures are no longer on this list. FIVE of them shipped on 2026-09-24 as
+`docs/listing-*.png`, taken against build `49890b6` — `docs/LISTING.md` is the
+recipe, `scripts/listing-shot.ps1` takes them, and `test/listing.test.ts` sweeps
+the glob and holds every one to 1366×768. The single screenshot that preceded
+them was retaken rather than kept: it read `73 of 106` with an empty search box,
+which was a defect the pane no longer has, and its category counts predated the
+libraries being unified. The 300×300 store logo is beside them in
+`public/assets/store-300.png`.
 
 The listing name is no longer on this list. The owner settled it on 2026-09-16
 as **`SSF Slide Elements`** — what the manifests always carried, now a decision
