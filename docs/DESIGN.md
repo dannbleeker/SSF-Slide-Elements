@@ -1133,7 +1133,9 @@ round at all, so every answer below is borrowed there.
    carried — straight away, and still later — and does the host keep a
    duplicate creation id? Added 2026-09-24: the Undo's creation-id check, which
    would let it see a dragged slide, keys on exactly that, and every earlier
-   sheet read ids by position only.
+   sheet read ids by position only. **Answered on Windows on 2026-09-24 —
+   yes, and a creation id is unique there** (section 15). The WEB has no sheet,
+   and it is the host the question exists for, so the check stays unbuilt.
 
 ## 14. Build order
 
@@ -1721,6 +1723,31 @@ alone, which is what they always meant.
 
 Nothing was lost in either attempt, and the unit cases do cover the skip; what
 is still missing is a host's own word for it (`docs/BACKLOG.md`).
+
+**Question 8, on Windows, 2026-09-24.** One pair
+(`2026-09-24T08-53-25-167Z.json`, `2026-09-24T08-58-39-409Z.json`, platform
+`PC`, host `16.0.20326.20158`), against a copy of `template/probe-comments.pptx`.
+
+- **The listing carries the creation id, straight away.** The slide the insert
+  had just added came back as `259#424205` — 424205 being the fixture's own
+  creation id, used by no other arm — at 37 ms, and the positional read said
+  the same.
+- **It still says the same later.** After a whole-deck `getFileAsync` had gone
+  by, at 135 ms, both reads were unchanged. There is no deliberate wait in the
+  arm: waiting after adding a slide is one of the family's host rules, so the
+  pause is a read the pane itself makes.
+- **A creation id is UNIQUE in the listing here.** Inserting the same package a
+  second time listed as `260#1901138594`, not a twin of `424205`: the host
+  gives the second copy a suffix of its own. Both runs of the pair agree, on
+  different second suffixes (`712323446`, then `1901138594`), which is what
+  makes it a re-key rather than a constant.
+
+**This does NOT license the Undo's creation-id check**, and the record says so
+rather than leaving a reader to infer it. The check needs the answer on the
+WEB as well, and the web is the host the question was written for: SSF-Charts
+measured that host's listing handing back an id that later changed for a slide
+`slides.add()` had just made. One host answering yes is one host. Until a web
+sheet exists, the drag half of the Undo stays as section 6 leaves it.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has

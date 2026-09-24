@@ -74,9 +74,10 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-**PowerPoint for the web and PowerPoint on Windows.** Ten answer sheets under
+**PowerPoint for the web and PowerPoint on Windows.** Twelve answer sheets under
 `docs/host-answers/` — four from the web on 2026-09-10, a Windows pair on
-2026-09-11, a web pair and a Windows pair on 2026-09-14; `docs/DESIGN.md`
+2026-09-11, a web pair and a Windows pair on 2026-09-14, and a Windows pair on
+2026-09-24 for question 8; `docs/DESIGN.md`
 section 15 reads them and is the one place to change when a sheet is filed.
 **All seven original questions are now measured by this repository's own instrument**,
 question 4 last, on the Windows pair of 2026-09-14 run against
@@ -474,7 +475,13 @@ must say so.
    50 MB figure and the iPad floor are still unmeasured.
 7. `setSelectedSlides` moves the view and the host answers a selection read
    afterwards: 998 ms and 1,146 ms on the web, 7 ms on Windows, 2026-09-14.
-8. NOT YET ASKED (added 2026-09-24). Whether the slide listing the Undo reads
-   names a just-inserted slide by the creation id its package carried, straight
-   away and later, and whether the host keeps a duplicate creation id. The
-   Undo's creation-id check waits on it; the owner runs it, web first.
+8. **Answered on Windows, 2026-09-24; the web is still to run.** The listing
+   named the just-inserted slide `259#424205` — the creation id its package
+   carried — straight after the insert, agreeing with the positional read, and
+   unchanged 135 ms later after a whole-deck `getFileAsync`. A second insert of
+   the same package listed as `260#1901138594`, so the host gives the second
+   copy a suffix of its own and a creation id is UNIQUE in the listing here.
+   Both runs of the pair agree. **The Undo's creation-id check still waits**,
+   because it needs the answer on the web too: SSF-Charts measured the web's
+   listing handing back an id that later changed, and that is the host this
+   question exists to ask.

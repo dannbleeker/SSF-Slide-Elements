@@ -235,7 +235,8 @@ keeps its numbers as text.
 
 ### 8. The listing
 
-Added 2026-09-24, and not yet asked on any host. The pane's Undo reads every
+Added 2026-09-24. **Answered on Windows the same day; the web is still to
+run**, and the web is the host the question exists for. The pane's Undo reads every
 slide's id through one collection listing, `slides.load("items/id")`. Every
 sheet so far shows a fixture's creation id coming back as the `#suffix` of its
 id, but through `getItemAt(i)` reads only, and SSF-Charts measured the two
@@ -314,6 +315,23 @@ with the tagged slide gone, and the second run cleared its marker and left
 nothing. What differs is speed: `getFileAsync` read 14.13 MB in 2.8 to 3.0
 seconds where the web's healthy reading was 34 KB in 874 ms, and no call came
 near the 120 s budget.
+
+**PowerPoint on Windows, 2026-09-24** — one pair
+(`2026-09-24T08-53-25-167Z.json` and `2026-09-24T08-58-39-409Z.json`, platform
+`PC`, host `16.0.20326.20158`), run for **question 8**, which the earlier sheets
+predate. The listing named the just-inserted slide `259#424205` — the creation
+id its package carried — straight after the insert, at 37 ms, agreeing with the
+positional read; a second insert of the same package listed as
+`260#1901138594`, so the host gives the second copy a suffix of its own and a
+creation id is **unique** in the listing here; and 135 ms later, after a
+whole-deck `getFileAsync` had gone by, both ids were unchanged. Both runs of
+the pair agree. Question 5 answered yes again on the way past: one Ctrl+Z took
+the slide the first run left, and the second run found its marker, cleared it,
+and left the deck at the three slides it started with.
+
+**Question 8 has no web sheet yet, and the web is the host it exists for**:
+SSF-Charts measured that host's listing handing back an id that later changed.
+Until it is run there, the Undo's creation-id check stays unbuilt.
 
 `docs/host-answers/` is the count, not this line; Mac is still to come.
 
