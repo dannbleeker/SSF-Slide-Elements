@@ -312,10 +312,9 @@ describe("the testing notes admit which platforms nobody has measured", () => {
   }
 });
 
-describe("the screenshot the submission carries", () => {
+describe("the screenshots the submission carries", () => {
   /**
-   * The one listing asset that is a picture, held to the one thing about it a
-   * reviewer rejects on: its size.
+   * The listing's pictures, held to the one thing a reviewer rejects on: size.
    *
    * AppSource asks for 1366×768. A capture at the wrong size **looks right** —
    * that is the whole danger, and it is not hypothetical: the first attempt at
@@ -324,28 +323,47 @@ describe("the screenshot the submission carries", () => {
    * again because Windows lies about sizes to a process that has not declared
    * itself DPI-aware. Neither is visible by looking at the image.
    *
+   * SWEPT rather than listed. This pinned one file while the submission carries
+   * five, so four pictures that a reviewer rejects on exactly this were covered
+   * by nothing — and a sixth added later would have been uncovered too. The
+   * glob is the gate: anything named `docs/listing-*.png` is in the submission
+   * and is checked.
+   *
    * Read out of the PNG header rather than with a library: the IHDR chunk's
    * width and height are the two big-endian integers at bytes 16 and 20, and
    * the file is checked to be a PNG first so a JPEG renamed `.png` cannot pass
    * by having plausible bytes there.
    */
-  const SHOT = "docs/listing-screenshot.png";
-  const bytes = readFileSync(SHOT);
+  const SHOTS = readdirSync("docs")
+    .filter((name) => /^listing-.*\.png$/.test(name))
+    .sort()
+    .map((name) => `docs/${name}`);
 
-  it("is a PNG, not something renamed to look like one", () => {
-    expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    // The first chunk of a PNG is IHDR, which is where the size below is read.
-    expect(bytes.subarray(12, 16).toString("ascii")).toBe("IHDR");
+  it("finds every picture the submission carries", () => {
+    // A sweep that finds nothing passes every test below it, which is the way
+    // a glob-driven gate fails silently.
+    expect(SHOTS.length, `found: ${SHOTS.join(", ")}`).toBeGreaterThanOrEqual(5);
+    expect(SHOTS).toContain("docs/listing-screenshot.png");
   });
 
-  it("is exactly the size the store asks for", () => {
-    expect(bytes.readUInt32BE(16), "width").toBe(1366);
-    expect(bytes.readUInt32BE(20), "height").toBe(768);
-  });
+  for (const shot of SHOTS) {
+    const bytes = readFileSync(shot);
 
-  it("is small enough to upload without anybody thinking about it", () => {
-    expect(bytes.length).toBeLessThan(2_000_000);
-  });
+    it(`${shot} is a PNG, not something renamed to look like one`, () => {
+      expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+      // The first chunk of a PNG is IHDR, which is where the size below is read.
+      expect(bytes.subarray(12, 16).toString("ascii")).toBe("IHDR");
+    });
+
+    it(`${shot} is exactly the size the store asks for`, () => {
+      expect(bytes.readUInt32BE(16), "width").toBe(1366);
+      expect(bytes.readUInt32BE(20), "height").toBe(768);
+    });
+
+    it(`${shot} is small enough to upload without anybody thinking about it`, () => {
+      expect(bytes.length).toBeLessThan(2_000_000);
+    });
+  }
 
   it("is the file the listing notes point at", () => {
     expect(LISTING).toContain("listing-screenshot.png");
