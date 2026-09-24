@@ -32,10 +32,9 @@ submission — the owner's, and the only step that needs a Microsoft sign-in; a
 slide deleted mid-run, which no host round has yet caught and whose stop
 message can name the wrong cause; the Undo, which still aims at a position the
 user may have moved since the insert — a judgement about what an undo may
-cost, and the owner's; and widening what the mutation sweep changes, the one
-open item this repo can finish on its own, whose eighth operator, `field`,
-landed on 2026-09-23 and left no survivor among its 323 mutants, and whose one
-candidate still listed is exchanging the grouping of `&&`/`||` chains.
+cost, and the owner's. None of the three is work this repo can finish on its
+own: the mutation sweep was the last of those, and closed on 2026-09-24 when
+its ninth operator, `grouping`, landed and its three survivors were killed.
 Everything that section used to list as pending and is now settled sits under
 its settled section with the measurement that closed it, so a round is not
 asked for twice.
@@ -48,7 +47,7 @@ asked for twice.
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `coalesce.ts` (one selection read at a time), `errors.ts` (a raise as a bounded sentence), `insert.ts` (what a measured delta means, and the undo plan), `jump.ts` (whether the host was seen on the slide), `links.ts` (what may reach a URL), `memory.ts` (which storage bucket a deck remembers itself in), `probe.ts` (what each probe observation means), `theme.ts` (whether the host's own colour means dark or light), `timeout.ts` (every budget, and the backoff a lagging count needs) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | the pane's decisions, one file per thing a reader looks for by name: `steps.ts` (the state, which step, what the one button says, why it is blocked, the footer and the tile menu), `search.ts` (which elements the picker shows, and "Did you mean"), `card.ts` (the preview card: where an element lands and what is already there), `used.ts` ("Used in this deck"), `storage.ts` (what the pane remembers and in which of its two buckets), `catalogue.ts` (the index and an element's markup, fetched from the site), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet. They stay FLAT: `paneCode` in `scripts/doc-refs.mjs` reads this directory without recursing, so a subdirectory would silently stop being checked against the design record |
-| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the mutation sweep (`mutants.mjs`, its eight operators and its `EQUIVALENT` ledger), the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`), the answer reader (`read-answers.mjs`), and the listing screenshot (`listing-shot.ps1` for the capture, `ribbon-cache.mjs` for taking the sibling add-ins off the ribbon first) |
+| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the mutation sweep (`mutants.mjs`, its nine operators and its `EQUIVALENT` ledger), the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`), the answer reader (`read-answers.mjs`), and the listing screenshot (`listing-shot.ps1` for the capture, `ribbon-cache.mjs` for taking the sibling add-ins off the ribbon first) |
 | `probe/` | `probe-snippet.ts`, GENERATED for Script Lab and committed; CI rebuilds and diffs it. Pasted into PowerPoint by the owner, never imported here |
 | `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |

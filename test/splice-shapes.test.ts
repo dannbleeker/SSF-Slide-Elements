@@ -695,6 +695,17 @@ describe("the destination slide's own shapes", () => {
     expect(slideShapes(tree(`\n  ${sp(1)}\n  ${pic(2, "rId1")}\n`)).map((s) => s.localName)).toEqual(["sp", "pic"]);
   });
 
+  it("leaves out only PresentationML's own tree properties, not an element of the same name from elsewhere", () => {
+    // The exclusion is namespaced, and the namespace is the rule: anything in
+    // the tree that is not the tree's own is content — `mc:AlternateContent` is
+    // exactly that. The grouping operator of 2026-09-24 found that nothing held
+    // it: moving the brackets so the namespace test covered `nvGrpSpPr` alone
+    // survived the whole suite, and dropped a foreign `extLst` or `grpSpPr` as
+    // if it were the tree's.
+    const foreign = `<x:extLst xmlns:x="urn:ssf-test"/><x:grpSpPr xmlns:x="urn:ssf-test"/>`;
+    expect(slideShapes(tree(foreign)).map((s) => s.localName)).toEqual(["extLst", "grpSpPr"]);
+  });
+
   it("finds an empty body placeholder to remove, and never the title", () => {
     /**
      * `docs/DESIGN.md` section 6: a whole-slide element removes the "Click to

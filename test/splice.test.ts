@@ -946,6 +946,38 @@ describe("as a new slide, in detail", () => {
     expect(problems(await partsOf(await (await Pkg.open(report.base64)).toBytes()))).toEqual([]);
   });
 
+  it("keeps only DrawingML's own paragraph properties, not an element of the same name from elsewhere", async () => {
+    // The pass keeps `<a:pPr>` and `<a:endParaRPr>` and takes everything else
+    // out of the paragraph, and the NAMESPACE is half of that rule. The
+    // grouping operator of 2026-09-24 found nothing held it: moving the
+    // brackets so the namespace test covered `pPr` alone survived the whole
+    // suite, and kept any foreign `endParaRPr` as if it were the paragraph's
+    // own formatting.
+    const foreign =
+      `<p:sp><p:nvSpPr><p:cNvPr id="61" name="Fremmed placeholder 61"/>` +
+      `<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>` +
+      `<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>` +
+      `<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr lvl="0"/>` +
+      `<a:r><a:rPr lang="da-DK"/><a:t>Linje et</a:t></a:r>` +
+      `<x:endParaRPr xmlns:x="urn:ssf-test"/><a:endParaRPr lang="da-DK"/></a:p></p:txBody></p:sp>`;
+    const report = await splice({
+      deck: await makeDeck([{ paragraphs: [["First"]] }, { paragraphs: [["Second"]], shapes: [foreign] }]),
+      slide: 1,
+      element: asSplice(element("hvid-kasse-2x1-vertikale")),
+      options: { target: "new", group: true, colours: "deck" },
+      catalogue: catalogueFor(),
+      store,
+    });
+    const spTree = await rebuiltTree(report.base64, report.slidePath);
+    const placeholder = namedIn(spTree, "Fremmed placeholder 61");
+    expect(placeholder, "the placeholder was removed rather than emptied").toBeDefined();
+    const paragraph = children(child(placeholder as Element, P_NS, "txBody") as Element, A_NS, "p")[0] as Element;
+    const kept = Array.from(paragraph.childNodes)
+      .filter((n) => n.nodeType === 1)
+      .map((n) => `${(n as Element).namespaceURI === A_NS ? "a" : "foreign"}:${(n as Element).localName}`);
+    expect(kept).toEqual(["a:pPr", "a:endParaRPr"]);
+  });
+
   it("leaves the deck's own slides untouched, and only re-serialises the one it read", async () => {
     // The splice only ever ADDS a slide to the package it hands over. The
     // user's own slides are unlisted, never edited: if that stopped being true,

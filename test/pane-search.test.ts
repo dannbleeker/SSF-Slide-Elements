@@ -13,6 +13,7 @@ import {
   offersOpenAll,
   openAtFirst,
   runOf,
+  shown,
   stepMatches,
   tagsOf,
   tileCount,
@@ -124,6 +125,23 @@ describe("marking what a search matched inside a name", () => {
     const name = "İstanbul box";
     expect(name.toLowerCase().length).not.toBe(name.length);
     expect(highlight(name, "box")).toEqual([{ text: name, hit: false }]);
+  });
+});
+
+describe("the three filters together", () => {
+  it("hides an element in the picked category that the search or a tag rules out", () => {
+    // `shown` is the search AND the tags AND the category. Written with the
+    // category's two cases in brackets — nothing picked, or this one — and the
+    // mutation sweep's grouping operator found on 2026-09-24 that dropping
+    // those brackets survived the whole suite: `… && picked === undefined ||
+    // key === picked` shows EVERY element of the picked category, whatever was
+    // typed. Nothing had asked about an element inside the category the search
+    // did not find.
+    const boxes = LIBRARY.elements[1] as Element;
+    const inIt = { ...browsing, category: boxes.category.key };
+    expect(shown(boxes, inIt), "the element is shown when nothing else rules it out").toBe(true);
+    expect(shown(boxes, { ...inIt, query: "approved" }), "the search ruled it out").toBe(false);
+    expect(shown(boxes, { ...inIt, tags: ["no-such-tag"] }), "a tag ruled it out").toBe(false);
   });
 });
 
