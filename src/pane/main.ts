@@ -1373,6 +1373,37 @@ async function readUsed(): Promise<void> {
  * gone. PowerPoint's own Ctrl+Z does revert an insert — question 5, measured on
  * the web and on Windows — which is the route that does exist.
  */
+/**
+ * Did OUR delete land? Asked of the ids, because the count cannot say.
+ *
+ * Every cycle confirms itself by counting slides, and a count that disagrees
+ * cannot say WHY. Three realities produce one disagreement after the delete:
+ *
+ *   our delete did not land            the deck is one bigger than it should be
+ *   it landed, and the user deleted    the deck is one smaller
+ *   it landed, and the user added      the deck is one bigger
+ *
+ * The pane used to read all three as the first and stop with "the deck has a
+ * slide too many: the copy was made but the original could not be taken away".
+ * Measured against a real PowerPoint on 2026-09-23: a slide deleted by hand
+ * during a cycle's confirmation produced exactly that sentence over a deck with
+ * no extra slide in it. The pane was wrong about the cause, and the sentence
+ * sends the user looking for something that is not there.
+ *
+ * The id settles it. The slide this cycle replaced is gone from the deck, or it
+ * is not, and nothing else about the deck can change that answer.
+ *
+ * Asked ONLY when the count has already disagreed, so the ordinary cycle pays
+ * nothing for it. `undefined` from the host — a read that did not answer — is
+ * NOT taken as "it landed": the safe reading of silence is the one that stops
+ * and tells the user to look.
+ */
+async function deleteLanded(slide: string): Promise<boolean> {
+  const ids = await slideIds();
+  if (ids === undefined) return false;
+  return indexOfSlide(ids, slide) === undefined;
+}
+
 async function stampEvery(
   element: LibraryElement,
   from: { markup: Markup; deck: string; library: Library; index: Index; parts: Store },
@@ -1489,7 +1520,7 @@ async function stampEvery(
         break;
       }
       await removeSlideAt(removeAt);
-      if ((await countReaching(before)) !== before) {
+      if ((await countReaching(before)) !== before && !(await deleteLanded(targetId))) {
         stranded = true;
         break;
       }
@@ -1618,11 +1649,15 @@ async function removeEverywhere(id: string): Promise<void> {
         break;
       }
       await removeSlideAt(removeAt);
-      if ((await countReaching(before)) !== before) {
-        // The insert landed and the delete did not, so this slide's ORIGINAL is
-        // still there with the element on it and an element-free copy sits
-        // beside it. The other break above leaves the deck untouched; this one
-        // does not, and the two cannot share a sentence.
+      if ((await countReaching(before)) !== before && !(await deleteLanded(targetId))) {
+        // The rebuilt slide landed and the delete did not, so this slide's
+        // ORIGINAL is still there with the element on it and an element-free
+        // copy sits beside it. The other break above leaves the deck untouched;
+        // this one does not, and the two cannot share a sentence.
+        //
+        // `deleteLanded` is what separates that from a count that disagrees
+        // because the USER changed the deck while the cycle was confirming —
+        // the same disagreement, an entirely different thing to tell somebody.
         stranded = true;
         break;
       }

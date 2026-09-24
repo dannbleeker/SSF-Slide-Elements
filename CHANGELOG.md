@@ -51,6 +51,15 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
   It now checks the deck is the size the insert left it, and when it is not, it
   changes nothing and tells you to check the deck. Moving slides about is not
   something it can see yet, so after that, use Ctrl+Z.
+- **Deleting a slide while the add-in is working no longer produces a warning
+  about a slide that is not there.** Every step checks itself by counting the
+  deck's slides, and a count that comes back wrong used to mean one thing: "the
+  copy was made but the original could not be taken away — check the deck". If
+  you deleted a slide yourself at that moment the count came back wrong for a
+  quite different reason, and you were sent looking for a duplicate that did not
+  exist. It now checks whether the slide it was working on actually went, which
+  the count cannot tell it, and only says that when it really did leave a copy
+  behind.
 
 - **Moving slides around while the add-in is working no longer costs a slide
   its stamp.** Stamping or removing across several slides works through them

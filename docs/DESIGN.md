@@ -1697,12 +1697,30 @@ run is going, which must be passed over rather than deleted into — was not
 cleanly measured. Two attempts were defeated by timing: the first deletion
 landed after the run had already reached that slide, and the second landed
 inside a cycle's count confirmation, where the deck shrinking by one is
-indistinguishable to the pane from its own delete having failed. The run then
-stopped and said "the deck has a slide too many", which is the conservative
-answer and tells the user to look — but the deck had no extra slide, so the
-sentence names the wrong cause. Nothing was lost in either attempt, and the
-unit cases in `test/pane-wiring.test.ts` do cover the skip; what is missing is
-the host's own word for it.
+indistinguishable BY COUNT from its own delete having failed. The run stopped
+and said "the deck has a slide too many", which is the conservative answer and
+tells the user to look — but the deck had no extra slide, so the sentence named
+the wrong cause and sent somebody after a duplicate that did not exist.
+
+**That half is now fixed. Three realities produce one disagreement.** After the
+delete the count can differ because our delete did not land (the deck is one
+bigger), because it landed and the user deleted a slide (one smaller), or
+because it landed and the user added one (one bigger). The count cannot
+separate them; the ID can — the slide this cycle replaced is gone, or it is
+not, and nothing else about the deck changes that answer. `deleteLanded` asks
+exactly that, and ONLY once the count has already disagreed, so an ordinary
+cycle pays nothing for it. A read that does not answer counts as "stop and tell
+them", never as "it landed": the safe reading of silence is the one that sends
+the user to look.
+
+Both loops call it, and `test/pane-wiring.test.ts` holds one case each — this
+repository's own record being that a fix written once reaches one of the two
+places that needed it. The sibling cases, where the delete genuinely did not
+land, now say so by refusing the removal rather than by a disagreeing count
+alone, which is what they always meant.
+
+Nothing was lost in either attempt, and the unit cases do cover the skip; what
+is still missing is a host's own word for it (`docs/BACKLOG.md`).
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
