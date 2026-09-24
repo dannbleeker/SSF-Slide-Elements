@@ -148,29 +148,59 @@ This one should not be faked, and it is not a thing this repository can decide:
   library is internal content. A blank slide shows the pane, which is the
   product, and nothing that has to be cleared for publication.
 
-**The submission's copy is committed: [`listing-screenshot.png`](listing-screenshot.png)**,
-taken on 2026-09-16 against build `67b6478`, which the live pane confirmed
-through its own `data-build` before the shutter. `test/listing.test.ts` holds it
-to 1366×768, because a capture at the wrong size looks right. Retake it with the
-recipe below whenever the pane or the library changes enough to matter — it was
-retaken three times on 2026-09-16 alone: once for the pane's own changes, once
-because the shot quotes the element count and the library lost ten, and once
-because it lost one more. That is the ordinary case rather than the exception,
-which is why the recipe is a script.
+**The submission's pictures are committed — FIVE of them**, retaken on
+2026-09-24 against build `49890b6`, which the live pane confirmed through its
+own `data-build` before the shutter. `test/listing.test.ts` sweeps
+`docs/listing-*.png` and holds every one to 1366×768, because a capture at the
+wrong size looks right.
 
-The pane in it is scrolled a little, so the picture carries actual ELEMENTS
-rather than a column of headings. That is a deliberate choice about what a
-store page should show: the library is the product, and the add-in's name is
-already on PowerPoint's own task-pane title bar above it.
+| file | what it shows |
+| --- | --- |
+| [`listing-screenshot.png`](listing-screenshot.png) | browsing the library: the tile grid with PowerPoint's own rendering of each element |
+| [`listing-open-all.png`](listing-open-all.png) | the breadth of it, every category open, with the steppers that turn one tile into a sized run |
+| [`listing-search.png`](listing-search.png) | search, with the matched words picked out in each name and the sections that have hits as chips |
+| [`listing-inserted.png`](listing-inserted.png) | an element on the slide, with the footer reporting the deck delta and Undo offered |
+| [`listing-used.png`](listing-used.png) | "Used in this deck", naming the element and the slide it is on |
 
-The scroll is still needed even though the pane now opens the top category by
-itself. Measured 2026-09-16 in the window this shot is taken in: at 1366×768 the
-pane's own viewport is **391 px**, and the header, the search box, the tag row,
-the "Used in this deck" link and the count come to about 389 of it — so the
-first tile sits one pixel below the fold. The open category earns its keep on a
-real screen, where the pane is two or three times this tall; at the store's
-required window size it does not, and the shot is scrolled by 205 px through
-the pane's own devtools.
+Together they are the product's own order: browse, search, insert, check, and
+see what the deck already holds.
+
+**The previous single screenshot showed a defect.** It read `73 of 106` with an
+empty search box, which says 33 elements are being withheld when nothing is
+filtered — they were not withheld, they were behind their run's stepper. The
+denominator was counting ELEMENTS against a numerator counting TILES. That was
+fixed in `src/pane/render.ts`, and the old picture is exactly what the fix's own
+comment cites as the evidence. It also predated the libraries being unified, so
+its category counts were stale: `White boxes (22)` where the library now has 26.
+A store picture that quotes a number has to be retaken when the number moves.
+
+**Retake them all whenever the pane or the library changes enough to matter.**
+The recipe is below and it is a script for that reason; it was retaken three
+times on 2026-09-16 alone.
+
+**The two sibling add-ins must be off the ribbon first.** This machine carries
+SSF Merge and SSF Charts, and their ribbon groups would otherwise sit in a
+picture on a public store page. `scripts/ribbon-cache.mjs` takes them off; back
+the file up first and put them back afterwards, because it belongs to
+PowerPoint:
+
+```powershell
+$cache = "$env:LOCALAPPDATA\Microsoft\Office\16.0\Wef\AppCommands\18.0\PowerPoint.RibbonCache.en-GB"
+Copy-Item $cache "$env:TEMP\RibbonCache.backup"
+node scripts/ribbon-cache.mjs $cache 43ebbbac-44ad-42b2-a582-0ef079093e6c,b7f6d3a2-4c1e-4e8a-9f2b-7d5c0a1e6f43
+# ... take the pictures, then:
+Copy-Item "$env:TEMP\RibbonCache.backup" $cache -Force
+```
+
+PowerPoint reads that file at startup, so it has to be closed while it changes.
+
+**The pane is scrolled** in the pictures that show tiles, so they carry actual
+ELEMENTS rather than a column of headings. `listing-shot.ps1` does not scroll;
+it is done through the pane's own devtools, which needs PowerPoint started with
+`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9444`. At
+1366×768 the pane's viewport is 391 px and the header, search box, tag row,
+"Used in this deck" link and count come to about 389 of it, so the first tile
+sits one pixel below the fold.
 
 ### Taking it
 
