@@ -133,6 +133,12 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   removeSlideAt: (at: number) => {
     host.removed.push(at);
+    // Refusing ONE delete of a run, rather than all of them. A case about the
+    // second cycle stranding needs the first to succeed, or there is nothing
+    // for "Removed from 1 of 2 slides" to count.
+    if (host.refuseRemovalAt === host.removed.length) {
+      return Promise.resolve("the host refused");
+    }
     if (!host.refuseRemoval) {
       host.grown -= 1;
       // Whatever now sits at that index is a DIFFERENT slide from the one just
@@ -140,6 +146,11 @@ vi.mock("../src/office/powerpoint.js", () => ({
       // has an id of its own. Until 2026-09-24 the fake kept the deleted slide's
       // id there, which is a deck no host can produce — and the undo now tells
       // an already-reverted insert apart by exactly that id.
+      //
+      // It is also what lets a case say "my delete LANDED": the deleted id is
+      // gone from the list, which is the one thing separating a stranded copy
+      // from a count that disagrees because the user changed the deck.
+      // `refuseRemoval` is then the fake saying the delete really failed.
       const ids = [...deckIds()];
       if (at < ids.length) ids[at] = `r${host.removed.length}`;
       host.ids = ids;
@@ -341,6 +352,8 @@ const host = {
   removed: [] as number[],
   /** True when `removeSlideAt` should refuse, which is how an undo is made to fail. */
   refuseRemoval: false,
+  /** Which single `removeSlideAt` call refuses, counted from one. Zero refuses none. */
+  refuseRemovalAt: 0,
   /** Whether the confirming count read raises rather than answering. */
   countRaises: false,
   /** How many times `countReaching` has been asked this case. */
@@ -679,6 +692,7 @@ afterEach(async () => {
   host.held = 0;
   host.removed.length = 0;
   host.refuseRemoval = false;
+  host.refuseRemovalAt = 0;
   host.countRaises = false;
   host.countCalls = 0;
   host.missCountAt = 0;
@@ -2678,12 +2692,48 @@ describe("removing a part from every slide it is on", () => {
      * exactly what the old sentence denied.
      */
     host.missCountAt = 2;
+    // And the delete did NOT land, which is what stranded means. A disagreeing
+    // count alone no longer implies it: the cycle asks whether the slide it
+    // aimed at actually went, because the user changing the deck produces the
+    // same disagreement and is a different thing to tell somebody.
+    host.refuseRemovalAt = 1;
     const pane = await askedToRemove();
     (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
     const outcome = await ran(pane);
     expect(outcome, "the deck grew and the footer did not say so").toContain("a slide too many");
     expect(outcome, "claimed the untouched slides were untouched").not.toContain("The rest are as they were");
     expect(outcome, "invited a press that would strand another copy").toContain("trying again would add another");
+  });
+
+  it("does not cry stranded when the count disagrees but its delete LANDED", async () => {
+    /**
+     * The pair of the case above, and the reason a disagreeing count is no
+     * longer enough on its own.
+     *
+     * Three realities produce one disagreement after the delete: our delete did
+     * not land (the deck is one bigger), it landed and the user deleted a slide
+     * (one smaller), it landed and the user added one (one bigger). The pane
+     * read all three as the first and stopped with "the deck has a slide too
+     * many: the copy was made but the original could not be taken away".
+     *
+     * Measured against a real PowerPoint on 2026-09-23: a slide deleted by hand
+     * while a cycle was confirming produced exactly that sentence over a deck
+     * with NO extra slide in it. The pane was wrong about the cause, and the
+     * sentence sends the user looking for a duplicate that is not there.
+     *
+     * The count is made to disagree exactly as the case above does — and the
+     * delete is made to LAND, which is the only difference between them.
+     */
+    // The count is made to disagree; the delete is left to LAND, which the fake
+    // models by replacing the deleted slide's id at that index. The case above
+    // is identical but for `refuseRemoval`, which is the fake saying it failed.
+    host.missCountAt = 2;
+    const pane = await askedToRemove();
+    (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
+    const outcome = await ran(pane);
+    expect(outcome, "a deck the user had changed was reported as a stranded copy").not.toContain("a slide too many");
+    expect(outcome, "and it sent them after a slide that is not there").not.toContain("trying again would add another");
+    expect(outcome, "the cycle did its work and was not counted").toContain("Removed from 1 slide");
   });
 
   /** Wait for a run to finish: the footer is what says it did. */
@@ -2984,6 +3034,34 @@ describe("removing a part from every slide it is on", () => {
     expect(pane.querySelector('[data-action="undo"]'), "and lost its Undo with it").not.toBeNull();
   });
 
+  it("does not cry stranded on a STAMP whose count disagrees but whose delete landed", async () => {
+    /**
+     * The same fix, the other call site. `deleteLanded` is shared between the
+     * two runs, and this repository's own record is that a fix written once
+     * gets applied to one of the two places that needed it — so the stamp half
+     * is held here as the removal half is held above.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [1, 4];
+    host.current = { index: 1, id: "256" };
+    // The FIRST cycle's second count read: the one confirming its delete. The
+    // delete itself lands, as it does in every case that does not refuse it.
+    host.missCountAt = 2;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome, "a deck the user had changed was reported as a stranded copy").not.toContain("a slide too many");
+    expect(outcome, "both cycles did their work and neither was counted").toContain("Stamped 2 slides");
+  });
+
   it("stops at the first cycle it cannot confirm, and says how far it got", async () => {
     // The insert landed and the count would not come back, so this slide's
     // original is still there without the stamp and a stamped copy sits beside
@@ -2995,6 +3073,9 @@ describe("removing a part from every slide it is on", () => {
     // The SECOND cycle's removal check: each cycle asks twice, so reads 1 and 2
     // are the first slide's and read 4 is the second slide's removal.
     host.missCountAt = 4;
+    // The second cycle is the one that strands, so its delete is the one that
+    // must not land; the first has to succeed for "1 of 2" to have a 1 in it.
+    host.refuseRemovalAt = 2;
     deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
     const pane = await openPane();
     await settle();
@@ -3228,6 +3309,11 @@ describe("removing a part from every slide it is on", () => {
       // second slide after the first was seen all the way through, which is the
       // case the flag and `done` have to agree about.
       host.missCountAt = 4;
+      // And the second cycle's delete did NOT land, which is what strands it.
+      // A disagreeing count alone no longer says so: the cycle asks whether the
+      // slide it aimed at actually went, so that a deck the USER changed under
+      // it is not reported as a copy left behind.
+      host.refuseRemovalAt = 2;
       const pane = await askedToRemove([0, 2]);
       (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
       const outcome = await ran(pane);

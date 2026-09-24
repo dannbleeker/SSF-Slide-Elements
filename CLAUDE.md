@@ -29,15 +29,16 @@ print of the deck it came from (`template/library-*.pdf`, with the geometry in
 could not reach. What is NOT built is in `docs/BACKLOG.md`, whose open section
 is in the order to pick it up: the release, which is down to the Partner Center
 submission — the owner's, and the only step that needs a Microsoft sign-in; a
-slide deleted mid-run, which no host round has yet caught and whose stop message
-can name the wrong cause; the Undo, which since 2026-09-24 refuses when the
-deck's size has changed since its insert but cannot yet see a slide that was
-only dragged — the creation-id check that would see one waits on a probe round.
-None of the three is work this repo can finish on its own: the mutation sweep
-was the last of those, and closed on 2026-09-24 when its ninth operator,
-`grouping`, landed and its three survivors were killed. Everything that section
-used to list as pending and is now settled sits under its settled section with
-the measurement that closed it, so a round is not asked for twice.
+slide deleted mid-run, which no host round has yet caught — its stop message
+naming the wrong cause was fixed on 2026-09-24, so what is left of that item is
+the measurement; the Undo, which since 2026-09-24 refuses when the deck's size
+has changed since its insert but cannot yet see a slide that was only dragged —
+the creation-id check that would see one waits on a probe round. None of the
+three is work this repo can finish on its own: the mutation sweep was the last
+of those, and closed on 2026-09-24 when its ninth operator, `grouping`, landed
+and its three survivors were killed. Everything that section used to list as
+pending and is now settled sits under its settled section with the measurement
+that closed it, so a round is not asked for twice.
 
 ## Where things live
 

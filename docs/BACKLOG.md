@@ -45,29 +45,29 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### A slide deleted mid-run is unmeasured on a host, and the message can misname it
+### A slide deleted mid-run is still unmeasured on a host
 
-Small, and open because two rounds on 2026-09-23 failed to settle it rather
-than because anything is known to be wrong.
+What is left of a bigger item, and it is a flaky MEASUREMENT rather than
+anything known to be wrong.
 
 A run passes over a slide that has GONE — `indexOfSlide` answers nothing, the
 cycle is skipped, `done` does not count it, and no position is deleted in its
 place. `test/pane-wiring.test.ts` covers that. What no round has managed is to
-watch a HOST do it: the first attempt deleted a slide the run had already
-reached, and the second landed inside a cycle's count confirmation.
+watch a HOST do it: on 2026-09-23 the first attempt deleted a slide the run had
+already reached, and the second landed inside a cycle's count confirmation.
 
-That second attempt found the thing worth writing down. While a cycle is
-confirming its delete, the deck shrinking by one is indistinguishable to the
-pane from its own delete having failed, so it stopped with *"the deck has a
-slide too many: the copy was made but the original could not be taken away"*.
-The deck had no extra slide — the user's own deletion accounted for the
-difference — so the sentence named the wrong cause. It stops and tells the user
-to look, which is the right direction to be wrong in, and nothing was lost.
+A cycle costs about 110 ms here and its confirmation is a small part of that, so
+a deletion fired blind lands in the awkward window perhaps one time in six. The
+way to take it is a long run — 120 slides — with the deletion aimed well ahead
+of the cursor and repeated until it lands in the clear, asserting that the
+outcome reads one short of the total, that the deleted slide is absent, and that
+nothing else moved.
 
-Closing it means the cycle distinguishing "my delete did not land" from "the
-deck changed underneath me", which the count alone cannot do; reading the ids
-either side of the delete would, at the price of another read on every cycle of
-every run. Worth doing only if it turns out to happen to anyone.
+The half of this that WAS a defect is fixed: a count disagreeing because the
+USER had changed the deck used to be reported as "the deck has a slide too
+many", sending somebody to look for a duplicate that did not exist. The cycle
+now asks whether the slide it aimed at actually went, which the count cannot
+say, and two cases in `test/pane-wiring.test.ts` — one per loop — hold it.
 
 ### The undo cannot yet see a slide that was only dragged
 
