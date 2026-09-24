@@ -254,10 +254,11 @@ PowerPoint's Ctrl+Z instead.
 
 **Undo checks the deck before it changes anything, and refuses rather than
 guess.** It refuses when the deck holds a different number of slides from the
-one the insert left it with, when your own slide is already back where the
-insert put its copy, and when the slide it inserted is no longer where it put
-it — because you dragged the deck about, because the slide is gone, or because
-the deck now holds it twice. Every one of those says what it saw and changes
+one the insert left it with; when your own slide is already back where the
+insert put its copy — which is what Ctrl+Z twice does, and it tells you so in
+those words, because that is the thing worth knowing; and when the slide it
+inserted is no longer where it put it, because you dragged the deck about or
+because the slide is gone. Every one of those says what it saw and changes
 nothing, and then PowerPoint's own Ctrl+Z is the thing to use.
 
 On PowerPoint for Windows and PowerPoint for the web the pane can recognise the

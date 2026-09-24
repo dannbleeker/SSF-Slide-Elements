@@ -2644,6 +2644,41 @@ describe("an Undo after the deck has changed", () => {
     expect(said).not.toContain("Undone");
   });
 
+  it("says the user's own slide is already back, rather than that the inserted one is gone", async () => {
+    // The sequence `docs/MANUAL.md` tells the user to perform, measured on
+    // Windows on 2026-09-24: an "onto this slide" insert, then PowerPoint's own
+    // Ctrl+Z TWICE. After it the rebuilt slide really is gone AND the user's
+    // own slide really is back, so `undoAim` and `undoAlreadyReverted` are both
+    // true — and the user gets told the one that answers their question.
+    //
+    // Both sentences refuse and neither deletes, so this is not about safety.
+    // It is about the likeliest refusal a real user will ever meet saying
+    // something useful.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    // The rebuilt slide is GONE from the listing, and the user's own slide
+    // ("256", which `insertedOnto` gave it) is back where the copy stood.
+    host.ids = ["256", "301#9001", "302#9002"];
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore), "nothing may be deleted either way").toEqual([]);
+    expect(said).toContain("slide 1 is already back");
+    expect(said).not.toContain("no longer in the deck");
+    expect(said).not.toContain("Undone");
+  });
+
+  it("still says the inserted slide is gone when the user's own slide is NOT back", async () => {
+    // The other half, so the case above cannot be passed by always preferring
+    // one sentence: the rebuilt slide is gone and nothing of the user's has
+    // returned to that position.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    host.ids = ["400#7", "301#9001", "302#9002"];
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore)).toEqual([]);
+    expect(said).toContain("no longer in the deck");
+    expect(said).not.toContain("already back");
+  });
+
   it("refuses when the deck holds the slide it inserted twice", async () => {
     // A duplicated slide. Both hosts answered a creation id UNIQUE in the
     // listing, so this is a premise failing — and a premise that fails must
