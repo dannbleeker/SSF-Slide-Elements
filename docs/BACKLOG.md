@@ -29,59 +29,16 @@ browser storage, and the validators' test deck (`template/validators.pptx`,
 authored by PowerPoint over COM rather than assembled here, held to its
 description by `test/validators-deck.test.ts`).
 
-The pictures are no longer on this list. FIVE of them shipped on 2026-09-24 as
-`docs/listing-*.png`, taken against build `49890b6` — `docs/LISTING.md` is the
-recipe, `scripts/listing-shot.ps1` takes them, and `test/listing.test.ts` sweeps
-the glob and holds every one to 1366×768. The single screenshot that preceded
-them was retaken rather than kept: it read `73 of 106` with an empty search box,
-which was a defect the pane no longer has, and its category counts predated the
-libraries being unified. The 300×300 store logo is beside them in
-`public/assets/store-300.png`.
-
-The listing name is no longer on this list. The owner settled it on 2026-09-16
-as **`SSF Slide Elements`** — what the manifests always carried, now a decision
-rather than an open question. It is recorded as a decision and NOT as a policy
-clearance: nobody read it against certification policy 1100.7, and
-`test/listing.test.ts` holds `docs/LISTING.md` to saying so.
+The listing name is settled as **`SSF Slide Elements`** (owner, 2026-09-16).
+Recorded as a DECISION and **not** as a policy clearance: nobody has read it
+against certification policy 1100.7, and if a reviewer objects the answer is a
+rename rather than a claim that it was cleared. `test/listing.test.ts` holds
+`docs/LISTING.md` to saying so.
 
 Left:
 
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
-
-### The undo's refusals — measured on BOTH hosts
-
-**Closed 2026-09-24** (`docs/DESIGN.md` section 15). Windows first, then
-PowerPoint for the web. All four cases on each; the deck came out of every
-refusal identical, and the control restored the user's own slide, which is what
-makes the refusals mean anything.
-
-The web answered the question the record had left open about COST: the refusals
-take 11–59 ms there against 11–32 ms on Windows, so the extra listing read is
-not felt. What the web costs is the successful undo — 1074 ms against 108 —
-and that is the insert-and-delete, not the check.
-
-**#155's sentence was confirmed on the web**: after the manual's Ctrl+Z-twice
-the pane says the user's own slide is already back, rather than that the
-inserted slide is gone. Both are true; the useful one is the one that fires.
-
-**Settled, do not re-open: `undoAim`'s duplicate branch is unreachable through
-PowerPoint's own Duplicate, on BOTH hosts.** The copy is given its own creation
-id (Windows `260#3711757732` → `261#2864044299`; web `266#961438548` →
-`267#730215348`). The branch stays because a premise that fails must refuse
-rather than pick a copy, but it is DEFENSIVE and no host produces the state.
-
-**Two limits of the web round, which are honest gaps rather than open work:**
-the reorder was cut and paste because a synthetic drag cannot be delivered to
-an HTML5 drag-and-drop strip, so a hand drag is unmeasured on both hosts; and
-the deck was read through Office.js alone, the same library the product uses,
-because the second source failed (guessed download URLs served an error page,
-and the File menu exposed no Download entry). Neither changes what the cases
-saw; both are written into section 15.
-
-**Mac and iPad** remain unmeasured, and there the Undo falls back to the
-count-checked positional one (`undoAim` answers `unmarked`), which is the
-behaviour that shipped before this and what `docs/MANUAL.md` describes.
 
 ### A slide deleted mid-run is still unmeasured on a host
 
@@ -121,6 +78,35 @@ selected slides, every slide gaining exactly one shape and all 60 labels
 surviving (`docs/DESIGN.md` section 15). What is missing is only the deletion.
 
 ## Settled — do not re-open
+
+### The undo's refusals are measured on both hosts
+
+**Closed 2026-09-24**, Windows then the web, all four cases on each
+(`docs/DESIGN.md` section 15). Every refusal left the deck identical and the
+control restored the user's own slide, which is what makes the refusals mean
+anything. Three things it settled:
+
+- **The extra listing read costs 11–59 ms on the web**, against 11–32 ms on
+  Windows. The record had carried it as unmeasured and as the thing the web
+  would feel; it is not. The web's cost is the successful undo, 1074 ms
+  against 108.
+- **#155's sentence holds on the web**: after the manual's Ctrl+Z-twice the
+  pane says the user's own slide is already back, rather than that the inserted
+  slide is gone. Both are true; the useful one fires.
+- **`undoAim`'s duplicate branch is unreachable** through PowerPoint's own
+  Duplicate, on both hosts — the copy gets its own creation id. The branch
+  stays, because a premise that fails must refuse rather than pick a copy, but
+  it is DEFENSIVE and no host produces the state. Do not go looking for a way
+  to trigger it.
+
+Two limits, which are honest gaps rather than open work: the reorder was cut
+and paste, because a synthetic drag cannot be delivered to an HTML5
+drag-and-drop strip, so a hand drag is unmeasured on both hosts; and the web
+deck was read through Office.js alone, the same library the product uses,
+because the second source failed. Both are in section 15.
+
+**Mac and iPad** stay unmeasured, and there the Undo falls back to the
+count-checked positional one, which is what `docs/MANUAL.md` describes.
 
 ### The undo's positional aim, and what closed it
 
@@ -277,7 +263,6 @@ not be examined — only that a COM print of these decks does not do it. Do not 
 this to chase it; if it recurs, the thing to capture is the print itself, at the
 moment it is made.
 
-
 ### Mac and iPad will not be measured before release
 
 The owner has **neither device** (2026-09-12), so a Mac round stopped being a
@@ -295,57 +280,30 @@ This is a decision, not a pending task. Nothing is waiting on it.
 
 ### Probe question 4 is answered
 
-On **PowerPoint for Windows, 2026-09-14**, on `template/probe-comments.pptx` —
-the deck authored for it, carrying a modern comment and `ppt/authors.xml`.
-`exportAsBase64Presentation` handed back **43 parts where `getFileAsync` gave
-48**, dropping the comment part, `ppt/authors.xml` and the three
-`ppt/webextensions/` parts. Both runs of the pair agreed, ten minutes apart.
-
-That is the last of the seven questions to be measured by this repository's own
-instrument. The engine reading with `getFileAsync` is no longer borrowed from
-SSF-Merge's sixth sheet. `docs/DESIGN.md` section 15 carries the pair, together
-with the two instrument rules it cost — an imported snippet must be TRUSTED
-before Script Lab will run it, and the failure is invisible in the runner's
-console.
-
-The web has not been re-asked on this build and does not need to be: the drop is
-the same defect (office-js#6867) the siblings measured there, and nothing in the
-engine turns on the platform.
+Windows, 2026-09-14: `exportAsBase64Presentation` dropped the comment part,
+`ppt/authors.xml` and the three `ppt/webextensions/` parts that `getFileAsync`
+returned. That is why the engine reads with `getFileAsync`, and it was the last
+of the seven questions to be measured by this repository's own instrument.
+`docs/DESIGN.md` section 15 has the pair and the two instrument rules it cost.
+The web does not need re-asking: it is office-js#6867, which the siblings
+measured there, and nothing in the engine turns on the platform.
 
 ### The host rounds that were being asked for have been run
 
-- **The web** is measured three times over: two pairs of sheets from
-  2026-09-10, a pair from 2026-09-14, read by `docs/PROBE.md`.
-- **Windows** is measured: a pair of sheets from 2026-09-11 and a product round
-  of four inserts and undos the same day, both read in `docs/DESIGN.md`
-  section 15.
-- **"Remove from N slides", end to end**, on the web on 2026-09-13, build
-  `931bc1d`: the stamp onto three slides, the question, `Removed from 3
-  slides.`, and the deck **read again** to check it rather than the footer
-  believed. `docs/DESIGN.md` section 15 carries it. The same round settled the
-  jump and "Move to a new slide".
-- **Probe question 7** is answered on the web and on Windows, both on
-  2026-09-14: `setSelectedSlides` moves the view, puts the previous selection
-  back, and leaves the host answering afterwards. On the web the call took
-  998 ms and 1,146 ms on two sheets twelve minutes apart, the next selection
-  read 590 ms and 567 ms; on Windows the call took 7 ms and the next read
-  58 ms. The jump stops being borrowed from SSF-Charts on both platforms; on
-  Mac and iPad it is still the sibling's.
+The web (2026-09-10 and 2026-09-14), Windows (2026-09-11), "Remove from N
+slides" end to end on the web (2026-09-13), and probe question 7 on both hosts
+(2026-09-14). `docs/DESIGN.md` section 15 carries every one with its numbers.
+The jump is no longer borrowed from SSF-Charts on either platform; on Mac and
+iPad it still is.
 
 ### Question 6 is answered and needs no action
 
-`getFileAsync` took **31,755 ms for a 0.05 MB deck** on 2026-09-14, and 14,523
-ms later in the same run, against `exportAsBase64Presentation` at 550 ms for the
-same deck — while the product round the day before saw 12 seconds for the same
-work. That is not a size cost, so section 13's sixth question cannot be answered
-by extrapolating from megabytes. **Nothing there is a reason to change the
-engine; it is a reason not to trust a single timing.** `docs/DESIGN.md` section
-15 carries it.
-
-The Windows pair of the same day is the second reason. `getFileAsync` read a
-0.04 MB deck in **62, 76 and 61 ms** there, and `exportAsBase64Presentation` in
-28 and 30 ms. Whatever the web's 31,755 ms was, it is not a property of the
-call.
+`getFileAsync` took 31,755 ms for a 0.05 MB deck on the web on 2026-09-14 and
+14,523 ms later in the same run, against 62, 76 and 61 ms for a 0.04 MB deck on
+Windows. **That is not a size cost**, so section 13's sixth question cannot be
+answered by extrapolating from megabytes — and it is a reason not to trust a
+single timing, not a reason to change the engine. `docs/DESIGN.md` section 15
+carries both sets.
 
 ## Rejected — do not re-propose
 
