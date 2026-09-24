@@ -40,42 +40,54 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### A slide deleted mid-run is still unmeasured on a host
+### A stranded copy is reported as "the rest are as they were"
 
-Still open, and the METHOD this item used to prescribe is wrong. Attempted on
-2026-09-24; what that attempt established is below, because the next one should
-not start where this one did.
+**Measured on Windows, 2026-09-24** (`docs/DESIGN.md` section 15), and it is the
+one thing here that is a DEFECT rather than a missing measurement.
 
-A run passes over a slide that has GONE — `indexOfSlide` answers nothing, the
-cycle is skipped, `done` does not count it, and no position is deleted in its
-place. `test/pane-wiring.test.ts` covers that. No host round has watched it.
+A slide deleted during a run left the deck with a stranded copy — `SLIDE-010`
+twice, the copy stamped and the original not, 60 slides where 59 were expected —
+and the run reported "Stamped 9 of 60 slides. **The rest are as they were** —
+try again, or stamp them one at a time."
 
-**What the attempt disproved.** This item said a deletion fired blind lands in
-the awkward window "perhaps one time in six", and prescribed repeating a long
-run until it did. That cannot work: a cycle costs about **65 ms**, not the 110
-this assumed, so thirty cycles finish in under two seconds — and **a PowerShell
-process takes about 1.5 s to start**. A deletion launched when the run starts is
-not losing the race, it is never in it. The first attempt deleted a slide the
-run had already finished with, and the footer read "Stamped 30 slides".
+`stampOutcome` has the correct sentence for exactly this state and it was not
+used. A user told "the rest are as they were" has no reason to look, and the
+deck they are not looking at has a duplicate in it.
 
-**What the next attempt should use.** A watcher that is ALREADY attached before
-the run begins, triggering off the deck rather than a clock:
-`scratchpad/round-kit/delete-midrun.ps1` holds the slide's SlideID, polls for
-the run to reach an early slide, and deletes a target far ahead of the cursor.
-Written and parsing; it has not yet caught a run, because the runs it was
-pointed at failed to start for the reason below.
+**The mechanism is not established.** Two readings of `stampEvery` were tried
+against the evidence and each contradicts part of it: the `removeAt ===
+undefined` path would have set `stranded` and produced the other sentence; a
+silently failed delete would be masked by the user's deletion bringing the count
+back to `before`, but that path increments `done`, and `done` was 9 rather than
+10. Read it with the deck in front of you rather than from the outside —
+`scratchpad/round-kit/` has the deck, the watcher and the evidence.
 
-**The obstacle that actually cost the attempt.** The multi-slide selection is
-fragile: 60 selected through COM reads back as 60 through Office.js, but any
-intervening interaction with the pane collapses it, and the run silently becomes
-a single-slide insert. Arm the tile by FOCUS rather than a click (focus is what
-sets `chosen`, and a click on an already-chosen tile inserts), select
+### A slide deleted AHEAD of the cursor is still unmeasured
+
+The skip branch: a run passes over a slide that has GONE, `indexOfSlide` answers
+nothing, the cycle is skipped, `done` does not count it, and no position is
+deleted in its place. `test/pane-wiring.test.ts` covers it; no host round has
+watched it.
+
+The 2026-09-24 attempt deleted a slide ahead of the cursor and the deletion
+landed INSIDE a cycle instead, which is the case above. The two are different
+and both are worth having.
+
+**Method, corrected by that attempt.** A cycle on a 60-slide deck costs about a
+second, not the 65 ms a small deck suggests and not the 110 ms this item used to
+assume — and a PowerShell process takes about 1.5 s to start, so a deletion
+launched when the run begins cannot land where it is aimed. Use
+`scratchpad/round-kit/delete-midrun.ps1`: attached BEFORE the run, triggering
+off the deck rather than a clock, finding its target by LABEL at the moment it
+fires (mid-cycle the deck is briefly one longer, so every index after the cursor
+is off by one), and polling no harder than every 250 ms — at 15 ms it disturbed
+the host's own reads enough to strand a cycle by itself.
+
+And the selection is fragile: 60 selected through COM reads back as 60 through
+Office.js, but any intervening interaction with the pane collapses it and the
+run silently becomes a single-slide insert. Arm the tile by FOCUS, select
 immediately before pressing, and check the outcome names a run rather than a
 slide.
-
-**The half of this that IS now measured** is the run itself: a stamp across 60
-selected slides, every slide gaining exactly one shape and all 60 labels
-surviving (`docs/DESIGN.md` section 15). What is missing is only the deletion.
 
 ## Settled — do not re-open
 

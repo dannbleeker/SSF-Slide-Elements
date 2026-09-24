@@ -2048,6 +2048,52 @@ than a slide.
 **Still not measured: a slide deleted mid-run.** `docs/BACKLOG.md` carries it
 with the method corrected.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — a slide deleted DURING a
+run.** Build `e1fa47d`, on the 60-slide labelled deck. A stamp was started over
+all 60 selected slides and `SLIDE-055` was deleted through COM while the run
+was going, by a watcher attached before it started.
+
+The run reported **"Stamped 9 of 60 slides. The rest are as they were — try
+again, or stamp them one at a time."**
+
+The deck says otherwise:
+
+    9|324|2|SLIDE-009    stamped
+   10|265|1|SLIDE-010    the ORIGINAL, unstamped
+   11|325|2|SLIDE-010    the rebuilt COPY, stamped
+
+`SLIDE-055` is gone, as intended. But the deck is **60 slides where 59 were
+expected**, `SLIDE-010` appears twice, and the copy carries the stamp while the
+original does not. That is the stranded state — and "the rest are as they were"
+is not true of it.
+
+**The pane has the right sentence and did not use it.** `stampOutcome` in
+`src/pane/steps.ts` carries "…and the deck has a slide too many: the copy was
+made but the original could not be taken away. Check the deck before trying
+again — trying again would add another." The run answered the milder one, which
+tells a user there is nothing to look at.
+
+**The mechanism is NOT established, and this record does not guess it.** Two
+readings of `stampEvery` were tried against the evidence and each contradicts
+part of it: if the cycle took the `removeAt === undefined` path then `stranded`
+would have been set and the other sentence used; if its own delete failed
+silently then the user's deletion brought the count back to exactly `before`,
+which would mask it — but that path increments `done`, and `done` is 9 rather
+than 10. Somebody should read it with this deck in front of them rather than
+reason about it from the outside.
+
+**Seen twice.** An earlier run of the same shape, under a watcher polling COM
+hard enough to disturb the host's own reads, stranded at cycle 2 and gave the
+same sentence. That one is not evidence — the instrument caused it. This one
+polled once every 250 ms, which is a COM call every quarter second against a run
+doing about a cycle a second, and the deletion is the scenario rather than the
+instrument.
+
+**What is still not measured** is the SKIP branch the backlog was originally
+after: a slide deleted ahead of the cursor and never reached, where the cycle is
+passed over and `done` does not count it. This deletion landed inside a cycle
+instead. Both are worth having and they are different cases.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
