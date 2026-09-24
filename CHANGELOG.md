@@ -589,6 +589,16 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 - The linter moved forward one minor version. Nothing a user installs changed:
   it does not reach the add-in itself.
 
+### Changed — what the store listing tells Microsoft's reviewers
+
+- **The test deck is now a link rather than an attachment.** The testing notes
+  opened by telling a validator to open "the test deck attached to this
+  submission", and the field those notes go into takes text and nothing else —
+  there is no attachment to be made, so a validator would have gone looking for
+  a file that was never there. The deck is now published on the add-in's own
+  site, beside the privacy and support pages the same notes already point at,
+  and the notes link it. Nothing about the add-in changed.
+
 ## [0.1.0] - 2026-09-16
 
 The first release. Everything below is what the add-in does the day it ships:

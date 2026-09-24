@@ -369,3 +369,35 @@ describe("the screenshots the submission carries", () => {
     expect(LISTING).toContain("listing-screenshot.png");
   });
 });
+
+describe("the test deck the certification notes point reviewers at", () => {
+  /**
+   * SERVED, and the same bytes as the one the suite describes.
+   *
+   * The notes told reviewers to open "the test deck attached to this
+   * submission", and Partner Center's notes field takes no attachment — so the
+   * deck is served from the add-in's own origin instead, beside the privacy and
+   * support pages those same notes cite.
+   *
+   * Held to `template/validators.pptx` byte for byte, because two copies of a
+   * file is two files: `test/validators-deck.test.ts` holds THAT one to what
+   * `docs/LISTING.md` says the deck contains, and a reviewer opening a drifted
+   * copy would be reading a description of a deck they do not have.
+   */
+  const SERVED = "public/validators.pptx";
+  const SOURCE = "template/validators.pptx";
+
+  it("is served from the site", () => {
+    expect(existsSync(SERVED), `${SERVED} is not committed, so the notes link 404s`).toBe(true);
+  });
+
+  it("is byte for byte the deck the suite describes", () => {
+    expect(readFileSync(SERVED).equals(readFileSync(SOURCE))).toBe(true);
+  });
+
+  it("is the deck the notes actually link to", () => {
+    // Both directions: a link to a file nobody serves, and a file served that
+    // the notes never mention, are each a way for this to rot quietly.
+    expect(LISTING).toContain("struktureretsundfornuft.dk/validators.pptx");
+  });
+});

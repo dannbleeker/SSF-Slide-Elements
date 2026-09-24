@@ -75,9 +75,10 @@ so is the decision under "Still the owner's" at the bottom.
 > add-in works offline apart from fetching its own library files from its own
 > origin.
 >
-> 1. Open the test deck attached to this submission — three slides, nothing
->    confidential on any of them — or any presentation of your own with at least
->    two slides.
+> 1. Download the test deck —
+>    <https://ssf-slide-elements.struktureretsundfornuft.dk/validators.pptx>,
+>    three slides, nothing confidential on any of them — and open it in
+>    PowerPoint, or use any presentation of your own with at least two slides.
 > 2. On the **Home** tab, click **Slide elements**. The task pane opens on the
 >    library that matches the deck's slide size, with the sections collapsed.
 > 3. Open a section — **White boxes** is the first — and click a tile. The
@@ -117,6 +118,17 @@ because a deck built by this project's own code is the wrong thing to hand the
 people checking whether this project's code produces sound files.
 `test/validators-deck.test.ts` holds the committed bytes to every claim made
 about them here, including that an element actually goes into it.
+
+**And it is SERVED rather than attached**, from 2026-09-24:
+`public/validators.pptx`, which is copied verbatim into the site, so the notes
+above link it on the add-in's own origin beside the privacy and support pages
+they already cite. Partner Center's notes-for-certification field takes text and
+nothing else — there is no attachment to be made — and the notes said "attached
+to this submission" for a fortnight, which would have sent a validator looking
+for a file that was never going to be there. The served copy is held byte for
+byte to `template/validators.pptx` by `test/listing.test.ts`, because two copies
+of a file is two files and it is the template one that
+`test/validators-deck.test.ts` holds to the description above.
 
 ## Still the owner's
 

@@ -27,7 +27,9 @@ manifests by `test/listing.test.ts`), the catalogue page on the site
 (`public/catalogue.html`, generated at harvest), the privacy page naming the
 browser storage, and the validators' test deck (`template/validators.pptx`,
 authored by PowerPoint over COM rather than assembled here, held to its
-description by `test/validators-deck.test.ts`).
+description by `test/validators-deck.test.ts`, and **served** from
+`public/validators.pptx` so the notes can link it — the notes field takes text
+and no attachment).
 
 The listing name is settled as **`SSF Slide Elements`** (owner, 2026-09-16).
 Recorded as a DECISION and **not** as a policy clearance: nobody has read it
