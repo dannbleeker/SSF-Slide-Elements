@@ -10,6 +10,7 @@ import {
   stillThere,
   type Attempt,
   undoPlan,
+  undoAim,
   undoRefusal,
   undoAlreadyReverted,
 } from "../src/host/insert.js";
@@ -538,5 +539,123 @@ describe("an undo against a deck that has changed since its insert", () => {
     const said = undoAlreadyReverted(3);
     expect(said).toContain("slide 3 is already back");
     expect(said).toContain("Nothing was changed");
+  });
+});
+
+/**
+ * The check that closes the drag.
+ *
+ * `undoRefusal` above reads the deck's SIZE, and a drag changes no size: the
+ * user reorders the strip, the count agrees, and the undo deletes whatever has
+ * been dragged into the slot its plan names. `undoAim` asks the deck's listing
+ * for the slide by the creation id the engine wrote into it instead.
+ *
+ * The ids below are the shape both hosts answered on 2026-09-24 for probe
+ * question 8 — `<p:sldId id>#<p14:creationId val>` — and the prefix is varied
+ * deliberately where the suffix is what decides, because a check that fell
+ * back to the prefix would pass these and be wrong: the prefix is the deck's
+ * and the deck reuses it.
+ */
+describe("whether the slide an insert added is still where the insert left it", () => {
+  const marked = ["256#111", "257#222", "258#333"];
+
+  it("lets the undo run when the slide is at the position the delete will take", () => {
+    expect(undoAim(marked, 222, 1)).toEqual({ kind: "ok" });
+  });
+
+  it("refuses when a drag has moved it, and names both slides", () => {
+    // The count is untouched — this is the whole case — so nothing above this
+    // function sees it.
+    const said = undoAim(["257#222", "256#111", "258#333"], 222, 1);
+    expect(said.kind).toBe("refuse");
+    if (said.kind !== "refuse") throw new Error("unreachable");
+    expect(said.detail).toContain("now slide 1");
+    expect(said.detail).toContain("insert left it at slide 2");
+    expect(said.detail).toContain("Nothing was changed");
+  });
+
+  it("refuses when the slide is gone, rather than deleting whatever took its place", () => {
+    const said = undoAim(["256#111", "258#333"], 222, 1);
+    expect(said.kind).toBe("refuse");
+    if (said.kind !== "refuse") throw new Error("unreachable");
+    expect(said.detail).toContain("no longer in the deck");
+    expect(said.detail).toContain("Nothing was changed");
+  });
+
+  it("refuses when the deck holds it twice, and says which slides", () => {
+    // A duplicated slide. Probe question 8 measured a creation id being unique
+    // in the listing on both hosts, so this is a premise failing rather than a
+    // case the hosts produce — and a premise that fails must not delete.
+    const said = undoAim(["256#222", "257#222", "258#333"], 222, 0);
+    expect(said.kind).toBe("refuse");
+    if (said.kind !== "refuse") throw new Error("unreachable");
+    expect(said.detail).toContain("more than once");
+    expect(said.detail).toContain("slide 1 and slide 2");
+    expect(said.detail).toContain("Nothing was changed");
+  });
+
+  it("bounds the sentence when the premise fails badly, rather than listing every slide", () => {
+    // A footer full of slide numbers is not a sentence a user can act on, and
+    // this is the branch least entitled to assume the number is small: it only
+    // runs when a host has broken the uniqueness both hosts were measured
+    // keeping.
+    const many = Array.from({ length: 30 }, (_, i) => `${256 + i}#222`);
+    const said = undoAim(many, 222, 0);
+    expect(said.kind).toBe("refuse");
+    if (said.kind !== "refuse") throw new Error("unreachable");
+    expect(said.detail).toContain("30 times, the first as slide 1");
+    expect(said.detail.length, "the footer sentence grew with the deck").toBeLessThan(220);
+  });
+
+  it("compares the suffix ONLY, so a reused prefix cannot stand in for it", () => {
+    // `sameSlideId` would answer true for `256` against `256#222`, because a
+    // selection id may carry no suffix (office-js#2474). Here that tolerance
+    // would license a delete: the prefix is the deck's and is reused, so the
+    // slide at index 1 carrying prefix 256 is not evidence of anything.
+    const said = undoAim(["999#111", "256#777", "258#333"], 222, 1);
+    expect(said.kind).toBe("refuse");
+    if (said.kind !== "refuse") throw new Error("unreachable");
+    expect(said.detail).toContain("no longer in the deck");
+  });
+
+  it("does not take a matching suffix at the wrong index for the right one", () => {
+    expect(undoAim(marked, 333, 1).kind).toBe("refuse");
+  });
+});
+
+/**
+ * The three ways there is nothing to check WITH.
+ *
+ * Each falls back to the undo exactly as it behaved before this check existed
+ * — count-checked and positional — rather than refusing. Refusing would break
+ * the Undo on every host that does not mark its ids and on every read that
+ * timed out, which is a worse trade than the drag it would close, and Mac and
+ * iPad are unmeasured (`docs/DESIGN.md` section 15).
+ */
+describe("when there is nothing for the undo to check with", () => {
+  it("says so when the entry carries no creation id", () => {
+    expect(undoAim(["256#111"], undefined, 0)).toEqual({ kind: "unmarked", why: "no-creation-id" });
+  });
+
+  it("says so when the listing did not answer", () => {
+    // A read that failed is not a deck that changed.
+    expect(undoAim(undefined, 222, 1)).toEqual({ kind: "unmarked", why: "no-listing" });
+  });
+
+  it("says so when the host marks no id with a suffix at all", () => {
+    expect(undoAim(["256", "257", "258"], 222, 1)).toEqual({ kind: "unmarked", why: "host-marks-nothing" });
+  });
+
+  it("still decides when only SOME ids carry a suffix, because one of them may be ours", () => {
+    // A host that marks some and not others is not one that marks nothing, and
+    // treating it as such would skip the check on a deck that can answer it.
+    expect(undoAim(["256", "257#222", "258"], 222, 1)).toEqual({ kind: "ok" });
+    expect(undoAim(["256", "257#222", "258"], 222, 0).kind).toBe("refuse");
+  });
+
+  it("reads an empty listing as a host that marks nothing, not as a slide that is gone", () => {
+    // An empty deck cannot be the deck an undo was armed against, so nothing
+    // here may be read as evidence the slide was deleted.
+    expect(undoAim([], 222, 0)).toEqual({ kind: "unmarked", why: "host-marks-nothing" });
   });
 });

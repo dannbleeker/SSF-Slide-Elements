@@ -250,11 +250,22 @@ The pane's own **Undo** does both halves in one press, which is what it is for.
 **Use one or the other, not both.** The pane's **Undo** is for straight after
 the insert. It takes back the slide where the insert left it, so once the deck
 has changed — you have pressed Ctrl+Z, or added, deleted or moved slides — use
-PowerPoint's Ctrl+Z instead. If the pane can see the deck has changed —
-because it holds a different number of slides from the ones the insert left,
-or because your own slide is already back where the insert put its copy — its
-Undo refuses, changes nothing and says so. It cannot see a slide that was only
-moved, so after dragging slides about, use Ctrl+Z.
+PowerPoint's Ctrl+Z instead.
+
+**Undo checks the deck before it changes anything, and refuses rather than
+guess.** It refuses when the deck holds a different number of slides from the
+one the insert left it with, when your own slide is already back where the
+insert put its copy, and when the slide it inserted is no longer where it put
+it — because you dragged the deck about, because the slide is gone, or because
+the deck now holds it twice. Every one of those says what it saw and changes
+nothing, and then PowerPoint's own Ctrl+Z is the thing to use.
+
+On PowerPoint for Windows and PowerPoint for the web the pane can recognise the
+slide it inserted wherever it has got to, so dragging slides about after an
+insert gets you a refusal rather than the wrong slide deleted. On a PowerPoint
+that will not tell it which slide is which, Undo falls back to taking back the
+slide at the position the insert used — so there, after dragging slides about,
+use Ctrl+Z.
 
 ### Moving what you just inserted onto a new slide
 

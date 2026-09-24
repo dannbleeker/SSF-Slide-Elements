@@ -31,10 +31,11 @@ is in the order to pick it up: the release, which is down to the Partner Center
 submission — the owner's, and the only step that needs a Microsoft sign-in; a
 slide deleted mid-run, which no host round has yet caught — its stop message
 naming the wrong cause was fixed on 2026-09-24, so what is left of that item is
-the measurement; the Undo, which since 2026-09-24 refuses when the deck's size
-has changed since its insert but cannot yet see a slide that was only dragged —
-the creation-id check that would see one is now UNBLOCKED, question 8 having
-been answered yes on both hosts on 2026-09-24. None of the
+the measurement; and the Undo's refusals, all four of which — the count, the
+already-reverted slide, and `undoAim`'s drag, deletion and duplicate — are built
+and derived from the code, with none of them yet seen on a host. The creation-id
+check that closed the drag landed on 2026-09-24, on question 8's yes from both
+hosts, so what is left of THAT item is also the measurement. None of the
 three is work this repo can finish on its own: the mutation sweep was the last
 of those, and closed on 2026-09-24 when its ninth operator, `grouping`, landed
 and its three survivors were killed. Everything that section used to list as
@@ -485,4 +486,4 @@ must say so.
    listing. The web is the host the question was written for — SSF-Charts
    measured its listing re-keying a slide `slides.add()` had just made — and it
    did not reproduce for a slide arriving through `insertSlidesFromBase64`.
-   **The Undo's creation-id check may be built on this.**
+   **The Undo's creation-id check is built on this** (`undoAim`).

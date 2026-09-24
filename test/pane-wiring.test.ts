@@ -113,7 +113,11 @@ vi.mock("../src/office/powerpoint.js", () => ({
    * `moveSlide` or take one out with `dropSlide` — including from inside a
    * cycle, which is the window the whole guard exists for.
    */
-  slideIds: () => Promise.resolve(host.namesSlides ? [...deckIds()] : undefined),
+  // `listsIds` is separate from `namesSlides` on purpose: a listing that does
+  // not answer is its own case for the undo's creation-id check, and turning
+  // `namesSlides` off would also stop `slideIdAt`, which the undo needs to aim
+  // the restored original — so the case would fail somewhere else first.
+  slideIds: () => Promise.resolve(host.namesSlides && host.listsIds ? [...deckIds()] : undefined),
   onSlideChange: () => {
     host.followed += 1;
     return Promise.resolve(false);
@@ -252,6 +256,7 @@ vi.mock("../src/core/splice/splice.js", () => ({
       placeholders: 0,
       pinned: 0,
       held: host.held,
+      ...(host.creationId === undefined ? {} : { creationId: host.creationId }),
     });
   },
   onlySlide: () => Promise.resolve({ base64: "", path: "ppt/slides/slide1.xml" }),
@@ -314,6 +319,26 @@ function moveSlide(from: number, to: number): void {
   host.ids = ids;
 }
 
+/**
+ * The deck's ids as a host that MARKS them answers, with one slide carrying
+ * the creation id the stubbed splice wrote.
+ *
+ * `deckIds` answers `s0`, `s1`, … with no `#suffix`, which is a host that
+ * marks nothing — the shape Mac and iPad are assumed to have, and the one
+ * `undoAim` falls back on. Both hosts this repository has measured DO mark
+ * them (probe question 8, 2026-09-24), so a case about the creation-id check
+ * has to say so.
+ *
+ * The prefixes start at 300 and never include `256`, which is deliberate:
+ * `256` is the id the undo cases give the USER's own slide, and `sameSlideId`
+ * treats a bare `256` as matching `256#anything` (office-js#2474). A rebuilt
+ * slide handed prefix `256` would therefore trip `undoAlreadyReverted` and the
+ * case would pass for the wrong reason.
+ */
+function markIds(deck: number, rebuiltAt: number): void {
+  host.ids = Array.from({ length: deck }, (_, i) => `${300 + i}#${i === rebuiltAt ? host.creationId : 9000 + i}`);
+}
+
 /** Take a slide out of the deck entirely, which is the case a run must NOT delete into. */
 function dropSlide(at: number): void {
   const ids = [...deckIds()];
@@ -328,6 +353,8 @@ const host = {
   cycles: 0,
   refuseAt: 0,
   namesSlides: true,
+  /** Whether `slideIds` answers at all. See the stub for why it is not `namesSlides`. */
+  listsIds: true,
   supports15: true,
   /** Every id the pane asked the host to select. */
   selected: [] as string[],
@@ -342,6 +369,17 @@ const host = {
    * finished insert sets this.
    */
   current: undefined as { index: number; id: string } | undefined,
+  /**
+   * The creation id the stubbed splice reports writing into the rebuilt slide.
+   *
+   * Set by default, because the undo now reads the deck's listing whenever the
+   * entry carries one — so leaving it undefined would make every case in this
+   * file skip that read and hide the cost of it. The default deck's ids carry
+   * no `#suffix`, so `undoAim` answers "this host marks nothing" and the undo
+   * behaves exactly as it did before the check existed; a case that wants the
+   * check to DECIDE calls `markIds`.
+   */
+  creationId: 4242 as number | undefined,
   /** What the stubbed splice reports the destination slide already held. */
   held: 0,
   /** Set to hold the next `readDeck` open, so something else can finish under it. */
@@ -685,10 +723,12 @@ afterEach(async () => {
   host.grown = 0;
   host.refuseAt = 0;
   host.namesSlides = true;
+  host.listsIds = true;
   host.supports15 = true;
   host.selected.length = 0;
   host.selectAnswers = undefined;
   host.current = undefined;
+  host.creationId = 4242;
   host.held = 0;
   host.removed.length = 0;
   host.refuseRemoval = false;
@@ -2543,6 +2583,142 @@ describe("an Undo after the deck has changed", () => {
       spliced.map((s) => s.target),
       "the move inserted again after a refused undo",
     ).toEqual(["onto"]);
+  });
+
+  /**
+   * The drag, which is what the count check cannot see.
+   *
+   * `undoRefusal` reads the deck's SIZE, and reordering the thumbnail strip
+   * changes no size: every case below leaves the count exactly where the
+   * insert left it, so nothing before `undoAim` has anything to object to.
+   * Without it the undo aims at the position the insert recorded, and deletes
+   * whatever the user has since dragged into that slot — their own slide,
+   * under "Undone.".
+   *
+   * `docs/BACKLOG.md` names probe question 8 as this check's precondition, and
+   * it was answered yes on both hosts on 2026-09-24: the listing carries the
+   * creation id the engine wrote, straight away and still later.
+   */
+  it("refuses when the slide it inserted has been dragged, and deletes nothing", async () => {
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    const cyclesBefore = host.cycles;
+    // The deck as a host that marks its ids answers it: three slides, and the
+    // rebuilt one at index 0 where the insert left it.
+    markIds(3, 0);
+    // The user drags it to the end. THE COUNT IS UNCHANGED.
+    moveSlide(0, 2);
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore), "the undo deleted whatever was dragged into slide 1").toEqual([]);
+    expect(host.cycles, "and put a snapshot back beside it first").toBe(cyclesBefore);
+    expect(said).toContain("reordered since the insert");
+    expect(said).toContain("now slide 3");
+    expect(said).toContain("insert left it at slide 1");
+    expect(said).toContain("Nothing was changed");
+    expect(said).not.toContain("Undone");
+  });
+
+  it("takes the insert back as before when the marked deck says nothing moved", async () => {
+    // The regression half: the check must not refuse the undo it exists to
+    // protect, on the one host shape it can actually decide about.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    markIds(3, 0);
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore), "the rebuilt slide, where the insert left it").toEqual([0]);
+  });
+
+  it("refuses when the slide it inserted is gone and another has taken its place", async () => {
+    // The count moved and moved BACK, which `docs/BACKLOG.md` lists as still
+    // open after the count check shipped: the user deletes the rebuilt slide
+    // and adds one of their own, and the size agrees again. The creation id
+    // does not.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    host.ids = ["400#7", "301#9001", "302#9002"];
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore), "the undo deleted the user's new slide").toEqual([]);
+    expect(said).toContain("no longer in the deck");
+    expect(said).toContain("Nothing was changed");
+    expect(said).not.toContain("Undone");
+  });
+
+  it("refuses when the deck holds the slide it inserted twice", async () => {
+    // A duplicated slide. Both hosts answered a creation id UNIQUE in the
+    // listing, so this is a premise failing — and a premise that fails must
+    // refuse rather than pick a copy.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    host.ids = [`300#${host.creationId}`, `301#${host.creationId}`, "302#9002"];
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore)).toEqual([]);
+    expect(said).toContain("more than once");
+    expect(said).toContain("slide 1 and slide 2");
+    expect(said).not.toContain("Undone");
+  });
+
+  it("takes a new slide back by its creation id, one along from the slide it was added against", async () => {
+    // "As a new slide" removes `index + 1`, and that is the slide the engine
+    // built — so the check aims at the same place the delete does.
+    const pane = await insertedAsNew();
+    const removedBefore = host.removed.length;
+    markIds(4, 1);
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore)).toEqual([1]);
+  });
+
+  it("refuses a new slide's undo when that slide has been dragged away", async () => {
+    const pane = await insertedAsNew();
+    const removedBefore = host.removed.length;
+    markIds(4, 1);
+    moveSlide(1, 3);
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore), "the undo deleted the user's own slide").toEqual([]);
+    expect(said).toContain("now slide 4");
+    expect(said).toContain("insert left it at slide 2");
+    expect(said).not.toContain("Undone");
+  });
+
+  /**
+   * The fallbacks. Each is a host, or a read, that leaves nothing to check
+   * with — and each must leave the undo working exactly as it did before this
+   * check existed, because refusing would break Undo on hosts nobody has
+   * measured (`docs/DESIGN.md` section 15 lists Mac and iPad as assumed).
+   */
+  it("undoes as before on a host that marks no id with a creation id", async () => {
+    // The default fake deck is exactly that host: `s0`, `s1`, … with no `#`.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore)).toEqual([0]);
+  });
+
+  it("undoes as before when the listing does not answer inside its budget", async () => {
+    // A read that failed is not a deck that changed. Refusing here would trade
+    // a hole that opens on a drag for one that opens on a slow read, on the
+    // host whose reads are the slow ones.
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    markIds(3, 0);
+    host.listsIds = false;
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore)).toEqual([0]);
+  });
+
+  it("undoes as before when the insert recorded no creation id at all", async () => {
+    // An entry armed before this shipped, and a package whose slide carried
+    // none. The listing is asked for nothing, because there is nothing to ask.
+    host.creationId = undefined;
+    const pane = await insertedOnto();
+    const removedBefore = host.removed.length;
+    markIds(3, 0);
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore)).toEqual([0]);
   });
 });
 
