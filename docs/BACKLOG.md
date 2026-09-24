@@ -112,8 +112,10 @@ creation-id check below closes all three.
    never as a delete. If the probe says no, the fallback is holding the ids of
    the user's own settled slides either side of the rebuilt one.
 
-The full research, with every citation, the test plan and the critic's
-corrections, is written up in the PR that shipped the count check.
+The research of 2026-09-24 behind this — the ten answer sheets read for the
+suffix, SSF-Charts' measurement of listing and positional reads disagreeing, and
+the paths that lost a slide — is summarised in PR #149's description and in
+`docs/DESIGN.md` section 6.
 
 ## Settled — do not re-open
 
