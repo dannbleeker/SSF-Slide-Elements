@@ -1133,9 +1133,11 @@ round at all, so every answer below is borrowed there.
    carried — straight away, and still later — and does the host keep a
    duplicate creation id? Added 2026-09-24: the Undo's creation-id check, which
    would let it see a dragged slide, keys on exactly that, and every earlier
-   sheet read ids by position only. **Answered on Windows on 2026-09-24 —
-   yes, and a creation id is unique there** (section 15). The WEB has no sheet,
-   and it is the host the question exists for, so the check stays unbuilt.
+   sheet read ids by position only. **ANSWERED on 2026-09-24, on both hosts:
+   yes**, the listing agreeing with the positional read and still agreeing
+   later, and a creation id unique on each (section 15). The web's "later" came
+   3188 ms and a `getFileAsync` after the insert, which is what makes it a real
+   test of settling rather than a fast re-read.
 
 ## 14. Build order
 
@@ -1742,12 +1744,38 @@ is still missing is a host's own word for it (`docs/BACKLOG.md`).
   different second suffixes (`712323446`, then `1901138594`), which is what
   makes it a re-key rather than a constant.
 
-**This does NOT license the Undo's creation-id check**, and the record says so
-rather than leaving a reader to infer it. The check needs the answer on the
-WEB as well, and the web is the host the question was written for: SSF-Charts
-measured that host's listing handing back an id that later changed for a slide
-`slides.add()` had just made. One host answering yes is one host. Until a web
-sheet exists, the drag half of the Undo stays as section 6 leaves it.
+**Question 8, on the web, 2026-09-24.** One sheet
+(`2026-09-24T10-07-06-509Z.json`, platform `OfficeOnline`, host `0.0.0.0`), run
+on the owner's own copy of the same fixture. The web says the same three things,
+and says them over an order of magnitude more time — which is the half that
+mattered:
+
+- **The listing carries the creation id straight away**: `259#424205` at 677 ms,
+  the positional read agreeing.
+- **It still says the same later**: unchanged at 3188 ms, after a 1986 ms
+  `getFileAsync` had gone by. Windows' "later" was 135 ms; the web's is
+  twenty-three times that, so the web is the run that actually exercised
+  whether an id settles, and it did.
+- **A creation id is unique here too**: the second insert of one package listed
+  as `260#3306267168`, a suffix of its own.
+
+This is the host the question was written FOR: SSF-Charts measured the web's
+listing handing back an id that later changed for a slide `slides.add()` had
+just made. That is the failure this arm went looking for, on the host that
+produced it, and it did not reproduce — for a slide arriving through
+`insertSlidesFromBase64` rather than `slides.add()`, which is the difference
+worth keeping in mind before the two are treated as one fact.
+
+**So the condition the Undo's creation-id check was waiting on is met**: yes on
+both hosts, the listing agreeing with the positional read, and still agreeing
+later. Section 6's drag half can be built on it.
+
+**Question 5 is NOT answered by this web sheet.** It is a first run: the slide
+it left was taken by Ctrl+Z, but the second run never completed, so the reader
+says "NOT YET" rather than reading a verdict out of one sheet. The web answered
+question 5 on 2026-09-10 and Windows twice since; nothing here changes that, and
+the marker the first run wrote is still set in that deck's settings, so the next
+probe run on it will take itself for a second run.
 
 **Assumed**: every host fact above on **Mac and iPad**, where no round has been
 run — and, from 2026-09-12, where none is planned before release: the owner has
