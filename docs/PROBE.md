@@ -235,8 +235,7 @@ keeps its numbers as text.
 
 ### 8. The listing
 
-Added 2026-09-24. **Answered on Windows the same day; the web is still to
-run**, and the web is the host the question exists for. The pane's Undo reads every
+Added 2026-09-24 and **answered the same day on both hosts: yes**. The pane's Undo reads every
 slide's id through one collection listing, `slides.load("items/id")`. Every
 sheet so far shows a fixture's creation id coming back as the `#suffix` of its
 id, but through `getItemAt(i)` reads only, and SSF-Charts measured the two
@@ -329,9 +328,21 @@ the pair agree. Question 5 answered yes again on the way past: one Ctrl+Z took
 the slide the first run left, and the second run found its marker, cleared it,
 and left the deck at the three slides it started with.
 
-**Question 8 has no web sheet yet, and the web is the host it exists for**:
-SSF-Charts measured that host's listing handing back an id that later changed.
-Until it is run there, the Undo's creation-id check stays unbuilt.
+**PowerPoint for the web, 2026-09-24** — one sheet
+(`2026-09-24T10-07-06-509Z.json`, platform `OfficeOnline`, host `0.0.0.0`), run
+for question 8 on the owner's own copy of the fixture. The same three readings
+as Windows, over an order of magnitude more time: the listing named the new
+slide `259#424205` at 677 ms agreeing with the positional read, the second
+insert got `260#3306267168` (so a creation id is unique here too), and at
+**3188 ms**, after a 1986 ms `getFileAsync`, both were unchanged. This is the
+host the question was written for — SSF-Charts measured its listing re-keying a
+slide `slides.add()` had just made — and it did not reproduce for a slide
+arriving through `insertSlidesFromBase64`.
+
+A first run only: question 5 reads **NOT YET** from it, as one sheet must. The
+Ctrl+Z was pressed and took the slide, but the second run did not complete, so
+the marker that first run wrote is still set in that deck's settings — the next
+probe run on it will take itself for a second run.
 
 `docs/host-answers/` is the count, not this line; Mac is still to come.
 

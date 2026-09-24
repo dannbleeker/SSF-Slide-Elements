@@ -33,7 +33,8 @@ slide deleted mid-run, which no host round has yet caught — its stop message
 naming the wrong cause was fixed on 2026-09-24, so what is left of that item is
 the measurement; the Undo, which since 2026-09-24 refuses when the deck's size
 has changed since its insert but cannot yet see a slide that was only dragged —
-the creation-id check that would see one waits on a probe round. None of the
+the creation-id check that would see one is now UNBLOCKED, question 8 having
+been answered yes on both hosts on 2026-09-24. None of the
 three is work this repo can finish on its own: the mutation sweep was the last
 of those, and closed on 2026-09-24 when its ninth operator, `grouping`, landed
 and its three survivors were killed. Everything that section used to list as
@@ -74,10 +75,10 @@ rules: one orange element per view, one column, one primary control drawn last.
 
 ## What THIS host answered
 
-**PowerPoint for the web and PowerPoint on Windows.** Twelve answer sheets under
+**PowerPoint for the web and PowerPoint on Windows.** Thirteen answer sheets under
 `docs/host-answers/` — four from the web on 2026-09-10, a Windows pair on
-2026-09-11, a web pair and a Windows pair on 2026-09-14, and a Windows pair on
-2026-09-24 for question 8; `docs/DESIGN.md`
+2026-09-11, a web pair and a Windows pair on 2026-09-14, and for question 8 a
+Windows pair plus a single web sheet on 2026-09-24; `docs/DESIGN.md`
 section 15 reads them and is the one place to change when a sheet is filed.
 **All seven original questions are now measured by this repository's own instrument**,
 question 4 last, on the Windows pair of 2026-09-14 run against
@@ -475,13 +476,13 @@ must say so.
    50 MB figure and the iPad floor are still unmeasured.
 7. `setSelectedSlides` moves the view and the host answers a selection read
    afterwards: 998 ms and 1,146 ms on the web, 7 ms on Windows, 2026-09-14.
-8. **Answered on Windows, 2026-09-24; the web is still to run.** The listing
-   named the just-inserted slide `259#424205` — the creation id its package
-   carried — straight after the insert, agreeing with the positional read, and
-   unchanged 135 ms later after a whole-deck `getFileAsync`. A second insert of
-   the same package listed as `260#1901138594`, so the host gives the second
-   copy a suffix of its own and a creation id is UNIQUE in the listing here.
-   Both runs of the pair agree. **The Undo's creation-id check still waits**,
-   because it needs the answer on the web too: SSF-Charts measured the web's
-   listing handing back an id that later changed, and that is the host this
-   question exists to ask.
+8. **Answered on BOTH hosts, 2026-09-24: yes.** The listing named the
+   just-inserted slide by the creation id its package carried — `259#424205` —
+   straight after the insert, agreeing with the positional read, and unchanged
+   later: at 135 ms on Windows, and at 3188 ms on the web after a 1986 ms
+   `getFileAsync`. A second insert of the same package got a suffix of its own
+   on each host (`1901138594`, `3306267168`), so a creation id is UNIQUE in the
+   listing. The web is the host the question was written for — SSF-Charts
+   measured its listing re-keying a slide `slides.add()` had just made — and it
+   did not reproduce for a slide arriving through `insertSlidesFromBase64`.
+   **The Undo's creation-id check may be built on this.**
