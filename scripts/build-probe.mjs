@@ -26,7 +26,13 @@
 import { writeFileSync } from "node:fs";
 import { Pkg, PKG_REL_NS, P_NS, element, elements } from "../dist-lib/core/index.js";
 import { API_FLOOR } from "../dist-lib/host/capability.js";
-import { API_SETS, PROBE_MARKER, PROBE_TAG, PROBE_UNDO_VALUE } from "../dist-lib/host/probe.js";
+import {
+  API_SETS,
+  PROBE_MARKER,
+  PROBE_LISTING_CREATION_ID,
+  PROBE_TAG,
+  PROBE_UNDO_VALUE,
+} from "../dist-lib/host/probe.js";
 import { makeDeck, stableZip } from "./probe-fixture.mjs";
 
 const b64 = (bytes) => Buffer.from(bytes).toString("base64");
@@ -58,6 +64,9 @@ const LISTED = b64(listedBytes);
 const PRUNED = await prune(true);
 const UNLISTED = await prune(false);
 const SINGLE = b64(await makeDeck([{ text: "SSF Slide Elements probe S", creationId: 424203 }]));
+// Question 8's own deck: a creation id no other arm inserts, so what the
+// listing reports is not coloured by an earlier arm having used the same one.
+const LISTING = b64(await makeDeck([{ text: "SSF Slide Elements probe L", creationId: PROBE_LISTING_CREATION_ID }]));
 const UNDO = b64(
   await makeDeck([
     {
@@ -89,8 +98,10 @@ const LISTED_DECK = "${LISTED}";
 const PRUNED_DECK = "${PRUNED}";
 const UNLISTED_DECK = "${UNLISTED}";
 const SINGLE_DECK = "${SINGLE}";
+const LISTING_DECK = "${LISTING}";
 const UNDO_DECK = "${UNDO}";
 const PROBE_TAG = "${PROBE_TAG}";
+const PROBE_LISTING_CREATION_ID = ${PROBE_LISTING_CREATION_ID};
 const PROBE_MARKER = "${PROBE_MARKER}";
 const API_FLOOR = "${API_FLOOR}";
 const API_SETS = ${JSON.stringify(API_SETS)};
@@ -729,6 +740,105 @@ async function clearMarker(): Promise<string> {
   }
 }
 
+/**
+ * The deck's size once it reaches \`want\`, asked again with a backoff until it
+ * does or the backoff runs out — the pane's own countReaching. The web's count
+ * sat at its old value for 2.8 seconds after an insert that had landed
+ * (2026-09-11), so ONE read deciding whether an insert landed would stop the
+ * arm on a host where it had.
+ */
+async function countReaching(want: number): Promise<number> {
+  let seen = await slideCount();
+  for (const wait of [300, 600, 1200, 2400]) {
+    if (seen === want) return seen;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    seen = await slideCount();
+  }
+  return seen;
+}
+
+/**
+ * The ids at positions n..n+k-1 read BOTH ways — one collection listing and
+ * getItemAt — in ONE sync, with the deck's size, so a disagreement between the
+ * two is the two methods and not the clock.
+ */
+async function readListing(n: number, k: number, since: number): Promise<Record<string, unknown>> {
+  try {
+    return await withTimeout(
+      PowerPoint.run(async (context) => {
+        const slides = context.presentation.slides;
+        slides.load("items/id");
+        const count = slides.getCount();
+        const handles = [];
+        for (let i = n; i < n + k; i++) {
+          const slide = slides.getItemAt(i);
+          slide.load("id");
+          handles.push(slide);
+        }
+        await context.sync();
+        const ids = slides.items.map((s) => s.id);
+        return {
+          deck: count.value,
+          listedLength: ids.length,
+          listed: ids.slice(n, n + k),
+          positional: handles.map((h) => h.id),
+          ms: Date.now() - since,
+        };
+      }),
+      20000,
+      "reading the new slides' ids both ways",
+    );
+  } catch (e) {
+    return { error: message(e) };
+  }
+}
+
+/**
+ * Question 8: what the slide LISTING says about a slide an insert just added.
+ *
+ * The pane's undo reads slides.load("items/id"). Every sheet so far shows the
+ * package's creation id coming back as an id's suffix, but only through
+ * getItemAt reads, and a sibling measured the two disagreeing for a fresh
+ * slides.add() slide on the web. So: insert this arm's own one-slide deck and
+ * read the new slide both ways in one sync; insert it AGAIN, for two slides with
+ * one creation id; then read both again after a whole-deck read has gone by. No
+ * deliberate wait — a wait after adding a slide is one of the family's host
+ * rules — so the pause is the read the pane itself makes. The final sweep
+ * removes both.
+ */
+async function listingProbe(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = { creationId: PROBE_LISTING_CREATION_ID };
+  try {
+    const n = await slideCount();
+    out.n = n;
+    const since = Date.now();
+    const one = await insertDeck(LISTING_DECK, "KeepSourceFormatting");
+    const afterOne = await countReaching(n + 1);
+    if (afterOne !== n + 1) {
+      out.error = \`the first insert did not land exactly one slide (\${n} → \${afterOne}\${one.error ? \`, \${one.error}\` : ""})\`;
+      return out;
+    }
+    out.first = await readListing(n, 1, since);
+    const two = await insertDeck(LISTING_DECK, "KeepSourceFormatting");
+    const afterTwo = await countReaching(n + 2);
+    if (afterTwo !== n + 2) {
+      out.error = \`the second insert did not land exactly one slide (\${n + 1} → \${afterTwo}\${two.error ? \`, \${two.error}\` : ""})\`;
+      return out;
+    }
+    out.twin = await readListing(n, 2, since);
+    try {
+      const own = await withTimeout(currentDeck(), 120000, "reading the deck between the listing reads");
+      out.pause = { ms: own.ms };
+    } catch (e) {
+      out.pause = { error: message(e) };
+    }
+    out.later = await readListing(n, 2, since);
+  } catch (e) {
+    out.error = message(e);
+  }
+  return out;
+}
+
 async function main() {
   const started = Date.now();
   const answers: Record<string, unknown> = {
@@ -814,6 +924,11 @@ async function main() {
   // Question 4, timed for question 6.
   answers.exportParts = await exportProbe(ownNames);
 
+  // Question 8, after the arms that compare the deck with the file read at the
+  // start, so its two slides cannot skew their answers. The sweep below
+  // removes them.
+  answers.listing = await listingProbe();
+
   // Everything the arms above added and did not take back.
   answers.sweep = await sweep(deckAtStart, (await slideCount()) - deckAtStart);
 
@@ -870,5 +985,5 @@ main().catch((e) => console.error("the probe itself failed:", e));
 
 writeFileSync("probe/probe-snippet.ts", snippet);
 console.log(
-  `probe/probe-snippet.ts written (${snippet.length} bytes; decks ${[LISTED, PRUNED, UNLISTED, SINGLE, UNDO].map((d) => d.length).join(" + ")} base64 chars)`,
+  `probe/probe-snippet.ts written (${snippet.length} bytes; decks ${[LISTED, PRUNED, UNLISTED, SINGLE, LISTING, UNDO].map((d) => d.length).join(" + ")} base64 chars)`,
 );

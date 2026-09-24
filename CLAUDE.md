@@ -52,7 +52,7 @@ the measurement that closed it, so a round is not asked for twice.
 | `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
 | `template/` | the owner's library: the two decks (one per slide size), the PDF print of each and the `*.print.json` saying where every element sits on it, `names.en.json` (the English name of every element keyed by the deck's Danish title), `validators.pptx`, the deck AppSource's reviewers are given, and `probe-comments.pptx`, the throwaway the host probe's question 4 needs because it carries a comment |
-| `docs/DESIGN.md` | the design record: every decision, dated, and the seven host questions the probe asks |
+| `docs/DESIGN.md` | the design record: every decision, dated, and the eight host questions the probe asks |
 
 **`src/host` decides, `src/office` calls, and the architecture test holds both
 directions.** An Office.js import in `src/host` makes a rule untestable; a rule
@@ -77,7 +77,7 @@ rules: one orange element per view, one column, one primary control drawn last.
 `docs/host-answers/` — four from the web on 2026-09-10, a Windows pair on
 2026-09-11, a web pair and a Windows pair on 2026-09-14; `docs/DESIGN.md`
 section 15 reads them and is the one place to change when a sheet is filed.
-**All seven questions are now measured by this repository's own instrument**,
+**All seven original questions are now measured by this repository's own instrument**,
 question 4 last, on the Windows pair of 2026-09-14 run against
 `template/probe-comments.pptx`: `exportAsBase64Presentation` gave back 43 parts
 where `getFileAsync` gave 48, dropping the comment part and `ppt/authors.xml`.
@@ -446,11 +446,11 @@ npm run format         # Prettier, on code only
 npm run pane-shots     # needs `npx vite --port 5199 --strictPort &` first
 ```
 
-## The host questions, all answered
+## The host questions
 
 `probe/probe-snippet.ts` asks them and `docs/PROBE.md` says how each arm is
-built. Every one is answered on the web and on Windows by this repository's
-own sheets; `docs/DESIGN.md` section 15 reads them, and is the place to change
+built. Questions 1 to 7 are answered on the web and on Windows by this
+repository's own sheets, and question 8 has not been asked on any host yet; `docs/DESIGN.md` section 15 reads them, and is the place to change
 when a new sheet is filed. On Mac and iPad every answer below is BORROWED and
 must say so.
 
@@ -473,3 +473,7 @@ must say so.
    50 MB figure and the iPad floor are still unmeasured.
 7. `setSelectedSlides` moves the view and the host answers a selection read
    afterwards: 998 ms and 1,146 ms on the web, 7 ms on Windows, 2026-09-14.
+8. NOT YET ASKED (added 2026-09-24). Whether the slide listing the Undo reads
+   names a just-inserted slide by the creation id its package carried, straight
+   away and later, and whether the host keeps a duplicate creation id. The
+   Undo's creation-id check waits on it; the owner runs it, web first.

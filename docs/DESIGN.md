@@ -943,7 +943,7 @@ one; no user-facing document had promised it.
   to be a release requirement in section 12 and no longer is. Three ways a first
   measurement can still arrive, cheapest first — a **borrowed device running the
   Script Lab probe**, which needs no sideload of this add-in and answers all
-  seven questions in one paste; a borrowed device with the manifest sideloaded,
+  eight questions in one paste; a borrowed device with the manifest sideloaded,
   through OneDrive on iPad and `~/Library/Containers/…/wef` on Mac; or a
   real-device cloud, if PowerPoint installs and licenses there.
 
@@ -1102,8 +1102,9 @@ record saying "checked" would licence somebody to make.
 
 Each is written so a single round settles it. The probe that asks them is a
 Script Lab snippet, not a pane: `docs/PROBE.md` says why, and how each question
-is put, and the sheets are filed under `docs/host-answers/`. **All seven are
-answered on the web and on Windows**, and section 15 reads every sheet.
+is put, and the sheets are filed under `docs/host-answers/`. **Questions 1 to 7
+are answered on the web and on Windows**, and section 15 reads every sheet;
+question 8, added on 2026-09-24 for the Undo, has not been asked on any host.
 Questions 1 to 6 were asked before the splice and the picker were built;
 question 4 was settled last, on the Windows pair of 2026-09-14 against
 `template/probe-comments.pptx`. Question 7 arrived after them, with the jump,
@@ -1127,6 +1128,12 @@ round at all, so every answer below is borrowed there.
    call is the one selection WRITE the pane makes, and it was made on
    SSF-Charts' web measurement until the sheets of 2026-09-14 answered it here,
    on the web and on Windows. On Mac and iPad the jump is still borrowed.
+8. Does the slide LISTING (`slides.load("items/id")`, what the pane's Undo
+   reads) name a slide an insert just added by the creation id its package
+   carried — straight away, and still later — and does the host keep a
+   duplicate creation id? Added 2026-09-24: the Undo's creation-id check, which
+   would let it see a dragged slide, keys on exactly that, and every earlier
+   sheet read ids by position only.
 
 ## 14. Build order
 

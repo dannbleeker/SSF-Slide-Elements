@@ -24,6 +24,9 @@ import {
   orderVerdict,
   pruningReading,
   jumpProbeVerdict,
+  listingTwinVerdict,
+  listingVerdict,
+  PROBE_LISTING_CREATION_ID,
   selectionVerdict,
   summarizeParts,
   targetAddedVerdict,
@@ -958,5 +961,113 @@ describe("jumpProbeVerdict", () => {
     // no reading at all.
     expect(jumpProbeVerdict(asked).detail).toContain("NOT ASKED");
     expect(jumpProbeVerdict({ supported: true, selected: ["256#1"] }).detail).toContain("NOT ASKED");
+  });
+});
+
+describe("listingVerdict", () => {
+  /**
+   * Question 8, which the undo's creation-id check waits on. A slide the probe
+   * inserted, read straight away by the listing and by position in one sync,
+   * and again after a whole-deck read.
+   */
+  const cid = PROBE_LISTING_CREATION_ID;
+  const one = `260#${cid}`;
+  const pair = [one, `261#${cid}`];
+  const good = {
+    n: 3,
+    creationId: cid,
+    first: { deck: 4, listedLength: 4, listed: [one], positional: [one], ms: 900 },
+    twin: { deck: 5, listedLength: 5, listed: pair, positional: pair, ms: 1800 },
+    later: { deck: 5, listedLength: 5, listed: pair, positional: pair, ms: 4000 },
+  };
+
+  it("answers yes when the listing carries the creation id straight away and keeps it", () => {
+    const v = listingVerdict(good);
+    expect(v.verdict).toBe("yes");
+    expect(v.detail).toContain(`260#${cid}`);
+  });
+
+  it("answers no when the listing hands back an add-time id, the shape the sibling measured", () => {
+    // SSF-Charts' web reading for a fresh slides.add() slide: a listing id
+    // whose suffix is not the creation id. Positional agrees here, so it is
+    // the suffix, not a disagreement, that says no.
+    const odd = "4123571130#123571113";
+    const v = listingVerdict({ ...good, first: { ...good.first, listed: [odd], positional: [odd] } });
+    expect(v.verdict).toBe("no");
+    expect(v.detail).toContain("not the package's creation id");
+  });
+
+  it("answers no when the two reads disagree about the same slide", () => {
+    const v = listingVerdict({ ...good, first: { ...good.first, positional: ["999#1"] } });
+    expect(v.verdict).toBe("no");
+    expect(v.detail).toContain("disagree");
+  });
+
+  it("answers no when the id the listing gave has changed by the later read", () => {
+    const moved = [`262#${cid}`, `261#${cid}`];
+    const v = listingVerdict({ ...good, later: { ...good.later, listed: moved, positional: moved } });
+    expect(v.verdict).toBe("no");
+    expect(v.detail).toContain("not settled");
+  });
+
+  it("answers no when the later read finds the listing out of step with the positional read", () => {
+    const v = listingVerdict({ ...good, later: { ...good.later, positional: [`262#${cid}`, `261#${cid}`] } });
+    expect(v.verdict).toBe("no");
+    expect(v.detail).toContain("later read");
+  });
+
+  it("does not answer yes when the later read was not taken, and says why the arm stopped", () => {
+    const { later: _dropped, ...rest } = good;
+    expect(listingVerdict(rest).verdict).toBe("unknown");
+    const stopped = listingVerdict({ ...rest, error: "the second insert did not land exactly one slide (4 → 6)" });
+    expect(stopped.verdict).toBe("unknown");
+    expect(stopped.detail, "the reason the arm stopped was lost").toContain("4 → 6");
+  });
+
+  it("does not read a SHORT listing as an answer, but reads a count that lags the listing", () => {
+    // Collection loads over about fifty items can answer short (CLAUDE.md).
+    const short = listingVerdict({ ...good, first: { ...good.first, listedLength: 3 } });
+    expect(short.verdict).toBe("unknown");
+    expect(short.detail).toContain("short collection read");
+    // A listing LONGER than the count is the web's count lagging the insert.
+    expect(listingVerdict({ ...good, first: { ...good.first, deck: 3 } }).verdict).toBe("yes");
+  });
+
+  it("says the arm threw rather than guessing", () => {
+    expect(listingVerdict({ error: "PowerPoint.run rejected" }).verdict).toBe("threw");
+  });
+});
+
+describe("listingTwinVerdict", () => {
+  const cid = PROBE_LISTING_CREATION_ID;
+  const read = (a: string, b: string) => ({ deck: 5, listedLength: 5, listed: [a, b], positional: [a, b] });
+  const both = read(`260#${cid}`, `261#${cid}`);
+
+  it("answers yes when both copies list the same creation id, straight away and later", () => {
+    expect(listingTwinVerdict({ creationId: cid, twin: both, later: both }).verdict).toBe("yes");
+  });
+
+  it("answers no when the second copy lists a suffix of its own", () => {
+    const own = read(`260#${cid}`, "261#555");
+    const v = listingTwinVerdict({ creationId: cid, twin: own, later: own });
+    expect(v.verdict).toBe("no");
+    // Straight away, not "once it settled": the later read would also say no,
+    // and the sheet has to say WHEN the host renumbered it.
+    expect(v.detail).toContain("a suffix of its own");
+  });
+
+  it("answers no when the duplicate is re-suffixed once it settles", () => {
+    const v = listingTwinVerdict({ creationId: cid, twin: both, later: read(`260#${cid}`, "261#999") });
+    expect(v.verdict).toBe("no");
+    expect(v.detail).toContain("did not last");
+  });
+
+  it("does not answer yes without the later read", () => {
+    expect(listingTwinVerdict({ creationId: cid, twin: both }).verdict).toBe("unknown");
+  });
+
+  it("cannot tell when the first copy carries no creation id at all", () => {
+    const v = listingTwinVerdict({ creationId: cid, twin: read("260#1", "261#555"), later: both });
+    expect(v.verdict).toBe("unknown");
   });
 });

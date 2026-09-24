@@ -103,8 +103,9 @@ creation-id check below closes all three.
    undo reads says about a slide `insertSlidesFromBase64` has just added is
    unmeasured, and SSF-Charts measured the two disagreeing for a fresh
    `slides.add()` slide on the web. The arm reads both side by side, again after
-   a delay, and records what happens to duplicate creation ids. The owner runs
-   it in Script Lab, web first.
+   a delay, and records what happens to duplicate creation ids. **Built on
+   2026-09-24 as probe question 8**; it waits on the owner's round in Script
+   Lab, web first (`docs/PROBE.md`).
 2. **Then, if the listing carries the suffix, the creation-id check.** At the
    press, Undo proceeds only when exactly one listed slide carries the rebuilt
    slide's creation id and it sits where the insert left it; otherwise it

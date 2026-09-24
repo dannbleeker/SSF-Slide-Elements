@@ -60,6 +60,21 @@ function split(id: string): [string, boolean] {
   return at < 0 ? [id, false] : [id.slice(0, at), true];
 }
 
+/**
+ * The part of an Office.js slide id after its `#` — the creation id the slide
+ * carried in its package, on every sheet so far — or undefined when it has none.
+ *
+ * Beside `split` because this file owns the id's grammar, and separate from it
+ * because `split` deliberately returns no suffix: `sameSlideId` has no use for
+ * one. Probe question 8 does (`src/host/probe.ts`), and a second parser of the
+ * same shape elsewhere is how two readings of one id drift apart.
+ */
+export function slideIdSuffix(id: string | undefined): string | undefined {
+  if (id === undefined) return undefined;
+  const at = id.indexOf("#");
+  return at === -1 ? undefined : id.slice(at + 1);
+}
+
 export interface JumpObservation {
   /** The slide number the user clicked, counting from one. */
   slide: number;

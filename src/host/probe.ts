@@ -18,6 +18,8 @@
  * probe asks each one.
  */
 
+import { slideIdSuffix } from "./jump.js";
+
 export type Verdict = "yes" | "no" | "unknown" | "threw";
 
 export interface Reading {
@@ -353,6 +355,199 @@ export function targetAddedVerdict(o: OrderObservation): Reading {
   return {
     verdict: "no",
     detail: `a slide this run had just added was REFUSED as targetSlideId (${o.targetAdded.error ?? "no error text"}). A second insert must target a slide the host already knew, or re-read ids after the first.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Question 8: what the slide LISTING says about a slide an insert just added.
+// ---------------------------------------------------------------------------
+
+/**
+ * The creation id question 8's deck carries, which the host is expected to hand
+ * back as the `#suffix` of that slide's Office.js id.
+ *
+ * Its OWN number, used by no other arm. Question 2's deck (424203) is inserted
+ * and deleted earlier in the same run, so a host that treated a creation id it
+ * had already seen differently would make a reused one read as "the listing
+ * does not carry it" — an answer the pane's clones, which draw a fresh id every
+ * time, would never meet. Exported so `scripts/build-probe.mjs` writes the same
+ * number the verdicts look for.
+ */
+export const PROBE_LISTING_CREATION_ID = 424205;
+
+/** One reading of the ids at a run of positions, taken both ways in ONE sync. */
+export interface ListingRead {
+  /** The deck's size by `getCount`, in the same sync. */
+  deck?: number;
+  /** How many ids the `slides.load("items/id")` listing answered. */
+  listedLength?: number;
+  /** The listing's ids at the positions asked about. */
+  listed?: string[];
+  /** The ids at the same positions through `getItemAt`, in the same sync. */
+  positional?: string[];
+  /** Milliseconds from the START of the arm's first insert to this read. */
+  ms?: number;
+  error?: string;
+}
+
+export interface ListingObservation {
+  /** The deck's size before the arm inserted anything. */
+  n?: number;
+  /** The creation id the inserted package carried. */
+  creationId?: number;
+  /** Straight after one insert: the new slide at position n. */
+  first?: ListingRead;
+  /** Straight after a SECOND insert of the same package: positions n and n+1. */
+  twin?: ListingRead;
+  /** The same two positions again, after a whole-deck read in between. */
+  later?: ListingRead;
+  /** Why the arm stopped, when it did. */
+  error?: string;
+}
+
+/** Why a read cannot be judged, or undefined when it can. */
+function unreadable(r: ListingRead | undefined, positions: number, what: string, stopped?: string): string | undefined {
+  if (r === undefined) {
+    return stopped === undefined
+      ? `NOT ASKED — there is no ${what} reading on this sheet.`
+      : `the arm stopped before the ${what} read: ${stopped}`;
+  }
+  if (r.error !== undefined) return `the ${what} read threw: ${r.error}`;
+  // SHORT only. A listing LONGER than the count is the count lagging the insert
+  // (the web's measured 2.8 s), and the listing still names the new slide.
+  if (r.deck !== undefined && r.listedLength !== undefined && r.listedLength < r.deck) {
+    return `the listing answered ${r.listedLength} ids for a deck of ${r.deck} (a short collection read), so the ${what} read says nothing about the new slides.`;
+  }
+  if ((r.listed ?? []).length !== positions || (r.positional ?? []).length !== positions) {
+    return `the ${what} read did not name all ${positions} position(s) both ways.`;
+  }
+  return undefined;
+}
+
+/** The first position at which the listing and the positional read name different slides, or undefined. */
+function disagreement(r: ListingRead): string | undefined {
+  const listed = r.listed ?? [];
+  const positional = r.positional ?? [];
+  const i = listed.findIndex((id, k) => id !== positional[k]);
+  return i === -1 ? undefined : `listing ${listed[i]} against ${positional[i]} by position`;
+}
+
+/**
+ * Whether the LISTING the pane's undo reads names a slide an insert just added
+ * by the creation id the package carried — straight away, and still later — and
+ * agrees with a positional read of the same slide each time.
+ *
+ * Every sheet so far shows a fixture's creation id coming back as the `#suffix`
+ * of its id, but only through POSITIONAL reads (`getItemAt(i).load("id")`).
+ * The undo reads `slides.load("items/id")`, and SSF-Charts measured the two
+ * disagreeing for a fresh `slides.add()` slide on the web: the listing handed
+ * back an add-time id that later changed. The creation-id check the undo is
+ * waiting on keys the rebuilt slide by that suffix IN THE LISTING, so this is
+ * the reading it rests on (`docs/BACKLOG.md`). Both reads of each reading are
+ * taken in one sync, so a disagreement is the two methods and not the clock.
+ */
+export function listingVerdict(o: ListingObservation): Reading {
+  if (o.error !== undefined && o.first === undefined) {
+    return { verdict: "threw", detail: `the arm stopped before it could read: ${o.error}` };
+  }
+  const cid = String(o.creationId ?? PROBE_LISTING_CREATION_ID);
+  const cannot = unreadable(o.first, 1, "first", o.error);
+  if (cannot !== undefined) return { verdict: "unknown", detail: cannot };
+  const first = o.first as ListingRead;
+  const listed = (first.listed ?? [])[0] as string;
+  const split = disagreement(first);
+  if (split !== undefined) {
+    return {
+      verdict: "no",
+      detail: `straight after the insert the two reads, taken in one sync, disagree about the new slide (${split}), so the listing cannot stand in for a positional read here.`,
+    };
+  }
+  if (slideIdSuffix(listed) !== cid) {
+    return {
+      verdict: "no",
+      detail: `straight after the insert the listing named the new slide ${listed}, whose suffix is not the package's creation id ${cid}. The undo cannot key the rebuilt slide by its creation id in the listing on this host.`,
+    };
+  }
+  const notLater = unreadable(o.later, 2, "later", o.error);
+  if (notLater !== undefined) {
+    return {
+      verdict: "unknown",
+      detail: `straight after the insert the listing carried the creation id (${listed}), but whether it keeps it is not read: ${notLater}`,
+    };
+  }
+  const later = o.later as ListingRead;
+  const laterSplit = disagreement(later);
+  if (laterSplit !== undefined) {
+    return {
+      verdict: "no",
+      detail: `by the later read the two reads disagree (${laterSplit}), so the listing does not stay in step with a positional read here.`,
+    };
+  }
+  const again = (later.listed ?? [])[0] as string;
+  if (again !== listed) {
+    return {
+      verdict: "no",
+      detail: `the listing named the new slide ${listed} straight after the insert and ${again} in the read taken ${later.ms ?? "?"} ms after the first insert began, so the id is not settled when the insert returns.`,
+    };
+  }
+  return {
+    verdict: "yes",
+    detail: `the listing named the new slide ${listed} straight after the insert, agreeing with the positional read, and still ${again} in the read taken ${later.ms ?? "?"} ms after the first insert began. The creation id comes back in the listing on this host.`,
+  };
+}
+
+/**
+ * What the listing says when two slides carry the same creation id — which a
+ * second insert of the same package produces, and which the undo's check would
+ * have to refuse on rather than guess between.
+ *
+ * "yes" means the host KEEPS the duplicate — both slides list the same suffix
+ * straight away AND in the later read — and "no" means it gives the second a
+ * suffix of its own, at once or once it settles.
+ */
+export function listingTwinVerdict(o: ListingObservation): Reading {
+  const cid = String(o.creationId ?? PROBE_LISTING_CREATION_ID);
+  const cannot = unreadable(o.twin, 2, "twin", o.error);
+  if (cannot !== undefined) return { verdict: "unknown", detail: cannot };
+  const twin = o.twin as ListingRead;
+  const split = disagreement(twin);
+  if (split !== undefined) {
+    return {
+      verdict: "unknown",
+      detail: `the two reads of the pair disagree (${split}), so the pair cannot be judged.`,
+    };
+  }
+  const [a, b] = (twin.listed ?? []) as [string, string];
+  if (slideIdSuffix(a) !== cid) {
+    return {
+      verdict: "unknown",
+      detail: `the first copy listed as ${a}, without the package's creation id ${cid}, so what the host does with a duplicate cannot be read from the suffix (the listing verdict above says why).`,
+    };
+  }
+  if (slideIdSuffix(b) !== cid) {
+    return {
+      verdict: "no",
+      detail: `two inserts of one package listed as ${a} and ${b}: the host gives the second copy a suffix of its own, so a creation id is unique in the listing here.`,
+    };
+  }
+  const notLater = unreadable(o.later, 2, "later", o.error);
+  if (notLater !== undefined) {
+    return {
+      verdict: "unknown",
+      detail: `two inserts of one package listed as ${a} and ${b} straight away, but whether the duplicate lasts is not read: ${notLater}`,
+    };
+  }
+  const later = o.later as ListingRead;
+  const [la, lb] = (later.listed ?? []) as [string, string];
+  if (disagreement(later) !== undefined || slideIdSuffix(la) !== cid || slideIdSuffix(lb) !== cid) {
+    return {
+      verdict: "no",
+      detail: `two inserts of one package listed as ${a} and ${b} straight away and as ${la} and ${lb} later: the duplicate did not last as it came.`,
+    };
+  }
+  return {
+    verdict: "yes",
+    detail: `two inserts of one package listed as ${a} and ${b}, and the same later: the host keeps a duplicate creation id, so a check keyed on it must refuse when it finds two.`,
   };
 }
 
