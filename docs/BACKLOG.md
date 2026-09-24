@@ -45,46 +45,33 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### The undo's refusals are unmeasured on a host
+### The undo's refusals — measured, with one still unreachable
 
-The count check, the already-reverted check and `undoAim`'s three refusals are
-derived from the code and from probe question 8's answer sheets. No host round
-has yet watched a REFUSAL happen: the paths they close were reasoned out of
-`src/pane/main.ts`, and every case behind them is a fake host in
-`test/pane-wiring.test.ts`.
+**Closed on Windows, 2026-09-24** (`docs/DESIGN.md` section 15). All four cases
+ran against build `49890b6` and the deck came out of the three refusals
+identical each time; the control restored the user's own slide correctly, which
+is what makes the three mean anything. The refusal disarms the Undo, as
+designed. The extra listing read costs about 30 ms here.
 
-**The DEFECT, though, has now been watched happening** (2026-09-24, Windows,
-build `be5fe4a`, `docs/DESIGN.md` section 15). Insert onto slide 2, reorder the
-deck, press Undo: the add-in deleted the user's own slide 258, left the slide it
-had inserted in place, and said “Undone. The deck has 3 slides.” The count never
-moved, which is exactly why the count check could not see it. A control on the
-same deck with no reorder restored the original slide correctly, so the reorder
-is the whole cause. That is the half this item used to be guessing at; what is
-left is watching the fix refuse.
+**Open, and it is the web.** No web round has watched any of this. The route
+that exists is Windows-only — COM for the deck, UI Automation for the ribbon,
+CDP on 9444 for the pane — and the web has no equivalent harness; building one
+is its own piece of work. The web is not falling back to the positional Undo,
+because question 8 measured its listing carrying creation ids, so it gets the
+real check; what is missing is having WATCHED it refuse, and the timing, which
+is where the extra read would actually be felt.
 
-What a round has to see, on the web first and then on Windows, with the listing
-id and the positional id logged side by side each time:
+**Settled and worth not re-opening: `undoAim`'s duplicate branch is
+unreachable through PowerPoint's own Duplicate.** The inserted slide listed as
+`260#3711757732` and duplicating it gave `261#2864044299` — its own creation
+id, consistent with question 8's uniqueness answer. The branch stays, because a
+premise that fails must refuse rather than pick a copy, but it is DEFENSIVE and
+the record says so rather than describing a state no host produces. Do not go
+looking for a way to trigger it as though it were a gap.
 
-1. An insert, a DRAG of the inserted slide in the thumbnail strip, then Undo —
-   which must refuse naming both slide numbers, and must delete nothing.
-2. An "onto this slide" insert, Ctrl+Z TWICE as `docs/MANUAL.md` tells the user
-   to, then Undo — the already-reverted refusal, which the count cannot see.
-3. A DUPLICATED slide: insert, then duplicate the inserted slide in PowerPoint,
-   then Undo. Both hosts answered a creation id unique in the listing, so this
-   is the one case that asks what the host does when a creation id is NOT
-   unique — and whether a duplicate carries the same one at all.
-
-4. **Time it.** `undoAim` buys one extra `slides.load("items/id")` on every
-   Undo press that has a creation id, and nothing has measured what that costs.
-   Windows reads of this shape are tens of milliseconds; the web has been
-   measured in the hundreds and up (section 15), and the web is where a user
-   would feel it. Log the press-to-answer time on both hosts, refusals and
-   successes alike.
-
-Case 3 is the one that can still refute something: if PowerPoint gives a
-duplicated slide a creation id of its own, the duplicate refusal is unreachable
-in practice and the record should say so rather than describing a branch no host
-produces.
+**Mac and iPad** remain unmeasured, and there they fall back to the
+count-checked positional Undo (`undoAim` answers `unmarked`), which is the
+behaviour that shipped before this and is what `docs/MANUAL.md` describes.
 
 ### A slide deleted mid-run is still unmeasured on a host
 

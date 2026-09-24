@@ -45,6 +45,12 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **After Ctrl+Z, Undo now tells you your own slide is back.** If you take an
+  insert back with PowerPoint's own Ctrl+Z twice — which is what the manual
+  tells you to do — and then press the add-in's Undo, it used to say only that
+  the slide it had inserted was no longer there. True, and not the thing you
+  wanted to know. It now says your own slide is already back as it was. Nothing
+  was ever deleted either way; it was the wrong one of two correct answers.
 - **Undo no longer destroys a slide when you have reordered the deck.** Measured
   on PowerPoint for Windows on 2026-09-24: insert an element onto a slide, drag
   that slide somewhere else, press the add-in's Undo — and it deleted a

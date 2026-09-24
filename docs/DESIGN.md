@@ -1892,6 +1892,67 @@ product ignored a click". It is not: it is one click split in two by a scroll
 reset. So a round drives ONE of the two paths — a tile click, which inserts on
 its own — and never both, or it inserts twice.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the Undo's refusals, watched
+happening.** Build `49890b6`, the merged one, on a disposable copy of
+`template/validators.pptx`. The defect these close was measured on the previous
+build an hour earlier (above); this is the same machine, the same route and the
+same fixture, against the code that closes it. The pane's `data-build` was read
+before the first case and says `49890b6`, which is the only thing that says
+which commit was actually under test.
+
+| case | what was done | the deck | the pane | press to answer |
+| --- | --- | --- | --- | --- |
+| 1 | insert, then REORDER the deck | **unchanged** | "The deck has been reordered since the insert — the slide this add-in inserted is now slide 3, where the insert left it at slide 2 — so Undo could take back the wrong slide. Nothing was changed." | **30 ms** |
+| 2 | insert, then PowerPoint's own Ctrl+Z TWICE | **unchanged**, the user's own slide safe | "The slide this add-in inserted is no longer in the deck…" | **32 ms** |
+| 3 | insert, then DUPLICATE the inserted slide | **unchanged** | the COUNT refusal, 4 slides where the insert left 3 | **31 ms** |
+| 4 | insert, then Undo with nothing changed | **restored**: SlideID 256 back with its original two shapes | "Undone. The deck has 3 slides." | **108 ms** |
+
+Case 4 is what makes the other three mean anything: a check that refused
+everything would pass all of them. Case 1 is the exact sequence that deleted a
+user's slide on the previous build, and the deck came out of it identical —
+`261, 258, 259, 262` before and after.
+
+**The refusal DISARMS the Undo**, which the design says and no host had shown:
+`undo` read back `null` after case 1, so the button is gone rather than left to
+be pressed again.
+
+**What the extra listing read costs.** The decisions log recorded it as
+unmeasured. It is **about 30 ms on Windows** — the three refusals answered in
+30, 32 and 31 ms, each of them two reads and no writes, and the successful undo
+in 108 ms, which includes putting a slide back and taking one away. The web is
+still unmeasured and is where it would be felt.
+
+**Timed from INSIDE the page**, with a `MutationObserver` on the outcome and
+`performance.now()` taken in a capture listener on the Undo button. The first
+attempt polled from outside and read 41,894 ms for an answer that took 30 —
+every sample costs a node start-up and a CDP connection, and that is the
+instrument, not the product. No number in the table above was taken by polling.
+
+### Two findings the round produced
+
+**A duplicated slide gets its own creation id, so `undoAim`'s duplicate branch
+is unreachable through PowerPoint's own Duplicate.** The inserted slide listed
+as `260#3711757732`; duplicating it gave `261#2864044299`. That is consistent
+with question 8's "a creation id is UNIQUE in the listing" and it settles what
+the branch is: DEFENSIVE, not a state this host produces. It stays — a premise
+that fails must refuse rather than pick a copy — but the record says plainly
+that no host has been seen producing it, rather than describing a case as though
+it happens. What was actually exercised in case 3 is the COUNT refusal, because
+a duplicate adds a slide.
+
+**`undoAim` was shadowing `undoAlreadyReverted` for the sequence the manual
+itself recommends.** After Ctrl+Z twice both refusals are true: the rebuilt
+slide is genuinely gone AND the user's own slide is genuinely back. `undoAim`
+ran first and answered "the slide this add-in inserted is no longer in the
+deck" — correct, and silent about the thing the user cares about, which is that
+their own slide is fine. Since `docs/MANUAL.md` tells users to press Ctrl+Z
+twice, this is the likeliest refusal anyone will ever meet. Neither sentence
+deletes anything, so this was never a safety defect; it was the wrong one of two
+correct answers. Fixed by asking the listing already in hand whether the user's
+own slide is back at the position the copy stood, and preferring
+`undoAlreadyReverted` when it is. Invisible until a host produced a deck that
+satisfied both conditions at once.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.

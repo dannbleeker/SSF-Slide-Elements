@@ -1100,8 +1100,39 @@ async function undo(): Promise<boolean> {
     // taken BEFORE anything is asked of the host, so a refusal here has
     // changed nothing at all.
     if (entry.creationId !== undefined) {
-      const aim = undoAim(await slideIds(), entry.creationId, plan.remove);
-      if (aim.kind === "refuse") return refuse(aim.detail);
+      const listed = await slideIds();
+      const aim = undoAim(listed, entry.creationId, plan.remove);
+      if (aim.kind === "refuse") {
+        // BOTH refusals are true here, and the user gets the more useful one.
+        //
+        // Measured on Windows on 2026-09-24 (`docs/DESIGN.md` section 15): the
+        // sequence `docs/MANUAL.md` itself recommends — an "onto this slide"
+        // insert taken back with PowerPoint's own Ctrl+Z, TWICE — leaves the
+        // rebuilt slide genuinely gone and the user's own slide genuinely back.
+        // So `undoAim` answers "the slide this add-in inserted is no longer in
+        // the deck", which is correct, and says nothing about the thing the
+        // user actually cares about: that their own slide is fine.
+        // `undoAlreadyReverted` says exactly that.
+        //
+        // This is the likeliest refusal a real user will ever meet, because the
+        // manual tells them to do it, and it was answering with the less
+        // informative of two correct sentences. Found by running it rather than
+        // by reading it: the check order is invisible until a host produces a
+        // deck that satisfies both.
+        //
+        // Asked of the listing already in hand, so it costs no further read.
+        // `indexOfSlide` compares with `sameSlideId`, which is what
+        // `undoAlreadyReverted`'s own guard below uses — a selection id can
+        // lack the `#suffix` the deck's list carries (office-js#2474).
+        if (
+          plan.after !== undefined &&
+          entry.original !== undefined &&
+          indexOfSlide(listed ?? [], entry.original) === plan.after
+        ) {
+          return refuse(undoAlreadyReverted(plan.after + 1));
+        }
+        return refuse(aim.detail);
+      }
     }
 
     if (plan.after !== undefined) {
