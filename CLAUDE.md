@@ -48,7 +48,7 @@ asked for twice.
 | `src/host/` | the DECISIONS about talking to a host, all pure and all tested: `capability.ts` (the version floor), `coalesce.ts` (one selection read at a time), `errors.ts` (a raise as a bounded sentence), `insert.ts` (what a measured delta means, and the undo plan), `jump.ts` (whether the host was seen on the slide), `links.ts` (what may reach a URL), `memory.ts` (which storage bucket a deck remembers itself in), `probe.ts` (what each probe observation means), `theme.ts` (whether the host's own colour means dark or light), `timeout.ts` (every budget, and the backoff a lagging count needs) |
 | `src/office/` | the Office.js CALLS, and nothing else. Every judgement is imported from `src/host` |
 | `src/pane/` | the pane's decisions, one file per thing a reader looks for by name: `steps.ts` (the state, which step, what the one button says, why it is blocked, the footer and the tile menu), `search.ts` (which elements the picker shows, and "Did you mean"), `card.ts` (the preview card: where an element lands and what is already there), `used.ts` ("Used in this deck"), `storage.ts` (what the pane remembers and in which of its two buckets), `catalogue.ts` (the index and an element's markup, fetched from the site), `render.ts` (the DOM), `main.ts` (**the only file here allowed to touch Office.js**), plus the HTML and the SSF stylesheet. They stay FLAT: `paneCode` in `scripts/doc-refs.mjs` reads this directory without recursing, so a subdirectory would silently stop being checked against the design record |
-| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`), the answer reader (`read-answers.mjs`), and the listing screenshot (`listing-shot.ps1` for the capture, `ribbon-cache.mjs` for taking the sibling add-ins off the ribbon first) |
+| `scripts/` | the manifest generator and its rules, the icon drawer, the test-count floor, the release pre-flight, the pane audit, the mutation sweep (`mutants.mjs`, its eight operators and its `EQUIVALENT` ledger), the sibling sweep and its `TRIAGED` table, the harvest, the probe builder (`build-probe.mjs`, `probe-fixture.mjs`), the answer reader (`read-answers.mjs`), and the listing screenshot (`listing-shot.ps1` for the capture, `ribbon-cache.mjs` for taking the sibling add-ins off the ribbon first) |
 | `probe/` | `probe-snippet.ts`, GENERATED for Script Lab and committed; CI rebuilds and diffs it. Pasted into PowerPoint by the owner, never imported here |
 | `docs/PROBE.md`, `docs/host-answers/` | how to run the probe, and every answer sheet it has produced, stamped |
 | `public/` | copied verbatim into `dist/`: the CNAME, the landing page, the support and privacy pages the manifests point at, the icons |
@@ -82,10 +82,9 @@ section 15 reads them and is the one place to change when a sheet is filed.
 question 4 last, on the Windows pair of 2026-09-14 run against
 `template/probe-comments.pptx`: `exportAsBase64Presentation` gave back 43 parts
 where `getFileAsync` gave 48, dropping the comment part and `ppt/authors.xml`.
-Section 13 is borrowed from a sibling on neither platform this project has a
-sheet for; Mac and iPad, having none, are borrowed on everything. The splice ran against the web on 2026-09-10, and
-the whole product — pane, insert and Undo — against the web and then against
-Windows on 2026-09-11.
+Mac and iPad have no sheet, so every answer is borrowed there. The splice ran
+against the web on 2026-09-10, and the whole product — pane, insert and Undo —
+against the web and then against Windows on 2026-09-11.
 
 **v0.1.0 itself was run on Windows on 2026-09-16**, against the released
 `manifest-prod.xml` — the release asset, the copy in the shared-folder catalog
@@ -427,6 +426,7 @@ a refactor, and a check that guessed would be noise.
 npm test               # the whole suite
 npm run typecheck
 npm run lint
+npm run format:check   # Prettier, checked; the FIRST step of the CI gate
 npm run coverage       # enforces the floors in vitest.config.ts
 npm run test:count     # holds the floor in test/fixtures/test-count.json
 npm run dead-exports   # every export the shipped add-in never calls
@@ -438,6 +438,7 @@ npm run manifests      # regenerate the four manifests; test/manifest.test.ts di
 npm run icons          # redraw public/assets; test/manifest.test.ts diffs them
 npm run sibling-watch  # sweep both siblings' tables for findings with no row in TRIAGED
 npm run bench          # what the engine costs per insert, printed
+node scripts/mutants.mjs --what <operator>   # the mutation sweep; deliberately NOT in CI, and hours long
 npm run release:check  # the release pre-flight, against RELEASE_VERSION
 npm run build          # the site, for GitHub Pages
 npm run build:lib      # the engine to dist-lib/, which harvest, previews and probe need first
@@ -446,26 +447,30 @@ npm run format         # Prettier, on code only
 npm run pane-shots     # needs `npx vite --port 5199 --strictPort &` first
 ```
 
-## Open questions for the real host
+## The host questions, all answered
 
-Nothing should be built on a guess about any of them; each is written so a
-single round settles it, and `probe/probe-snippet.ts` asks all of them
-(`docs/PROBE.md` says how each arm is built).
+`probe/probe-snippet.ts` asks them and `docs/PROBE.md` says how each arm is
+built. Every one is answered on the web and on Windows by this repository's
+own sheets; `docs/DESIGN.md` section 15 reads them, and is the place to change
+when a new sheet is filed. On Mac and iPad every answer below is BORROWED and
+must say so.
 
-1. Does `insertSlidesFromBase64` accept a package pruned to one slide whose
-   other parts are still present but unlisted? OPC permits it; whether
-   PowerPoint agrees on the way in is not measured.
-2. Does an insert immediately followed by a positional delete of the slide
-   before it keep the order the engine expects?
-3. Does `getSelectedSlides()` name the slide the user is looking at, and does
-   its position in `slides` match the position in `<p:sldIdLst>`?
-4. Which read of the deck this add-in should use — `getFileAsync` or
-   `exportAsBase64Presentation` — and what each drops on this host.
-5. Does PowerPoint's own Ctrl+Z revert `insertSlidesFromBase64`? If it does,
-   the pane's Undo must not fight it.
-6. How long does `getFileAsync` take on a 50 MB deck, since the file route
-   reads the whole deck for every insert, and is the floor met on iPad?
-7. Does `setSelectedSlides` move the view, and does the host still answer a
-   selection read afterwards? The jump in "Used in this deck" makes that call
-   on a sibling's evidence; until a sheet answers this, it is borrowed
-   everywhere.
+1. A package pruned to one listed slide, the other parts still present but
+   unlisted, is accepted and lands exactly that slide. The splice is built on it.
+2. An insert followed by a positional delete of the slide before it keeps the
+   order the engine expects, and a slide the run just added IS accepted as a
+   `targetSlideId`.
+3. `getSelectedSlides()` names the slide the user is on, and its order is the
+   file's `<p:sldIdLst>` order.
+4. Read with `getFileAsync`: `exportAsBase64Presentation` drops the comment part
+   and `ppt/authors.xml` on both platforms (43 parts against 48 on
+   `template/probe-comments.pptx`, Windows, 2026-09-14).
+5. PowerPoint's own Ctrl+Z reverts a bare `insertSlidesFromBase64` — but this
+   add-in's "onto this slide" insert is two operations and needs two presses,
+   measured 2026-09-23.
+6. `getFileAsync`'s time is not a size cost: 31,755 ms and then 14,523 ms for a
+   0.05 MB deck on the web, 61 to 76 ms for 0.04 MB on Windows, all 2026-09-14.
+   Nothing to change in the engine; a single timing is not to be trusted. The
+   50 MB figure and the iPad floor are still unmeasured.
+7. `setSelectedSlides` moves the view and the host answers a selection read
+   afterwards: 998 ms and 1,146 ms on the web, 7 ms on Windows, 2026-09-14.
