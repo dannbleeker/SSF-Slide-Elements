@@ -256,11 +256,13 @@ engine turns on the platform.
   slides.`, and the deck **read again** to check it rather than the footer
   believed. `docs/DESIGN.md` section 15 carries it. The same round settled the
   jump and "Move to a new slide".
-- **Probe question 7** is answered, on the web on 2026-09-14: `setSelectedSlides`
-  moves the view, puts the previous selection back, and leaves the host
-  answering afterwards — 1,146 ms and 567 ms, twelve minutes apart. The jump
-  stops being borrowed from SSF-Charts **on this platform**; Windows and Mac are
-  still the sibling's.
+- **Probe question 7** is answered on the web and on Windows, both on
+  2026-09-14: `setSelectedSlides` moves the view, puts the previous selection
+  back, and leaves the host answering afterwards. On the web the call took
+  998 ms and 1,146 ms on two sheets twelve minutes apart, the next selection
+  read 590 ms and 567 ms; on Windows the call took 7 ms and the next read
+  58 ms. The jump stops being borrowed from SSF-Charts on both platforms; on
+  Mac and iPad it is still the sibling's.
 
 ### Question 6 is answered and needs no action
 
