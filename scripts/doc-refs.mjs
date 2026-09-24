@@ -223,7 +223,7 @@ export function listedQuestions(path, heading) {
 /** Where the two canonical lists live, and how each heading is spelled. */
 export const QUESTION_LISTS = [
   ["docs/DESIGN.md", /^## \d+\. Open questions for the host$/],
-  ["CLAUDE.md", /^## The host questions, all answered$/],
+  ["CLAUDE.md", /^## The host questions$/],
 ];
 
 /**

@@ -24,6 +24,8 @@ import {
   floorLine,
   insertVerdict,
   jumpProbeVerdict,
+  listingTwinVerdict,
+  listingVerdict,
   insertionBlame,
   leftBehind,
   masterVerdict,
@@ -171,6 +173,33 @@ line("getFileAsync", timingLine("getFileAsync", sheet.ownRead));
 line("getFileAsync, at end", timingLine("getFileAsync", sheet.ownReadAtEnd));
 line("export", timingLine("exportAsBase64Presentation", sheet.exportParts));
 line("floor", floorLine(sheet.requirementSets ?? [], sheet.platform, sheet.floor ?? "1.2"));
+
+console.log("\n8. Does the slide listing name a just-inserted slide by the creation id its package carried?");
+{
+  const l = sheet.listing;
+  if (l === undefined) {
+    line("verdict", "unknown — NOT ASKED: this sheet predates question 8.");
+  } else {
+    const v = listingVerdict(l);
+    line("verdict", `${v.verdict} — ${v.detail}`);
+    const t = listingTwinVerdict(l);
+    line("two with one id", `${t.verdict} — ${t.detail}`);
+    if (l.error) line("arm stopped", l.error);
+    for (const [name, r] of [
+      ["after one insert", l.first],
+      ["after the second", l.twin],
+      ["later", l.later],
+    ]) {
+      if (r?.error) line(name, `read threw: ${r.error}`);
+      else if (r?.listed)
+        line(
+          name,
+          `listed ${r.listed.join(", ")}; by position ${(r.positional ?? []).join(", ")} (${r.ms ?? "?"} ms after the first insert began)`,
+        );
+    }
+    if (l.pause) line("pause between", l.pause.error ?? `${l.pause.ms} ms of getFileAsync`);
+  }
+}
 
 console.log(`\nclean-up: ${sheet.sweep ?? "not reported"}`);
 line(

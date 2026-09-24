@@ -1,6 +1,6 @@
 # The host probe
 
-The seven questions in [the design record](DESIGN.md#13-open-questions-for-the-host)
+The eight questions in [the design record](DESIGN.md#13-open-questions-for-the-host)
 that only a real PowerPoint can answer, asked directly. Nothing in the splice,
 the picker or the jump should be built on a guess about any of them.
 
@@ -125,6 +125,7 @@ a read that had fallen on a slide the probe never wrote.
 | 5 | Does PowerPoint's own **Ctrl+Z** revert an insert? | Whether the pane's Undo must stay out of the way of the host's |
 | 6 | How long does a read take on a big deck, and is the **floor** met? | The two-second budget in the design, and the floor message on hosts below 1.2 |
 | 7 | Does `setSelectedSlides` **move the view**, and does the host still answer afterwards? | The jump from "Used in this deck", built on SSF-Charts' web measurement and read back on every click; this arm measures it directly, on every platform |
+| 8 | Does the slide **listing** name a slide an insert just added by the creation id its package carried, straight away and still later? | The creation-id check that would let the pane's Undo see a dragged slide: it reads the listing, and every earlier sheet read ids by position only |
 
 ### 1. The pruned package
 
@@ -231,6 +232,24 @@ and then reads the selection once more on its own, timed. "Yes" needs both: the
 read-back named the slide, and the read after it answered. `setSelectedShapes`
 is never called. Below PowerPointApi 1.5 the arm says NOT ASKED and the pane
 keeps its numbers as text.
+
+### 8. The listing
+
+Added 2026-09-24, and not yet asked on any host. The pane's Undo reads every
+slide's id through one collection listing, `slides.load("items/id")`. Every
+sheet so far shows a fixture's creation id coming back as the `#suffix` of its
+id, but through `getItemAt(i)` reads only, and SSF-Charts measured the two
+reads disagreeing on the web for a slide `slides.add()` had just made: the
+listing handed back an id that later changed. So the arm inserts the one-slide
+deck — creation id 424205, used by no other arm — reads the new slide BOTH ways
+in one sync, inserts the
+same deck again so two slides carry one creation id, and reads both slides
+again after a whole-deck `getFileAsync` has gone by. There is no deliberate
+wait: waiting after adding a slide is one of the family's host rules, so the
+pause is the read the pane itself makes. "Yes" needs the listing to carry the
+creation id straight away, agree with the positional read, and still say the
+same later; a second line says whether the host keeps a duplicate creation id.
+The final sweep removes both slides.
 
 ## What it does to your deck
 
