@@ -403,6 +403,24 @@ const STATES = [
     },
     shows: ["stop"],
   },
+  // The Undo refusing because the deck changed after its insert — the longest
+  // sentence the footer carries, written by `undoRefusal` in src/host/insert.ts
+  // and copied here as it reads for a deck of 3 the insert left at 4.
+  {
+    name: "browse-undo-refused",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      outcome: {
+        ok: false,
+        byHand: true,
+        name: "One box",
+        detail:
+          "The deck has changed since the insert — it has 3 slides where the insert left 4 — so Undo could take back the wrong slide. Nothing was changed. Check the deck, and use PowerPoint's own Ctrl+Z if the insert is still there.",
+      },
+    },
+    shows: ["gear"],
+  },
   {
     name: "browse-by-hand",
     step: "browse",

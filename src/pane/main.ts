@@ -29,6 +29,8 @@ import {
   indexOfSlide,
   stillThere,
   undoPlan,
+  undoRefusal,
+  undoAlreadyReverted,
 } from "../host/insert.js";
 import { readable } from "../host/errors.js";
 import { jumpOutcome } from "../host/jump.js";
@@ -121,6 +123,18 @@ interface Undoable {
   alreadyThere: boolean;
   /** What the pane knew the destination slide held BEFORE the insert. */
   onSlide: PaneState["onSlide"];
+  /**
+   * How many slides the insert left the deck with. The undo's plan is
+   * positions in THAT deck, so a press that finds a different count refuses
+   * rather than aiming at positions that have moved (`undoRefusal`).
+   */
+  count: number;
+  /**
+   * The id of the user's own slide an "onto this slide" insert replaced, read
+   * before the insert, so an undo can tell when PowerPoint's Ctrl+Z has already
+   * put it back (`undoAlreadyReverted`). Undefined for "as a new slide".
+   */
+  original?: string;
 }
 let undoable: Undoable | undefined;
 
@@ -886,6 +900,10 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
           landedOn: landed,
           alreadyThere: target === "onto" && holds(state.used, element.id, landed),
           onSlide: state.onSlide,
+          // The count the insert MEASURED, not one worked out again: `outcomeOf`
+          // answers ok only when these are exactly what success looks like.
+          count: removed ?? inserted,
+          ...(target === "onto" && current?.id !== undefined ? { original: current.id } : {}),
         }
       : undefined;
     state = {
@@ -978,19 +996,21 @@ async function insert(id: string, once?: "onto" | "new"): Promise<void> {
 /**
  * Put the deck back the way it was.
  *
- * Count-checked at every step, and positional where it has to be. It DOES read
- * an id — `slideIdAt(plan.after)`, to aim the restored original — and that one
- * is checked again before the delete, because for an "onto this slide" undo it
- * names the slide the delete takes. What stays positional is the delete's
- * TARGET: `CLAUDE.md` records that a slide the run just added does not resolve
- * by id on the web, and the slide being removed here is one this add-in
- * created, so no id for it was ever obtainable.
+ * Count-checked at every step, and positional where it has to be. The FIRST
+ * check is against the count the insert left (`undoRefusal`): the plan is
+ * positions in that deck, and a press that finds another size refuses before
+ * anything is asked. It DOES read an id — `slideIdAt(plan.after)`, to aim the
+ * restored original — and that one is checked again before the delete,
+ * because for an "onto this slide" undo it names the slide the delete takes.
+ * What stays positional is the delete's TARGET: `CLAUDE.md` records that a
+ * slide the run just added does not resolve by id on the web, so the delete
+ * never looks a slide up by one. The id is read at the PRESS, never held from
+ * the insert, which is the pattern the sibling measured going wrong.
  */
 async function undo(): Promise<boolean> {
   const entry = undoable;
   if (!entry || state.busy === true) return false;
   set({ busy: true, busyWith: "undo", notice: "Undoing…" });
-  deckEdits += 1;
   const plan = undoPlan(entry);
   /**
    * Whether the host has been asked to change the deck yet. See the catch.
@@ -1011,6 +1031,35 @@ async function undo(): Promise<boolean> {
   try {
     const before = await slideCount();
 
+    // The deck the plan describes is the one the insert left. A different count
+    // means the positions have moved under it — a Ctrl+Z, a slide added or
+    // deleted — and the delete below would take whatever now sits there. Nothing
+    // has been asked of the host yet, and the entry no longer describes the
+    // deck, so it is disarmed rather than left to be pressed again.
+    //
+    // A refusal asks nothing of the host, so it leaves `deckEdits` alone: an
+    // in-flight "Used in this deck" read is still reading the deck as it is.
+    // What the pane showed about the deck is dropped, though — the refusal is
+    // the evidence it has changed — the way the deck-wide removal drops it.
+    const refuse = (detail: string): false => {
+      undoable = undefined;
+      state = {
+        ...state,
+        busy: false,
+        busyWith: undefined,
+        undo: 0,
+        outcome: { ok: false, byHand: true, name: entry.name, detail },
+        used: undefined,
+        onSlide: undefined,
+      };
+      delete state.notice;
+      draw();
+      announce(detail);
+      return false;
+    };
+    const refusal = undoRefusal(entry.count, before);
+    if (refusal !== undefined) return refuse(refusal);
+
     if (plan.after !== undefined) {
       // Put the user's own slide back first, aimed at the rebuilt one so it
       // lands immediately after it whatever the selection is now.
@@ -1019,9 +1068,11 @@ async function undo(): Promise<boolean> {
       if (targetId === undefined) {
         throw new Error(`PowerPoint would not name slide ${plan.after + 1}, so the original could not be put back`);
       }
+      if (stillThere(entry.original, targetId)) return refuse(undoAlreadyReverted(plan.after + 1));
       const original = await onlySlide(entry.before, entry.index);
       // From here the deck may hold the user's original slide again, whatever
       // happens next.
+      deckEdits += 1;
       asked = true;
       const refused = await insertPackage(original.base64, targetId);
       const grown = await countReaching(plan.grownTo(before));
@@ -1038,18 +1089,19 @@ async function undo(): Promise<boolean> {
     // `aimedAt` names the slide being removed. "As a new slide" reads no id at
     // all and there is nothing to compare.
     //
-    // NOT closed by this, and not closable by an id: the window from the insert
-    // to the button being pressed. The slide this deletes is one the ADD-IN
-    // created, and `CLAUDE.md` records that a slide the run just added does not
-    // resolve by id on the web — so the pane never held one for it. A user who
-    // reorders and then presses Undo is still aiming at a position. See
-    // `docs/BACKLOG.md`.
+    // The window from the insert to the button being pressed is guarded by the
+    // count check at the top of this function, which sees a Ctrl+Z and any slide
+    // added or deleted. It does NOT see a drag, which changes no count: a user
+    // who reorders and then presses Undo is still aiming at a position. The
+    // route that closes it keys the rebuilt slide by the creation id the engine
+    // wrote, and waits on a probe round. See `docs/BACKLOG.md`.
     if (plan.after === plan.remove && aimedAt !== undefined && !stillThere(aimedAt, await slideIdAt(plan.remove))) {
       throw new Error(
         `slide ${plan.remove + 1} is not the one the undo put the original back beside, so nothing was deleted`,
       );
     }
 
+    if (!asked) deckEdits += 1;
     asked = true;
     const refused = await removeSlideAt(plan.remove);
     const want = before - (plan.after === undefined ? 1 : 0);

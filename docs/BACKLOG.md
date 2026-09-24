@@ -69,38 +69,53 @@ deck changed underneath me", which the count alone cannot do; reading the ids
 either side of the delete would, at the price of another read on every cycle of
 every run. Worth doing only if it turns out to happen to anyone.
 
-### The undo still aims at a position the user may have moved
+### The undo cannot yet see a slide that was only dragged
 
-**Narrowed on 2026-09-23, not closed.** The undo puts the user's original slide
-back and then takes the rebuilt one away positionally. The window INSIDE the
-undo is now guarded — for an "onto this slide" undo the insert half reads the
-id at that index, and the delete half checks it is still there — but the window
-from the INSERT to the Undo button being pressed is not, and cannot be closed
-the same way.
+**Half closed on 2026-09-24.** The pane's Undo is positional: it takes back the
+slide where its insert left it. Nothing disarms it when the user edits the deck,
+so a press after an edit aimed at positions that had moved. Two paths deleted
+one of the user's own slides and reported "Undone." (derived from the code; no
+host round has run either): an "as a new slide" insert, then PowerPoint's own
+Ctrl+Z, then the pane's Undo, which deleted the user's next slide; and any slide
+added or deleted before the press.
 
-Why not: the slide the undo deletes is one this add-in created, and `CLAUDE.md`
-records that a slide the run just added does not resolve by id on the web. The
-pane never held an id for it, so there is nothing to compare. A user who
-inserts, drags slides around in the strip, and then presses Undo is aiming at a
-position that has moved — and the count check cannot see it, because the undo
-adds one slide and removes one whichever slide goes.
+**Closed:** the entry now holds the count the insert measured, and a press
+that finds a different count refuses, changes nothing and disarms. It also holds
+the id of the user's own slide an "onto this slide" insert replaced, and refuses
+when that slide is back at the index — the manual's Ctrl+Z-twice, which leaves
+the count unchanged. No extra host call for either.
 
-What would close it, and what it costs:
+**Still open besides the drag, and written down rather than guessed at:** a
+count that moved and moved back (Ctrl+Z on a new slide, then a slide added in
+its place) passes the check; and on the web the count was measured lagging a
+change by 2.8 seconds (2026-09-11), so a press straight after a Ctrl+Z may read
+the old count — whether a user's Ctrl+Z lags like the add-in's own insert is
+unmeasured, and reading twice would cost every web undo that long. The
+creation-id check below closes all three.
 
-1. **Read the deck and check the slide at that index carries the add-in's
-   tag.** Every inserted shape gets an `SSF_SLIDE_ELEMENT` tag written into the
-   package before the insert, so the rebuilt slide is identifiable. This is
-   certain, and it costs a whole `getFileAsync` on every undo —
-   `src/host/timeout.ts` records 874 ms on a healthy web session and 40 s on a
-   degraded one, on the one control a user presses when they want something
-   taken back NOW.
-2. **Disarm the undo when the selection moves.** Cheap, and wrong often: a user
-   clicking about the deck loses an undo that was perfectly good.
-3. **Leave it.** The failure needs a reorder between an insert and its undo,
-   the undo is one deep, and the pane already says it cannot undo more.
+**Open: a pure drag**, which changes no count. The route the research of
+2026-09-24 recommends, and the owner approved:
 
-This is a judgement about how much an undo may cost, which is the owner's. It
-is written down rather than guessed at.
+1. **A probe arm first.** The engine writes a fresh `p14:creationId` into every
+   rebuilt slide, and all ten answer sheets show a fixture slide's creation id
+   coming back as the `#suffix` of its Office.js id — but only in POSITIONAL
+   reads (`getItemAt(i)`). What the `slides.load("items/id")` LISTING that the
+   undo reads says about a slide `insertSlidesFromBase64` has just added is
+   unmeasured, and SSF-Charts measured the two disagreeing for a fresh
+   `slides.add()` slide on the web. The arm reads both side by side, again after
+   a delay, and records what happens to duplicate creation ids. The owner runs
+   it in Script Lab, web first.
+2. **Then, if the listing carries the suffix, the creation-id check.** At the
+   press, Undo proceeds only when exactly one listed slide carries the rebuilt
+   slide's creation id and it sits where the insert left it; otherwise it
+   refuses and says what it saw. Every unmeasured premise fails as a refusal,
+   never as a delete. If the probe says no, the fallback is holding the ids of
+   the user's own settled slides either side of the rebuilt one.
+
+The research of 2026-09-24 behind this — the ten answer sheets read for the
+suffix, SSF-Charts' measurement of listing and positional reads disagreeing, and
+the paths that lost a slide — is summarised in PR #149's description and in
+`docs/DESIGN.md` section 6.
 
 ## Settled — do not re-open
 
@@ -295,6 +310,15 @@ call.
   siblings on every toolchain major, pointed its CNAME at a different subdomain,
   and measured nothing against a host. The increments above are rebuilt from
   the siblings, not from it.
+- **Checking the undo by reading the whole deck for the add-in's tag.** Option 1
+  of the undo item, rejected on 2026-09-24: a `getFileAsync` on every press
+  costs 874 ms on a healthy web session and 40 s on a degraded one (measured
+  2026-09-10), and it is not even certain — the `SSF_SLIDE_ELEMENT` tag holds
+  the element's catalogue id, so any slide carrying the same element passes.
+- **Disarming the undo when the selection moves.** Option 2, rejected the same
+  day: Office.js offers no reorder event, only a selection change, which fires
+  on every click and so throws away good undos, and nothing measured says a
+  Ctrl+Z fires it — which is the path that lost a slide.
 - **A mutation operator that drops an argument at a call.** Rejected by the
   owner on 2026-09-23 with the `field` operator's plan: a dropped argument is
   almost always a type error, which `tsc` already refuses and which every

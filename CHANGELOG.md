@@ -45,6 +45,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Undo no longer takes the wrong slide after the deck has changed.** If you
+  pressed PowerPoint's Ctrl+Z, or added or deleted a slide, and then pressed the
+  pane's Undo, it could remove one of your own slides and still say "Undone.".
+  It now checks the deck is the size the insert left it, and when it is not, it
+  changes nothing and tells you to check the deck. Moving slides about is not
+  something it can see yet, so after that, use Ctrl+Z.
+
 - **Moving slides around while the add-in is working no longer costs a slide
   its stamp.** Stamping or removing across several slides works through them
   one at a time, and it can take minutes on a big deck — the add-in locks its

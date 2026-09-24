@@ -56,7 +56,11 @@ vi.mock("../src/office/powerpoint.js", () => ({
   // pane that decided not to make it. The last case in this file holds this
   // list against the real module, because the claim above was untrue for three
   // exports before anyone noticed.
-  slideCount: () => Promise.resolve(host.slides),
+  // The deck's size as the pane's own inserts and deletes have left it. It
+  // stood still until 2026-09-24, so an Undo read the same count whatever the
+  // insert had done — and the undo's check against the count its insert left
+  // could not be driven for "as a new slide", the one target it matters most for.
+  slideCount: () => Promise.resolve(host.slides + host.grown),
   // The count the pane is waiting for, unless this run is refusing.
   countReaching: (want: number) => {
     host.countCalls += 1;
@@ -116,6 +120,9 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   insertPackage: () => {
     host.cycles += 1;
+    // Not when this cycle is the one `refuseAt` says did not land, or the fake
+    // deck would be a slide bigger than the pane's own confirmed reads.
+    if (host.cycles !== host.refuseAt) host.grown += 1;
     // INSIDE the cycle, between the insert and the delete — the window the
     // whole guard exists for, and the only place a case can reach it.
     host.duringInsert?.();
@@ -126,6 +133,17 @@ vi.mock("../src/office/powerpoint.js", () => ({
   },
   removeSlideAt: (at: number) => {
     host.removed.push(at);
+    if (!host.refuseRemoval) {
+      host.grown -= 1;
+      // Whatever now sits at that index is a DIFFERENT slide from the one just
+      // deleted: after an "onto this slide" insert it is the rebuilt copy, which
+      // has an id of its own. Until 2026-09-24 the fake kept the deleted slide's
+      // id there, which is a deck no host can produce — and the undo now tells
+      // an already-reverted insert apart by exactly that id.
+      const ids = [...deckIds()];
+      if (at < ids.length) ids[at] = `r${host.removed.length}`;
+      host.ids = ids;
+    }
     return Promise.resolve(host.refuseRemoval ? "the host refused" : undefined);
   },
   hostStamp: () => ({ host: "PowerPoint", platform: "PC" }),
@@ -294,6 +312,8 @@ function dropSlide(at: number): void {
 
 const host = {
   slides: 3,
+  /** How far the pane's own inserts and deletes have moved the count from `slides`. */
+  grown: 0,
   cycles: 0,
   refuseAt: 0,
   namesSlides: true,
@@ -649,6 +669,7 @@ afterEach(async () => {
   deckBase64 = undefined;
   host.slides = 3;
   host.cycles = 0;
+  host.grown = 0;
   host.refuseAt = 0;
   host.namesSlides = true;
   host.supports15 = true;
@@ -2358,6 +2379,156 @@ describe("moving the last insert to a new slide", () => {
     await waitFor("the undo to reach a positional delete", () => host.removed.length >= 2);
     await settle();
     expect(pane.querySelector('[data-action="move"]')).toBeNull();
+  });
+});
+
+describe("an Undo after the deck has changed", () => {
+  /**
+   * Nothing disarms the pane's Undo when the user edits the deck, and its plan
+   * is positions read at the insert. Until 2026-09-24 the count checks inside
+   * the undo started from a count read at the PRESS, so an undo pressed after
+   * PowerPoint's own Ctrl+Z — which the manual recommends — deleted whatever
+   * sat where the insert had put its slide, which by then was one of the
+   * user's own, and reported "Undone.". Derived from the code; no host round
+   * has run it.
+   */
+  async function insertedAsNew(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="target"][data-value="new"]') as HTMLElement).click();
+    (pane.querySelector('[data-action="gear"]') as HTMLElement).click();
+    showEveryCategory(pane);
+    (pane.querySelector('[data-action="tile"][data-id="one-box"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+    expect(pane.querySelector('[data-action="undo"]'), "the insert armed an undo").not.toBeNull();
+    return pane;
+  }
+
+  /** An "onto this slide" insert on a slide that already held something, so the move is offered. */
+  async function insertedOnto(): Promise<HTMLElement> {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = 1;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    showFirstCategory(pane);
+    (pane.querySelector('[data-tile="one-box"], [data-action="tile"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+    return pane;
+  }
+
+  async function pressUndo(pane: HTMLElement): Promise<string> {
+    pane.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    await waitFor(
+      "the undo to report",
+      () =>
+        pane.querySelector(".outcome")?.textContent?.includes("Undo") ||
+        pane.querySelector(".outcome")?.textContent?.includes("changed"),
+    );
+    await idle(pane);
+    return pane.querySelector(".outcome")?.textContent ?? "";
+  }
+
+  it("takes a new slide back as before when nothing has changed", async () => {
+    // The regression half: the check must not refuse the undo it exists to
+    // protect. The insert left 4 slides and the press finds 4.
+    const pane = await insertedAsNew();
+    const removedBefore = host.removed.length;
+    const said = await pressUndo(pane);
+    expect(said).toContain("Undone");
+    expect(host.removed.slice(removedBefore), "the new slide, one after the one the user was on").toEqual([1]);
+  });
+
+  it("deletes nothing after Ctrl+Z has already taken the new slide back", async () => {
+    const pane = await insertedAsNew();
+    const removedBefore = host.removed.length;
+    host.grown -= 1; // PowerPoint's own Ctrl+Z, which the pane cannot see
+    const said = await pressUndo(pane);
+    expect(host.removed.slice(removedBefore), "the undo deleted the user's next slide").toEqual([]);
+    expect(said).toContain("has changed since the insert");
+    expect(said).toContain("3 slides where the insert left 4");
+    expect(said).not.toContain("Undone");
+    expect(
+      pane.querySelector('[data-action="undo"]'),
+      "the undo stayed armed over a deck it no longer describes",
+    ).toBeNull();
+  });
+
+  it("asks nothing of the host for an onto-this-slide undo once a slide has been added", async () => {
+    const pane = await insertedOnto();
+    const cyclesBefore = host.cycles;
+    const removedBefore = host.removed.length;
+    host.grown += 1; // the user added a slide
+    const said = await pressUndo(pane);
+    expect(host.cycles, "the original was put back into a deck that had moved").toBe(cyclesBefore);
+    expect(host.removed.slice(removedBefore)).toEqual([]);
+    expect(said).toContain("has changed since the insert");
+  });
+
+  it("does nothing once Ctrl+Z pressed twice has already put the user's slide back", async () => {
+    // The manual's own sequence for an "onto this slide" insert. After it the
+    // deck is the size the insert left, so the count check passes — and the
+    // undo put the pre-insert snapshot back beside the user's slide and deleted
+    // the slide itself, edits and all, under "Undone.". The user's slide is
+    // known by its id from before the insert, and it is back at that index.
+    const pane = await insertedOnto();
+    const cyclesBefore = host.cycles;
+    const removedBefore = host.removed.length;
+    const ids = [...deckIds()];
+    ids[0] = "256"; // Ctrl+Z twice: the user's own slide is back where it was
+    host.ids = ids;
+    const said = await pressUndo(pane);
+    expect(host.cycles, "a snapshot went back in beside the user's own slide").toBe(cyclesBefore);
+    expect(host.removed.slice(removedBefore), "the user's own slide was deleted").toEqual([]);
+    expect(said).toContain("slide 1 is already back");
+    expect(said).not.toContain("Undone");
+  });
+
+  it("drops what it showed about the deck, which the refusal says has changed", async () => {
+    indexMode = "ok";
+    host.current = { index: 0, id: "256" };
+    host.held = 1;
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+    const pane = await openPane();
+    await settle();
+    (pane.querySelector('[data-action="used"]') as HTMLElement).click();
+    await waitFor('"Used in this deck" to answer', () => pane.querySelector(".used-head"));
+    showFirstCategory(pane);
+    (pane.querySelector('[data-tile="one-box"], [data-action="tile"]') as HTMLElement).click();
+    await waitFor("the splice to be asked for", () => spliced.length > 0);
+    await idle(pane);
+    expect(pane.querySelector(".used-head"), "the section was answered before the undo").not.toBeNull();
+    host.grown += 1;
+    await pressUndo(pane);
+    expect(pane.querySelector(".used-head"), "the pane went on describing a deck it knows has changed").toBeNull();
+    expect(pane.querySelector('[data-action="used"]'), "and offered to read it again").not.toBeNull();
+  });
+
+  it("stops a move at the refusal, rather than inserting a second copy", async () => {
+    // "Move to a new slide" is this undo followed by a second insert. The undo
+    // refusing must stop the move, or the element goes in again beside the
+    // copy the undo left standing.
+    const pane = await insertedOnto();
+    host.grown += 1;
+    pane.querySelector<HTMLElement>('[data-action="move"]')?.click();
+    // Either the refusal, or the second splice a broken guard lets through —
+    // so a broken guard fails on the assertion below, not on a timeout.
+    await waitFor(
+      "the move to refuse or to splice again",
+      () => pane.querySelector(".outcome")?.textContent?.includes("changed") || spliced.length > 1,
+    );
+    await idle(pane);
+    expect(
+      spliced.map((s) => s.target),
+      "the move inserted again after a refused undo",
+    ).toEqual(["onto"]);
   });
 });
 

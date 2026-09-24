@@ -247,6 +247,15 @@ second press takes the rebuilt one away and your deck is exactly as it was.
 Measured on PowerPoint on Windows on 2026-09-23, twice, on two different decks.
 The pane's own **Undo** does both halves in one press, which is what it is for.
 
+**Use one or the other, not both.** The pane's **Undo** is for straight after
+the insert. It takes back the slide where the insert left it, so once the deck
+has changed — you have pressed Ctrl+Z, or added, deleted or moved slides — use
+PowerPoint's Ctrl+Z instead. If the pane can see the deck has changed —
+because it holds a different number of slides from the ones the insert left,
+or because your own slide is already back where the insert put its copy — its
+Undo refuses, changes nothing and says so. It cannot see a slide that was only
+moved, so after dragging slides about, use Ctrl+Z.
+
 ### Moving what you just inserted onto a new slide
 
 When a whole-slide element lands **onto** the slide you were on and that slide

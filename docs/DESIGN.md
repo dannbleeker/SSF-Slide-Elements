@@ -579,10 +579,24 @@ exception for width.
   original is aimed by the id at that index, and the same index is read back
   before the rebuilt slide is deleted, because the two are the same slide. That
   closes the window inside the undo. The window from the insert to the button
-  being pressed stays open and cannot be closed by an id: the slide the undo
-  deletes is one this add-in created, and a slide the run just added does not
-  resolve by id on the web, so no id for it was ever obtainable.
-  `docs/BACKLOG.md` carries what would close it and what that costs.
+  being pressed is **half closed**, since 2026-09-24. The entry holds the slide
+  count the insert measured, and a press that finds a different count refuses,
+  changes nothing and disarms (`undoRefusal`) — which catches a Ctrl+Z after an
+  "as a new slide" insert, after which the undo deleted the user's next slide
+  and said "Undone.", and any slide added or deleted. It also holds the id of
+  the user's own slide an "onto this slide" insert replaced, and refuses when
+  that slide is back at the index (`undoAlreadyReverted`) — the manual's own
+  Ctrl+Z-twice, which leaves the count where the insert left it. Neither costs
+  a host call. What they cannot see: a DRAG; a count that moved and moved back;
+  and, on the web, a press quicker than the count's measured 2.8-second lag
+  after a change, if a user's Ctrl+Z lags the way an insert does (unmeasured).
+  The drag is the half that stays open. It was written here
+  that no id could close it because "no id for it was ever obtainable"; that is
+  too strong — the shipped undo already reads the rebuilt slide's id from a
+  listing at the press — and the route that would close it keys the rebuilt
+  slide by the `p14:creationId` the engine writes, which the sheets show coming
+  back as the id's suffix in positional reads. Whether the LISTING shows it too
+  is unmeasured, so a probe arm asks first. `docs/BACKLOG.md` carries it.
 
   There was an **Again** beside it, repeating the last insert. It went on
   2026-09-16: the element it repeats is the first tile in **Recent**, drawn a
@@ -1750,3 +1764,4 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The Flowchart shapes category and its ten part elements come out of both library decks: one slide each (105 at 16:9, 104 at 4:3), carrying the category's own heading, so the category goes with it. The libraries drop from 117 elements to 107 and the 16:9 deck from twelve categories to eleven. A deck that already uses one keeps it — they are ordinary shapes once inserted — and "Used in this deck" still names it as an element from an older library rather than dropping the row | owner: delete Flowchart shapes, 2026-09-16 |
 | The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |
 | Search marks the words it matched inside the name on the tile and the preview card, and NOT on "Used in this deck" (which the search does not filter) or "Did you mean" (which can never hold a match) | owner: approved with the plan, 2026-09-23 |
+| The pane's Undo refuses when the deck's slide count is not the one its insert left, rather than aiming at positions that may have moved. This reverses the "keep it as is" of 2026-09-23 (#133), which rested on the failure needing a reorder: a Ctrl+Z before the Undo needs none, and deleted the user's next slide after an "as a new slide" insert. The drag half waits on a probe round for the creation-id check; the whole-deck tag read and disarming on a selection change are rejected | owner: approved with the research, 2026-09-24 |

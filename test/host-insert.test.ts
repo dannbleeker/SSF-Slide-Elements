@@ -10,6 +10,8 @@ import {
   stillThere,
   type Attempt,
   undoPlan,
+  undoRefusal,
+  undoAlreadyReverted,
 } from "../src/host/insert.js";
 import { BUDGET, withTimeout } from "../src/host/timeout.js";
 
@@ -514,5 +516,27 @@ describe("which slides a stamp lands on", () => {
 
   it("keeps the zeroth slide, which is a position and not a missing value", () => {
     expect(stampTargets([2, 0])).toEqual([0, 2]);
+  });
+});
+
+describe("an undo against a deck that has changed since its insert", () => {
+  it("lets the undo run when the deck is the size the insert left it", () => {
+    expect(undoRefusal(6, 6)).toBeUndefined();
+  });
+
+  it("refuses when the count has moved either way, and says what it saw", () => {
+    // Ctrl+Z took the new slide back: one fewer. A slide added: one more.
+    for (const now of [5, 7]) {
+      const said = undoRefusal(6, now);
+      expect(said, `a deck of ${now} passed an undo planned for 6`).toBeDefined();
+      expect(said).toContain(`${now} slides where the insert left 6`);
+      expect(said).toContain("Nothing was changed");
+    }
+  });
+
+  it("says the user's slide is already back, and that nothing was changed", () => {
+    const said = undoAlreadyReverted(3);
+    expect(said).toContain("slide 3 is already back");
+    expect(said).toContain("Nothing was changed");
   });
 });
