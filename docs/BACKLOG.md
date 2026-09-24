@@ -74,6 +74,13 @@ id and the positional id logged side by side each time:
    is the one case that asks what the host does when a creation id is NOT
    unique — and whether a duplicate carries the same one at all.
 
+4. **Time it.** `undoAim` buys one extra `slides.load("items/id")` on every
+   Undo press that has a creation id, and nothing has measured what that costs.
+   Windows reads of this shape are tens of milliseconds; the web has been
+   measured in the hundreds and up (section 15), and the web is where a user
+   would feel it. Log the press-to-answer time on both hosts, refusals and
+   successes alike.
+
 Case 3 is the one that can still refute something: if PowerPoint gives a
 duplicated slide a creation id of its own, the duplicate refusal is unreachable
 in practice and the record should say so rather than describing a branch no host
