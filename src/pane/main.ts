@@ -28,6 +28,7 @@ import {
   stampTargets,
   indexOfSlide,
   stillThere,
+  copyLanded,
   undoAim,
   undoPlan,
   undoRefusal,
@@ -78,6 +79,7 @@ import {
   removeQuestion,
   runningOn,
   stampOutcome,
+  type StrandedCopy,
   stepFor,
   tileKey,
   toggle,
@@ -1488,7 +1490,7 @@ async function stampEvery(
 ): Promise<void> {
   let done = 0;
   /** Whether a cycle left its copy behind, which changes what may be said. */
-  let stranded = false;
+  let stranded: StrandedCopy = "no";
   /** Whether the user pressed Stop, which is not a failure and must not read as one. */
   let stopped = false;
   /**
@@ -1578,7 +1580,25 @@ async function stampEvery(
         store: (path) => from.parts.part(path),
       });
       await insertPackage(report.base64, targetId);
-      if ((await countReaching(before + 1)) !== before + 1) break;
+      if ((await countReaching(before + 1)) !== before + 1) {
+        // The insert did not confirm, and that ONE fact covers two decks that
+        // need opposite sentences: an insert that never landed, leaving the
+        // deck untouched, and an insert that landed while something else moved
+        // the count back — which leaves a copy in the deck.
+        //
+        // A count cannot tell those apart, and this used to be a bare break
+        // that assumed the first. Measured on Windows on 2026-09-24: a slide
+        // deleted mid-run took the count back to where it started, this line
+        // broke, and the run reported "The rest are as they were" over a deck
+        // holding SLIDE-010 twice with the stamp on the copy.
+        //
+        // The ids CAN tell them apart, which is how `deleteLanded` and
+        // `undoAim` already work here, and the creation id the engine wrote is
+        // in the report. `copyLanded` answers yes, no, or cannot tell, and the
+        // third is a real answer rather than a tidier guess.
+        stranded = copyLanded(await slideIds(), report.creationId);
+        break;
+      }
       // WHERE THE ORIGINAL IS NOW, asked again after the insert.
       //
       // This used to be `stillThere(targetId, slideIdAt(at))` — a check that
@@ -1593,12 +1613,12 @@ async function stampEvery(
         // The original cannot be found, so there is nothing safe to delete and
         // the copy is already in the deck. `CLAUDE.md`'s failure mode: a
         // duplicate the user can delete, never a slide they have lost.
-        stranded = true;
+        stranded = "yes";
         break;
       }
       await removeSlideAt(removeAt);
       if ((await countReaching(before)) !== before && !(await deleteLanded(targetId))) {
-        stranded = true;
+        stranded = "yes";
         break;
       }
       done += 1;
@@ -1647,7 +1667,7 @@ async function removeEverywhere(id: string): Promise<void> {
 
   let done = 0;
   /** Whether a cycle left its copy behind, which changes what may be said. */
-  let stranded = false;
+  let stranded: StrandedCopy = "no";
   /** Whether the user pressed Stop, which is not a failure and must not read as one. */
   let stopped = false;
   let wanted = plan.slides;
@@ -1702,7 +1722,25 @@ async function removeEverywhere(id: string): Promise<void> {
       // one slide longer with the element on both. A raise that really did
       // nothing still stops the run, because the count then does not move.
       await insertPackage(report.base64, targetId);
-      if ((await countReaching(before + 1)) !== before + 1) break;
+      if ((await countReaching(before + 1)) !== before + 1) {
+        // The insert did not confirm, and that ONE fact covers two decks that
+        // need opposite sentences: an insert that never landed, leaving the
+        // deck untouched, and an insert that landed while something else moved
+        // the count back — which leaves a copy in the deck.
+        //
+        // A count cannot tell those apart, and this used to be a bare break
+        // that assumed the first. Measured on Windows on 2026-09-24: a slide
+        // deleted mid-run took the count back to where it started, this line
+        // broke, and the run reported "The rest are as they were" over a deck
+        // holding SLIDE-010 twice with the stamp on the copy.
+        //
+        // The ids CAN tell them apart, which is how `deleteLanded` and
+        // `undoAim` already work here, and the creation id the engine wrote is
+        // in the report. `copyLanded` answers yes, no, or cannot tell, and the
+        // third is a real answer rather than a tidier guess.
+        stranded = copyLanded(await slideIds(), report.creationId);
+        break;
+      }
       const removeAt = indexOfSlide((await slideIds()) ?? [], targetId);
       if (removeAt === undefined) {
         // The rebuilt slide landed and the ORIGINAL can no longer be found, so
@@ -1722,7 +1760,7 @@ async function removeEverywhere(id: string): Promise<void> {
         // Counted as STRANDED, not as an untouched deck: the copy is already
         // in there. Leaving it is `CLAUDE.md`'s own failure mode — a duplicate
         // the user can delete rather than a slide they have lost.
-        stranded = true;
+        stranded = "yes";
         break;
       }
       await removeSlideAt(removeAt);
@@ -1735,7 +1773,7 @@ async function removeEverywhere(id: string): Promise<void> {
         // `deleteLanded` is what separates that from a count that disagrees
         // because the USER changed the deck while the cycle was confirming —
         // the same disagreement, an entirely different thing to tell somebody.
-        stranded = true;
+        stranded = "yes";
         break;
       }
       done += 1;

@@ -548,6 +548,21 @@ export function runningOn(verb: string, name: string, slide: number, done: numbe
 }
 
 /**
+ * What a run could establish about the copy a stopped cycle inserted.
+ *
+ * `"yes"` — the copy is in the deck and the original is still there too, so
+ * the deck has a slide too many and the user has to be sent to look.
+ * `"no"` — the insert did not land, so the deck really is untouched.
+ * `"unknown"` — the host could not say. Neither sentence above is true, and
+ * the pane says what it knows instead of choosing the nicer guess.
+ *
+ * `src/host/insert.ts`'s `copyLanded` is what answers it, from the deck's ids
+ * rather than from a count — a count is exactly what cannot tell these apart,
+ * measured on Windows on 2026-09-24 (`docs/DESIGN.md` section 15).
+ */
+export type StrandedCopy = "yes" | "no" | "unknown";
+
+/**
  * How far a several-slide stamp got, for the footer.
  *
  * `docs/DESIGN.md` section 5 asks for a stamp with several slides selected to
@@ -572,11 +587,11 @@ export function stampOutcome(
   element: string,
   done: number,
   wanted: number,
-  strandedCopy = false,
+  strandedCopy: StrandedCopy = "no",
   stopped = false,
 ): Outcome {
   const ok = done === wanted;
-  if (!ok && stopped && !strandedCopy) {
+  if (!ok && stopped && strandedCopy === "no") {
     // STOPPED, not failed, and the difference matters: nothing went wrong and
     // there is nothing to check. A run is only ever stopped BETWEEN cycles, so
     // the slides it reached are whole and the rest were never touched.
@@ -587,7 +602,7 @@ export function stampOutcome(
       detail: `Stopped after ${done} of ${wanted} slides. The rest are as they were.`,
     };
   }
-  if (!ok && strandedCopy) {
+  if (!ok && strandedCopy === "yes") {
     // The insert landed and the delete did not: this slide's ORIGINAL is still
     // there without the stamp, and a stamped copy sits beside it. No slide
     // number, for the reason `outcomeOf`'s reorder branch gives — the positions
@@ -599,6 +614,29 @@ export function stampOutcome(
       detail:
         `Stamped ${done} of ${wanted} slides, and the deck has a slide too many: ` +
         `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
+  if (!ok && strandedCopy === "unknown") {
+    // The run stopped without being able to say what became of the copy.
+    //
+    // Neither certain sentence is true here. The one this branch takes the case
+    // away from was "The rest are as they were", which told a user with a
+    // duplicate in their deck that there was nothing to look at — measured on
+    // Windows on 2026-09-24. Claiming instead that the copy WAS stranded would
+    // be the same error pointing the other way, and this file's whole habit is
+    // to say no more than the evidence supports.
+    //
+    // So it says what is known: a copy went in, and what became of the original
+    // could not be established. It still sends them to the deck, because of the
+    // two ways to be wrong that is the one that costs least.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Stamped ${done} of ${wanted} slides, and the deck may have a slide too many: ` +
+        `the copy went in and this add-in could not confirm what became of the original. ` +
         `Check the deck before trying again — trying again would add another.`,
     };
   }
@@ -633,14 +671,14 @@ export function removalOutcome(
   element: string,
   done: number,
   wanted: number,
-  strandedCopy = false,
+  strandedCopy: StrandedCopy = "no",
   stopped = false,
 ): Outcome {
   if (!stopped && wanted === 0) {
     return { ok: true, byHand: false, name: element, detail: "It is not on any slide any more, so nothing changed." };
   }
   const ok = done === wanted;
-  if (!ok && stopped && !strandedCopy) {
+  if (!ok && stopped && strandedCopy === "no") {
     // Stopped between cycles, so the slides it reached are whole and the rest
     // were never touched. Nothing went wrong and nothing needs checking.
     return {
@@ -650,7 +688,7 @@ export function removalOutcome(
       detail: `Stopped after ${done} of ${wanted} slides. The rest are as they were.`,
     };
   }
-  if (!ok && strandedCopy) {
+  if (!ok && strandedCopy === "yes") {
     // The removal runs an insert-then-delete cycle per slide, and this is the
     // half where the insert LANDED and the delete did not: the deck carries
     // both the original, still holding the element, and the element-free copy.
@@ -670,6 +708,23 @@ export function removalOutcome(
       detail:
         `Removed from ${done} of ${wanted} slides, and the deck has a slide too many: ` +
         `the copy was made but the original could not be taken away. ` +
+        `Check the deck before trying again — trying again would add another.`,
+    };
+  }
+  if (!ok && strandedCopy === "unknown") {
+    // As the stamp's own unknown branch, and for the same reason: the run
+    // stopped without being able to say what became of the copy, and both
+    // certain sentences would claim more than was established.
+    //
+    // "Try again" keeps its warning either way, because if a copy IS there a
+    // second attempt leaves a second one.
+    return {
+      ok: false,
+      byHand: true,
+      name: element,
+      detail:
+        `Removed from ${done} of ${wanted} slides, and the deck may have a slide too many: ` +
+        `the copy went in and this add-in could not confirm what became of the original. ` +
         `Check the deck before trying again — trying again would add another.`,
     };
   }

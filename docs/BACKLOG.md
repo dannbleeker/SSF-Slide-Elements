@@ -40,28 +40,6 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### A stranded copy is reported as "the rest are as they were"
-
-**Measured on Windows, 2026-09-24** (`docs/DESIGN.md` section 15), and it is the
-one thing here that is a DEFECT rather than a missing measurement.
-
-A slide deleted during a run left the deck with a stranded copy — `SLIDE-010`
-twice, the copy stamped and the original not, 60 slides where 59 were expected —
-and the run reported "Stamped 9 of 60 slides. **The rest are as they were** —
-try again, or stamp them one at a time."
-
-`stampOutcome` has the correct sentence for exactly this state and it was not
-used. A user told "the rest are as they were" has no reason to look, and the
-deck they are not looking at has a duplicate in it.
-
-**The mechanism is not established.** Two readings of `stampEvery` were tried
-against the evidence and each contradicts part of it: the `removeAt ===
-undefined` path would have set `stranded` and produced the other sentence; a
-silently failed delete would be masked by the user's deletion bringing the count
-back to `before`, but that path increments `done`, and `done` was 9 rather than
-10. Read it with the deck in front of you rather than from the outside —
-`scratchpad/round-kit/` has the deck, the watcher and the evidence.
-
 ### A slide deleted AHEAD of the cursor is still unmeasured
 
 The skip branch: a run passes over a slide that has GONE, `indexOfSlide` answers
@@ -90,6 +68,31 @@ immediately before pressing, and check the outcome names a run rather than a
 slide.
 
 ## Settled — do not re-open
+
+### A stranded copy reported as "the rest are as they were"
+
+**Fixed 2026-09-24.** Measured on Windows first (`docs/DESIGN.md` section 15): a
+slide deleted during a run took the count back to where it started, the cycle's
+insert-confirmation failed, and a bare `break` left `stranded` untouched — so
+the run reported "The rest are as they were" over a deck holding `SLIDE-010`
+twice with the stamp on the copy.
+
+The cause was a boolean doing a three-way job. One failed count covers two
+decks: an insert that never landed, and one that landed while something else
+moved the count back. A count cannot separate them; the ids can, which is how
+`deleteLanded` and `undoAim` already worked. `copyLanded` answers yes, no or
+cannot-tell from the creation id the engine wrote, both loops ask it, and the
+outcomes take `StrandedCopy` instead of a boolean.
+
+**A consequence worth knowing.** On a host that marks no ids — Mac and iPad,
+both unmeasured — a failed insert confirmation now says the deck MAY have a
+slide too many, where it used to say the rest were as they were. That is a
+caution rather than a claim, and it is the honest answer there; it is also a
+false alarm whenever the insert simply did not land. A cheaper answer exists if
+it ever matters: the loop already reads the deck's ids at the top of each cycle,
+so a new id appearing after a failed confirmation would say a slide arrived
+without needing a creation id at all. Not built, because it trades an extra read
+for a case no measured host is in.
 
 ### The undo's refusals are measured on both hosts
 

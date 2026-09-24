@@ -108,6 +108,12 @@ fetched only when you insert it.
   is. If a step cannot be confirmed the run stops there and the footer says how
   far it got, so you always know what the deck holds. The pane cannot undo this
   one — PowerPoint's own `Ctrl+Z` can — and it says so when it finishes.
+  If a step cannot be confirmed the run stops and tells you which of two
+  things happened: the deck is as it was, or it has a slide too many because
+  a copy went in and the original could not be taken away — and in that case
+  do not simply try again, because another attempt adds another copy. On a
+  PowerPoint that cannot tell the add-in which, it says so rather than
+  guessing, and asks you to look.
   Selecting one slide, or clicking a whole-slide element, works exactly as it
   always has;
 - **Stop**, at the bottom while a run over several slides is going, saying how

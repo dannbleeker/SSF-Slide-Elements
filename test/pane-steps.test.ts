@@ -457,7 +457,7 @@ describe("taking a part off the slides it is on", () => {
      * following that advice grows their deck one slide at a time. The removal
      * path learned this the same way.
      */
-    const stranded = stampOutcome("Confidential", 1, 3, true);
+    const stranded = stampOutcome("Confidential", 1, 3, "yes");
     expect(stranded.ok).toBe(false);
     expect(stranded.byHand).toBe(true);
     expect(stranded.detail).toContain("a slide too many");
@@ -664,7 +664,7 @@ describe("a removal cycle that left its copy behind", () => {
    * count-based break kept producing it.
    */
   it("says the deck is a slide longer, and does not invite another go", () => {
-    const out = removalOutcome("Confidential stamp", 0, 1, true);
+    const out = removalOutcome("Confidential stamp", 0, 1, "yes");
     expect(out.ok).toBe(false);
     expect(out.byHand, "nothing told the user to look").toBe(true);
     expect(out.detail).toContain("a slide too many");
@@ -676,7 +676,7 @@ describe("a removal cycle that left its copy behind", () => {
     // The pair. A run that simply stopped — the insert never landed — leaves
     // the deck as it was, and that sentence is right. A fix that answered
     // "stranded" for every partial removal would lose it.
-    const out = removalOutcome("Confidential stamp", 1, 3, false);
+    const out = removalOutcome("Confidential stamp", 1, 3, "no");
     expect(out.detail).toContain("The rest are as they were");
     expect(out.detail).not.toContain("a slide too many");
   });
@@ -684,7 +684,7 @@ describe("a removal cycle that left its copy behind", () => {
   it("still says nothing changed when the element was already gone", () => {
     // The `wanted === 0` arm is answered before either, and a stranded flag
     // cannot reach it: there were no cycles to strand anything.
-    expect(removalOutcome("x", 0, 0, true).ok).toBe(true);
-    expect(removalOutcome("x", 0, 0, true).detail).toContain("nothing changed");
+    expect(removalOutcome("x", 0, 0, "yes").ok).toBe(true);
+    expect(removalOutcome("x", 0, 0, "yes").detail).toContain("nothing changed");
   });
 });

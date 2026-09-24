@@ -58,7 +58,7 @@
  * a part — and now also for a measured one: the host does it better, and it is
  * the host's file.
  */
-import { cloneSlide } from "../pptx/clone.js";
+import { cloneSlide, creationIdOf } from "../pptx/clone.js";
 import { Pkg } from "../pptx/pkg.js";
 import { readShapeTags } from "../pptx/tags.js";
 import { P_NS, child } from "../pptx/xml.js";
@@ -85,6 +85,19 @@ export interface RemoveReport {
   removed: number;
   /** What is left of that element on that slide: zero unless something was refused. */
   left: number;
+  /**
+   * The `<p14:creationId val>` `cloneSlide` wrote into the rebuilt slide.
+   *
+   * The same field `SpliceReport` carries and for the same reason: it is the
+   * half of the host id that is OURS, so a run can ask the deck whether the
+   * copy it just inserted is in there. `removeEverywhere` needs it exactly
+   * where `stampEvery` does — the insert-confirmation break, where a count
+   * cannot tell a copy that landed from one that never did.
+   *
+   * Optional because `creationIdOf` answers undefined for a slide carrying
+   * none; in a real run `cloneSlide` has just written one.
+   */
+  creationId?: number;
 }
 
 /**
@@ -200,5 +213,13 @@ export async function removeElement(request: RemoveRequest): Promise<RemoveRepor
   const left = (await readShapeTags(pkg, rebuilt)).filter((t) => t.element === request.element).length;
 
   await keepOnly(pkg, rebuilt);
-  return { base64: await pkg.toBase64(), deckSlides, slidePath: rebuilt, removed, left };
+  const creationId = await creationIdOf(pkg, rebuilt);
+  return {
+    base64: await pkg.toBase64(),
+    deckSlides,
+    slidePath: rebuilt,
+    removed,
+    left,
+    ...(creationId === undefined ? {} : { creationId }),
+  };
 }
