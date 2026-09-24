@@ -45,12 +45,23 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- **Undo no longer takes the wrong slide after the deck has changed.** If you
-  pressed PowerPoint's Ctrl+Z, or added or deleted a slide, and then pressed the
-  pane's Undo, it could remove one of your own slides and still say "Undone.".
-  It now checks the deck is the size the insert left it, and when it is not, it
-  changes nothing and tells you to check the deck. Moving slides about is not
-  something it can see yet, so after that, use Ctrl+Z.
+- **Undo no longer destroys a slide when you have reordered the deck.** Measured
+  on PowerPoint for Windows on 2026-09-24: insert an element onto a slide, drag
+  that slide somewhere else, press the add-in's Undo — and it deleted a
+  different slide of yours, left the inserted one where it was, and said
+  “Undone.” The deck had the same number of slides throughout, which is why
+  nothing caught it. It now recognises the slide it inserted wherever that slide
+  has got to, and refuses.
+- **Undo no longer takes the wrong slide after the deck has changed** — dragging
+  slides about included. If you pressed PowerPoint's Ctrl+Z, or added or deleted
+  a slide, and then pressed the pane's Undo, it could remove one of your own
+  slides and still say "Undone.". It now checks the deck is the size the insert
+  left it, and it recognises the slide it inserted wherever that slide has got
+  to — so reordering the slide strip, deleting the inserted slide, or ending up
+  with two copies of it all get a refusal that names what it saw and changes
+  nothing, instead of a deletion. On a PowerPoint that will not tell the pane
+  which slide is which it falls back to the position the insert used, as before,
+  and there Ctrl+Z is still the thing to use after dragging slides about.
 - **Deleting a slide while the add-in is working no longer produces a warning
   about a slide that is not there.** Every step checks itself by counting the
   deck's slides, and a count that comes back wrong used to mean one thing: "the

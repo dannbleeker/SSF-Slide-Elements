@@ -15,7 +15,7 @@
  * implementation. A test holds them to the document.
  */
 
-import { sameSlideId } from "./jump.js";
+import { sameSlideId, slideIdSuffix } from "./jump.js";
 
 /** Which of the two things the user asked for. `docs/DESIGN.md` section 7. */
 export type Target = "onto" | "new";
@@ -365,8 +365,8 @@ export function undoPlan(entry: { target: Target; index: number }): UndoPlan {
  * and costs no host call: the undo reads the count first anyway. It is a
  * COUNT, so it sees only what changes one:
  *
- * - a drag changes none, and the id check that would close that waits on a
- *   probe round (`docs/BACKLOG.md`);
+ * - a drag changes none; `undoAim` below closes that one, and the pane asks it
+ *   immediately after this;
  * - a count that moved and moved back passes — Ctrl+Z on a new slide and then
  *   a slide added in its place is the likely one — exactly as every undo did
  *   before this;
@@ -412,6 +412,128 @@ export function undoAlreadyReverted(slide: number): string {
     `Your slide ${slide} is already back as it was — PowerPoint's Ctrl+Z has taken the insert back — ` +
     `so there is nothing for Undo to do. Nothing was changed.`
   );
+}
+
+/**
+ * What `undoAim` decided.
+ *
+ * Three outcomes rather than a boolean, because "I could not tell" and "no"
+ * must not be the same answer. A boolean forced one of them to borrow the
+ * other's behaviour, and either borrowing is a defect: reading "could not
+ * tell" as "no" breaks the Undo on every host that does not mark its ids,
+ * and reading it as "yes" is a positional delete with a check that never ran
+ * standing behind it.
+ */
+export type Aim =
+  | { kind: "ok" }
+  /**
+   * Nothing to check WITH, so the caller does exactly what it did before this
+   * check existed. Not an error and not a refusal — see `undoAim`.
+   */
+  | { kind: "unmarked"; why: "no-creation-id" | "no-listing" | "host-marks-nothing" }
+  | { kind: "refuse"; detail: string };
+
+/**
+ * Whether the slide the insert ADDED is still where the insert left it, asked
+ * by the creation id this add-in's own engine wrote into it.
+ *
+ * `undoRefusal` above asks the same question of the deck's SIZE and therefore
+ * cannot see a drag, which changes no count. That was the last hole in the
+ * Undo, and `docs/BACKLOG.md` names the route out of it: at the press, proceed
+ * only when exactly one listed slide carries the rebuilt slide's creation id
+ * and it sits where the insert left it.
+ *
+ * The id compared is the `#suffix` and ONLY the suffix, via `slideIdSuffix`
+ * rather than `sameSlideId`. The difference matters and it is the whole
+ * correctness of this function:
+ *
+ * - The PREFIX is `<p:sldId id>`, which the deck assigns and reuses. Two
+ *   different slides can carry the same prefix at different times, so a check
+ *   that fell back to it would answer "still there" about a slide that is not.
+ * - The SUFFIX is `<p14:creationId val>`, drawn by `cloneSlide` and kept
+ *   unique within the package by `freshCreationId`. It names the slide this
+ *   add-in built and nothing else.
+ * - `sameSlideId` deliberately treats "one side has no suffix" as a match,
+ *   because a SELECTION id can lack one (office-js#2474). That tolerance is
+ *   right where it lives and wrong here: it would turn "the host told me
+ *   nothing about this slide's identity" into "yes, delete it".
+ *
+ * **Unmarked is not a refusal.** Three things leave nothing to check with, and
+ * each falls back to the Undo exactly as it behaved before this function
+ * existed — count-checked, positional, with the drag still open:
+ *
+ * - the entry carries no creation id, which is every undo armed before this
+ *   shipped and any package whose slide carried none;
+ * - the listing did not answer inside its budget, which is a read that failed
+ *   and not a deck that changed — refusing there would trade a hole that opens
+ *   on a drag for one that opens on a slow read, on the host whose reads are
+ *   slow;
+ * - the listing answered and NO id in it carries a suffix at all, which is a
+ *   host that does not mark ids. Mac and iPad have never been measured
+ *   (`docs/DESIGN.md` section 15 lists every host fact there as assumed), and
+ *   an AppSource validator meeting a refusal on its first Undo is the failure
+ *   this branch exists to avoid.
+ *
+ * Everything the listing CAN answer is answered strictly: gone, moved, or in
+ * the deck twice all refuse, and the sentence says which was seen, because a
+ * refusal that does not say what it saw is one the user cannot act on.
+ *
+ * `index` counts from ZERO, like `undoPlan`'s, and is the position the delete
+ * is about to take — `plan.remove`, which is the rebuilt slide in both targets.
+ */
+export function undoAim(listed: readonly string[] | undefined, creationId: number | undefined, index: number): Aim {
+  if (creationId === undefined) return { kind: "unmarked", why: "no-creation-id" };
+  if (listed === undefined) return { kind: "unmarked", why: "no-listing" };
+
+  const wanted = String(creationId);
+  const at: number[] = [];
+  let anyMarked = false;
+  for (let i = 0; i < listed.length; i += 1) {
+    const suffix = slideIdSuffix(listed[i]);
+    if (suffix === undefined) continue;
+    anyMarked = true;
+    if (suffix === wanted) at.push(i);
+  }
+
+  if (!anyMarked) return { kind: "unmarked", why: "host-marks-nothing" };
+
+  if (at.length > 1) {
+    // BOUNDED, the way `readable` bounds a host's error. Naming every position
+    // reads fine for the two a duplicated slide produces and becomes a footer
+    // full of slide numbers if the premise fails badly — and this branch exists
+    // precisely for a premise failing, so it is the branch least entitled to
+    // assume a small number.
+    const where =
+      at.length === 2
+        ? `as slide ${(at[0] ?? 0) + 1} and slide ${(at[1] ?? 0) + 1}`
+        : `${at.length} times, the first as slide ${(at[0] ?? 0) + 1}`;
+    return {
+      kind: "refuse",
+      detail:
+        `The slide this add-in inserted is in the deck more than once — ${where} — ` +
+        `so Undo cannot tell which copy to take back. ` +
+        `Nothing was changed. Delete whichever copy you do not want.`,
+    };
+  }
+  const only = at[0];
+  if (only === undefined) {
+    return {
+      kind: "refuse",
+      detail:
+        `The slide this add-in inserted is no longer in the deck, so there is nothing for Undo to take back. ` +
+        `Nothing was changed.`,
+    };
+  }
+  if (only !== index) {
+    return {
+      kind: "refuse",
+      detail:
+        `The deck has been reordered since the insert — the slide this add-in inserted is now slide ` +
+        `${only + 1}, where the insert left it at slide ${index + 1} — so Undo could take back the wrong slide. ` +
+        `Nothing was changed. Check the deck, and use PowerPoint's own Ctrl+Z if the insert is still there.`,
+    };
+  }
+  return { kind: "ok" };
 }
 
 /**

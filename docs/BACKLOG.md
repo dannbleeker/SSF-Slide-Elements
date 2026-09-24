@@ -45,6 +45,47 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
+### The undo's refusals are unmeasured on a host
+
+The count check, the already-reverted check and `undoAim`'s three refusals are
+derived from the code and from probe question 8's answer sheets. No host round
+has yet watched a REFUSAL happen: the paths they close were reasoned out of
+`src/pane/main.ts`, and every case behind them is a fake host in
+`test/pane-wiring.test.ts`.
+
+**The DEFECT, though, has now been watched happening** (2026-09-24, Windows,
+build `be5fe4a`, `docs/DESIGN.md` section 15). Insert onto slide 2, reorder the
+deck, press Undo: the add-in deleted the user's own slide 258, left the slide it
+had inserted in place, and said “Undone. The deck has 3 slides.” The count never
+moved, which is exactly why the count check could not see it. A control on the
+same deck with no reorder restored the original slide correctly, so the reorder
+is the whole cause. That is the half this item used to be guessing at; what is
+left is watching the fix refuse.
+
+What a round has to see, on the web first and then on Windows, with the listing
+id and the positional id logged side by side each time:
+
+1. An insert, a DRAG of the inserted slide in the thumbnail strip, then Undo —
+   which must refuse naming both slide numbers, and must delete nothing.
+2. An "onto this slide" insert, Ctrl+Z TWICE as `docs/MANUAL.md` tells the user
+   to, then Undo — the already-reverted refusal, which the count cannot see.
+3. A DUPLICATED slide: insert, then duplicate the inserted slide in PowerPoint,
+   then Undo. Both hosts answered a creation id unique in the listing, so this
+   is the one case that asks what the host does when a creation id is NOT
+   unique — and whether a duplicate carries the same one at all.
+
+4. **Time it.** `undoAim` buys one extra `slides.load("items/id")` on every
+   Undo press that has a creation id, and nothing has measured what that costs.
+   Windows reads of this shape are tens of milliseconds; the web has been
+   measured in the hundreds and up (section 15), and the web is where a user
+   would feel it. Log the press-to-answer time on both hosts, refusals and
+   successes alike.
+
+Case 3 is the one that can still refute something: if PowerPoint gives a
+duplicated slide a creation id of its own, the duplicate refusal is unreachable
+in practice and the record should say so rather than describing a branch no host
+produces.
+
 ### A slide deleted mid-run is still unmeasured on a host
 
 What is left of a bigger item, and it is a flaky MEASUREMENT rather than
@@ -69,56 +110,57 @@ many", sending somebody to look for a duplicate that did not exist. The cycle
 now asks whether the slide it aimed at actually went, which the count cannot
 say, and two cases in `test/pane-wiring.test.ts` — one per loop — hold it.
 
-### The undo cannot yet see a slide that was only dragged
-
-**Half closed on 2026-09-24.** The pane's Undo is positional: it takes back the
-slide where its insert left it. Nothing disarms it when the user edits the deck,
-so a press after an edit aimed at positions that had moved. Two paths deleted
-one of the user's own slides and reported "Undone." (derived from the code; no
-host round has run either): an "as a new slide" insert, then PowerPoint's own
-Ctrl+Z, then the pane's Undo, which deleted the user's next slide; and any slide
-added or deleted before the press.
-
-**Closed:** the entry now holds the count the insert measured, and a press
-that finds a different count refuses, changes nothing and disarms. It also holds
-the id of the user's own slide an "onto this slide" insert replaced, and refuses
-when that slide is back at the index — the manual's Ctrl+Z-twice, which leaves
-the count unchanged. No extra host call for either.
-
-**Still open besides the drag, and written down rather than guessed at:** a
-count that moved and moved back (Ctrl+Z on a new slide, then a slide added in
-its place) passes the check; and on the web the count was measured lagging a
-change by 2.8 seconds (2026-09-11), so a press straight after a Ctrl+Z may read
-the old count — whether a user's Ctrl+Z lags like the add-in's own insert is
-unmeasured, and reading twice would cost every web undo that long. The
-creation-id check below closes all three.
-
-**Open: a pure drag**, which changes no count. The route the research of
-2026-09-24 recommends, and the owner approved:
-
-1. **A probe arm first.** The engine writes a fresh `p14:creationId` into every
-   rebuilt slide, and all ten answer sheets show a fixture slide's creation id
-   coming back as the `#suffix` of its Office.js id — but only in POSITIONAL
-   reads (`getItemAt(i)`). What the `slides.load("items/id")` LISTING that the
-   undo reads says about a slide `insertSlidesFromBase64` has just added is
-   unmeasured, and SSF-Charts measured the two disagreeing for a fresh
-   `slides.add()` slide on the web. The arm reads both side by side, again after
-   a delay, and records what happens to duplicate creation ids. **Built on
-   2026-09-24 as probe question 8**; it waits on the owner's round in Script
-   Lab, web first (`docs/PROBE.md`).
-2. **Then, if the listing carries the suffix, the creation-id check.** At the
-   press, Undo proceeds only when exactly one listed slide carries the rebuilt
-   slide's creation id and it sits where the insert left it; otherwise it
-   refuses and says what it saw. Every unmeasured premise fails as a refusal,
-   never as a delete. If the probe says no, the fallback is holding the ids of
-   the user's own settled slides either side of the rebuilt one.
-
-The research of 2026-09-24 behind this — the ten answer sheets read for the
-suffix, SSF-Charts' measurement of listing and positional reads disagreeing, and
-the paths that lost a slide — is summarised in PR #149's description and in
-`docs/DESIGN.md` section 6.
-
 ## Settled — do not re-open
+
+### The undo's positional aim, and what closed it
+
+**Closed on 2026-09-24.** Kept here rather than deleted because the route out
+was three separate PRs and the middle one is a host measurement nothing in the
+code records.
+
+The pane's Undo was positional: it took back the slide where its insert left it,
+and nothing disarmed it when the user edited the deck. Four paths deleted one of
+the user's own slides and reported "Undone.":
+
+- an "as a new slide" insert, then PowerPoint's own Ctrl+Z, then the pane's Undo,
+  which deleted the user's next slide;
+- any slide added or deleted before the press;
+- a count that moved and moved BACK — Ctrl+Z on a new slide, then a slide added
+  in its place;
+- a pure DRAG, which changes no count at all.
+
+**The count check** closed the first two: the entry holds the count the insert
+measured, and a press that finds a different one refuses, changes nothing and
+disarms. **The user's own slide's id** closed the manual's Ctrl+Z-twice, which
+leaves the count unchanged. Neither cost a host call.
+
+**The creation-id check closed the last two**, and it needed a host answer
+first. The engine writes a fresh `p14:creationId` into every rebuilt slide, and
+the answer sheets showed a fixture slide's creation id coming back as the
+`#suffix` of its Office.js id — but only in POSITIONAL reads. What the
+`slides.load("items/id")` LISTING says about a slide `insertSlidesFromBase64`
+has just added was unmeasured, and SSF-Charts had measured the two disagreeing
+for a fresh `slides.add()` slide on the web. So the question went to a probe arm
+(question 8) rather than into a guess, and both hosts answered yes on
+2026-09-24: the listing carries the creation id straight away, agreeing with the
+positional read, still agreeing later — on the web 3188 ms and a `getFileAsync`
+later — and a creation id is unique in it. `docs/DESIGN.md` section 15 has both
+sheets.
+
+`undoAim` in `src/host/insert.ts` is the check: at the press, Undo proceeds only
+when exactly one listed slide carries the rebuilt slide's creation id and it sits
+at the position the delete is about to take. Gone, moved and duplicated all
+refuse and name what was seen. It compares the `#suffix` and only the suffix,
+never `sameSlideId`, because the prefix is the deck's and the deck reuses it.
+
+**What is NOT closed, and is a fallback rather than a hole:** a host that hands
+back no `#suffix` at all, a listing that does not answer inside its budget, and
+an entry armed with no creation id. Each falls back to the count-checked
+positional Undo, which is where this feature started, and on such a host a drag
+is still Ctrl+Z's job — the manual says so. Mac and iPad have never been
+measured (`docs/DESIGN.md` section 15 lists every host fact there as assumed),
+and a refusal on a validator's first Undo is a worse trade than the drag it
+would close.
 
 ### The mutation sweep has run every operator it was meant to
 

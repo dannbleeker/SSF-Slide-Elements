@@ -1138,6 +1138,8 @@ round at all, so every answer below is borrowed there.
    later, and a creation id unique on each (section 15). The web's "later" came
    3188 ms and a `getFileAsync` after the insert, which is what makes it a real
    test of settling rather than a fast re-read.
+   `undoAim` in `src/host/insert.ts` is the check that was waiting on it, and
+   it landed the same day; what it has NOT had is a host round of its own.
 
 ## 14. Build order
 
@@ -1792,6 +1794,104 @@ round — but one Windows machine is one machine, and the "50 MB in about ten
 seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a
 50 MB one.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the defect the creation-id
+check exists for, watched happening.** Build `be5fe4a`, the deployed one, driven
+through COM for the deck and CDP on 9444 for the pane, on a disposable copy of
+`template/validators.pptx`. Everything below is SlideIDs read through COM, and
+the last reading was confirmed in the saved file's own `<p:sldIdLst>`.
+
+The deck starts `256, 257, 258` — a title slide, an empty slide, and "A slide
+that already has a shape".
+
+| step | the deck | the pane |
+| --- | --- | --- |
+| insert onto slide 2 | `256, 259, 258` | `3 → 4 → 3 slides, slide 2 replaced.` |
+| reorder slide 2 to the end | `256, 258, 259` | — the count never moves |
+| press the pane's Undo | `256, 257, 259` | **`Undone. The deck has 3 slides.`** |
+
+**Slide 258 is gone.** It is the user's own slide, with its own shape on it, and
+nothing in the add-in put it there. The slide the insert added — 259, still
+carrying the white box — is still in the deck, so the Undo did not do the one
+thing it promised either. The count is 3 throughout, which is why `undoRefusal`
+saw nothing to object to, and the saved copy confirms it in the bytes: three
+slide parts and `<p:sldIdLst>` reading `256, 257, 259`.
+
+**The control, on the same build, the same deck and the same two clicks, with no
+reorder in between:** insert onto slide 2 gives `256, 259, 258`; Undo gives back
+`256, 257, 258` — SlideID 257 restored with its original two shapes, and 258
+untouched. So the Undo is not broken in general, and the reorder is the whole
+cause. Both halves were run twice, once with an instrument that proved unreliable
+and once with it fixed, and the four deck readings are identical.
+
+Two host facts fall out of it, neither of them the point but both worth keeping:
+
+- **An "onto this slide" insert really does replace the slide**: SlideID 257
+  became 259, which is the insert-then-positional-delete mechanic doing what
+  section 6 says, seen on a host rather than inferred from a count.
+- **PowerPoint gives a restored slide its ORIGINAL SlideID back.** The control's
+  Undo handed back `257`, not a fresh number, for a slide put back through
+  `insertSlidesFromBase64` from the pre-insert bytes. That is what makes
+  `undoAlreadyReverted`'s id comparison able to work at all.
+
+**What this does NOT measure**: any of `undoAim`'s refusals, which were not in
+the build under test — this is the round that establishes the defect, not the
+one that confirms the fix. The reorder was `Slide.MoveTo` through COM rather than
+a mouse drag in the thumbnail strip; both reorder `<p:sldIdLst>`, which is the
+only thing the add-in reads, but a hand drag stays unmeasured.
+
+**Measured, on PowerPoint on Windows, 2026-09-24 — the wrapped-transition fix
+CONFIRMED on a host, which the change that made it never was.** Build
+`be5fe4a`, the same route and the same disposable fixture.
+
+Be exact about what is new here. The DEFECT was found on a host on 2026-09-23
+(#137): a transition picked from the Transitions tab is written inside an
+`mc:AlternateContent` wrapper, `blank()` walked only the direct children of
+`<p:sld>`, and the new slide arrived still carrying it. That commit proved its
+fix with tests run red first, and **nothing re-ran it against a real
+PowerPoint** — so until today the fix itself rested on a fixture that had
+already been wrong once about this exact shape. This is that missing run, and it
+is the pair: the new slide dropping both, and the user's own slide keeping both.
+The failure it guards against is invisible in a test and spectacular for a user,
+because an entrance animation left pointing at re-numbered shapes lands on the
+element just inserted, and an entrance in the main sequence means the target is
+HIDDEN until it runs.
+
+Slide 3 was staged through COM with a transition (`EntryEffect` 513) and one
+entrance effect on its own rectangle. Slides 1 and 2 had neither, as the control.
+
+| | transition | effects | read from the file |
+| --- | --- | --- | --- |
+| slide 3, before | 513 | 1 | `p:timing`, `p:transition`, `p:anim` all present |
+| **the NEW slide** the insert made after it | **0** | **0** | **none of the three** |
+| slide 3, after that insert | 513 | 1 | all three, unchanged |
+| slide 3 after an **ONTO** insert (id 258 → 261) | **513** | **1** | **all three, kept** |
+
+Both readings were taken twice: through COM, and out of `ppt/slides/slideN.xml`
+in a saved copy, walking `<p:sldIdLst>` to map SlideID to part. "It looked fine"
+is what this defect looks like until the slide show starts, so the file is the
+evidence and the screen is not.
+
+**The element is VISIBLE on the new slide** (`Shape.Visible` is `-1`), which is
+the half the whole guard exists for.
+
+**The ONTO half is the one that could have gone wrong quietly.** The rebuilt
+slide is a CLONE of the user's, so it would have been easy to strip the user's
+own animations along with it — `dropTimingAndTransition` lives inside `blank()`
+for exactly that reason, and the host now agrees: an insert onto an animated
+slide rebuilt it as SlideID 261 with its transition, its effect and its animated
+rectangle all still there.
+
+**An instrument reading worth keeping, because it cost an hour and nearly became
+a finding.** In this pane `chosen` is set by FOCUS (`onFocus`, via `focusin`),
+while the INSERT is the tile's own click handler — and a click only fires when
+the press and the release land on the same element. Driving it over CDP at
+coordinates measured before a re-render, the press focused the tile and the
+release landed elsewhere: the tile went `chosen`, the primary button went live,
+and nothing was inserted. Read from outside, that is indistinguishable from "the
+product ignored a click". It is not: it is one click split in two by a scroll
+reset. So a round drives ONE of the two paths — a tile click, which inserts on
+its own — and never both, or it inserts twice.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
@@ -1844,5 +1944,6 @@ All 2026-09-08, all the owner's, in the order they were taken.
 | The Flowchart shapes category and its ten part elements come out of both library decks: one slide each (105 at 16:9, 104 at 4:3), carrying the category's own heading, so the category goes with it. The libraries drop from 117 elements to 107 and the 16:9 deck from twelve categories to eleven. A deck that already uses one keeps it — they are ordinary shapes once inserted — and "Used in this deck" still names it as an element from an older library rather than dropping the row | owner: delete Flowchart shapes, 2026-09-16 |
 | The build stamp moves off the header and onto the root element as `data-build`, rather than being deleted or painted out of the screenshot: the AppSource image may not be retouched, and the stale-cache diagnostic it exists for is worth keeping wherever it can be read — devtools, a support request, a driver over CDP — while being invisible to a user and to a capture. "Report a problem" still prefills it | owner: take it out of the listing shot, 2026-09-15 |
 | Search marks the words it matched inside the name on the tile and the preview card, and NOT on "Used in this deck" (which the search does not filter) or "Did you mean" (which can never hold a match) | owner: approved with the plan, 2026-09-23 |
-| The pane's Undo refuses when the deck's slide count is not the one its insert left, rather than aiming at positions that may have moved. This reverses the "keep it as is" of 2026-09-23 (#133), which rested on the failure needing a reorder: a Ctrl+Z before the Undo needs none, and deleted the user's next slide after an "as a new slide" insert. The drag half waits on a probe round for the creation-id check; the whole-deck tag read and disarming on a selection change are rejected | owner: approved with the research, 2026-09-24 |
+| The pane's Undo refuses when the deck's slide count is not the one its insert left, rather than aiming at positions that may have moved. This reverses the "keep it as is" of 2026-09-23 (#133), which rested on the failure needing a reorder: a Ctrl+Z before the Undo needs none, and deleted the user's next slide after an "as a new slide" insert. The drag half went to a probe round for the creation-id check, and landed the same day on its yes (the row below); the whole-deck tag read and disarming on a selection change are rejected | owner: approved with the research, 2026-09-24 |
+| The Undo's drag half: at the press it asks the deck's LISTING whether exactly one slide carries the creation id the engine wrote into the one it inserted, and whether that slide sits at the position the delete is about to take. Gone, moved and in-the-deck-twice all refuse and name what was seen, before the host has been asked for anything. Compared on the `#suffix` ALONE, never `sameSlideId`, whose tolerance for a missing suffix (office-js#2474) would read “the host said nothing about this slide” as “yes, delete it”. A host that marks no id, a listing that does not answer, and an entry with no creation id each fall back to the count-checked positional Undo rather than refusing: Mac and iPad are unmeasured, and a refusal on a validator's first Undo is a worse trade than the drag it closes. Licensed by probe question 8, answered yes on both hosts the same day. **It costs one extra listing read on every Undo press that has a creation id to check**, taken before anything is asked of the host, so a refusal costs only that read and changes nothing; the wall-clock cost is NOT yet measured on either host and the round in `docs/BACKLOG.md` is to take it, the web being where it will be felt | measured, 2026-09-24 |
 | A cycle of a run asks the slide IDS whether its own delete landed, instead of reading a disagreeing count as one. Three realities produce one disagreement — the delete did not land, it landed and the user deleted a slide, it landed and the user added one — and the count cannot separate them, so all three were reported as "the deck has a slide too many", sending the reader after a duplicate that need not exist. Measured on Windows on 2026-09-23. The read is bought ONLY once the count has already disagreed, so an ordinary cycle pays nothing, and a read that does not answer still stops and says to look | measured, 2026-09-24 (#148) |

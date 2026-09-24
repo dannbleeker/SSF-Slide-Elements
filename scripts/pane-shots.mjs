@@ -421,6 +421,59 @@ const STATES = [
     },
     shows: ["gear"],
   },
+  // The Undo refusing because the slide it inserted has been DRAGGED — which
+  // the count check above cannot see, and which `undoAim` in src/host/insert.ts
+  // answers from the deck's listing. It is now the LONGEST sentence the footer
+  // carries, so it is the one that decides whether the outcome box still fits a
+  // 320px frame, and it is here for that reason and not for coverage.
+  {
+    name: "browse-undo-reordered",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      outcome: {
+        ok: false,
+        byHand: true,
+        name: "One box",
+        detail:
+          "The deck has been reordered since the insert — the slide this add-in inserted is now slide 12, where the insert left it at slide 1 — so Undo could take back the wrong slide. Nothing was changed. Check the deck, and use PowerPoint's own Ctrl+Z if the insert is still there.",
+      },
+    },
+    shows: ["gear"],
+  },
+  // The same check finding the slide GONE, and finding it twice. Two more
+  // sentences the same box has to hold, both shorter than the one above but
+  // neither a substring of it.
+  {
+    name: "browse-undo-slide-gone",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      outcome: {
+        ok: false,
+        byHand: true,
+        name: "One box",
+        detail:
+          "The slide this add-in inserted is no longer in the deck, so there is nothing for Undo to take back. Nothing was changed.",
+      },
+    },
+    shows: ["gear"],
+  },
+  {
+    name: "browse-undo-duplicated",
+    step: "browse",
+    state: {
+      ...BROWSING,
+      outcome: {
+        ok: false,
+        byHand: true,
+        name: "One box",
+        detail:
+          "The slide this add-in inserted is in the deck more than once — as slide 1 and slide 12 — so Undo cannot tell which copy to take back. Nothing was changed. Delete whichever copy you do not want.",
+      },
+    },
+    shows: ["gear"],
+  },
   {
     name: "browse-by-hand",
     step: "browse",

@@ -26,7 +26,7 @@
  */
 import { contentCount } from "../catalogue/boxes.js";
 import type { MarkupRel } from "../catalogue/types.js";
-import { cloneSlide } from "../pptx/clone.js";
+import { cloneSlide, creationIdOf } from "../pptx/clone.js";
 import { framesOf, slideSize } from "../pptx/layout.js";
 import { Pkg } from "../pptx/pkg.js";
 import { COMMENT_REL_TYPES, REL_TYPE } from "../pptx/parts.js";
@@ -128,6 +128,25 @@ export interface SpliceReport {
   deckSlides: number;
   /** The rebuilt slide inside the package: the one slide the package lists. */
   slidePath: string;
+  /**
+   * The `<p14:creationId val>` `cloneSlide` wrote into the rebuilt slide.
+   *
+   * Office.js reports a slide as `<p:sldId id>#<p14:creationId val>`, so this
+   * is the half of the host's id that is OURS: the deck picks the prefix, and
+   * the prefix is reused, but this value was drawn here and `freshCreationId`
+   * kept it out of every other slide in the package. That makes it the one
+   * thing the pane can hold on to that still names the same slide after the
+   * user has dragged the deck about — which is what the Undo's `undoAim` needs
+   * (`src/host/insert.ts`), and what probe question 8 was written to find out
+   * the host would hand back (`docs/DESIGN.md` section 15: yes, on both hosts,
+   * 2026-09-24).
+   *
+   * Optional because `creationIdOf` answers `undefined` for a slide carrying
+   * none, and a field that lied about that would put the Undo's check on an id
+   * it cannot have. In a real run `cloneSlide` has just written one; the
+   * optionality is the reader's honest path, not a live case.
+   */
+  creationId?: number;
   /** Where the element landed, in EMU on the destination slide. */
   landed: Rect;
   /** How many top-level shapes were added: one when they were grouped. */
@@ -595,10 +614,15 @@ export async function splice(request: SpliceRequest): Promise<SpliceReport> {
 
   await keepOnly(pkg, rebuilt);
 
+  // Read AFTER `keepOnly`, so it is the id on the slide the host will actually
+  // receive rather than one on a part that has since been dropped.
+  const creationId = await creationIdOf(pkg, rebuilt);
+
   return {
     base64: await pkg.toBase64(),
     deckSlides,
     slidePath: rebuilt,
+    ...(creationId === undefined ? {} : { creationId }),
     landed,
     shapes: added.length,
     grouped: wanted,
