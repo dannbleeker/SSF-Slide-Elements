@@ -164,6 +164,27 @@ wrong size looks right.
 
 Together they are the product's own order: browse, search, insert, check, and
 see what the deck already holds.
+### Alt text for each picture
+
+The submission form asks for alt text per image and it is easy to skip. These
+are committed so the next person does not have to invent them again, and so a
+retake carries its description with it.
+
+Written as a description of what is IN the picture, for somebody who cannot see
+it — not as marketing copy, and not opening with "screenshot of", which a screen
+reader already announces.
+
+| file | alt text |
+| --- | --- |
+| `listing-screenshot.png` | The SSF Slide Elements task pane open in PowerPoint, showing the White boxes category as a grid of element thumbnails. |
+| `listing-open-all.png` | The task pane with every category open, showing element thumbnails and the steppers that resize a run from 2 to 5 boxes. |
+| `listing-search.png` | A search for "process" in the task pane, with the matched word highlighted in each element name and 5 of 73 results shown. |
+| `listing-inserted.png` | A hierarchy diagram inserted onto the PowerPoint slide, with the pane reporting the slide count and offering Undo. |
+| `listing-used.png` | The pane's "Used in this deck" list, naming the inserted element and the slide number it sits on. |
+
+Each is under 125 characters, which is where screen readers and listing forms
+start truncating.
+
 
 **The previous single screenshot showed a defect.** It read `73 of 106` with an
 empty search box, which says 33 elements are being withheld when nothing is
