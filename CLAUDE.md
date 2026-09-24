@@ -33,10 +33,11 @@ slide deleted mid-run, which no host round has yet caught — its stop message
 naming the wrong cause was fixed on 2026-09-24, so what is left of that item is
 the measurement; and the Undo's refusals, all four of which — the count, the
 already-reverted slide, and `undoAim`'s drag, deletion and duplicate — are built
-and now RUN on Windows: a round on 2026-09-24 watched the old build delete a
+and now RUN on BOTH hosts: rounds on 2026-09-24 watched the old build delete a
 user's slide after a reorder and say “Undone.”, and watched the new one refuse
-all three ways with the deck coming out identical each time (`docs/DESIGN.md`
-section 15). What is left of that item is the WEB, which has no harness. The creation-id
+every way on Windows and on the web, with the deck coming out identical each
+time (`docs/DESIGN.md` section 15). The web is driven through Playwright on a
+signed-in profile; the refusals cost 11–59 ms there. The creation-id
 check that closed the drag landed on 2026-09-24, on question 8's yes from both
 hosts, so what is left of THAT item is also the measurement. None of the
 three is work this repo can finish on its own: the mutation sweep was the last
