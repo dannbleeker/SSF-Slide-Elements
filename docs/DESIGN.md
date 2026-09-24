@@ -1839,6 +1839,59 @@ one that confirms the fix. The reorder was `Slide.MoveTo` through COM rather tha
 a mouse drag in the thumbnail strip; both reorder `<p:sldIdLst>`, which is the
 only thing the add-in reads, but a hand drag stays unmeasured.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the wrapped-transition fix
+CONFIRMED on a host, which the change that made it never was.** Build
+`be5fe4a`, the same route and the same disposable fixture.
+
+Be exact about what is new here. The DEFECT was found on a host on 2026-09-23
+(#137): a transition picked from the Transitions tab is written inside an
+`mc:AlternateContent` wrapper, `blank()` walked only the direct children of
+`<p:sld>`, and the new slide arrived still carrying it. That commit proved its
+fix with tests run red first, and **nothing re-ran it against a real
+PowerPoint** — so until today the fix itself rested on a fixture that had
+already been wrong once about this exact shape. This is that missing run, and it
+is the pair: the new slide dropping both, and the user's own slide keeping both.
+The failure it guards against is invisible in a test and spectacular for a user,
+because an entrance animation left pointing at re-numbered shapes lands on the
+element just inserted, and an entrance in the main sequence means the target is
+HIDDEN until it runs.
+
+Slide 3 was staged through COM with a transition (`EntryEffect` 513) and one
+entrance effect on its own rectangle. Slides 1 and 2 had neither, as the control.
+
+| | transition | effects | read from the file |
+| --- | --- | --- | --- |
+| slide 3, before | 513 | 1 | `p:timing`, `p:transition`, `p:anim` all present |
+| **the NEW slide** the insert made after it | **0** | **0** | **none of the three** |
+| slide 3, after that insert | 513 | 1 | all three, unchanged |
+| slide 3 after an **ONTO** insert (id 258 → 261) | **513** | **1** | **all three, kept** |
+
+Both readings were taken twice: through COM, and out of `ppt/slides/slideN.xml`
+in a saved copy, walking `<p:sldIdLst>` to map SlideID to part. "It looked fine"
+is what this defect looks like until the slide show starts, so the file is the
+evidence and the screen is not.
+
+**The element is VISIBLE on the new slide** (`Shape.Visible` is `-1`), which is
+the half the whole guard exists for.
+
+**The ONTO half is the one that could have gone wrong quietly.** The rebuilt
+slide is a CLONE of the user's, so it would have been easy to strip the user's
+own animations along with it — `dropTimingAndTransition` lives inside `blank()`
+for exactly that reason, and the host now agrees: an insert onto an animated
+slide rebuilt it as SlideID 261 with its transition, its effect and its animated
+rectangle all still there.
+
+**An instrument reading worth keeping, because it cost an hour and nearly became
+a finding.** In this pane `chosen` is set by FOCUS (`onFocus`, via `focusin`),
+while the INSERT is the tile's own click handler — and a click only fires when
+the press and the release land on the same element. Driving it over CDP at
+coordinates measured before a re-render, the press focused the tile and the
+release landed elsewhere: the tile went `chosen`, the primary button went live,
+and nothing was inserted. Read from outside, that is indistinguishable from "the
+product ignored a click". It is not: it is one click split in two by a scroll
+reset. So a round drives ONE of the two paths — a tile click, which inserts on
+its own — and never both, or it inserts twice.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
