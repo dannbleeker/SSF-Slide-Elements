@@ -33,7 +33,10 @@ slide deleted mid-run, which no host round has yet caught — its stop message
 naming the wrong cause was fixed on 2026-09-24, so what is left of that item is
 the measurement; and the Undo's refusals, all four of which — the count, the
 already-reverted slide, and `undoAim`'s drag, deletion and duplicate — are built
-and derived from the code, with none of them yet seen on a host. The creation-id
+and derived from the code, with none of the REFUSALS yet seen on a host. The
+defect they close HAS been seen: a host round on 2026-09-24 watched the deployed
+build delete a user's slide after a reorder and say “Undone.” (`docs/DESIGN.md`
+section 15). The creation-id
 check that closed the drag landed on 2026-09-24, on question 8's yes from both
 hosts, so what is left of THAT item is also the measurement. None of the
 three is work this repo can finish on its own: the mutation sweep was the last

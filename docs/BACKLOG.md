@@ -49,9 +49,18 @@ Left:
 
 The count check, the already-reverted check and `undoAim`'s three refusals are
 derived from the code and from probe question 8's answer sheets. No host round
-has yet watched one happen: the paths they close were reasoned out of
+has yet watched a REFUSAL happen: the paths they close were reasoned out of
 `src/pane/main.ts`, and every case behind them is a fake host in
 `test/pane-wiring.test.ts`.
+
+**The DEFECT, though, has now been watched happening** (2026-09-24, Windows,
+build `be5fe4a`, `docs/DESIGN.md` section 15). Insert onto slide 2, reorder the
+deck, press Undo: the add-in deleted the user's own slide 258, left the slide it
+had inserted in place, and said “Undone. The deck has 3 slides.” The count never
+moved, which is exactly why the count check could not see it. A control on the
+same deck with no reorder restored the original slide correctly, so the reorder
+is the whole cause. That is the half this item used to be guessing at; what is
+left is watching the fix refuse.
 
 What a round has to see, on the web first and then on Windows, with the listing
 id and the positional id logged side by side each time:

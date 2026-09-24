@@ -1794,6 +1794,51 @@ round — but one Windows machine is one machine, and the "50 MB in about ten
 seconds" figure is an extrapolation from a 14 MB deck, not a measurement of a
 50 MB one.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the defect the creation-id
+check exists for, watched happening.** Build `be5fe4a`, the deployed one, driven
+through COM for the deck and CDP on 9444 for the pane, on a disposable copy of
+`template/validators.pptx`. Everything below is SlideIDs read through COM, and
+the last reading was confirmed in the saved file's own `<p:sldIdLst>`.
+
+The deck starts `256, 257, 258` — a title slide, an empty slide, and "A slide
+that already has a shape".
+
+| step | the deck | the pane |
+| --- | --- | --- |
+| insert onto slide 2 | `256, 259, 258` | `3 → 4 → 3 slides, slide 2 replaced.` |
+| reorder slide 2 to the end | `256, 258, 259` | — the count never moves |
+| press the pane's Undo | `256, 257, 259` | **`Undone. The deck has 3 slides.`** |
+
+**Slide 258 is gone.** It is the user's own slide, with its own shape on it, and
+nothing in the add-in put it there. The slide the insert added — 259, still
+carrying the white box — is still in the deck, so the Undo did not do the one
+thing it promised either. The count is 3 throughout, which is why `undoRefusal`
+saw nothing to object to, and the saved copy confirms it in the bytes: three
+slide parts and `<p:sldIdLst>` reading `256, 257, 259`.
+
+**The control, on the same build, the same deck and the same two clicks, with no
+reorder in between:** insert onto slide 2 gives `256, 259, 258`; Undo gives back
+`256, 257, 258` — SlideID 257 restored with its original two shapes, and 258
+untouched. So the Undo is not broken in general, and the reorder is the whole
+cause. Both halves were run twice, once with an instrument that proved unreliable
+and once with it fixed, and the four deck readings are identical.
+
+Two host facts fall out of it, neither of them the point but both worth keeping:
+
+- **An "onto this slide" insert really does replace the slide**: SlideID 257
+  became 259, which is the insert-then-positional-delete mechanic doing what
+  section 6 says, seen on a host rather than inferred from a count.
+- **PowerPoint gives a restored slide its ORIGINAL SlideID back.** The control's
+  Undo handed back `257`, not a fresh number, for a slide put back through
+  `insertSlidesFromBase64` from the pre-insert bytes. That is what makes
+  `undoAlreadyReverted`'s id comparison able to work at all.
+
+**What this does NOT measure**: any of `undoAim`'s refusals, which were not in
+the build under test — this is the round that establishes the defect, not the
+one that confirms the fix. The reorder was `Slide.MoveTo` through COM rather than
+a mouse drag in the thumbnail strip; both reorder `<p:sldIdLst>`, which is the
+only thing the add-in reads, but a hand drag stays unmeasured.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.

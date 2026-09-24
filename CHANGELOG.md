@@ -45,6 +45,13 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Undo no longer destroys a slide when you have reordered the deck.** Measured
+  on PowerPoint for Windows on 2026-09-24: insert an element onto a slide, drag
+  that slide somewhere else, press the add-in's Undo — and it deleted a
+  different slide of yours, left the inserted one where it was, and said
+  “Undone.” The deck had the same number of slides throughout, which is why
+  nothing caught it. It now recognises the slide it inserted wherever that slide
+  has got to, and refuses.
 - **Undo no longer takes the wrong slide after the deck has changed** — dragging
   slides about included. If you pressed PowerPoint's Ctrl+Z, or added or deleted
   a slide, and then pressed the pane's Undo, it could remove one of your own
