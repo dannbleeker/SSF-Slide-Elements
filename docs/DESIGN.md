@@ -2094,6 +2094,35 @@ after: a slide deleted ahead of the cursor and never reached, where the cycle is
 passed over and `done` does not count it. This deletion landed inside a cycle
 instead. Both are worth having and they are different cases.
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the stranded-copy sentence,
+confirmed on the build that fixes it.** The same round that found the defect,
+re-run against `ef0e254`: the same 60-slide labelled deck, the same watcher
+attached before the run, `SLIDE-055` deleted through COM while the stamp was
+going.
+
+**The deck came out identical to the defect run**, which is what makes this a
+controlled comparison rather than a fresh anecdote:
+
+    10|265|1|SLIDE-010    the ORIGINAL, unstamped
+    11|325|2|SLIDE-010    the rebuilt COPY, stamped
+
+60 slides where 59 were expected, `SLIDE-055` gone, `done` at 9. Only the
+sentence differs:
+
+| build | what the run said |
+| --- | --- |
+| `e1fa47d`, before | "Stamped 9 of 60 slides. **The rest are as they were** — try again, or stamp them one at a time." |
+| `ef0e254`, after | "Stamped 9 of 60 slides, **and the deck has a slide too many: the copy was made but the original could not be taken away.** Check the deck before trying again — trying again would add another." |
+
+And the new sentence is TRUE of that deck, which is the test that matters: the
+copy was made (id 325, carrying the stamp) and the original was not taken away
+(id 265, without it). The first sentence was false of the same deck.
+
+**What this does not cover.** The `unknown` arm — a host that marks no ids — has
+no round, because neither host this repository can drive is in that state. Mac
+and iPad are where it would apply and both are unmeasured (this section's own
+standing note).
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.

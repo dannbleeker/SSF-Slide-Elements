@@ -84,6 +84,12 @@ moved the count back. A count cannot separate them; the ids can, which is how
 cannot-tell from the creation id the engine wrote, both loops ask it, and the
 outcomes take `StrandedCopy` instead of a boolean.
 
+**Confirmed on a host, 2026-09-24.** The round that found it was re-run against
+`ef0e254`: the deck came out identical — `SLIDE-010` twice, the copy stamped
+and the original bare, 60 slides where 59 were expected — and the run said "the
+deck has a slide too many: the copy was made but the original could not be taken
+away". True of that deck, where the sentence it replaced was false of it.
+
 **A consequence worth knowing.** On a host that marks no ids — Mac and iPad,
 both unmeasured — a failed insert confirmation now says the deck MAY have a
 slide too many, where it used to say the rest were as they were. That is a
