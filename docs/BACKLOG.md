@@ -49,33 +49,39 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### The undo's refusals — measured, with one still unreachable
+### The undo's refusals — measured on BOTH hosts
 
-**Closed on Windows, 2026-09-24** (`docs/DESIGN.md` section 15). All four cases
-ran against build `49890b6` and the deck came out of the three refusals
-identical each time; the control restored the user's own slide correctly, which
-is what makes the three mean anything. The refusal disarms the Undo, as
-designed. The extra listing read costs about 30 ms here.
+**Closed 2026-09-24** (`docs/DESIGN.md` section 15). Windows first, then
+PowerPoint for the web. All four cases on each; the deck came out of every
+refusal identical, and the control restored the user's own slide, which is what
+makes the refusals mean anything.
 
-**Open, and it is the web.** No web round has watched any of this. The route
-that exists is Windows-only — COM for the deck, UI Automation for the ribbon,
-CDP on 9444 for the pane — and the web has no equivalent harness; building one
-is its own piece of work. The web is not falling back to the positional Undo,
-because question 8 measured its listing carrying creation ids, so it gets the
-real check; what is missing is having WATCHED it refuse, and the timing, which
-is where the extra read would actually be felt.
+The web answered the question the record had left open about COST: the refusals
+take 11–59 ms there against 11–32 ms on Windows, so the extra listing read is
+not felt. What the web costs is the successful undo — 1074 ms against 108 —
+and that is the insert-and-delete, not the check.
 
-**Settled and worth not re-opening: `undoAim`'s duplicate branch is
-unreachable through PowerPoint's own Duplicate.** The inserted slide listed as
-`260#3711757732` and duplicating it gave `261#2864044299` — its own creation
-id, consistent with question 8's uniqueness answer. The branch stays, because a
-premise that fails must refuse rather than pick a copy, but it is DEFENSIVE and
-the record says so rather than describing a state no host produces. Do not go
-looking for a way to trigger it as though it were a gap.
+**#155's sentence was confirmed on the web**: after the manual's Ctrl+Z-twice
+the pane says the user's own slide is already back, rather than that the
+inserted slide is gone. Both are true; the useful one is the one that fires.
 
-**Mac and iPad** remain unmeasured, and there they fall back to the
-count-checked positional Undo (`undoAim` answers `unmarked`), which is the
-behaviour that shipped before this and is what `docs/MANUAL.md` describes.
+**Settled, do not re-open: `undoAim`'s duplicate branch is unreachable through
+PowerPoint's own Duplicate, on BOTH hosts.** The copy is given its own creation
+id (Windows `260#3711757732` → `261#2864044299`; web `266#961438548` →
+`267#730215348`). The branch stays because a premise that fails must refuse
+rather than pick a copy, but it is DEFENSIVE and no host produces the state.
+
+**Two limits of the web round, which are honest gaps rather than open work:**
+the reorder was cut and paste because a synthetic drag cannot be delivered to
+an HTML5 drag-and-drop strip, so a hand drag is unmeasured on both hosts; and
+the deck was read through Office.js alone, the same library the product uses,
+because the second source failed (guessed download URLs served an error page,
+and the File menu exposed no Download entry). Neither changes what the cases
+saw; both are written into section 15.
+
+**Mac and iPad** remain unmeasured, and there the Undo falls back to the
+count-checked positional one (`undoAim` answers `unmarked`), which is the
+behaviour that shipped before this and what `docs/MANUAL.md` describes.
 
 ### A slide deleted mid-run is still unmeasured on a host
 

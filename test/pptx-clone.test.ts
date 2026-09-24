@@ -881,3 +881,37 @@ describe("the notes page a slide owns", () => {
     expect(await notesPathFor(empty, "ppt/slides/slide1.xml")).toBeUndefined();
   });
 });
+
+describe("the creation id a copy is given, at the bottom of its range", () => {
+  /**
+   * The mirror of the top-of-range case above, and the web is what made it
+   * worth writing.
+   *
+   * That case pins `Math.random` at its own maximum because it is the only
+   * input that can reach the top. This pins it at 0, the only input that can
+   * reach the BOTTOM — and the ordinary draw meets `toBeGreaterThan(0)` by
+   * odds rather than holding it: one value in 4294967295 would fail.
+   *
+   * Why it is worth holding, beyond symmetry: a slide carrying no
+   * `<p14:creationId>` lists on PowerPoint for the WEB as `256#0`, measured
+   * 2026-09-24 on a real deck where two slides of four came back that way.
+   * `undoAim` keys the Undo on the `#suffix`, so a copy drawn as 0 would match
+   * every unmarked slide in the deck — proceeding against the wrong one where
+   * only one such slide exists, and saved only by the duplicate branch where
+   * several do.
+   *
+   * Both boundaries now fail on the same one-character mutation, which is the
+   * point: the `+ 1` is load-bearing at each end for a different reason.
+   */
+  it("is never zero, which the web reads as a slide that has no creation id", async () => {
+    const zero = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      const pkg = await deck([{ paragraphs: [["Hello"]], creationId: 111 }]);
+      // No injected generator: this is the draw a real run uses.
+      const target = await cloneSlide(pkg, "ppt/slides/slide1.xml");
+      expect(await creationIdOf(pkg, target)).toBe(1);
+    } finally {
+      zero.mockRestore();
+    }
+  });
+});

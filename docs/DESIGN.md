@@ -1953,6 +1953,62 @@ own slide is back at the position the copy stood, and preferring
 `undoAlreadyReverted` when it is. Invisible until a host produced a deck that
 satisfied both conditions at once.
 
+**Measured, on PowerPoint for the WEB, 2026-09-24 — the Undo's refusals on the WEB.**
+Build `f48463e`, driven through Playwright on a persistent signed-in profile,
+on `round-deck-X` in the owner's own OneDrive. The Windows round of the same
+day (above) is the pair; this is the host the creation-id check was written for.
+
+| case | the deck | the pane | press to answer |
+| --- | --- | --- | --- |
+| insert, then REORDER | **unchanged** | "The deck has been reordered since the insert — the slide this add-in inserted is now slide 4, where the insert left it at slide 1 …" | **39 ms** |
+| insert, then Ctrl+Z TWICE | **unchanged** | "Your slide 1 is already back as it was — PowerPoint's Ctrl+Z has taken the insert back — so there is nothing for Undo to do." | **59 ms** |
+| insert, then DUPLICATE it | **unchanged** | the count refusal, 6 slides where the insert left 5 | **11 ms** |
+| insert, then Undo with nothing changed | **restored** | "Undone. The deck has 6 slides." | **1074 ms** |
+
+**#155's fix is confirmed on a second host.** The Ctrl+Z case answered "your
+slide is already back", not "the slide this add-in inserted is no longer in the
+deck". Both are true after that sequence and the useful one is the one the user
+gets — which is what #155 changed, on the strength of the Windows round, and
+what this round watched happen on the web.
+
+**What the extra listing read costs here: nothing worth naming.** The refusals
+answered in 11, 39 and 59 ms against Windows' 11–32 ms. The record carried this
+as unmeasured and as the thing the web would feel; it does not. What the web
+does cost is the SUCCESSFUL undo — 1074 ms against Windows' 108 — and that is
+the insert-and-delete, not the check.
+
+**A restored slide keeps its original id here too.** The ids before the insert
+and after the undo are identical (`266#961438548, 267#730215348, …`), which is
+what lets `undoAlreadyReverted` compare ids at all. An earlier single reading
+suggested otherwise and was wrong: its "before" was not the pre-insert state.
+
+**A duplicated slide gets its own creation id on the web as well** — `266#961`
+`438548` duplicated to `267#730215348`. So `undoAim`'s duplicate branch is
+unreachable through PowerPoint's own Duplicate on BOTH hosts, and the record
+says so on both rather than describing a state no host produces.
+
+**A slide with no creation id lists as `256#0` on the web.** Two of four slides
+in this deck came back that way. It is harmless as things stand — `cloneSlide`
+draws from 1..0xffff_ffff — but it makes the bottom of that range load-bearing
+in a way it was not before: an id of 0 would match every unmarked slide.
+`test/pptx-clone.test.ts` now pins that boundary the way it already pinned the
+top.
+
+**Two limits, stated rather than buried.**
+
+- The reorder was **cut and paste, not a drag**. A synthetic mouse drag over the
+  thumbnail strip reorders nothing — with a dwell before moving, with a drop
+  into the gap, either way — because the strip uses HTML5 drag-and-drop, which
+  Chromium will not synthesise from mouse events. What the add-in sees is
+  `<p:sldIdLst>` in a new order, which both gestures produce; a hand drag stays
+  unmeasured on both hosts.
+- The deck was read through **Office.js only**, from inside the pane's own
+  frame. Windows had COM and a saved file; here the second source failed —
+  guessed OneDrive download URLs served an error page, and the File menu
+  exposed no Download entry to any selector tried. So the deck evidence and the
+  product share a library, which is a real weakness of this round and is why it
+  is written down instead of implied.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
