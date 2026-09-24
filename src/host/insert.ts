@@ -346,6 +346,75 @@ export function undoPlan(entry: { target: Target; index: number }): UndoPlan {
 }
 
 /**
+ * Why an undo must not run, when the deck's size says it has changed since the
+ * insert it would take back — or undefined when it may run.
+ *
+ * `undoPlan` is positions, read at the insert, and nothing disarms the undo
+ * when the user edits the deck. The count checks inside the undo start from a
+ * count read at the PRESS, so they cannot see what happened before it. Two
+ * paths through that gap delete one of the user's own slides and then report
+ * "Undone.", derived from the code on 2026-09-24 and not yet run on a host:
+ *
+ * - "As a new slide", then PowerPoint's own Ctrl+Z (which `docs/MANUAL.md`
+ *   recommends), then the pane's Undo. Ctrl+Z has already taken the new slide
+ *   out, and the undo deletes whatever now sits at `index + 1` — the user's
+ *   next slide — while the count drops by exactly the one it expects.
+ * - Any slide added or deleted, which shifts every position after it.
+ *
+ * Comparing the count at the press with the count the insert left closes both,
+ * and costs no host call: the undo reads the count first anyway. It is a
+ * COUNT, so it sees only what changes one:
+ *
+ * - a drag changes none, and the id check that would close that waits on a
+ *   probe round (`docs/BACKLOG.md`);
+ * - a count that moved and moved back passes — Ctrl+Z on a new slide and then
+ *   a slide added in its place is the likely one — exactly as every undo did
+ *   before this;
+ * - an "onto this slide" insert taken back with Ctrl+Z TWICE, as the manual
+ *   says to, leaves the count where the insert left it; `undoAlreadyReverted`
+ *   below catches that one by the id of the user's own slide;
+ * - on the web the count has been measured lagging a change the add-in made by
+ *   2.8 seconds (2026-09-11), so a press straight after a Ctrl+Z may read the
+ *   old count and pass. Whether a user's Ctrl+Z lags the same way is
+ *   unmeasured, and a second read would cost every web undo that long.
+ *
+ * A refusal is the safe direction of wrong: it leaves the deck as it is.
+ */
+export function undoRefusal(expected: number, now: number): string | undefined {
+  if (now === expected) return undefined;
+  return (
+    `The deck has changed since the insert — it has ${now} slides where the insert left ${expected} — ` +
+    `so Undo could take back the wrong slide. Nothing was changed. ` +
+    `Check the deck, and use PowerPoint's own Ctrl+Z if the insert is still there.`
+  );
+}
+
+/**
+ * Why an "onto this slide" undo must not run when the user's own slide is back
+ * where the insert put its copy — the Ctrl+Z case `undoRefusal` cannot see.
+ *
+ * The manual tells the user to press Ctrl+Z twice to take back an insert onto a
+ * slide, and after that the deck is the size the insert left it, so the count
+ * check passes. The undo then put the pre-insert snapshot back beside the
+ * user's slide and deleted the slide — their own, with anything they had done
+ * to it since — and said "Undone.".
+ *
+ * The undo already reads the id at that position to aim the restore, and the
+ * id of the user's own slide was known at the insert. That id is a SETTLED
+ * one, the kind measured following a drag on Windows on 2026-09-23 (`bd91527`)
+ * — not the id of a slide the run had just added, which is what the borrowed
+ * rule warns about. If PowerPoint's Ctrl+Z gives the slide back under a new id
+ * (unmeasured), this does not fire and the undo behaves as it did before; it
+ * can never fire on the rebuilt slide, which is a different slide.
+ */
+export function undoAlreadyReverted(slide: number): string {
+  return (
+    `Your slide ${slide} is already back as it was — PowerPoint's Ctrl+Z has taken the insert back — ` +
+    `so there is nothing for Undo to do. Nothing was changed.`
+  );
+}
+
+/**
  * Which slide the element ended up on, counting from ONE.
  *
  * `undoPlan` from the other end, and the reason it lives beside it: the two are
