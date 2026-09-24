@@ -40,34 +40,33 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
-### A slide deleted AHEAD of the cursor is still unmeasured
-
-The skip branch: a run passes over a slide that has GONE, `indexOfSlide` answers
-nothing, the cycle is skipped, `done` does not count it, and no position is
-deleted in its place. `test/pane-wiring.test.ts` covers it; no host round has
-watched it.
-
-The 2026-09-24 attempt deleted a slide ahead of the cursor and the deletion
-landed INSIDE a cycle instead, which is the case above. The two are different
-and both are worth having.
-
-**Method, corrected by that attempt.** A cycle on a 60-slide deck costs about a
-second, not the 65 ms a small deck suggests and not the 110 ms this item used to
-assume — and a PowerShell process takes about 1.5 s to start, so a deletion
-launched when the run begins cannot land where it is aimed. Use
-`scratchpad/round-kit/delete-midrun.ps1`: attached BEFORE the run, triggering
-off the deck rather than a clock, finding its target by LABEL at the moment it
-fires (mid-cycle the deck is briefly one longer, so every index after the cursor
-is off by one), and polling no harder than every 250 ms — at 15 ms it disturbed
-the host's own reads enough to strand a cycle by itself.
-
-And the selection is fragile: 60 selected through COM reads back as 60 through
-Office.js, but any intervening interaction with the pane collapses it and the
-run silently becomes a single-slide insert. Arm the tile by FOCUS, select
-immediately before pressing, and check the outcome names a run rather than a
-slide.
-
 ## Settled — do not re-open
+
+### The run's skip branch is defensive, not reachable by a COM deletion
+
+**Settled 2026-09-24** after eight attempts (`docs/DESIGN.md` section 15). The
+branch is `stampEvery`'s `if (live === undefined) continue` — a slide gone since
+the run was planned is passed over, not counted, and no position is deleted in
+its place.
+
+Reaching it needs a deletion that lands in the one window per cycle a run
+survives: after that cycle's own delete, before the next reads the count. Eight
+runs with a watcher built for exactly that — the Slide object held in advance so
+the deletion is one COM call, a one-call hot loop at 10 ms, triggered on cycle
+1's own tail — produced the SAME deck every time: stranded at cycle 2,
+`SLIDE-002` duplicated, deletion timed at 2,112–2,489 ms.
+
+**A COM call cannot preempt.** It is serviced when PowerPoint next yields, and
+PowerPoint yields inside a cycle far more than between two, so the deletion is
+issued in the window and executed out of it. Polling faster does not help; that
+was tried.
+
+So the branch stays, covered by `test/pane-wiring.test.ts`, and nobody should
+spend another round on it. What a mid-run deletion actually produces is the
+stranded copy, which is measured and now reported correctly.
+
+**Open, if anyone cares later:** whether a person deleting by hand can reach it.
+Same message loop, no obvious reason to differ, and not tried.
 
 ### A stranded copy reported as "the rest are as they were"
 

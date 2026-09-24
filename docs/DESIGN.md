@@ -2123,6 +2123,44 @@ no round, because neither host this repository can drive is in that state. Mac
 and iPad are where it would apply and both are unmeasured (this section's own
 standing note).
 
+**Measured, on PowerPoint on Windows, 2026-09-24 — the run's SKIP branch cannot
+be reached by deleting a slide through COM, and the attempt says why.** Eight
+runs, build `ef0e254`, the 60-slide labelled deck, a watcher attached before
+each one.
+
+The branch is `stampEvery`'s `if (live === undefined) continue`: a slide that
+has gone since the run was planned is passed over, not counted, and no position
+is deleted in its place. To reach it, a slide has to disappear AFTER the run
+resolves its targets and BEFORE that slide's own cycle — and the deletion must
+not break whatever cycle is in flight, because a run stops at the first cycle it
+cannot confirm.
+
+Reading the loop, one window per cycle survives a deletion: after that cycle's
+own delete lands, until the next reads the count. The watcher was built for it —
+the target's Slide object held before the run so the deletion is a single COM
+call, the hot loop one call, polling at 10 ms, triggered on the id at index 1
+changing, which is cycle 1 taking its own original away.
+
+**All eight attempts produced the same deck.** Stranded at cycle 2, `SLIDE-002`
+duplicated, two slides stamped, the deletion timed at 2,112–2,489 ms. Not a
+spread around a target: the same ending every time.
+
+**Why, and it is a property of the instrument rather than bad luck.** A COM call
+from another process is serviced when PowerPoint next yields, and PowerPoint
+yields inside a cycle — it is awaiting its own host calls there — far more than
+in the gap between two. The deletion is issued in the window and executed out of
+it. Nothing about polling faster changes that; the call cannot preempt.
+
+**So the skip branch is DEFENSIVE**, in the same sense as `undoAim`'s duplicate
+branch: correct to keep, exercised by `test/pane-wiring.test.ts`, and not a
+state this route can produce. What a mid-run deletion produces instead is the
+stranded copy, which is measured above and now reported correctly.
+
+**What this does NOT establish** is that a person deleting a slide by hand
+cannot reach it. That deletion is serviced by the same message loop and there is
+no obvious reason for it to land differently, but no round has tried it and this
+record does not assume it.
+
 ## 16. Decisions log
 
 All 2026-09-08, all the owner's, in the order they were taken.
