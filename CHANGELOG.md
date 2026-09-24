@@ -45,6 +45,18 @@ and this project uses [semantic versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **A run that stops no longer tells you nothing changed when it left a copy
+  behind.** Stamping or removing across several slides works one slide at a
+  time, and each step checks the deck got one slide longer before it takes the
+  original away. If you deleted a slide yourself at that exact moment, the count
+  came back to where it started, the run stopped — and it said "The rest are as
+  they were" over a deck that now had the same slide twice, the stamp on one
+  copy and not the other. You had no reason to look. It now checks which of the
+  two actually happened and says "the deck has a slide too many" when it did,
+  and on a PowerPoint that will not tell it, it says it could not confirm rather
+  than guessing. Found by running it on a real PowerPoint, not by reading it.
+
+
 - **After Ctrl+Z, Undo now tells you your own slide is back.** If you take an
   insert back with PowerPoint's own Ctrl+Z twice — which is what the manual
   tells you to do — and then press the add-in's Undo, it used to say only that

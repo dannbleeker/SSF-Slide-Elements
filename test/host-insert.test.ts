@@ -10,6 +10,7 @@ import {
   stillThere,
   type Attempt,
   undoPlan,
+  copyLanded,
   undoAim,
   undoRefusal,
   undoAlreadyReverted,
@@ -657,5 +658,52 @@ describe("when there is nothing for the undo to check with", () => {
     // An empty deck cannot be the deck an undo was armed against, so nothing
     // here may be read as evidence the slide was deleted.
     expect(undoAim([], 222, 0)).toEqual({ kind: "unmarked", why: "host-marks-nothing" });
+  });
+});
+
+/**
+ * Whether the copy a cycle inserted is in the deck.
+ *
+ * The question a COUNT cannot answer, and the reason this exists: a run
+ * confirms its insert by counting, and when the count does not confirm, two
+ * very different decks produce that — an insert that never landed, and one that
+ * landed while something else moved the count back. The second leaves a copy
+ * the user has to be told about.
+ *
+ * Measured on Windows on 2026-09-24: a slide deleted mid-run took the count
+ * back to where it started, the cycle broke, and the run said "The rest are as
+ * they were" over a deck holding SLIDE-010 twice with the stamp on the copy.
+ */
+describe("whether the copy a cycle inserted is in the deck", () => {
+  it("says yes when a listed slide carries the copy's creation id", () => {
+    expect(copyLanded(["256#111", "257#4242", "258#333"], 4242)).toBe("yes");
+  });
+
+  it("says no when the host marks its ids and none of them is the copy", () => {
+    // The honest "nothing landed": the deck is untouched and the milder
+    // sentence is TRUE of it. This is the case the bare break assumed always
+    // held.
+    expect(copyLanded(["256#111", "258#333"], 4242)).toBe("no");
+  });
+
+  it("says it cannot tell when the listing did not answer", () => {
+    expect(copyLanded(undefined, 4242)).toBe("unknown");
+  });
+
+  it("says it cannot tell when no id carries a suffix at all", () => {
+    // A host that marks nothing. Mac and iPad are unmeasured and assumed to be
+    // this shape, and "no" would be a claim about a deck nobody looked at.
+    expect(copyLanded(["256", "257", "258"], 4242)).toBe("unknown");
+  });
+
+  it("says it cannot tell when there is no creation id to look for", () => {
+    expect(copyLanded(["256#111"], undefined)).toBe("unknown");
+  });
+
+  it("compares the suffix ONLY, so a reused prefix is not the copy", () => {
+    // `sameSlideId` would take a bare `4242` for `4242#anything`; the prefix is
+    // the deck's and is reused, and reading it as the copy would tell a user a
+    // slide is there when it is not.
+    expect(copyLanded(["4242#999", "257#111"], 4242)).toBe("no");
   });
 });

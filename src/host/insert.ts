@@ -537,6 +537,51 @@ export function undoAim(listed: readonly string[] | undefined, creationId: numbe
 }
 
 /**
+ * Whether the copy a cycle inserted is IN THE DECK — yes, no, or cannot tell.
+ *
+ * A run confirms its insert by counting: the deck should be one longer. When it
+ * is not, that one fact covers two decks that need opposite sentences —
+ *
+ * - the insert never landed, and the deck is untouched;
+ * - it landed, and something else moved the count back. A copy is in there.
+ *
+ * Measured on Windows on 2026-09-24 (`docs/DESIGN.md` section 15): a slide
+ * deleted while a run was going took the count back to where it started, the
+ * cycle's confirmation failed, the run stopped, and the user was told "The rest
+ * are as they were" over a deck holding `SLIDE-010` twice with the stamp on the
+ * copy. A count cannot separate those two; the IDS can, which is how
+ * `deleteLanded` and `undoAim` already work.
+ *
+ * Three answers rather than a boolean, and that is the whole point of this
+ * function: the defect it fixes came from treating "I could not confirm" as "it
+ * did not happen". `unknown` is a real state — a host that marks no id, a
+ * listing that did not answer, a package whose slide carried no creation id —
+ * and the caller must say so rather than pick whichever guess reads better.
+ *
+ * Keyed on the `#suffix` ALONE, for the reason `undoAim` gives at length: the
+ * prefix is `<p:sldId id>`, which the deck assigns and reuses, so a slide
+ * carrying the same prefix is not the same slide.
+ */
+export type Landed = "yes" | "no" | "unknown";
+
+export function copyLanded(listed: readonly string[] | undefined, creationId: number | undefined): Landed {
+  if (creationId === undefined || listed === undefined) return "unknown";
+  const wanted = String(creationId);
+  let anyMarked = false;
+  for (const id of listed) {
+    const suffix = slideIdSuffix(id);
+    if (suffix === undefined) continue;
+    anyMarked = true;
+    if (suffix === wanted) return "yes";
+  }
+  // Nothing carried a suffix at all, so this host does not mark its ids and the
+  // question was never actually asked. Mac and iPad are unmeasured
+  // (`docs/DESIGN.md` section 15) and this is the shape they are assumed to
+  // have.
+  return anyMarked ? "no" : "unknown";
+}
+
+/**
  * Which slide the element ended up on, counting from ONE.
  *
  * `undoPlan` from the other end, and the reason it lives beside it: the two are

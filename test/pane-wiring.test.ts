@@ -3303,6 +3303,90 @@ describe("removing a part from every slide it is on", () => {
     expect(outcome).not.toContain("as they were");
   });
 
+  it("says the deck has a slide too many when a deletion masks the insert's count", async () => {
+    /**
+     * The defect measured on Windows on 2026-09-24, as a case.
+     *
+     * A run confirms each insert by counting: the deck should be one longer.
+     * A user deleting a slide in that window takes the count back to where it
+     * started, so the confirmation never arrives — and the cycle used to `break`
+     * with `stranded` untouched, because a bare break assumed "the count did not
+     * move" meant "the insert did not land".
+     *
+     * It had landed. The host round found SLIDE-010 twice, the stamp on the
+     * copy and the original bare, and the pane said "The rest are as they were"
+     * — which is the sentence a user does not act on.
+     *
+     * A COUNT cannot tell those apart. The ids can, and the creation id the
+     * engine wrote is in the report, so `copyLanded` is asked instead.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [1, 4];
+    host.current = { index: 1, id: "256" };
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+
+    // The count does NOT confirm this cycle's insert...
+    host.refuseAt = 2;
+    host.duringInsert = () => {
+      if (host.cycles !== 2) return;
+      // ...and yet the copy IS in the deck, carrying the creation id the
+      // stubbed splice reported. That is the state a user's deletion produces:
+      // the insert landed and their deletion took the count back, so the count
+      // says nothing happened while the deck holds a copy. The ids are the only
+      // thing that can see it.
+      host.ids = [...deckIds(), `900#${host.creationId}`];
+    };
+
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome).toContain("Stamped 1 of 2 slides");
+    expect(outcome, "it told the user nothing had changed over a deck holding the copy").toContain("a slide too many");
+    expect(outcome).not.toContain("as they were");
+  });
+
+  it("still says the rest are as they were when the insert really did not land", async () => {
+    /**
+     * The other half, so the fix cannot be passed by always crying wolf. Here
+     * the insert genuinely does nothing: no copy is in the deck, the count is
+     * right to disagree, and "the rest are as they were" is TRUE.
+     */
+    indexMode = "ok";
+    host.selectedSlides = [1, 4];
+    host.current = { index: 1, id: "256" };
+    // `refuseAt` is the cycle whose insert does not grow the deck at all.
+    host.refuseAt = 2;
+    // A deck whose host MARKS its ids, which is both hosts this repo has
+    // measured. It matters: the default fake deck is `s0`, `s1`, … with no
+    // suffix at all, which is a host that can say nothing about the copy — and
+    // there "the rest are as they were" is a claim about a deck nobody looked
+    // at. With marked ids and none of them the copy, the answer is a real NO
+    // and the milder sentence is earned.
+    host.ids = ["300#9001", "301#9002", "302#9003", "303#9004", "304#9005"];
+    deckBase64 = await Pkg.open(await makeDeck([{ paragraphs: [["First"]] }])).then((p) => p.toBase64());
+
+    const pane = await openPane();
+    await settle();
+    showEveryCategory(pane);
+    const stamp = [...pane.querySelectorAll<HTMLElement>('[data-action="tile"]')].find(
+      (t) => t.dataset["id"] === "markeringer-1",
+    ) as HTMLElement;
+    stamp.click();
+    await idle(pane);
+
+    const outcome = pane.querySelector(".outcome")?.textContent ?? "";
+    expect(outcome).toContain("Stamped 1 of 2 slides");
+    expect(outcome, "a deck nothing was added to was reported as holding a copy").toContain("as they were");
+    expect(outcome).not.toContain("slide too many");
+  });
+
   it("does not let the question outlive an insert", async () => {
     /**
      * `noQuestion` is spread into every handler that can take a tile off the
@@ -3504,6 +3588,11 @@ describe("removing a part from every slide it is on", () => {
       // `continue` in its place would press on to slide 3 and report two
       // slides' worth of work over a run that failed on the first.
       host.refuseAt = 1;
+      // A host that MARKS its ids, so "nothing landed" is a fact this cycle can
+      // establish rather than assume. The default fake deck is `s0`, `s1`, …
+      // with no suffix, which is a host that can say nothing about the copy —
+      // and there the pane is now deliberately cautious.
+      host.ids = ["300#9001", "301#9002", "302#9003", "303#9004", "304#9005"];
       const pane = await askedToRemove([0, 2]);
       (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
       const outcome = await ran(pane);
@@ -3682,6 +3771,10 @@ describe("removing a part from every slide it is on", () => {
     // loop that pressed on past a step it could not verify would be editing a
     // deck whose shape it has already misread.
     host.refuseAt = 1;
+    // A host that MARKS its ids, so "the deck is untouched" is established
+    // rather than assumed; on one that marks nothing the pane now says it
+    // could not tell, which is the honest answer there.
+    host.ids = ["300#9001", "301#9002", "302#9003", "303#9004", "304#9005"];
     const pane = await askedToRemove();
     (pane.querySelector('[data-action="remove-go"]') as HTMLElement).click();
     const said = await ran(pane);
