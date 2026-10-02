@@ -161,10 +161,22 @@ This one should not be faked, and it is not a thing this repository can decide:
   product, and nothing that has to be cleared for publication.
 
 **The submission's pictures are committed — FIVE of them**, retaken on
-2026-09-24 against build `49890b6`, which the live pane confirmed through its
-own `data-build` before the shutter. `test/listing.test.ts` sweeps
+**2026-10-02 against build `2cbeb7a`**, which the live pane confirmed through
+its own `data-build` before the shutter. `test/listing.test.ts` sweeps
 `docs/listing-*.png` and holds every one to 1366×768, because a capture at the
 wrong size looks right.
+
+**Why they were retaken: AppSource failed the submission on them.** The
+2026-09-24 set was rejected on 2026-09-30 under certification policy
+**100.3.2.2 Content and Quality** — "Images contain references to another
+add-in, kindly update the images" — and the reference was a **Script Lab tab**,
+in all five pictures. The paragraph further down this file that reasoned Script
+Lab was acceptable to leave in is what shipped them, and it has been corrected
+rather than deleted, because the next person will have the same thought.
+
+The 2026-10-02 set was taken with Script Lab **uninstalled** and the two
+sideloaded siblings trimmed from the ribbon cache, and the capture is now
+refused outright when anything else is on the ribbon — see the gate below.
 
 | file | what it shows |
 | --- | --- |
@@ -211,11 +223,21 @@ A store picture that quotes a number has to be retaken when the number moves.
 The recipe is below and it is a script for that reason; it was retaken three
 times on 2026-09-16 alone.
 
-**The two sibling add-ins must be off the ribbon first.** This machine carries
-SSF Merge and SSF Charts, and their ribbon groups would otherwise sit in a
-picture on a public store page. `scripts/ribbon-cache.mjs` takes them off; back
-the file up first and put them back afterwards, because it belongs to
-PowerPoint:
+**EVERY other add-in must be off the ribbon first — not just the two
+siblings.** This machine carries SSF Merge and SSF Charts, whose ribbon GROUPS
+would otherwise sit in a picture on a public store page, and it carried Script
+Lab, whose ribbon TAB did sit in five of them and failed the submission. The
+rule is the picture, not the family: anything that is not PowerPoint's own
+chrome and not this add-in has to go.
+
+Two different removals, because they are two different kinds of install:
+
+- **Sideloaded (the siblings):** trim them from the ribbon cache, below.
+- **From the store (Script Lab):** uninstall it in PowerPoint. The cache cannot
+  hold a store add-in off; it puts itself back at the next start.
+
+`scripts/ribbon-cache.mjs` does the trim; back the file up first and put it
+back afterwards, because it belongs to PowerPoint:
 
 ```powershell
 $cache = "$env:LOCALAPPDATA\Microsoft\Office\16.0\Wef\AppCommands\18.0\PowerPoint.RibbonCache.en-GB"
@@ -227,6 +249,18 @@ Copy-Item "$env:TEMP\RibbonCache.backup" $cache -Force
 
 PowerPoint reads that file at startup, so it has to be closed while it changes.
 
+**Check what the ribbon actually shows before believing any of it**, with a
+deck open rather than the start screen, which has no ribbon:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\listing-shot.ps1 -ListChrome
+```
+
+It prints every tab and every ribbon group. A clean machine on 2026-10-02 gave
+eleven tabs ending at `Help`, and groups ending at `SSF Slide Elements`. This is
+also how the two allowlists in that script were set, and how to re-set them when
+an Office update renames something.
+
 **The pane is scrolled** in the pictures that show tiles, so they carry actual
 ELEMENTS rather than a column of headings. `listing-shot.ps1` does not scroll;
 it is done through the pane's own devtools, which needs PowerPoint started with
@@ -234,6 +268,27 @@ it is done through the pane's own devtools, which needs PowerPoint started with
 1366×768 the pane's viewport is 391 px and the header, search box, tag row,
 "Used in this deck" link and count come to about 389 of it, so the first tile
 sits one pixel below the fold.
+
+**The five states, in the order they were driven on 2026-10-02.** Connect to
+the pane over CDP (`http://127.0.0.1:9444/json/list` names one target, the
+task pane) and set `document.scrollingElement.scrollTop`. Capture between
+steps with `listing-shot.ps1 -CaptureOnly`, which skips making the deck and
+opening the pane and photographs what is already there. Picture 1 is taken on
+the EMPTY deck; the insert happens after it, and the other four show it.
+
+| # | file | state | `scrollTop` |
+| --- | --- | --- | --- |
+| 1 | `listing-screenshot.png` | fresh pane, White boxes open | 208 |
+| — | — | click the tile `Hierarchy, 3 levels, 1-3-2 boxes`, wait for the delta | — |
+| 4 | `listing-inserted.png` | scroll to the bottom | max (2548) |
+| 5 | `listing-used.png` | click "See what this deck already uses" | 74 |
+| 3 | `listing-search.png` | type `process` into the search box | 253 |
+| 2 | `listing-open-all.png` | clear the search, click "Open all" | tile `White boxes, 2 pointing at one in the middle` 79 px below the fold |
+
+The offsets are pixels into a particular build's pane and will not survive a
+layout change; they are written down as a STARTING POINT for the next retake,
+not as a constant. What does not change is the order, because picture 1 needs
+an empty slide and the rest need the element on it.
 
 ### Taking it
 
@@ -266,11 +321,32 @@ change something outside this repository:
    2026-09-16: the cache was trimmed to this add-in alone with PowerPoint shut,
    and the copy that started next listed two — this one and `wa104380862`, which
    is Script Lab, installed from AppSource. The two sideloaded siblings stayed
-   off. Script Lab draws a TAB rather than a ribbon group, it is Microsoft's own
-   developer tool, and the committed shot has always carried it; taking it off
-   would mean uninstalling it rather than editing a cache, which is the owner's
-   call and not worth making. So trim the two GUIDs and expect the store one
-   back.
+   off.
+
+   **This paragraph used to end by waving that away, and it cost the
+   submission.** It said Script Lab draws a tab rather than a group, that it is
+   Microsoft's own developer tool, that the committed shot had always carried
+   it, and that taking it off would mean uninstalling it — "the owner's call and
+   not worth making". AppSource failed the submission on exactly that tab on
+   2026-09-30, under policy 100.3.2.2. Every clause of the reasoning was true
+   and the conclusion was wrong: the policy is about what is in the PICTURE, and
+   it does not care whose add-in it is, whether it draws a tab or a group, or
+   how awkward it is to remove.
+
+   **So a store add-in has to be UNINSTALLED for the capture, not trimmed.**
+   Editing the cache cannot hold it: it puts itself back at the next start, as
+   the 2026-09-16 measurement above says. Uninstall it from PowerPoint's own
+   Office Add-ins dialog (Home → Add-ins → More Add-ins → My Add-ins → right
+   click → Remove), take the pictures, and reinstall it afterwards — Script Lab
+   is how `probe/probe-snippet.ts` gets run on a host, so leaving it off is its
+   own quiet cost. Trim the two sideloaded GUIDs as before, and expect nothing
+   to come back.
+
+   **And none of this is trusted to memory any more.** `listing-shot.ps1`
+   refuses the shutter when the ribbon carries any tab or group it does not
+   recognise, so the capture fails rather than shipping. The old arrangement
+   could not have caught Script Lab in principle: `ribbon-cache.mjs` takes a
+   list of ids to DROP, so it removes only what somebody remembered to name.
 2. **The status bar's language indicator** ("English (Denmark)"). Right-click
    the status bar and untick **Language**. It is a display setting, it does not
    change the editing language, and it did not survive a PowerPoint restart when

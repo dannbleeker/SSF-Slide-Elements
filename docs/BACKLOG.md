@@ -42,6 +42,27 @@ Left:
 1. **The Partner Center submission** of `manifest-prod.xml`. The owner's, and
    the only step that needs a Microsoft sign-in.
 
+   **Submitted 2026-09-24. FAILED certification 2026-09-30**, on one finding and
+   nothing else: policy **100.3.2.2 Content and Quality**, "Images contain
+   references to another add-in, kindly update the images", against Offer
+   Listing → Screenshots. The reference was a **Script Lab tab** in all five
+   pictures — a store add-in that had been left on the ribbon on purpose, with
+   the reasoning written down in `docs/LISTING.md`.
+
+   Nothing was found wrong with the package, the manifest, the pane, the test
+   deck or the notes. **No code changed and no deploy is needed**: the pictures
+   live in `docs/` and in Partner Center, and the site does not serve them.
+
+   Done since, 2026-10-02: the five pictures retaken against build `2cbeb7a`
+   with Script Lab uninstalled and the siblings trimmed, and
+   `scripts/listing-shot.ps1` now REFUSES the shutter while the ribbon carries
+   anything it does not recognise, so the next retake cannot repeat it. The
+   old guard could not have caught it: `ribbon-cache.mjs` takes a list of ids
+   to DROP and removes only what somebody remembered to name.
+
+   **Left: re-upload the five screenshots in Partner Center and resubmit.** The
+   owner's, like the first submission.
+
 ## Settled — do not re-open
 
 ### The run's skip branch is defensive, not reachable by a COM deletion
